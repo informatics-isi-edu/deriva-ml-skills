@@ -2,11 +2,15 @@
 
 Denormalization joins related tables into a single flat table (a "wide table") suitable for ML frameworks. It follows foreign key relationships automatically, handling both direct and multi-hop FK chains.
 
+> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## Quick Reference
 
 **MCP tool — schema exploration (no dataset needed):**
 ```
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"]
 )
 ```
@@ -14,7 +18,9 @@ Returns column names/types, join path, and global row counts per table — no da
 
 **MCP tool — dataset-scoped info:**
 ```
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"],
     dataset_rid="2-XXXX",
     version="1.0.0"
@@ -24,7 +30,9 @@ Same shape info but with dataset-scoped row counts. Add `limit=50` to also fetch
 
 **MCP tool — with row preview:**
 ```
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"],
     dataset_rid="2-XXXX",
     version="1.0.0",
@@ -61,16 +69,18 @@ Returns `columns`, `join_path`, `tables` (with `row_count`, `is_asset`, `asset_b
 
 ## Discovering Columns Before Denormalizing
 
-Call `preview_denormalized_dataset` with just `include_tables` (no dataset RID, no limit) to preview the schema shape without fetching any data. This is fast and helps you:
+Call `deriva_ml_denormalize_dataset` with just `include_tables` (no dataset RID, no limit) to preview the schema shape without fetching any data. This is fast and helps you:
 - See what columns a denormalization would produce
 - Verify FK paths resolve correctly before running expensive queries
-- Find the correct column name for `stratify_by_column` in `split_dataset`
+- Find the correct column name for `stratify_by_column` in `deriva_ml_split_dataset`
 - Debug ambiguous FK path errors without waiting for data
 - Estimate total data size before committing to a download
 
 **MCP tool (no dataset needed):**
 ```
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"]
 )
 ```
@@ -272,7 +282,7 @@ for _, row in valid.iterrows():
 
 **Cause:** No table in `include_tables` has dataset members. Denormalize needs at least one table with members to drive the output.
 
-**Fix:** Ensure at least one table in `include_tables` is a registered element type with members in this dataset. Check with resource `deriva://dataset/{rid}/members`.
+**Fix:** Ensure at least one table in `include_tables` is a registered element type with members in this dataset. Check with `deriva_ml_list_dataset_members(hostname=..., catalog_id=..., dataset_rid=...)`.
 
 ### Row count doesn't match expectations
 
@@ -280,4 +290,4 @@ for _, row in valid.iterrows():
 
 **Cause:** Row count equals the number of primary table members (the first table in `include_tables` with members). It is NOT the count of the joined table. One-to-many or many-to-many joins do not duplicate rows — each primary member appears exactly once.
 
-**Fix:** Check resource `deriva://dataset/{rid}/members` for the primary table to confirm the expected count.
+**Fix:** Check `deriva_ml_list_dataset_members(hostname=..., catalog_id=..., dataset_rid=...)` for the primary table to confirm the expected count.

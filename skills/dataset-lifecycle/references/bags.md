@@ -1,5 +1,7 @@
 # Dataset Bags (BDBags)
 
+> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## Table of Contents
 
 - [What is a Bag?](#what-is-a-bag)
@@ -33,7 +35,7 @@ A bag for a specific dataset version includes:
 1. **Member records** — All records from registered element types that belong to the dataset (e.g., Image, Subject rows), stored as CSV files per table and loaded into SQLite.
 2. **Related records** — Data from tables reachable via foreign key paths from member records (see [How Bag Contents Are Determined](#how-bag-contents-are-determined)).
 3. **Nested datasets** — Child datasets are included recursively with all their members. Navigate with `bag.list_dataset_children()`.
-4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `bag.resource deriva://table/{name}/features ()`.
+4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `bag.fetch_table_features()`.
 5. **Vocabulary terms** — Controlled vocabulary terms referenced by included records, exported separately.
 6. **Asset files** — Binary files (images, model weights, etc.) referenced by member records, fetched when `materialize=True`.
 7. **Checksums** — Every file has a cryptographic checksum for integrity verification.
@@ -45,7 +47,7 @@ A bag contains two categories of data: **directly included members** and **FK-re
 
 ### 1. Directly included members
 
-These are the records you explicitly added to the dataset with `add_dataset_members`. They come from tables registered as **dataset element types** (via `add_dataset_element_type`). Only element-type tables that have members in this dataset serve as export starting points — unregistered tables or registered tables with no members are not starting points.
+These are the records you explicitly added to the dataset with `deriva_ml_add_dataset_members`. They come from tables registered as **dataset element types** (via `deriva_ml_add_dataset_element_type`). Only element-type tables that have members in this dataset serve as export starting points — unregistered tables or registered tables with no members are not starting points.
 
 ### 2. FK-reachable rows (related records)
 
@@ -62,7 +64,7 @@ From each directly included member, the export follows foreign key relationships
 
 The same table can be reachable via multiple FK paths. For example, if your schema has both Subject→Image and Encounter→Image relationships, and the dataset contains both Subject and Encounter members, then Images are reachable through two different paths. The bag contains the **union** of all rows reached by any path — an Image included via either path will appear in the bag.
 
-This means you may see more rows for a table than you'd expect from any single FK relationship. The `estimate_bag_size` tool approximates this by taking the maximum count across paths — the true count may be larger when paths produce non-overlapping rows.
+This means you may see more rows for a table than you'd expect from any single FK relationship. The `deriva_ml_bag_info` tool approximates this by taking the maximum count across paths — the true count may be larger when paths produce non-overlapping rows.
 
 ### Example
 
@@ -80,9 +82,9 @@ Each bag is tied to a **catalog snapshot** — the exact catalog state at the ti
 
 - The same dataset RID + version always produces the same data
 - Changes made to the catalog after the version was created (new features, updated records, new members) are **not** included in existing versions
-- To capture recent changes, call `increment_dataset_version` first, then download the new version
+- To capture recent changes, call `deriva_ml_increment_dataset_version` first, then download the new version
 
-> **Common mistake:** A bag does NOT contain everything in the catalog — it contains only what was reachable from the dataset's members at the time the version was created. If you add new members, upload new feature values, or modify records *after* the version was created, those changes are invisible to that version. You must call `increment_dataset_version` to create a new snapshot that captures the current state, then download that new version. This is the most common source of "my data is missing from the bag" errors.
+> **Common mistake:** A bag does NOT contain everything in the catalog — it contains only what was reachable from the dataset's members at the time the version was created. If you add new members, upload new feature values, or modify records *after* the version was created, those changes are invisible to that version. You must call `deriva_ml_increment_dataset_version` to create a new snapshot that captures the current state, then download that new version. This is the most common source of "my data is missing from the bag" errors.
 
 ## Materialization
 
@@ -98,10 +100,6 @@ Bags are cached locally by checksum. When you download the same dataset version 
 The cache location can be configured via the `cache_dir` argument when creating a DerivaML instance. Read the `deriva://storage/cache` resource to see cached bags, and use Python API `ml.clear_cache()` to remove all cached data.
 
 ## Downloading a Bag
-
-### MCP tool
-
-Call Python API `dataset.download_dataset_bag(version)` with `dataset_rid` and `version`. Returns JSON with `bag_path`, `bag_tables` inventory, `dataset_types`, and `execution_rid`.
 
 ### Python API
 
@@ -132,9 +130,9 @@ bag = dataset.download_dataset_bag(version="1.0.0", use_minid=True)
 
 Two ways to preview bag contents without downloading:
 
-### estimate_bag_size (tool)
+### deriva_ml_bag_info (tool)
 
-Call `estimate_bag_size` with `dataset_rid` and `version`. Returns row counts and asset file sizes per table. Use this to:
+Call `deriva_ml_bag_info` with `hostname`, `catalog_id`, `dataset_rid`, and `version`. Returns row counts, asset file sizes per table, and a manifest preview. (The legacy `estimate_bag_size` tool was subsumed by this — `deriva_ml_bag_info` covers both size estimation and manifest inspection.) Use this to:
 - Verify the bag includes the expected tables
 - Decide whether to increase the timeout or use `exclude_tables`
 - Estimate disk space needed
@@ -142,12 +140,12 @@ Call `estimate_bag_size` with `dataset_rid` and `version`. Returns row counts an
 Supports the same `exclude_tables` parameter as Python API `dataset.download_dataset_bag(version)`, so you can preview the effect of pruning FK branches before committing to a download:
 
 ```
-estimate_bag_size(dataset_rid="2-XXXX", version="1.0.0", exclude_tables=["Institution"])
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="2-XXXX", version="1.0.0", exclude_tables=["Institution"])
 ```
 
 ### bag-preview resource
 
-Read `deriva://dataset/{rid}/bag-preview` to see projected FK paths and tables without running any size queries.
+Read `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` to see projected FK paths and tables without running any size queries.
 
 ## Validating Bag Contents
 
@@ -192,8 +190,8 @@ images_df = bag.get_table_as_dataframe("Image")
 subjects = list(bag.get_table_as_dict("Subject"))
 
 # List members grouped by table
-members = bag.resource deriva://dataset/{rid}/members ()  # {"Image": [...], "Subject": [...]}
-members = bag.resource deriva://dataset/{rid}/members (recurse=True)  # includes nested datasets
+members = bag.list_dataset_members()  # {"Image": [...], "Subject": [...]}
+members = bag.list_dataset_members(recurse=True)  # includes nested datasets
 
 # Check version
 bag.current_version  # DatasetVersion("1.0.0")
@@ -209,7 +207,7 @@ bag.execution_rid    # "3-XYZ" or None
 features = bag.find_features("Image")  # [Feature(name="Diagnosis", ...)]
 
 # Fetch feature values (same selector API as live Dataset)
-feature_df = bag.resource deriva://table/{name}/features (
+feature_df = bag.fetch_table_features(
     table="Image",
     feature_name="Diagnosis",
     selector="newest",           # or: workflow="classify", execution="3-XYZ"
@@ -237,12 +235,9 @@ Denormalize follows FK chains automatically, including through intermediate tabl
 ### Navigating dataset hierarchy
 
 ```python
-# Nested child datasets (e.g., Training/Testing splits)
-children = bag.list_dataset_children()        # direct children
-children = bag.list_dataset_children(recurse=True)  # all descendants
-
-# Parent datasets
-parents = bag.list_dataset_parents()
+# Both directions of nested relationships in a single call
+relations = bag.list_dataset_children()              # direct parents AND children
+relations = bag.list_dataset_children(recurse=True)  # full ancestor + descendant tree
 
 # Element types registered for this dataset
 element_types = bag.list_dataset_element_types()
@@ -346,9 +341,9 @@ DatasetSpecConfig(rid="28EA", version="0.4.0", exclude_tables=["Study", "Institu
 | Resource / Tool | Purpose |
 |-----------------|---------|
 | Python API `dataset.download_dataset_bag(version)` | Download bag (supports `exclude_tables`, `timeout`, `materialize`) |
-| `estimate_bag_size` | Preview row counts and asset sizes per table |
+| `deriva_ml_bag_info` | Preview row counts, asset sizes per table, and manifest (subsumes legacy estimate_bag_size) |
 | Python API bag inspection | Cross-validate bag contents against live catalog |
-| `preview_denormalized_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
-| `deriva://dataset/{rid}/bag-preview` | Preview FK paths and tables before downloading |
-| `deriva://catalog/dataset-element-types` | Check registered element types |
+| `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
+| `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` | Preview FK paths and tables before downloading |
+| `deriva://catalog/{h}/{c}/ml/registries` | Element types and other ML registries |
 | `deriva://storage/cache` | View cached bags |

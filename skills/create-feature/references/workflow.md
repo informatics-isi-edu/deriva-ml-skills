@@ -2,6 +2,8 @@
 
 Step-by-step MCP tool and Python API examples for creating and populating features. For background concepts (feature types, multivalued features, selection), see `concepts.md`.
 
+> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## Table of Contents
 
 1. [Check Existing Features](#check-existing-features)
@@ -19,24 +21,25 @@ Step-by-step MCP tool and Python API examples for creating and populating featur
 
 Before creating a new feature, review what already exists.
 
-- Read `deriva://catalog/features` to list all features with their target tables and column schemas.
-- Read `deriva://feature/{table_name}/{feature_name}` for details on a specific feature.
-- Check existing feature values with `deriva://table/{table_name}/feature-values/newest` to see what annotations already exist.
+- Call `deriva_ml_list_features(hostname="data.example.org", catalog_id="1")` to list all features with their target tables and column schemas.
+- Call `deriva_ml_get_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")` for details on a specific feature.
+- Check existing feature values with `deriva_ml_list_feature_values(hostname=..., catalog_id=..., target_table="Image", selector="newest")` to see what annotations already exist.
 
 ## Create a Vocabulary (if needed)
 
-If your feature needs a new set of terms, create the vocabulary first. See the `manage-vocabulary` skill for full details.
+If your feature needs a new set of terms, create the vocabulary first. See `/deriva:manage-vocabulary` *(tier-1, deriva-skills)* for full details.
 
 In brief:
-1. Call `create_vocabulary` with `vocabulary_name` and `comment`.
-2. Call `add_term` for each term with `vocabulary_name`, `term_name`, `description`, and optional `synonyms`.
+1. Call `create_vocabulary(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>", comment=...)`.
+2. Call `add_term(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>", name=..., description=..., synonyms=[...])` for each term.
 
 **Always provide meaningful descriptions for terms.** They appear in the UI and help annotators understand what each label means.
 
 ## Create the Feature
 
-Call `create_feature` with:
-- `table_name`: the target table whose records will be labeled (e.g., `"Image"`)
+Call `deriva_ml_create_feature` with:
+- `hostname`, `catalog_id`
+- `target_table`: the target table whose records will be labeled (e.g., `"Image"`)
 - `feature_name`: unique name for the feature (e.g., `"Tumor_Classification"`)
 - `comment`: description of what this feature represents
 - `terms` (optional): list of vocabulary table names whose terms can be values (e.g., `["Tumor_Grade"]`)
@@ -49,9 +52,9 @@ This creates the feature record and a `{FeatureName}_Feature_Value` association 
 
 ### Examples
 
-**Term-based feature** (classification labels): call with `table_name`: `"Image"`, `feature_name`: `"Tumor_Classification"`, `terms`: `["Tumor_Grade"]`.
+**Term-based feature** (classification labels): call with `target_table`: `"Image"`, `feature_name`: `"Tumor_Classification"`, `terms`: `["Tumor_Grade"]`.
 
-**Asset-based feature** (segmentation masks): call with `table_name`: `"Image"`, `feature_name`: `"Segmentation_Mask"`, `assets`: `["Mask_Image"]`.
+**Asset-based feature** (segmentation masks): call with `target_table`: `"Image"`, `feature_name`: `"Segmentation_Mask"`, `assets`: `["Mask_Image"]`. (Asset tables are created via the generic `create_table` tool with the standard hatrac column shape — see `/deriva:create-table` *(tier-1, deriva-skills)*. The legacy `create_asset_table` shortcut was not ported.)
 
 **Mixed feature** (labels with overlays): include both `terms` and `assets`.
 
@@ -63,23 +66,25 @@ Feature values require an active execution for provenance tracking. Every label 
 
 ### MCP workflow
 
-**Step 1:** Call `create_execution` with `workflow_name`, `workflow_type`, and `description`. Then call `start_execution`.
+**Step 1:** Create a workflow and execution.
 
-**Step 2:** Add values using one of two tools:
+Call `deriva_ml_create_workflow(hostname=..., catalog_id=..., name=..., workflow_type=..., description=...)`.
 
-**For simple features** (single term or asset column), call `add_feature_value` with:
-- `table_name`: the target table (e.g., `"Image"`)
+Then call `deriva_ml_create_execution(hostname=..., catalog_id=..., workflow_rid=<workflow_rid>, description=...)`.
+
+Then call `deriva_ml_start_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)`.
+
+**Step 2:** Add values using `deriva_ml_add_feature_values` (one tool — singular vs multi-column shape was unified):
+
+- `hostname`, `catalog_id`
+- `target_table`: the target table (e.g., `"Image"`)
 - `feature_name`: the feature name (e.g., `"Tumor_Classification"`)
-- `entries`: list of dicts, each with `target_rid` and `value` (a term name or asset RID)
+- `values`: list of dicts, each with `target_rid` plus column values matching the feature's schema. For a single-column feature, supply `target_rid` plus the one term column (e.g., `Tumor_Grade`). For a multi-column feature, include all required columns and any optional ones you have values for.
 - `execution_rid` (optional): defaults to the active execution
 
-**For features with multiple columns** (e.g., term + confidence), call `add_feature_value_record` with:
-- `table_name`: the target table
-- `feature_name`: the feature name
-- `entries`: list of dicts, each with `target_rid` plus column values matching the feature's schema
-- `execution_rid` (optional): defaults to the active execution
+**Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. (Use `deriva_ml_abort_execution` instead if something went wrong.) Feature values are written directly to the catalog by `deriva_ml_add_feature_values` — no Python API `exe.upload_execution_outputs()` call is needed unless you also registered file assets with Python API `exe.asset_file_path()`.
 
-**Step 3:** Call `stop_execution` to finalize. Feature values are written directly to the catalog by `add_feature_value` — no Python API `exe.upload_execution_outputs()` call is needed unless you also registered file assets with Python API `exe.asset_file_path()`.
+> Note: the legacy `add_feature_value` (singular) and `add_feature_value_record` (multi-column) tools were both subsumed by `deriva_ml_add_feature_values` (plural). Pass a single-element list when you only have one value.
 
 ### Python API with context manager
 
@@ -87,7 +92,7 @@ Feature values require an active execution for provenance tracking. Every label 
 from deriva_ml import DerivaML, ExecutionConfiguration
 
 ml = DerivaML(hostname, catalog_id)
-workflow = ml.lookup_workflow_by_url("https://github.com/my-org/my-repo")
+workflow = ml.find_workflow_by_url("https://github.com/my-org/my-repo")
 
 config = ExecutionConfiguration(
     workflow=workflow,
@@ -116,21 +121,15 @@ with ml.create_execution(config) as exe:
 
 ## Query Feature Values
 
-### Preferred: Use dedicated feature tools and resources
+### Preferred: Use the typed feature tool
 
-Always prefer the feature-specific tools and resources over generic `preview_table`:
+Always prefer the dedicated `deriva_ml_list_feature_values` tool over generic table queries:
 
-**Browse values via resources:**
-- Read `deriva://feature/{table}/{name}/values` — all values for a specific feature, with full provenance
-- Read `deriva://table/{table}/feature-values` — all feature values for a table, grouped by feature name
-- Read `deriva://table/{table}/feature-values/newest` — deduplicated to one value per record per feature
-
-**Fetch with selection via tool:**
-
-Call resource `deriva://table/{name}/features` with:
-- `table_name`: the target table (e.g., `"Image"`)
+Call `deriva_ml_list_feature_values` with:
+- `hostname`, `catalog_id`
+- `target_table`: the target table (e.g., `"Image"`)
 - `feature_name` (optional): fetch only a specific feature
-- `selector`: `"newest"` to pick the most recent value per record
+- `selector`: `"newest"` / `"first"` / `"latest"` / `"majority_vote"` to pick one value per record
 - `workflow`: a Workflow RID or Workflow_Type name to filter by source workflow
 - `execution`: an Execution RID to filter by a specific execution run
 
@@ -138,17 +137,17 @@ Only one of `selector`, `workflow`, or `execution` may be specified. See `concep
 
 ### Fallback: Filtered queries on the feature value table
 
-When you need to filter by specific column values (e.g., "all images with Grade III"), use `preview_table` on the feature value table directly:
+When you need to filter by specific column values (e.g., "all images with Grade III"), use `query_attribute` on the feature value table directly:
 
-Call `preview_table` with `table_name` set to the feature value table (e.g., `"Tumor_Classification_Feature_Value"`). Use `filters` to narrow results (e.g., `{"Image": "2-IMG1"}` for a specific image, or `{"Tumor_Grade": "Grade III"}` for all images with a specific grade).
+Call `query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Tumor_Classification_Feature_Value", filter={"Tumor_Grade": "Grade III"})`. Use `filter` to narrow results (e.g., `{"Image": "2-IMG1"}` for a specific image).
 
-This is the only case where `preview_table` is appropriate for feature values — the dedicated tools above don't support arbitrary column filters.
+This is the only case where `query_attribute` is appropriate for feature values — the dedicated tool above doesn't support arbitrary column filters.
 
 ## Managing Features
 
-To **delete a feature**, call `delete_feature` with `table_name` and `feature_name`. This removes the feature and its value table — existing data will be lost.
+To **delete a feature**, call `deriva_ml_delete_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")`. This removes the feature and its value table — existing data will be lost.
 
-To **list all features**, read the `deriva://catalog/features` resource.
+To **list all features**, call `deriva_ml_list_features(hostname="data.example.org", catalog_id="1")`.
 
 ## Complete Example
 
@@ -156,27 +155,29 @@ End-to-end MCP workflow: create a vocabulary, create a feature, and add values.
 
 **Step 1:** Create the vocabulary.
 
-Call `create_vocabulary` with `vocabulary_name`: `"Cell_Type"`, `comment`: `"Cell type classifications for microscopy images"`.
+Call `create_vocabulary(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Cell_Type", comment="Cell type classifications for microscopy images")`.
 
 Then call `add_term` for each term:
-- `term_name`: `"Epithelial"`, `description`: `"Epithelial cells lining surfaces and cavities"`
-- `term_name`: `"Stromal"`, `description`: `"Connective tissue support cells"`
-- `term_name`: `"Immune"`, `description`: `"Immune system cells including lymphocytes and macrophages"`
-- `term_name`: `"Necrotic"`, `description`: `"Dead or dying cells"`
+- `add_term(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Cell_Type", name="Epithelial", description="Epithelial cells lining surfaces and cavities")`
+- `add_term(...table="Cell_Type", name="Stromal", description="Connective tissue support cells")`
+- `add_term(...table="Cell_Type", name="Immune", description="Immune system cells including lymphocytes and macrophages")`
+- `add_term(...table="Cell_Type", name="Necrotic", description="Dead or dying cells")`
 
 **Step 2:** Create the feature.
 
-Call `create_feature` with `table_name`: `"Image"`, `feature_name`: `"Cell_Classification"`, `terms`: `["Cell_Type"]`, `comment`: `"Primary cell type visible in microscopy image"`.
+Call `deriva_ml_create_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Cell_Classification", terms=["Cell_Type"], comment="Primary cell type visible in microscopy image")`.
 
 **Step 3:** Add values within an execution.
 
-Call `create_execution` with `workflow_name`: `"Expert Cell Annotation"`, `workflow_type`: `"Annotation"`, `description`: `"Expert cell type annotation - batch 1"`. Then call `start_execution`.
+Call `deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1", name="Expert Cell Annotation", workflow_type="Annotation", description="Expert cell type annotation workflow")`.
 
-Call `add_feature_value` with `table_name`: `"Image"`, `feature_name`: `"Cell_Classification"`, `entries`:
-- `{"target_rid": "2-IMG1", "value": "Epithelial"}`
-- `{"target_rid": "2-IMG2", "value": "Immune"}`
+Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description="Expert cell type annotation - batch 1")`.
 
-Call `stop_execution` to finalize. Feature values were already written to the catalog by `add_feature_value`.
+Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")`.
+
+Call `deriva_ml_add_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Cell_Classification", values=[{"target_rid": "2-IMG1", "Cell_Type": "Epithelial"}, {"target_rid": "2-IMG2", "Cell_Type": "Immune"}])`.
+
+Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")` to finalize. Feature values were already written to the catalog by `deriva_ml_add_feature_values`.
 
 ## Complete Example: Python API
 

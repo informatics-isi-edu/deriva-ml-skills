@@ -10,15 +10,9 @@ DerivaML stores downloaded datasets, execution working directories, and cached a
 
 > **RAG-first:** Start with `rag_search("storage cache dataset", doc_type="catalog-data")` to discover relevant datasets and executions before managing storage. This helps identify which cached items correspond to which catalog entities.
 
-## Prerequisite: Connect to a Catalog
+## Stateless model
 
-Most storage operations require an active catalog connection to validate RIDs and versions.
-
-```
-connect_catalog(hostname="...", catalog_id="...")
-```
-
-If already connected (check `deriva://catalog/connections`), skip this step.
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Understanding the Storage Layout
 
@@ -26,9 +20,9 @@ All DerivaML local data lives under a **working directory**, typically `~/.deriv
 
 | Directory | Contents | Grows from |
 |-----------|----------|------------|
-| `cache/` | Downloaded dataset bags (BDBags), keyed by RID + checksum | Python API `dataset.download_dataset_bag(version)`, Python API `exe.download_dataset_bag()`, `cache_dataset` |
+| `cache/` | Downloaded dataset bags (BDBags), keyed by RID + checksum | Python API `dataset.download_dataset_bag(version)`, Python API `exe.download_dataset_bag()`, `deriva_ml_cache_dataset` |
 | `cache/assets/` | Individually cached assets (model weights, etc.), keyed by RID + MD5 | `AssetSpec(cache=True)` |
-| `execution_{RID}/` | Execution working directories — staged output files, logs | `create_execution` |
+| `execution_{RID}/` | Execution working directories — staged output files, logs | `deriva_ml_create_execution` |
 | Other dirs | Hydra configs, client exports, temporary files | Various |
 
 ### Cache vs Working Directory
@@ -63,22 +57,22 @@ default_deriva(hostname="...", catalog_id="...", cache_dir="/fast-ssd/deriva-cac
 ### Browse all storage
 
 ```
-# Python API or Bash: inspect ~/.deriva-ml/ ()
+# Bash: ls -la ~/.deriva-ml/
 ```
 
-Returns every cached bag, execution directory, and other artifact with size, category, and last-modified date.
+Returns every cached bag, execution directory, and other artifact.
 
 **Filter by category:**
 
 ```
-# Python API or Bash: inspect ~/.deriva-ml/ (filter="cache")       # Only cached dataset bags
-# Python API or Bash: inspect ~/.deriva-ml/ (filter="executions")  # Only execution working directories
+# Bash: du -sh ~/.deriva-ml/*/cache/      # Only cached dataset bags
+# Bash: du -sh ~/.deriva-ml/*/execution_*  # Only execution working directories
 ```
 
 ### Check a specific dataset's cache status
 
 ```
-bag_info(dataset_rid="28CT", version="0.9.0")
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
 ```
 
 Returns:
@@ -86,14 +80,13 @@ Returns:
 - `total_asset_bytes` / `total_asset_size`: how much space the bag uses
 - `tables`: per-table row counts and asset sizes
 - `cache_path`: where it lives on disk
+- Manifest preview
+
+(Note: `deriva_ml_bag_info` subsumes both the legacy `bag_info` and `estimate_bag_size` — it works whether or not the bag is already cached.)
 
 ### Estimate download size before caching
 
-```
-estimate_bag_size(dataset_rid="28CT", version="0.9.0")
-```
-
-Same as `bag_info` but does not require the bag to be cached — estimates from catalog metadata.
+The same `deriva_ml_bag_info` call works for un-cached bags — when the bag isn't local, the response uses catalog metadata to estimate size.
 
 ## Phase 2: Clean Up — Free Disk Space
 
@@ -135,7 +128,7 @@ Execution working directories may contain outputs that were never uploaded — f
 ### Find incomplete executions
 
 ```
-# Python API or Bash: inspect ~/.deriva-ml/ (filter="executions")
+# Bash: ls -la ~/.deriva-ml/<host>/<catalog>/execution_*
 ```
 
 Look for execution directories that:
@@ -147,21 +140,14 @@ Look for execution directories that:
 For each execution directory found, check its catalog status:
 
 ```
-get_record(table_name="Execution", rid="<execution_rid>")
+deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
 ```
 
 If status is `running` or `pending` (not `completed`), the outputs may not have been uploaded.
 
 ### Resume and upload
 
-```
-restore_execution(execution_rid="<execution_rid>")
-```
-
-This restores the execution context so you can:
-1. Inspect the working directory contents
-2. Register any output files with `exe.asset_file_path()` (Python API)
-3. Call `stop_execution()` then `exe.upload_execution_outputs()` (Python API) to save them to the catalog
+> **Gap:** the legacy `restore_execution(rid)` tool was not ported to the new MCP surface. There is no MCP tool to resume an aborted execution. **Workaround:** if an execution was aborted, manually inspect its state via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")`, salvage any local outputs from the working directory by hand (for example, copy them aside or upload them via `update_asset` / a fresh upload script), then create a fresh execution with `deriva_ml_create_execution` for any new work. Track the relationship in the new execution's description for provenance.
 
 ### After successful upload, clean up
 
@@ -179,7 +165,7 @@ Download datasets or assets into the local cache **without creating an execution
 ### Cache a dataset bag
 
 ```
-cache_dataset(dataset_rid="28CT", version="0.9.0")
+deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
 ```
 
 Downloads the full bag (including materialized assets) into the cache. Subsequent calls to Python API `exe.download_dataset_bag()` with the same RID and version will reuse the cached copy.
@@ -187,7 +173,7 @@ Downloads the full bag (including materialized assets) into the cache. Subsequen
 ### Cache metadata only (no asset files)
 
 ```
-cache_dataset(dataset_rid="28CT", version="0.9.0", materialize=false)
+deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0", materialize=false)
 ```
 
 Downloads table data but skips large asset files. Useful for inspecting schema and row counts.
@@ -195,7 +181,7 @@ Downloads table data but skips large asset files. Useful for inspecting schema a
 ### Cache an individual asset
 
 ```
-cache_dataset(asset_rid="3WSE")
+deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", asset_rid="3WSE")
 ```
 
 Downloads a single asset (e.g., pre-trained model weights) into the asset cache.
@@ -203,7 +189,7 @@ Downloads a single asset (e.g., pre-trained model weights) into the asset cache.
 ### Verify cache after pre-fetching
 
 ```
-bag_info(dataset_rid="28CT", version="0.9.0")
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
 ```
 
 Confirm `cache_status` is `cached_materialized`.
@@ -212,18 +198,18 @@ Confirm `cache_status` is `cached_materialized`.
 
 The recommended pre-flight sequence:
 
-1. **Validate** — `validate_rids(dataset_rids=[...], asset_rids=[...])` — confirm everything exists
-2. **Check cache** — `bag_info(dataset_rid=..., version=...)` — see what's already cached
-3. **Pre-fetch** — `cache_dataset(...)` — download anything that's `not_cached`
-4. **Verify** — `bag_info(...)` — confirm `cached_materialized`
-5. **Run** — `create_execution(...)` → downloads hit cache instantly
+1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result. (The legacy single-shot `validate_rids` tool was removed.)
+2. **Check cache** — `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=..., version=...)` — see what's already cached
+3. **Pre-fetch** — `deriva_ml_cache_dataset(...)` — download anything that's `not_cached`
+4. **Verify** — `deriva_ml_bag_info(...)` — confirm `cached_materialized`
+5. **Run** — `deriva_ml_create_execution(...)` → downloads hit cache instantly
 
 ## Storage Manager Web App
 
 For a visual dashboard of storage usage, use the Storage Manager app:
 
 ```
-start_app(app_id="storage-manager")
+start_app(hostname="data.example.org", catalog_id="1", app_id="storage-manager")
 ```
 
 This launches a web UI that shows all cached data with filters, sizes, and bulk delete. Requires the `deriva-ml-apps` repo to be built.
@@ -232,9 +218,8 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 
 - Bash `ls -la ~/.deriva-ml/` — Browse all local storage
 - Bash `rm -rf ~/.deriva-ml/...` — Remove cached items by RID
-- `bag_info` — Check cache status and size for a specific dataset version
-- `cache_dataset` — Pre-fetch a dataset or asset into cache
-- `estimate_bag_size` — Estimate download size before caching
+- `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version (subsumes legacy bag_info / estimate_bag_size)
+- `deriva_ml_cache_dataset` — Pre-fetch a dataset or asset into cache
 
 ## Related Skills
 

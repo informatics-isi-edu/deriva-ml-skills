@@ -1,5 +1,7 @@
 # Restructuring Assets for ML Training
 
+> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -23,17 +25,7 @@ The tool reads the bag's metadata (dataset types, feature values, vocabulary ter
 
 ## Basic Usage
 
-### MCP tool
-
-```
-restructure_assets(
-    dataset_rid="2-XXXX",
-    asset_table="Image",
-    output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    version="1.0.0"
-)
-```
+`restructure_assets` is a Python API on the downloaded bag — there is no MCP tool equivalent. Download the bag first, then call the method.
 
 ### Python API
 
@@ -138,8 +130,6 @@ bag.restructure_assets(
     value_selector=FeatureRecord.select_majority_vote("Diagnosis_Type"),
 )
 ```
-
-**MCP tool:** The Python API `bag.restructure_assets()` MCP tool also accepts `value_selector` as a string: `"newest"`, `"first"`, `"latest"`, or `"majority_vote"`.
 
 ### Custom selector
 
@@ -301,8 +291,8 @@ images_df = bag.get_table_as_dataframe("Image")
 subjects = list(bag.get_table_as_dict("Subject"))
 
 # List members grouped by table
-members = bag.resource deriva://dataset/{rid}/members ()  # {"Image": [...], "Subject": [...]}
-members = bag.resource deriva://dataset/{rid}/members (recurse=True)  # includes nested datasets
+members = bag.list_dataset_members()  # {"Image": [...], "Subject": [...]}
+members = bag.list_dataset_members(recurse=True)  # includes nested datasets
 ```
 
 ### Feature values
@@ -312,7 +302,7 @@ members = bag.resource deriva://dataset/{rid}/members (recurse=True)  # includes
 features = bag.find_features("Image")  # [Feature(name="Diagnosis", ...)]
 
 # Fetch feature values
-feature_df = bag.resource deriva://table/{name}/features (
+feature_df = bag.fetch_table_features(
     table="Image",
     feature_name="Diagnosis",
     selector="newest",           # or: workflow="classify", execution="3-XYZ"
@@ -335,9 +325,9 @@ rows = bag.denormalize_as_dict(include_tables=["Image", "Subject"])
 ### Dataset hierarchy
 
 ```python
-# Child datasets (e.g., train/test splits)
-children = bag.list_dataset_children()
-children = bag.list_dataset_children(recurse=True)
+# Both directions of nested relationships in one call
+relations = bag.list_dataset_children()
+relations = bag.list_dataset_children(recurse=True)
 
 # Element types registered for this dataset
 element_types = bag.list_dataset_element_types()
@@ -345,18 +335,22 @@ element_types = bag.list_dataset_element_types()
 
 ## Denormalization for Flat DataFrames
 
-The `preview_denormalized_dataset` MCP tool and `bag.denormalize_as_dataframe()` method join dataset tables into a single flat DataFrame, following FK relationships. This is the fastest path from catalog data to ML-ready tabular features.
+The `deriva_ml_denormalize_dataset` MCP tool and `bag.denormalize_as_dataframe()` method join dataset tables into a single flat DataFrame, following FK relationships. This is the fastest path from catalog data to ML-ready tabular features.
 
 ### MCP tool
 
 ```
 # Explore schema shape (no dataset needed)
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"]
 )
 
 # With dataset-scoped data
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"],
     dataset_rid="2-XXXX",
     version="1.0.0",
@@ -430,8 +424,8 @@ bag.restructure_assets(
 |-----------------|---------|
 | Python API `dataset.download_dataset_bag(version)` | Download bag (supports `exclude_tables`, `timeout`, `materialize`) |
 | Python API `bag.restructure_assets()` | Organize assets into ML-ready directory layouts |
-| `preview_denormalized_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
-| `estimate_bag_size` | Preview row counts and asset sizes per table |
-| resource `deriva://table/{name}/features` | Access feature values within a bag |
-| `deriva://dataset/{rid}` | Dataset details including version and element types |
-| `deriva://catalog/features` | Available features for building training labels |
+| `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
+| `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest per table (subsumes legacy estimate_bag_size) |
+| `deriva_ml_list_feature_values` | Access feature values from the catalog (or `bag.fetch_table_features` from a downloaded bag) |
+| `deriva_ml_get_dataset` | Dataset details including version and element types |
+| `deriva_ml_list_features` | Available features for building training labels |

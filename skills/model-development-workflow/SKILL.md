@@ -11,12 +11,9 @@ This skill teaches the end-to-end development workflow for DerivaML projects. Th
 
 Most wasted compute comes from running full-scale training on broken configurations. This workflow catches problems at each tier before they become expensive.
 
-## Prerequisite: Connect to a Catalog
+## Stateless model
 
-All operations require an active catalog connection:
-```
-connect_catalog(hostname="...", catalog_id="...")
-```
+> The new MCP server is stateless — every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. There is no `connect_catalog` step any more — pass `hostname=...` and `catalog_id=...` directly to each tool call.
 
 ## The Three-Tier Development Pattern
 
@@ -67,46 +64,68 @@ A development dataset should:
 ### How to create it
 
 ```
-# 1. Register the element type
-add_dataset_element_type(table_name="Image")
+# 1. Register Image as a dataset element type
+deriva_ml_add_dataset_element_type(
+    hostname="data.example.org",
+    catalog_id="1",
+    dataset_rid="<dev_dataset>",
+    element_table="Image",
+)
 
 # 2. Create the development dataset
-create_dataset(
+deriva_ml_create_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     description="Development subset: 100 chest X-rays, ~20 per diagnosis class, for pipeline validation",
-    dataset_types=["Development"]
+    dataset_types=["Development"],
 )
 
 # 3. Add a representative sample of members
 # Query to find records spanning all classes:
-preview_denormalized_dataset(include_tables=["Image", "Image_Diagnosis"],
-                    dataset_rid="<source>",
-                    limit=200)
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
+    dataset_rid="<source>",
+    include_tables=["Image", "Image_Diagnosis"],
+    limit=200,
+)
 # Pick records that cover all classes, then:
-add_dataset_members(dataset_rid="<dev_dataset>",
-                    member_rids=[...selected RIDs...])
+deriva_ml_add_dataset_members(
+    hostname="data.example.org",
+    catalog_id="1",
+    dataset_rid="<dev_dataset>",
+    members=[...selected RIDs...],
+)
 ```
 
 ### Create a "Development" dataset type
 
-If your catalog doesn't have a "Development" type yet:
+If your catalog doesn't have a "Development" type yet, use the generic `add_term` tool against the `Dataset_Type` vocabulary (the legacy `create_dataset_type_term` was removed):
+
 ```
-create_dataset_type_term(
-    type_name="Development",
+add_term(
+    hostname="data.example.org",
+    catalog_id="1",
+    schema="deriva-ml",
+    table="Dataset_Type",
+    name="Development",
     description="Small representative subset used for pipeline development, debugging, and rapid iteration. Not for production training.",
-    synonyms=["Dev", "Debug"]
+    synonyms=["Dev", "Debug"],
 )
 ```
 
 ### Pin the version
 
 ```
-increment_dataset_version(
+deriva_ml_increment_dataset_version(
+    hostname="data.example.org",
+    catalog_id="1",
     dataset_rid="<dev_dataset>",
-    description="Initial development subset with balanced class representation"
+    description="Initial development subset with balanced class representation",
 )
 ```
 
-Use `get_dataset_spec("<dev_dataset>")` to get the `DatasetSpecConfig` for your config files.
+Use `deriva_ml_get_dataset_spec(hostname="data.example.org", catalog_id="1", dataset_rid="<dev_dataset>")` to get the `DatasetSpecConfig` for your config files.
 
 
 ## Phase 3: Validate Features and Labels
@@ -114,24 +133,39 @@ Use `get_dataset_spec("<dev_dataset>")` to get the `DatasetSpecConfig` for your 
 Before training, confirm the feature schema works with your development data.
 
 **Inspection sequence:**
-1. Read `deriva://feature/Image/<feature_name>` — confirm column structure (required vs optional)
-2. Read `deriva://vocabulary/<vocab_name>` — confirm valid term values
-3. `resource deriva://table/{name}/features (table_name="Image", selector="newest")` — check that labels exist for your dev records
+1. `deriva_ml_get_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="<feature_name>")` — confirm column structure (required vs optional)
+2. `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>")` — confirm valid term values
+3. `deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="<feature_name>", selector="newest")` — check that labels exist for your dev records
 
-**If labels are missing**, add them to the development dataset first:
+**If labels are missing**, add them to the development dataset first. The legacy `start_execution` / `stop_execution` pair was split — create+start, then commit on success or abort on failure:
+
 ```
-create_execution(workflow_name="Dev Labeling", workflow_type="Annotation")
-start_execution()
-add_feature_value(table_name="Image", feature_name="Diagnosis",
-                  entries=[{"target_rid": "...", "value": "Normal"}, ...])
-stop_execution()
+deriva_ml_create_execution(
+    hostname="data.example.org",
+    catalog_id="1",
+    workflow_name="Dev Labeling",
+    workflow_type="Annotation",
+)
+deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<exec_rid>")
+deriva_ml_add_feature_values(
+    hostname="data.example.org",
+    catalog_id="1",
+    target_table="Image",
+    feature_name="Diagnosis",
+    values=[{"target_rid": "...", "value": "Normal"}, ...],
+)
+deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<exec_rid>")
 ```
 
 **Verify the full pipeline** by denormalizing:
 ```
-preview_denormalized_dataset(include_tables=["Image", "Image_Diagnosis"],
-                    dataset_rid="<dev_dataset>",
-                    limit=20)
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
+    dataset_rid="<dev_dataset>",
+    include_tables=["Image", "Image_Diagnosis"],
+    limit=20,
+)
 ```
 This shows you exactly what the training pipeline will see.
 
@@ -151,17 +185,19 @@ uv run deriva-ml-run +experiment=my_experiment dry_run=true
 
 ### With MCP tools
 ```
-create_execution(
+deriva_ml_create_execution(
+    hostname="data.example.org",
+    catalog_id="1",
     workflow_name="My Training",
     workflow_type="Training",
     dataset_rids=["<dev_dataset_rid>"],
-    dry_run=True
+    dry_run=True,
 )
 ```
 
 ### What dry_run validates
 - ✅ Config resolves without errors
-- ✅ Dataset RIDs and versions exist (`validate_rids` runs internally)
+- ✅ Dataset RIDs and versions exist (the runner now calls `get_entities(...)` per candidate table internally — the legacy `validate_rids` tool was removed)
 - ✅ Asset RIDs exist and are downloadable
 - ✅ Data loading code runs without errors
 - ✅ Model initialization works
@@ -181,9 +217,9 @@ Common tier 1 failures:
 Run a real execution against your development dataset. This creates catalog records and tests the full pipeline end-to-end.
 
 ### Pre-flight checklist
-1. `validate_rids(dataset_rids=[...], asset_rids=[...])` — confirm all RIDs
-2. `bag_info(dataset_rid="...", version="...")` — check cache status
-3. `cache_dataset(dataset_rid="...", version="...")` — pre-fetch if needed
+1. Confirm all RIDs by calling `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)` for assets) — the legacy `validate_rids` tool was removed
+2. `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — check cache status (subsumes the legacy `estimate_bag_size`)
+3. `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — pre-fetch if needed
 4. Code committed and version bumped (`bump_version(bump_type="patch")`)
 
 ### Run with small data
@@ -197,10 +233,10 @@ uv run deriva-ml-run +experiment=my_experiment \
 
 ### Verify outputs
 After the run completes:
-1. Check execution status — `get_execution_info()`
-2. Verify outputs were uploaded — `list_asset_executions(asset_rid="...", asset_role="Output")`
+1. Check execution status — `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="...")`
+2. Verify outputs were uploaded — call `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid="...")` for each output asset (or `deriva_ml_find_workflow_executions(hostname=..., catalog_id=..., workflow_rid="...")` for the broader query). The legacy `list_asset_executions` tool was removed.
 3. Inspect output files — download and examine predictions, metrics, model weights
-4. Check provenance chain — `list_nested_executions(execution_rid="...")`
+4. Check provenance chain — `deriva_ml_list_execution_children(hostname=..., catalog_id=..., execution_rid="...")` for descendants and `deriva_ml_list_execution_parents(hostname=..., catalog_id=..., execution_rid="...")` for ancestors. The legacy `list_nested_executions` was split into these two calls.
 
 ### Fix problems at this tier
 Common tier 2 failures:
@@ -218,16 +254,16 @@ Only after tiers 1 and 2 succeed, scale to the full dataset.
 
 If you don't already have one, see the `dataset-lifecycle` skill for:
 - Creating and populating the full dataset
-- Splitting into train/val/test with `split_dataset`
+- Splitting into train/val/test with `deriva_ml_split_dataset(hostname=..., catalog_id=..., dataset_rid=..., ...)`
 - Stratifying by label distribution
 
 ### Pre-production checklist
 
 | Step | Tool | Purpose |
 |------|------|---------|
-| 1 | `validate_rids(...)` | All RIDs and versions exist |
-| 2 | `bag_info(...)` | Check dataset sizes and cache status |
-| 3 | `cache_dataset(...)` | Pre-fetch large datasets |
+| 1 | `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)`) | All RIDs and versions exist (legacy `validate_rids` was removed) |
+| 2 | `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=...)` | Check dataset sizes and cache status |
+| 3 | `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid=...)` | Pre-fetch large datasets |
 | 4 | `bump_version("minor")` | Tag the code version |
 | 5 | `git status` | Confirm clean working tree |
 | 6 | Verify experiment description | Will be recorded in execution |
@@ -253,7 +289,7 @@ uv run deriva-ml-run +multirun=lr_sweep
 
 ML development is iterative. After each production run:
 
-1. **Analyze results** — use `preview_denormalized_dataset` or download the bag to examine predictions
+1. **Analyze results** — use `deriva_ml_denormalize_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (renamed from the legacy `preview_denormalized_dataset`) or download the bag to examine predictions
 2. **Identify improvements** — more data? Better labels? Different architecture?
 3. **Go back to the appropriate tier:**
    - Config change only → Tier 1 (dry run)

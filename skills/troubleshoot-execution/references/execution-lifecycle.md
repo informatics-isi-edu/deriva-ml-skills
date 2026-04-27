@@ -1,5 +1,7 @@
 # Execution Lifecycle Reference
 
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. Lifecycle tools also take an explicit `execution_rid` — there is no implicit "active execution".
+
 ## Table of Contents
 
 - [Execution Architecture](#execution-architecture)
@@ -11,7 +13,7 @@
 - [Tuning Uploads for Large Files](#tuning-uploads-for-large-files)
 - [Status Updates](#status-updates)
 - [Automatic Source Code Detection](#automatic-source-code-detection)
-- [Restoring Executions](#restoring-executions)
+- [Re-Running After an Aborted Execution](#re-running-after-an-aborted-execution)
 - [Nested Executions](#nested-executions)
 - [Creating Output Datasets](#creating-output-datasets)
 - [Dry Run Debugging](#dry-run-debugging)
@@ -59,20 +61,26 @@ The `workflow_type` must exist in the `Workflow_Type` vocabulary before creating
 | Evaluation | Model evaluation and metrics |
 | Annotation | Adding labels or features |
 
-Add custom types:
+Add custom types via the generic `add_term` tool (the legacy `add_workflow_type` helper was removed):
 ```python
 ml.add_term(table="Workflow_Type", term_name="Data_Augmentation",
             description="Workflows that augment training data")
 ```
 
+```
+add_term(hostname="data.example.org", catalog_id="1",
+    schema="deriva-ml", table="Workflow_Type",
+    name="Data_Augmentation",
+    description="Workflows that augment training data")
+```
+
 ### MCP tool
 
 ```
-create_workflow(
-    workflow_name="ResNet50 Training",
+deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1",
+    name="ResNet50 Training",
     workflow_type="Training",
-    description="Fine-tune ResNet50 on medical images"
-)
+    description="Fine-tune ResNet50 on medical images")
 ```
 
 ### Workflow deduplication
@@ -82,7 +90,8 @@ If a workflow with the same source URL or Git checksum already exists in the cat
 ### Looking up workflows
 
 ```
-lookup_workflow_by_url(url="https://github.com/org/repo/blob/abc123/train.py")
+deriva_ml_find_workflow_by_url(hostname="data.example.org", catalog_id="1",
+    url="https://github.com/org/repo/blob/abc123/train.py")
 ```
 
 ```python
@@ -96,12 +105,13 @@ all_workflows = ml.find_workflows()
 ### MCP tools
 
 ```
-create_execution(
+deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
     workflow_name="ResNet50 Training",
     workflow_type="Training",
-    description="Training run with augmented data"
-)
-start_execution()
+    description="Training run with augmented data")
+# Capture the returned execution_rid (e.g. "2-YYYY") and pass it explicitly:
+deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
+    execution_rid="2-YYYY")
 ```
 
 ### Python API
@@ -161,14 +171,18 @@ What the context manager does:
 
 Use `asset_file_path()` to register files for upload:
 
-### MCP tool
+### Python API (the primary surface for this operation)
 
-```
-asset_file_path(
-    asset_name="Execution_Asset",
-    file_name="model_weights.pt",
-    asset_types=["Model_Weights"]
-)
+This is a Python-API-only operation; it has no direct MCP tool equivalent. Use it inside the execution context manager:
+
+```python
+with ml.create_execution(config) as exe:
+    output_path = exe.asset_file_path(
+        asset_name="Execution_Asset",
+        file_name="model_weights.pt",
+        asset_types=["Model_Weights"],
+    )
+    # write your file to output_path
 ```
 
 Returns a `file_path` — write your output file to this path.
@@ -200,13 +214,9 @@ Files **must** be written to the exact path returned by `asset_file_path()`. Wri
 
 ## Uploading Outputs
 
-### MCP tool
+### Python API (the only surface for this operation)
 
-```
-upload_execution_outputs()
-```
-
-### Python API
+This is a Python-API-only operation. Call it after the `with` block exits:
 
 ```python
 # Default: 50 MB chunks, 10 min timeout, 3 retries
@@ -266,16 +276,28 @@ The `timeout` tuple is `(connect_timeout, read_timeout)`. urllib3 uses `connect_
 2. Increase timeout — transient network issues are the most common cause
 3. Reduce chunk size — smaller chunks are more resilient to interruptions
 4. Increase retries — retries use exponential backoff
-5. Check resource `deriva://execution/{rid}` to see if partial uploads succeeded
+5. Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see if partial uploads succeeded
 
 ## Status Updates
 
-Report progress during long-running workflows:
+Report progress during long-running workflows. The legacy `update_execution_status` was folded into `deriva_ml_update_execution`:
 
-### MCP tool
+### MCP tools
 
 ```
-update_execution_status(status="Running", description="Epoch 15/100 complete")
+# Arbitrary status with a message (replaces the legacy update_execution_status)
+deriva_ml_update_execution(hostname="data.example.org", catalog_id="1",
+    execution_rid="2-YYYY",
+    status="Running",
+    message="Epoch 15/100 complete")
+
+# Normal completion (replaces the success path of the legacy stop_execution)
+deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
+    execution_rid="2-YYYY")
+
+# Failure marking (replaces the failure path of the legacy stop_execution)
+deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1",
+    execution_rid="2-YYYY")
 ```
 
 ### Python API
@@ -336,40 +358,57 @@ export DERIVA_ML_WORKFLOW_URL="https://github.com/org/repo/blob/main/pipeline.py
 export DERIVA_ML_WORKFLOW_CHECKSUM="abc123def456"
 ```
 
-## Restoring Executions
+## Re-Running After an Aborted Execution
 
-Resume working with a previous execution:
+> **Known gap:** the legacy `restore_execution` MCP tool has **no equivalent** in the new MCP surface. The Python `ml.restore_execution(...)` helper is also gone. The replacement pattern is to inspect the prior execution and create a fresh one from the same configuration.
 
-### MCP tool
+### Workaround (MCP tools)
 
 ```
-restore_execution(execution_rid="1-XYZ")
+# 1. Inspect the prior execution to capture workflow + inputs
+deriva_ml_get_execution(hostname="data.example.org", catalog_id="1",
+    execution_rid="1-XYZ")
+
+# 2. Create a fresh execution with the same config (new RID)
+deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
+    workflow_name="ResNet50 Training",
+    workflow_type="Training",
+    description="Re-run after transient network failure (prior: 1-XYZ)",
+    dataset_rids=[...],
+    asset_rids=[...])
+
+# 3. Continue the lifecycle as normal
+deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
+    execution_rid="<NEW_RID>")
+# ... do work via Python API ...
+deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
+    execution_rid="<NEW_RID>")
 ```
 
-### Python API
-
-```python
-exe = ml.restore_execution("1-XYZ")
-# Continue working — register more files, upload, etc.
-exe.asset_file_path("Model", "continued_model.pt")
-exe.upload_execution_outputs()
-```
+The prior execution stays in its terminal state for provenance. If you need to relate the two, capture both RIDs in your experiment notes — the catalog itself does not link aborted executions to their re-run replacements. (Filed as an upstream gap.)
 
 ## Nested Executions
 
-Executions can be nested for complex workflows:
+Executions can be nested for complex workflows. The legacy `list_nested_executions` was split into two directional tools:
 
-### MCP tool
+### MCP tools
 
 ```
-add_nested_execution(parent_rid="1-AAA", child_rid="1-BBB")
-list_nested_executions(execution_rid="1-AAA")
-list_parent_executions(execution_rid="1-BBB")
+deriva_ml_add_nested_execution(hostname="data.example.org", catalog_id="1",
+    parent_rid="1-AAA", child_rid="1-BBB")
+
+# Walk down (descendants)
+deriva_ml_list_execution_children(hostname="data.example.org", catalog_id="1",
+    execution_rid="1-AAA")
+
+# Walk up (ancestors)
+deriva_ml_list_execution_parents(hostname="data.example.org", catalog_id="1",
+    execution_rid="1-BBB")
 ```
 
 ### Inspecting execution trees
 
-Read `deriva://execution/{rid}` to see full execution details including nested children and parent relationships.
+Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see full execution details, then use the directional list tools above to walk the tree.
 
 ## Creating Output Datasets
 
@@ -391,11 +430,12 @@ exe.upload_execution_outputs()
 ### MCP tool equivalent
 
 ```
-create_execution_dataset(
+deriva_ml_create_execution_dataset(hostname="data.example.org", catalog_id="1",
+    execution_rid="2-YYYY",
     description="Augmented training images",
-    dataset_types=["Training", "Augmented"]
-)
-add_dataset_members(dataset_rid="<new_rid>", members=["2-A1", "2-A2", ...])
+    dataset_types=["Training", "Augmented"])
+deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1",
+    dataset_rid="<new_rid>", members=["2-A1", "2-A2", ...])
 ```
 
 ## Dry Run Debugging
@@ -405,37 +445,37 @@ To debug execution configuration without modifying the catalog:
 ### Preview bag contents
 
 ```
-estimate_bag_size(dataset_rid="2-XXXX", version="1.0.0")
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1",
+    dataset_rid="2-XXXX", version="1.0.0")
 ```
 
-Shows row counts and asset sizes per table. Use to verify the execution would download the expected data.
+Shows row counts and asset sizes per table (the legacy `estimate_bag_size` is subsumed by `deriva_ml_bag_info`). Use to verify the execution would download the expected data.
 
 ### Preview split
 
 ```
-split_dataset(dataset_rid="2-XXXX", test_size=0.2, dry_run=true)
+deriva_ml_split_dataset(hostname="data.example.org", catalog_id="1",
+    dataset_rid="2-XXXX", test_size=0.2, dry_run=true)
 ```
 
 Shows partition sizes without creating datasets.
 
 ### Inspect working directory
 
-```
-get_execution_working_dir()
-```
-
-Returns the local filesystem path for the active execution. Inspect to verify input files were downloaded and output files are staged correctly.
+Use the Python API: `exe.working_dir` returns the local filesystem path for the execution. Inspect to verify input files were downloaded and output files are staged correctly. (This is a Python-only operation; there's no MCP tool for it because the new server is stateless.)
 
 ## Reference Resources
 
 | Resource / Tool | Purpose |
 |-----------------|---------|
-| `deriva://execution/{rid}` | Execution details, status, inputs, outputs |
+| `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` | Execution details, status, inputs, outputs, metadata |
+| `deriva://catalog/{h}/{c}/ml/execution/{rid}` | Resource form of the same content |
 | `deriva://storage/execution-dirs` | Local execution working directories |
-| resource `deriva://execution/{rid}` | Full execution metadata and state |
-| Python API `exe.working_dir` | Local filesystem path for active execution |
-| `update_execution_status` | Report progress during long runs |
-| `list_nested_executions` | View execution tree for complex workflows |
-| resource `deriva://execution/{rid}` | Find parent of a nested execution |
-| `restore_execution` | Resume a previous execution |
+| Python API `exe.working_dir` | Local filesystem path for the execution |
+| `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status=..., message=...)` | Report progress / arbitrary status changes during long runs |
+| `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` | Mark execution as Completed (success path) |
+| `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` | Mark execution as Failed/Aborted (failure path) |
+| `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` | Walk down a nested-execution tree |
+| `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` | Walk up a nested-execution tree |
+| (gap) | Resuming a previous execution: legacy `restore_execution` was removed; use the workaround documented above |
 | Python API `exe.upload_execution_outputs()` | Upload registered files to catalog |

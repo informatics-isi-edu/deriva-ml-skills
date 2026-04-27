@@ -1,12 +1,12 @@
 ---
 name: generate-scripts
-description: "Use this skill whenever Claude needs to generate a Python script that interacts with a Deriva catalog — whether for data exploration, bulk data access, loading data, creating features, uploading assets, or any operation that exceeds what MCP tools can return (>100 rows). Covers two script categories: exploration scripts (ephemeral, for previewing/analyzing data) and catalog-modifying scripts (committed, with execution provenance). Triggers on: 'write a script', 'generate a script', 'fetch all records', 'get all features', 'load data into catalog', 'bulk insert', 'upload results', 'I need more than 100 rows', 'cache the data', 'run this analysis', 'compute metrics across all images'. Also triggers implicitly when preview_table or preview_denormalized_dataset returns truncated results and the user needs the full dataset."
+description: "Use this skill whenever Claude needs to generate a Python script that interacts with a Deriva catalog — whether for data exploration, bulk data access, loading data, creating features, uploading assets, or any operation that exceeds what MCP tools can return (>100 rows). Covers two script categories: exploration scripts (ephemeral, for previewing/analyzing data) and catalog-modifying scripts (committed, with execution provenance). Triggers on: 'write a script', 'generate a script', 'fetch all records', 'get all features', 'load data into catalog', 'bulk insert', 'upload results', 'I need more than 100 rows', 'cache the data', 'run this analysis', 'compute metrics across all images'. Also triggers implicitly when query_attribute, get_table_sample_data, or deriva_ml_denormalize_dataset returns truncated results and the user needs the full dataset."
 disable-model-invocation: true
 ---
 
 # Script Generation for DerivaML
 
-When MCP tools return truncated results (preview_table and preview_denormalized_dataset cap at 100 rows), or when operations need to modify the catalog (load data, create features, upload assets), Claude generates Python scripts that use the DerivaML Python API directly.
+When MCP tools return truncated results (`query_attribute`, `get_table_sample_data`, and `deriva_ml_denormalize_dataset` cap at 100 rows), or when operations need to modify the catalog (load data, create features, upload assets), Claude generates Python scripts that use the DerivaML Python API directly.
 
 > **RAG-first:** Before generating a script, use `rag_search()` to discover relevant catalog entities (tables, features, datasets, vocabulary terms) so the generated script references the correct names, RIDs, and column types.
 
@@ -52,7 +52,7 @@ print(labels["Diagnosis_Type"].value_counts())
 - User asks "how many images have each diagnosis?"
 - User asks "show me the distribution of ages"
 - User asks "what does the denormalized data look like?"
-- preview_table returned 100 rows but user needs counts/stats on the full table
+- `query_attribute` or `get_table_sample_data` returned 100 rows but user needs counts/stats on the full table
 - Any read-only analysis that doesn't change the catalog
 
 ### Category 2: Catalog-Modifying Scripts (Committed)
@@ -94,13 +94,16 @@ with execution.execute() as exe:
     import pandas as pd
     labels = pd.read_csv("data/diagnoses.csv")
 
-    # Add feature values
-    for _, row in labels.iterrows():
-        ml.add_feature_value(
-            "Image", "Diagnosis",
-            target_rid=row["Image_RID"],
-            value=row["Diagnosis_Label"],
+    # Build the feature-record list and add as a batch
+    feature_table = ml.feature_record_class("Image", "Diagnosis")
+    records = [
+        feature_table(
+            Image=row["Image_RID"],
+            Diagnosis=row["Diagnosis_Label"],
         )
+        for _, row in labels.iterrows()
+    ]
+    exe.add_features(records)
 
     # Register any output files
     # path = exe.asset_file_path("Report", "summary.json")
@@ -164,7 +167,9 @@ ml.working_data.clear()
 
 ## Connection Context
 
-All scripts use `DerivaML.from_context()` which reads `.deriva-context.json` written by the MCP `connect_catalog` tool. This file contains hostname, catalog_id, default_schema, and working_dir.
+All scripts use `DerivaML.from_context()` which reads `.deriva-context.json` from the project working directory. This file contains hostname, catalog_id, default_schema, and working_dir.
+
+The new MCP server is stateless and no longer manages connection state, so the context file is now created/maintained by the project itself (typically written by the project's bootstrap script or a one-time `deriva-ml init` command — see the project's setup notes). Scripts read from it the same way they always did.
 
 **Never hardcode connection details in scripts.** Always use `from_context()`.
 

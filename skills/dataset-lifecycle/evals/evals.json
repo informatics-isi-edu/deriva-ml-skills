@@ -4,31 +4,31 @@
     {
       "id": 1,
       "prompt": "I have about 12,000 labeled chest X-ray images in my catalog and I need to set up a training pipeline. I need a complete dataset with all the images, then split it 70/15/15 for train/val/test with stratified sampling on the diagnosis label. The feature table is Image_Diagnosis and the label column is Diagnosis_Image. Make sure the splits have ground truth labels marked.",
-      "expected_output": "Should follow the full lifecycle: connect to catalog, check existing datasets first, register Image as element type, create a Complete+Labeled dataset, add all image members, then split_dataset with val_size=0.15, test_size=0.15, stratify_by_column='Image_Diagnosis_Diagnosis_Image', include_tables=['Image','Image_Diagnosis'], and *_types=['Labeled'] for all partitions. Should use dry_run=true first. Should wrap in an execution.",
+      "expected_output": "Should follow the full lifecycle: connect to catalog, check existing datasets first, register Image as element type, create a Complete+Labeled dataset, add all image members, then deriva_ml_split_dataset with val_size=0.15, test_size=0.15, stratify_by_column='Image_Diagnosis_Diagnosis_Image', include_tables=['Image','Image_Diagnosis'], and *_types=['Labeled'] for all partitions. Should use dry_run=true first. Should wrap in an execution.",
       "files": []
     },
     {
       "id": 2,
       "prompt": "I added 200 new fundus images to the catalog yesterday and also fixed labels on about 30 images that were mislabeled. My training config still references dataset 28EA version 0.3.0. What do I need to do before running my next experiment?",
-      "expected_output": "Should explain that existing versions are frozen snapshots. Must increment_dataset_version on 28EA with a description covering both changes. Then update the DatasetSpecConfig in the config file to the new version. Then commit the config before running. Should reference the pre-experiment checklist. Should NOT suggest using 'current' version.",
+      "expected_output": "Should explain that existing versions are frozen snapshots. Must deriva_ml_increment_dataset_version on 28EA with a description covering both changes. Then update the DatasetSpecConfig in the config file to the new version. Then commit the config before running. Should reference the pre-experiment checklist. Should NOT suggest using 'current' version.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "I got handed dataset RID 2-B4C8 from a colleague and I need to understand what's in it before I use it in my experiment. Can you help me explore it?",
-      "expected_output": "Should use a systematic exploration flow: read deriva://dataset/2-B4C8 for overview, list_dataset_members to see contents grouped by table, then denormalize_dataset to see actual data values. Should check children for splits, mention cite() for shareable URL, and explain DatasetSpecConfig for config referencing.",
+      "expected_output": "Should use a systematic exploration flow: read deriva_ml_get_dataset for overview, deriva_ml_list_dataset_members to see contents grouped by table, then denormalize_dataset to see actual data values. Should check children for splits, mention cite() for shareable URL, and explain DatasetSpecConfig for config referencing.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "We're starting a new ophthalmology project and need to set up dataset types. We have fundus images and OCT scans. Some are labeled by experts, some are auto-generated labels from a model, and some are unlabeled. We also have data from two different clinical sites.",
-      "expected_output": "Should apply orthogonal tagging principles. Should identify 4 dimensions: partition role (built-in), annotation status (Labeled/Unlabeled already exist), imaging modality (new: Fundus, OCT), annotation source (new: Expert_Reviewed, Auto_Generated), and data source (new: Site_A, Site_B or similar). Should check existing types first via deriva://catalog/dataset-types. Should warn against compound types like 'LabeledFundus'. Should explain the substitution test.",
+      "expected_output": "Should apply orthogonal tagging principles. Should identify 4 dimensions: partition role (built-in), annotation status (Labeled/Unlabeled already exist), imaging modality (new: Fundus, OCT), annotation source (new: Expert_Reviewed, Auto_Generated), and data source (new: Site_A, Site_B or similar). Should check existing types first via deriva://catalog/{h}/{c}/ml/registries. Should warn against compound types like 'LabeledFundus'. Should explain the substitution test.",
       "files": []
     },
     {
       "id": 5,
       "prompt": "I have a dataset with about 5,000 images. I want to see what's actually in it — what kinds of images, how the diagnoses are distributed, whether there are any unlabeled ones. The dataset RID is 3-XYZ9.",
-      "expected_output": "Should follow the browse pattern: 1) read deriva://dataset/3-XYZ9 for overview, 2) list_dataset_members to see element types and counts, 3) pick the element type (Image) and denormalize_dataset with related tables to see actual data values, 4) use fetch_table_features to check what annotations exist. Should show how to include feature tables in denormalize to see label distributions. Should NOT just list RIDs — must get to actual data values.",
+      "expected_output": "Should follow the browse pattern: 1) read deriva_ml_get_dataset for overview, 2) deriva_ml_list_dataset_members to see element types and counts, 3) pick the element type (Image) and denormalize_dataset with related tables to see actual data values, 4) use fetch_table_features to check what annotations exist. Should show how to include feature tables in denormalize to see label distributions. Should NOT just list RIDs — must get to actual data values.",
       "files": []
     },
     {
@@ -52,13 +52,13 @@
     {
       "id": 7,
       "prompt": "My dataset bag download is taking forever and eventually times out. The dataset has Image members and the schema goes Image -> Sample -> Subject -> Study -> Institution. I don't need the Study or Institution data.",
-      "expected_output": "Should suggest three options in order: 1) increase timeout with timeout=[10, 1800], 2) use exclude_tables=['Study', 'Institution'] to prune FK graph, 3) add intermediate records as direct members to flatten joins. Should mention estimate_bag_size to preview. Should reference bags.md and debug-bag-contents skill for deeper troubleshooting.",
+      "expected_output": "Should suggest three options in order: 1) increase timeout with timeout=[10, 1800], 2) use exclude_tables=['Study', 'Institution'] to prune FK graph, 3) add intermediate records as direct members to flatten joins. Should mention deriva_ml_bag_info to preview. Should reference bags.md and debug-bag-contents skill for deeper troubleshooting.",
       "files": []
     },
     {
       "id": 8,
       "prompt": "I have a dataset (RID 4-MULTI) that contains both Subject records and Image records — about 200 subjects and 8,000 images. I want to first see an overview of what's in it, then drill into just the subjects to see their demographics, and then look at the images separately to check the modality breakdown. How do I browse the different element types independently?",
-      "expected_output": "Should recognize this as a multi-element-type dataset. Should start with list_dataset_members to see the two groups (Subject and Image) with counts. Then show how to denormalize_dataset with include_tables=['Subject'] to see subject demographics, and separately denormalize_dataset with include_tables=['Image'] (and optionally related feature tables) to see image modality breakdown. Should explain that denormalize lets you pick which element type to focus on. Should NOT try to denormalize everything into one flat table — the user wants to browse each element type independently.",
+      "expected_output": "Should recognize this as a multi-element-type dataset. Should start with deriva_ml_list_dataset_members to see the two groups (Subject and Image) with counts. Then show how to denormalize_dataset with include_tables=['Subject'] to see subject demographics, and separately denormalize_dataset with include_tables=['Image'] (and optionally related feature tables) to see image modality breakdown. Should explain that denormalize lets you pick which element type to focus on. Should NOT try to denormalize everything into one flat table — the user wants to browse each element type independently.",
       "files": []
     }
   ]

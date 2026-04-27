@@ -18,7 +18,7 @@ This skill covers the **tier-2** surface — the DerivaML-specific components th
 |-----------|------|-------------|----------------|
 | **deriva-ml** | Python library in the project's `.venv` (DerivaML domain library) | Script (needs project venv) | Claude (automated) |
 | **deriva-ml-skills** | The `deriva-ml` Claude Code plugin (this plugin) | Script (reads plugin cache) | Automated (cache refresh + restart) |
-| **deriva-ml-mcp** | DerivaML MCP plugin loaded by deriva-mcp-core | `deriva://server/version` resource (look for `deriva-ml-mcp` plugin entry) | User (restart required) |
+| **deriva-ml-mcp** | DerivaML MCP plugin loaded by deriva-mcp-core | `server_status(hostname=None)` tool (look for `deriva-ml-mcp` plugin entry in the loaded-plugins list) | User (restart required) |
 
 > **Note:** This skill invokes the shared `check_versions.py` script that lives in the **`deriva-skills`** plugin (the tier-1 sibling). The script knows about the entire ecosystem (tier-1 + tier-2 components) and the `--component` flag is the boundary. The script will be split between the two plugins during Phase 4 of the restructure (the v1.4 MCP surface sweep); until then, point at the tier-1 plugin's copy as shown in the commands below. Users who do NOT have the `deriva-skills` plugin installed must install it first (this skill assumes both plugins are present, since deriva-ml-skills declares deriva-skills as a documented dependency).
 
@@ -61,11 +61,11 @@ This reads the plugin cache and compares against the latest GitHub release tag.
 
 ### Step 3: Check deriva-ml-mcp plugin version
 
-Read the `deriva://server/version` resource. The response includes the running deriva-mcp-core framework version plus a list of loaded plugins; look for the `deriva-ml-mcp` entry.
+Call the `server_status` tool (no arguments needed; pass `hostname=None` to inspect the running server). The response includes the running deriva-mcp-core framework version plus a list of loaded plugins; look for the `deriva-ml-mcp` entry.
 
-If the resource read fails (MCP server not running), report as "UNKNOWN — MCP server not running". If the resource succeeds but no `deriva-ml-mcp` entry appears, report as "NOT LOADED — deriva-ml-mcp plugin not active in this server".
+If the call fails (MCP server not running), report as "UNKNOWN — MCP server not running". If it succeeds but no `deriva-ml-mcp` entry appears, report as "NOT LOADED — deriva-ml-mcp plugin not active in this server".
 
-Compare the returned plugin version against the latest release tag for `informatics-isi-edu/deriva-mcp` (legacy repo name; the script knows this).
+Compare the returned plugin version against the latest release tag for `informatics-isi-edu/deriva-ml-mcp`.
 
 ### Step 4: Present results
 

@@ -23,36 +23,42 @@ These are the surface DerivaML adds on top of plain Deriva. Each is stored as on
 | Abstraction | What it represents | Primary skill | Key MCP tools |
 |---|---|---|---|
 | **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets have a type (`Dataset_Type` vocab), an element-type spec, a version history, and can be downloaded as bags. | `dataset-lifecycle` | `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_increment_dataset_version`, `deriva_ml_cache_dataset` |
-| **Workflow** | A versioned reference to the code (URL + git commit hash) that knows how to do a thing. A Workflow is content-addressed: same URL + same commit = same Workflow row. Workflows are typed (`Workflow_Type` vocab). | `route-run-workflows` → `new-model` / `configure-experiment` | `deriva_ml_create_workflow`, `deriva_ml_lookup_workflow_by_url` |
-| **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. Executions have a status (`Execution_Status_Type`), inputs / outputs links, and an active context manager that stages files in a working directory. | `execution-lifecycle` | `deriva_ml_create_execution`, `deriva_ml_start_execution`, `deriva_ml_stop_execution`, `deriva_ml_update_execution_status` |
-| **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | `deriva_ml_create_feature`, `deriva_ml_add_feature_value` |
-| **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and uploaded by `exe.upload_execution_outputs()`. | `work-with-assets` | `deriva_ml_create_asset_table`, `deriva_ml_add_asset_type`, `deriva_ml_add_asset_type_to_asset` |
+| **Workflow** | A versioned reference to the code (URL + git commit hash) that knows how to do a thing. A Workflow is content-addressed: same URL + same commit = same Workflow row. Workflows are typed (`Workflow_Type` vocab). | `route-run-workflows` → `new-model` / `configure-experiment` | `deriva_ml_create_workflow`, `deriva_ml_find_workflow_by_url` |
+| **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. Executions have a status (`Execution_Status_Type`), inputs / outputs links, and an active context manager that stages files in a working directory. | `execution-lifecycle` | `deriva_ml_create_execution`, `deriva_ml_start_execution`, `deriva_ml_commit_execution`, `deriva_ml_abort_execution`, `deriva_ml_update_execution` |
+| **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | `deriva_ml_create_feature`, `deriva_ml_add_feature_values` |
+| **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and uploaded by `exe.upload_execution_outputs()`. | `work-with-assets` | `deriva_ml_list_asset_tables`, `deriva_ml_lookup_asset`, `deriva_ml_update_asset` |
+
+## Stateless model
+
+Every `deriva_ml_*` tool is **stateless**: it takes `hostname=` and `catalog_id=` arguments explicitly. There is no `connect_catalog` call, no "active catalog" state, and no default schema. Substitute your catalog's host and ID in every example below.
 
 ## Steering principle: DerivaML abstractions take precedence
 
-Datasets, Workflows, Executions, Features, and Asset_Type vocabularies are first-class DerivaML concepts. **In a deriva-ml-loaded catalog you must use the deriva-ml abstractions for them** — the dedicated MCP tools listed above and the deriva-ml Python API — NOT the raw `insert_records` / `update_record` / `get_record` core tools that plain Deriva exposes.
+Datasets, Workflows, Executions, Features, and Asset_Type vocabularies are first-class DerivaML concepts. **In a deriva-ml-loaded catalog you must use the deriva-ml abstractions for them** — the `deriva_ml_*` MCP tools listed above and the deriva-ml Python API — NOT the raw `insert_entities` / `update_entities` / `get_entities` core tools from `deriva-mcp-core`.
 
 The raw tools bypass:
 
-- **Business logic** — e.g., `add_dataset_members` validates RIDs against the dataset's element-type spec; raw inserts will let you add wrong-table rows that break the dataset on materialization.
+- **Business logic** — e.g., `deriva_ml_add_dataset_members` validates RIDs against the dataset's element-type spec; raw inserts will let you add wrong-table rows that break the dataset on materialization.
 - **FK validation across the Dataset / Workflow / Execution graph** — DerivaML enforces invariants (every Execution links to a Workflow, every output Dataset links to its producing Execution); raw inserts can create dangling references.
 - **Provenance tracking** — each mutation links back to the active Execution; raw inserts have no Execution context.
-- **Version management** — Datasets are versioned; `increment_dataset_version` creates a new snapshot. Raw inserts skip the version bump, leaving consumers pointed at stale data.
-- **RAG re-indexing** — the `deriva_ml_*` tools fire surgical re-index hooks (v1.3) so freshly mutated rows are searchable on the next `rag_search`. Raw inserts do not.
+- **Version management** — Datasets are versioned; `deriva_ml_increment_dataset_version` creates a new snapshot. Raw inserts skip the version bump, leaving consumers pointed at stale data.
+- **RAG re-indexing** — the `deriva_ml_*` tools fire surgical re-index hooks so freshly mutated rows are searchable on the next `rag_search`. Raw inserts do not.
 - **Audit emission** — every `deriva_ml_*` mutation emits an audit event with the operation name, hostname, catalog, and result; raw inserts use the generic core audit which lacks DerivaML-specific context.
 
-## Built-in DerivaML vocabularies — use the dedicated extender tools
+## Built-in DerivaML vocabularies — extend with generic `add_term`
 
-DerivaML ships four built-in vocabularies. **In a deriva-ml-loaded catalog, extend them with the dedicated tools, not generic `add_term`:**
+DerivaML ships four built-in vocabularies. The legacy dedicated extender tools (`add_dataset_type`, `add_workflow_type`, `add_asset_type`, `create_dataset_type_term`) were **not ported** to the new MCP surface. Extend them via the generic `add_term` tool from `deriva-mcp-core`, passing `schema="deriva-ml"` and the appropriate `table=`:
 
-| Vocabulary | Use this tool | Not this |
+| Vocabulary | How to add a term | Notes |
 |---|---|---|
-| `Dataset_Type` | `deriva_ml_create_dataset_type_term` | `add_term` |
-| `Workflow_Type` | `deriva_ml_add_workflow_type` | `add_term` |
-| `Asset_Type` | `deriva_ml_add_asset_type` | `add_term` |
-| `Execution_Status_Type` | (managed automatically by the execution-state machine) | `add_term` (don't extend manually) |
+| `Dataset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Dataset_Type", name=..., description=...)` | Tag your dataset with this term via `deriva_ml_create_dataset(dataset_types=[...])` |
+| `Workflow_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name=..., description=...)` | Pass to `deriva_ml_create_workflow(workflow_type=...)` |
+| `Asset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Asset_Type", name=..., description=...)` | Tag specific assets via `deriva_ml_update_asset(...)` |
+| `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions happen via `deriva_ml_start_execution` / `deriva_ml_commit_execution` / `deriva_ml_abort_execution` |
 
-For all *other* vocabularies (your own domain vocabs like `Sample_Type`, `Tissue_Type`, `Image_Quality`), use the generic `add_term` documented in tier-1's `manage-vocabulary` skill.
+The steering principle still applies: even though you are using the generic `add_term` for the term itself, the **lifecycle of Datasets / Workflows / Executions / Features / Assets** must go through the `deriva_ml_*` tools, never through raw entity CRUD.
+
+For all *other* vocabularies (your own domain vocabs like `Sample_Type`, `Tissue_Type`, `Image_Quality`), use the same generic `add_term` documented in tier-1's `manage-vocabulary` skill — pass your domain schema name instead of `"deriva-ml"`.
 
 ## When to reach back to the raw catalog surface
 

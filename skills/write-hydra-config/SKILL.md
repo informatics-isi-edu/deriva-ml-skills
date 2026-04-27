@@ -17,7 +17,7 @@ This skill is the authoritative reference for the Python API used in DerivaML hy
 - Fixing or updating existing config entries
 - Validating that config RIDs and versions exist in the catalog
 
-After any catalog-modifying action (create_dataset, split_dataset, create_workflow, etc.), proactively offer to update the relevant config file using these patterns.
+After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_split_dataset`, `deriva_ml_create_workflow`, etc.), proactively offer to update the relevant config file using these patterns.
 
 ## Reference File
 
@@ -42,8 +42,8 @@ After any catalog-modifying action (create_dataset, split_dataset, create_workfl
 - `version` is **required** — always a semver string like `"0.9.0"`, not an integer
 - Use `with_description()` for non-default configs
 - Default configs use plain lists (no `with_description`) for merge compatibility
-- Find the current version via the `deriva://dataset/{rid}` MCP resource
-- If data has changed since the version was created, call `increment_dataset_version` first
+- Find the current version via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid="<rid>")` or read the `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}` MCP resource
+- If data has changed since the version was created, call `deriva_ml_increment_dataset_version(hostname=..., catalog_id=..., dataset_rid=..., ...)` first
 
 ### Assets
 - Plain RID strings for simple references: `["3WS6", "3X20"]`
@@ -97,7 +97,7 @@ Two mechanisms exist — use the right one for the context:
 | Multiruns | `description=` param on `multirun_config()` | `multirun_config("name", ..., description="...")` |
 | Notebooks | `description=` param on `notebook_config()` | `notebook_config("name", ..., description="...")` |
 
-Descriptions are recorded in execution metadata and make experiments self-documenting. Before writing descriptions, look up catalog details via `deriva://dataset/{rid}` or `deriva://asset/{rid}`.
+Descriptions are recorded in execution metadata and make experiments self-documenting. Before writing descriptions, look up catalog details via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (or the resource `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}`) and `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid=...)`.
 
 ### Good Descriptions
 
@@ -170,6 +170,8 @@ General principles — descriptions should be specific, quantified, purposeful, 
 
 ## MCP Reference Resources
 
+> The new MCP server is stateless — every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 - `deriva://docs/hydra-zen` — Full guide to hydra-zen configuration management in DerivaML
 - `deriva://docs/execution-configuration` — Execution configuration reference
 - `deriva://config/deriva-ml-template` — Starter template for DerivaML connection config
@@ -177,28 +179,30 @@ General principles — descriptions should be specific, quantified, purposeful, 
 - `deriva://config/model-template` — Starter template for model configs with `zen_partial`
 - `deriva://config/experiment-template` — Starter template for experiment presets
 - `deriva://config/multirun-template` — Starter template for multirun sweeps
-- `deriva://dataset/{rid}` — Look up dataset details including current version
-- `deriva://catalog/workflow-types` — Browse available workflow types
+- `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}` — Look up dataset details including current version (or call `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)`)
+- Browse available `Workflow_Type` vocabulary terms with `list_vocabulary_terms(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type")` (the legacy `deriva://catalog/workflow-types` URI was removed)
 
 ## Validating Configs Against the Catalog
 
-Before running experiments, validate that all RIDs and versions in config files actually exist in the connected catalog.
+Before running experiments, validate that all RIDs and versions in config files actually exist in the target catalog.
 
 ### Validation Checklist
 
 | Config Type | What to Validate | MCP Tool / Resource |
 |---|---|---|
-| `DatasetSpecConfig(rid=..., version=...)` | RID exists, version exists | `deriva://dataset/{rid}` |
-| Asset RID strings `["3WS6"]` | RID exists in an asset table | `validate_rids(rids=[...])` |
-| `AssetSpecConfig(rid=...)` | RID exists | `validate_rids(rids=[...])` |
-| `workflow_type="Training"` | Workflow type term exists | `deriva://catalog/workflow-types` |
+| `DatasetSpecConfig(rid=..., version=...)` | RID exists, version exists | `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (or resource `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}`) |
+| Asset RID strings `["3WS6"]` | RID exists in an asset table | `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid=...)` per RID, or `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` against the candidate asset table |
+| `AssetSpecConfig(rid=...)` | RID exists | Same as asset RID strings above |
+| `workflow_type="Training"` | Workflow type term exists | `lookup_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name="Training")` |
+
+> The legacy `validate_rids(rids=[...])` tool was removed. The new pattern is to call `get_entities(...)` (or the appropriate `deriva_ml_*` getter) per candidate table and treat an empty result as "not found".
 
 ### Validation Workflow
 
-1. **Connect to the catalog** using the same `deriva_ml` config the experiment will use
+1. **Pick the catalog** — note the `hostname` and `catalog_id` your `deriva_ml` config group resolves to; pass both into every MCP call below
 2. **Read the config files** and extract all RIDs and versions
-3. **Validate RIDs** — use `validate_rids` to batch-check that all RIDs exist
-4. **Check dataset versions** — for each `DatasetSpecConfig`, read `deriva://dataset/{rid}` and verify the version exists
+3. **Validate RIDs** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` against the candidate table for each RID, or use `deriva_ml_lookup_asset(...)` for assets; an empty result means the RID is not in that table
+4. **Check dataset versions** — for each `DatasetSpecConfig`, call `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` and verify the version exists
 5. **Report mismatches** — list any RIDs that don't exist, versions that are missing, or versions that are behind current
 
 ### Common Issues
@@ -206,13 +210,13 @@ Before running experiments, validate that all RIDs and versions in config files 
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Dataset not found: RID=...` | RID doesn't exist in target catalog | Verify RID against correct catalog (dev vs prod) |
-| `Version X not found` | Version never created | Use CLI `git describe --tags` to find latest, or `increment_dataset_version` |
-| Stale version | Data changed since version was created | Call `increment_dataset_version`, then update config |
+| `Version X not found` | Version never created | Use CLI `git describe --tags` to find latest, or `deriva_ml_increment_dataset_version(hostname=..., catalog_id=..., dataset_rid=..., ...)` |
+| Stale version | Data changed since version was created | Call `deriva_ml_increment_dataset_version(...)`, then update config |
 | Wrong catalog | Config RIDs are from a different catalog | Check `deriva_ml` config group — are you pointing at the right host/catalog? |
 
 ### Proactive Validation
 
-After any catalog-modifying action (create_dataset, split_dataset, increment_dataset_version, etc.), proactively:
+After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_split_dataset`, `deriva_ml_increment_dataset_version`, etc.), proactively:
 
 1. Note the new RID, version, and description
 2. Check if existing config files reference the affected entity

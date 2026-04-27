@@ -10,16 +10,9 @@ When a dataset bag export is missing expected data, follow this step-by-step dia
 
 ---
 
+## Stateless model
 
-## Prerequisite: Connect to a Catalog
-
-All operations in this skill require an active catalog connection. Before anything else:
-
-```
-connect_catalog(hostname="...", catalog_id="...")
-```
-
-If already connected (check `deriva://catalog/connections`), skip this step.
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Recommended First Step: Discover with rag_search
 
@@ -30,15 +23,15 @@ rag_search("dataset element types and FK paths", doc_type="catalog-schema")
 rag_search("dataset bag export traversal", doc_type="user-guide")
 ```
 
-This helps you understand which tables exist, how they relate via foreign keys, and what element types are registered -- all essential context for diagnosing missing bag data. After this initial discovery, use the specific resources listed below for targeted investigation.
+This helps you understand which tables exist, how they relate via foreign keys, and what element types are registered -- all essential context for diagnosing missing bag data. After this initial discovery, use the specific tools listed below for targeted investigation.
 
 ## Step 1: Check Dataset Members
 
 Dataset members are the explicit records that belong to a dataset. If data is missing from a bag, the first question is whether the right members are in the dataset.
 
-- **Resource**: Check the dataset resource to see the dataset's summary and member counts.
-- **Tool**: resource `deriva://dataset/{rid}/members` with the dataset RID to get the full list of members, grouped by table.
-- Verify that the records you expect are listed as members. If they are missing, add them with `add_dataset_members`.
+- **Tool**: `deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")` for the dataset's summary and member counts.
+- **Tool**: `deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")` to get the full list of members, grouped by table.
+- Verify that the records you expect are listed as members. If they are missing, add them with `deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", members={"Image": ["2-IMG1", ...]})`.
 
 ---
 
@@ -46,8 +39,8 @@ Dataset members are the explicit records that belong to a dataset. If data is mi
 
 Every table that contributes members to a dataset must be registered as a **dataset element type**. If a table is not registered, its members will be silently excluded from the bag.
 
-- **Resource**: Read `deriva://catalog/dataset-element-types` to see which tables are registered as element types in the catalog.
-- **Tool**: `add_dataset_element_type(table_name="...")` to register a table as an element type if it is missing.
+- **Resource**: Read `deriva://catalog/{h}/{c}/ml/registries` to see which tables are registered as element types in the catalog.
+- **Tool**: `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", element_table="<table>")` to register a table as an element type if it is missing.
 - Common tables that should be registered: `Subject`, `Observation`, `Image` (or other asset tables), and any custom tables whose records appear as dataset members.
 
 ---
@@ -56,7 +49,7 @@ Every table that contributes members to a dataset must be registered as a **data
 
 Before downloading a full bag, preview what the export will contain.
 
-- **Resource**: Check the dataset bag preview resource to see the projected file paths and record counts per table.
+- **Tool**: `deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", version="1.0.0")` returns row counts, asset sizes, and the projected manifest per table. (This subsumes the legacy `estimate_bag_size`.)
 - This preview shows which tables will be included and how many rows each will have, without actually downloading anything.
 - Compare the preview counts against your expectations to spot discrepancies early.
 
@@ -150,7 +143,7 @@ The bag export algorithm uses foreign key (FK) path traversal to determine which
 
 **Fix**:
 - Vocabulary terms referenced by included records should be automatically exported. If they are missing, verify the FK relationship between the data table and the vocabulary table is intact.
-- Read `deriva://table/{vocab_table}/schema` to confirm the vocabulary table's structure.
+- Use `get_table(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_table>")` to confirm the vocabulary table's structure.
 
 ---
 
@@ -172,7 +165,7 @@ Use the validation tool to get a detailed comparison of expected vs. actual bag 
 
 For each registered element type, examine the FK paths that the export will follow.
 
-- **Resource**: Check the FK path resource for each element type to see the full traversal graph.
+- **Resource**: Read `deriva://catalog/{h}/{c}/ml/registries` to see element types and the projected FK paths each will follow.
 - Look for:
   - **Missing links**: Tables you expect to be reachable but are not connected by FKs.
   - **Indirect paths**: FK chains that go through intermediate tables, which may not be traversed if those intermediates are not included.
@@ -220,14 +213,14 @@ Add records from intermediate tables as direct dataset members rather than relyi
 **Problem**: Records from a table are added as members but the table is not a registered element type, so those records are ignored during export.
 
 **Fix**:
-- **Tool**: `add_dataset_element_type` to register the table.
+- **Tool**: `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", element_table="<table>")` to register the table.
 - Then re-export the bag.
 
 ### Stale dataset version
 **Problem**: The bag reflects an older version of the dataset, missing recently added members.
 
 **Fix**:
-- **Tool**: `increment_dataset_version` to create a new version that captures current membership.
+- **Tool**: `deriva_ml_increment_dataset_version(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", description="...")` to create a new version that captures current membership.
 - Re-export the bag after incrementing.
 
 ### Records exist but FK not established
@@ -235,7 +228,7 @@ Add records from intermediate tables as direct dataset members rather than relyi
 
 **Fix**:
 - Check the FK columns on the related records. Ensure they contain the correct RID values pointing to the dataset member records.
-- **Tool**: `preview_table` with filters to verify FK column values.
+- **Tool**: `query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<table>", filter={...})` to verify FK column values.
 
 ---
 
@@ -244,22 +237,22 @@ Add records from intermediate tables as direct dataset members rather than relyi
 Use this checklist when data is missing from a bag:
 
 1. **Are the records dataset members?**
-   - resource `deriva://dataset/{rid}/members` -- check if expected records appear.
-   - If not: `add_dataset_members`.
+   - `deriva_ml_list_dataset_members(hostname=..., catalog_id=..., dataset_rid=...)` -- check if expected records appear.
+   - If not: `deriva_ml_add_dataset_members`.
 
 2. **Is the table a registered element type?**
-   - Check element types resource.
-   - If not: `add_dataset_element_type`.
+   - Read `deriva://catalog/{h}/{c}/ml/registries`.
+   - If not: `deriva_ml_add_dataset_element_type`.
 
 3. **Is there a direct FK path?**
-   - Check FK paths resource for the element type.
+   - Inspect the schema (`get_table`, `rag_search`) for the element type.
    - If not: add intermediate records as members, or restructure FKs.
 
 4. **Does validation show the discrepancy?**
    - Python API bag inspection -- look at missing RIDs per table.
 
 5. **Is the version current?**
-   - `increment_dataset_version` if members were recently changed.
+   - `deriva_ml_increment_dataset_version` if members were recently changed.
 
 6. **Is the download timing out?**
    - First try increasing the timeout: `timeout=[10, 1800]` (30 min read timeout).
@@ -267,28 +260,27 @@ Use this checklist when data is missing from a bag:
    - Or add intermediate records as direct members to flatten the joins.
 
 7. **Preview before full download.**
-   - `estimate_bag_size` -- shows row counts and asset sizes per table before downloading.
+   - `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=..., version=...)` -- shows row counts, asset sizes, and manifest before downloading.
 
 ## Reference Resources
 
 - `deriva://docs/datasets` — Full guide to bag export traversal, FK paths, and troubleshooting. Read this for detailed examples and edge cases beyond what this skill covers.
-- `deriva://dataset/{rid}/bag-preview` — Preview bag contents before downloading
-- `deriva://catalog/dataset-element-types` — Check which element types are registered
-- `deriva://table/{table_name}/foreign-keys` — Understand FK paths for traversal debugging
+- `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` — Preview bag contents before downloading
+- `deriva://catalog/{h}/{c}/ml/registries` — Check which element types are registered
 
 ## Related Tools
 
 | Tool | Purpose |
 |------|---------|
-| resource `deriva://dataset/{rid}/members` | List all members of a dataset |
-| `add_dataset_members` | Add records to a dataset |
-| `delete_dataset_members` | Remove records from a dataset |
-| `add_dataset_element_type` | Register a table as dataset element type |
+| `deriva_ml_list_dataset_members` | List all members of a dataset |
+| `deriva_ml_add_dataset_members` | Add records to a dataset |
+| `deriva_ml_delete_dataset_members` | Remove records from a dataset |
+| `deriva_ml_add_dataset_element_type` | Register a table as dataset element type |
 | Python API bag inspection | Validate bag contents against expectations |
-| `increment_dataset_version` | Bump dataset version after changes |
-| `get_dataset_spec` | View dataset specification |
-| `estimate_bag_size` | Preview row counts and asset sizes before downloading |
+| `deriva_ml_increment_dataset_version` | Bump dataset version after changes |
+| `deriva_ml_get_dataset_spec` | View dataset specification |
+| `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest before downloading |
 | Python API `dataset.download_dataset_bag(version)` | Download the dataset bag (supports `exclude_tables` and `timeout`) |
-| `preview_denormalized_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset for analysis |
-| `preview_table` | Inspect FK column values |
-| `preview_table` | Check table schema and FK relationships (or read `deriva://table/{name}/schema` resource) |
+| `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset for analysis |
+| `query_attribute` | Inspect FK column values via filtered queries |
+| `get_table` | Check table schema and FK relationships |

@@ -209,8 +209,10 @@ When creating a genuinely new type, check the existing vocabulary first to under
 rag_search("dataset types", doc_type="catalog-schema")
 
 # Full structured list (when you need complete output)
-Read resource: deriva://catalog/dataset-types
+list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type")
 ```
+
+> **Stateless model:** every tool above takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname and ID wherever the example shows them.
 
 ## Examples
 

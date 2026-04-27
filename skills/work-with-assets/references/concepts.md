@@ -2,6 +2,8 @@
 
 Background on assets in DerivaML. For the step-by-step guide, see `workflow.md`.
 
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## Table of Contents
 
 - [What is an Asset?](#what-is-an-asset)
@@ -12,6 +14,7 @@ Background on assets in DerivaML. For the step-by-step guide, see `workflow.md`.
 - [How Assets Are Uploaded](#how-assets-are-uploaded)
 - [Asset Caching](#asset-caching)
 - [Asset Provenance](#asset-provenance)
+- [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)
 - [Built-in Asset Tables](#built-in-asset-tables)
   - [Execution Metadata vs Execution Assets](#execution-metadata-vs-execution-assets)
   - [Notebook Output Assets](#notebook-output-assets)
@@ -88,11 +91,11 @@ Asset tables also get automatically created **association tables**:
 
 Every asset has a unique **RID** (Resource IDentifier) — a short, immutable string like `3-JSE4` or `2-IMG1`. RIDs are the primary way to reference assets across the system:
 
-- **In MCP tools**: Pass `asset_rid` to Python API `ml.download_asset(rid)`, `list_asset_executions`, etc.
+- **In MCP tools**: Pass `asset_rid` to `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)`, `deriva_ml_update_asset(hostname, catalog_id, asset_rid, ...)`, etc. The Python API still uses `ml.download_asset(rid)` for the file download itself.
 - **In configurations**: Use RIDs in `AssetSpecConfig` to specify execution inputs
 - **In provenance**: Execution records reference asset RIDs for inputs and outputs
 - **In the web UI**: Each asset's Chaise page URL includes its RID
-- **In citation**: `ml.cite(rid)` generates a permanent URL for an asset
+- **In citation**: `cite(hostname, catalog_id, rid)` generates a permanent URL for an asset
 
 RIDs are assigned by the catalog when a record is created and never change. Use RIDs (not filenames or URLs) as the stable identifier for assets.
 
@@ -104,7 +107,16 @@ Asset types serve two purposes:
 1. **Organization** — filter and browse assets by category in the web UI
 2. **Configuration** — specify which types of assets an execution expects
 
-Custom asset types can be created for domain-specific categorization. When you create a new asset table, DerivaML automatically adds the table name as a term in the Asset_Type vocabulary.
+Custom asset types are created with the generic `add_term` tool:
+
+```
+add_term(hostname="data.example.org", catalog_id="1",
+    schema="deriva-ml", table="Asset_Type",
+    name="Segmentation_Mask",
+    description="Pixel-level annotation overlay for an input image")
+```
+
+The legacy `add_asset_type` shortcut was removed. When you create a new asset table by hand (see [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)), remember to also add the table name as a term in `Asset_Type`.
 
 ## Object Storage
 
@@ -177,6 +189,53 @@ This bidirectional tracking means you can answer two key questions:
 - "What used this asset?" — find all executions with role "Input"
 
 Provenance is recorded automatically: uploading via Python API `exe.upload_execution_outputs()` records "Output" links, and downloading via Python API `ml.download_asset(rid)` within an execution records "Input" links.
+
+## Creating an Asset Table (Manual Recipe)
+
+> **Known gap:** the legacy `create_asset_table` shortcut is gone. To create a new asset table you now use the tier-1 `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK. The recipe is mechanical but multi-step. (Filed as an upstream gap.)
+
+The "asset" shape is a regular catalog table whose columns include the standard hatrac file-tracking columns plus a foreign key to `Asset_Type` and any custom metadata columns you need.
+
+### Step 1: Create the table with the hatrac column shape
+
+Call the tier-1 `create_table` tool (see `/deriva:route-catalog-schema` for full parameter docs) with the standard hatrac columns:
+
+```
+create_table(hostname="data.example.org", catalog_id="1",
+    schema="<your-domain-schema>",
+    table="Image",
+    columns=[
+        {"name": "URL",         "type": {"typename": "text"}, "nullok": False, "comment": "Object store URL (set on upload)"},
+        {"name": "Filename",    "type": {"typename": "text"}, "nullok": False, "comment": "Original filename"},
+        {"name": "Length",      "type": {"typename": "int8"}, "nullok": True,  "comment": "File size in bytes"},
+        {"name": "MD5",         "type": {"typename": "text"}, "nullok": True,  "comment": "MD5 checksum"},
+        {"name": "Description", "type": {"typename": "text"}, "nullok": True,  "comment": "Human-readable description"},
+        # ... add custom metadata columns here (e.g., Width, Height, Format) ...
+    ])
+```
+
+### Step 2: Add the Asset_Type vocabulary term for the new table
+
+```
+add_term(hostname="data.example.org", catalog_id="1",
+    schema="deriva-ml", table="Asset_Type",
+    name="Image",
+    description="Asset_Type term for the Image asset table")
+```
+
+### Step 3: Add the Asset_Type FK column on the new table
+
+Use the tier-1 `add_column` tool to add an `Asset_Type` column on the new table that foreign-keys to `deriva-ml:Asset_Type`. (See `/deriva:route-catalog-schema` for the exact `add_column` and `create_foreign_key` invocations.)
+
+### Step 4 (optional): Add domain FKs
+
+If your asset table should reference a domain table (e.g., `Image` → `Subject`), use the tier-1 schema tools to add a column and create a foreign key.
+
+### Step 5: Configure visible columns / display annotations
+
+Apply any visible-columns / table-display annotations you want for the Chaise UI via the tier-1 annotation tools (the annotations apply immediately — there is no `apply_annotations()` staging step in the new MCP server).
+
+After this recipe runs, you can register files for upload to the new table via Python API `exe.asset_file_path(asset_name="Image", file_name=..., asset_types=["Image"])`.
 
 ## Built-in Asset Tables
 

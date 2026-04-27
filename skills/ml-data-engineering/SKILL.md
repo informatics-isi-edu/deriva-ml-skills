@@ -10,27 +10,19 @@ You have a dataset — now get it into your ML pipeline. This skill covers extra
 
 For creating, populating, splitting, versioning, or browsing datasets, see the `dataset-lifecycle` skill.
 
+## Stateless model
 
-## Prerequisite: Connect to a Catalog
-
-All operations in this skill require an active catalog connection. Before anything else:
-
-```
-connect_catalog(hostname="...", catalog_id="...")
-```
-
-If already connected (check `deriva://catalog/connections`), skip this step.
-
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Step 1: Download the Dataset
 
 ### Preview before downloading
 
 ```
-estimate_bag_size(dataset_rid="2-XXXX", version="1.0.0")
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="2-XXXX", version="1.0.0")
 ```
 
-Returns row counts and asset sizes per table so you know what to expect.
+Returns row counts, asset sizes per table, and a manifest preview so you know what to expect. (This subsumes the legacy `estimate_bag_size` tool.)
 
 ### Download as BDBag
 
@@ -87,7 +79,9 @@ Best for tabular ML, feature engineering, or interactive exploration.
 
 **Step 1 — Explore the schema shape (no dataset needed):**
 ```
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"]
 )
 ```
@@ -95,7 +89,9 @@ Returns column names/types, join path, and per-table row counts and asset sizes.
 
 **Step 2 — Fetch actual rows from a dataset:**
 ```
-preview_denormalized_dataset(
+deriva_ml_denormalize_dataset(
+    hostname="data.example.org",
+    catalog_id="1",
     include_tables=["Image", "Subject", "Diagnosis"],
     dataset_rid="2-XXXX",
     version="1.0.0",
@@ -134,9 +130,10 @@ When you need fine-grained control or just one table:
 images_df = bag.get_table_as_dataframe("Image")
 subjects = list(bag.get_table_as_dict("Subject"))
 
-# From the catalog directly
-preview_table(table_name="Image", columns=["RID", "Filename", "Subject"],
-            filters={"Subject": "2-SUB1"})
+# From the catalog directly — filtered query
+query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>",
+                table="Image", attributes=["RID", "Filename", "Subject"],
+                filter={"Subject": "2-SUB1"})
 ```
 
 ## Step 3: Work with Features and Labels
@@ -148,21 +145,27 @@ preview_table(table_name="Image", columns=["RID", "Filename", "Subject"],
 features = bag.find_features("Image")
 
 # From the catalog
-resource deriva://table/{name}/features (table_name="Image")
+deriva_ml_list_features(hostname="data.example.org", catalog_id="1", target_table="Image")
 ```
 
 ### Fetch feature values
 
 ```python
 # From a bag — with deduplication
-feature_df = bag.resource deriva://table/{name}/features (
+feature_df = bag.fetch_table_features(
     table="Image",
     feature_name="Diagnosis",
     selector="newest",           # most recent annotation per record
 )
 
 # From the catalog
-resource deriva://table/{name}/features (table_name="Image", feature_name="Diagnosis", selector="newest")
+deriva_ml_list_feature_values(
+    hostname="data.example.org",
+    catalog_id="1",
+    target_table="Image",
+    feature_name="Diagnosis",
+    selector="newest"
+)
 ```
 
 ### Handling multiple annotators / model runs
@@ -254,17 +257,17 @@ bag.get_table_as_dataframe("Image")          # pandas DataFrame
 bag.get_table_as_dict("Subject")             # generator of dicts
 
 # Members
-bag.resource deriva://dataset/{rid}/members ()                   # {"Image": [...], "Subject": [...]}
-bag.resource deriva://dataset/{rid}/members (recurse=True)       # includes nested datasets
+bag.list_dataset_members()                   # {"Image": [...], "Subject": [...]}
+bag.list_dataset_members(recurse=True)       # includes nested datasets
 
-# Hierarchy
+# Hierarchy (both directions in one call)
 bag.list_dataset_children()
 bag.list_dataset_children(recurse=True)
 bag.list_dataset_element_types()
 
 # Features
 bag.find_features("Image")                   # [Feature(name="Diagnosis", ...)]
-bag.resource deriva://table/{name}/features (table="Image", feature_name="Diagnosis", selector="newest")
+bag.fetch_table_features(table="Image", feature_name="Diagnosis", selector="newest")
 
 # Denormalization
 bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
@@ -278,7 +281,7 @@ bag.restructure_assets(output_dir="./data", group_by=["Diagnosis"])
 
 - `references/restructure-guide.md` — Full guide: group_by options, value selectors, file transformers, ML framework integration, directory layout control
 - `deriva://docs/datasets` — Full user guide to datasets and BDBags
-- `deriva://catalog/features` — Available features for building training labels
+- `deriva_ml_list_features(hostname, catalog_id)` — Available features for building training labels
 
 ## Related Skills
 
