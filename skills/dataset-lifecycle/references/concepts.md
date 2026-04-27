@@ -2,6 +2,8 @@
 
 Background on datasets in DerivaML. For the step-by-step guide to creating and managing datasets, see `workflow.md`.
 
+> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## Table of Contents
 
 - [What is a Dataset?](#what-is-a-dataset)
@@ -39,19 +41,22 @@ Datasets can be heterogeneous: a single dataset can contain records from multipl
 
 Before creating a new dataset, check whether an existing one already serves your purpose. Duplicate datasets fragment data and confuse downstream consumers.
 
-**MCP resources and tools:**
+**MCP tools and resources:**
 ```
 # Search for datasets by description, type, or purpose (preferred for discovery)
 rag_search("your purpose here", doc_type="catalog-data")
 
-# Full structured list of all datasets (when you need complete output)
-Read resource: deriva://catalog/datasets
+# Full structured list of all datasets — preferred typed form
+deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")
+
+# Equivalent resource URI
+Read resource: deriva://catalog/{h}/{c}/ml/datasets
 
 # Get details about a specific dataset
-Read resource: deriva://dataset/{rid}
+deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")
 
 # Query datasets with filters (when you need specific column filters)
-preview_table(table_name="Dataset", filters={"Description": "..."})
+query_attribute(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset", filter={"Description": "..."})
 ```
 
 **Python API:**
@@ -67,8 +72,8 @@ dataset = ml.lookup_dataset("1-ABC4")
 
 **Before creating, ask:**
 - Does a dataset with this data already exist? Check descriptions and member counts.
-- Can an existing dataset be extended with `add_dataset_members`?
-- Can an existing dataset be split differently with `split_dataset`?
+- Can an existing dataset be extended with `deriva_ml_add_dataset_members`?
+- Can an existing dataset be split differently with `deriva_ml_split_dataset`?
 - Is the needed data a subset of an existing "Complete" dataset?
 
 ## Dataset Types
@@ -85,7 +90,7 @@ These types are available by default in every DerivaML catalog:
 | Testing | Data for model evaluation |
 | Validation | Data for hyperparameter tuning |
 | Complete | Full dataset before splitting |
-| Split | Parent container created by `split_dataset` |
+| Split | Parent container created by `deriva_ml_split_dataset` |
 | Labeled | Data with ground truth feature annotations |
 | Unlabeled | Data without feature annotations |
 
@@ -106,13 +111,19 @@ The substitution test helps identify whether two types belong on the same dimens
 
 ### Creating custom types
 
-Custom types can be created with `create_dataset_type_term` (MCP) or `ml.add_term(MLVocab.dataset_type, ...)` (Python). Before creating, check existing types — the term you need may already exist under a different name. Use `rag_search("dataset types", doc_type="catalog-schema")` to find types by meaning, or read `deriva://catalog/dataset-types` for the full list.
+Custom types are created using the generic `add_term` tool on the `Dataset_Type` vocabulary (the legacy `create_dataset_type_term` shortcut was removed):
+
+```
+add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed", description="...", synonyms=[...])
+```
+
+Or in Python: `ml.add_term(MLVocab.dataset_type, ...)`. Before creating, check existing types — the term you need may already exist under a different name. Use `rag_search("dataset types", doc_type="catalog-schema")` to find types by meaning, or `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type")` for the full list.
 
 For detailed guidance on naming conventions, facet design, and anti-patterns, see `type-naming-strategy.md`.
 
-### How `split_dataset` assigns types
+### How `deriva_ml_split_dataset` assigns types
 
-`split_dataset` automatically assigns types to the datasets it creates:
+`deriva_ml_split_dataset` automatically assigns types to the datasets it creates:
 
 - **Parent dataset** gets type `Split`
 - **Training partition** gets `Training` + any additional `training_types`
@@ -132,8 +143,8 @@ Registration creates the association table (`Dataset_{TableName}`) that links da
 Understanding which element types are available is an early planning step — it determines what kind of data can go into your dataset. Check what's registered before deciding what to include:
 
 ```
-# MCP
-Read resource: deriva://catalog/dataset-element-types
+# MCP — element types appear under the ML registries resource
+Read resource: deriva://catalog/{h}/{c}/ml/registries
 ```
 
 ```python
@@ -147,7 +158,7 @@ for table in element_types:
 
 ```
 # MCP
-add_dataset_element_type(table_name="Image")
+deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", element_table="Image")
 ```
 
 ```python
@@ -178,10 +189,10 @@ Before creating a dataset, decide its structure. The right choice depends on how
 
 | Situation | Structure | How |
 |-----------|-----------|-----|
-| Building a new collection from scratch | Standalone dataset | `create_dataset` |
-| Need train/test/val partitions from existing data | Split children | `split_dataset` from a parent |
-| Curating a focused subset for a specific experiment | New standalone dataset | `create_dataset` + `add_dataset_members` with selected RIDs |
-| Grouping related datasets together | Manual nesting | `create_dataset` + `add_dataset_child` |
+| Building a new collection from scratch | Standalone dataset | `deriva_ml_create_dataset` |
+| Need train/test/val partitions from existing data | Split children | `deriva_ml_split_dataset` from a parent |
+| Curating a focused subset for a specific experiment | New standalone dataset | `deriva_ml_create_dataset` + `deriva_ml_add_dataset_members` with selected RIDs |
+| Grouping related datasets together | Manual nesting | `deriva_ml_create_dataset` + `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` |
 | Creating a versioned snapshot for reproducibility | Any structure | Create, populate, then pin version in config |
 
 ### Nested datasets
@@ -190,7 +201,7 @@ Datasets can contain other datasets as children, forming hierarchies. The most c
 
 ```
 Complete Dataset (type: Complete, Labeled)
-└── Split (type: Split — created by split_dataset)
+└── Split (type: Split — created by deriva_ml_split_dataset)
     ├── Training (type: Training, Labeled — 70%)
     ├── Validation (type: Validation, Labeled — 10%)
     └── Testing (type: Testing, Labeled — 20%)
@@ -198,12 +209,14 @@ Complete Dataset (type: Complete, Labeled)
 
 Child datasets are independent — they have their own RIDs, versions, and types. The parent-child relationship is purely organizational. Child datasets automatically inherit their parent's element types.
 
-`split_dataset` creates nested datasets automatically. You can also nest manually:
+`deriva_ml_split_dataset` creates nested datasets automatically. You can also nest manually — children are members of the parent's `Dataset` element type:
 
 ```
-# MCP
-add_dataset_child(parent_rid="1-PAR", child_rid="1-CHD")
+# MCP — add a child dataset by adding it as a member of the Dataset element type
+deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="1-PAR", members={"Dataset": ["1-CHD"]})
 ```
+
+> Note: the legacy `add_dataset_child(parent, child)` shortcut was removed. Children are now members of the parent's element-type `Dataset`.
 
 ```python
 # Python API
@@ -214,7 +227,7 @@ parent_dataset.add_dataset_members(
 
 ## Splitting Datasets
 
-`split_dataset` partitions a dataset into training, testing, and optionally validation subsets. It follows scikit-learn conventions (`test_size`, `train_size`, `val_size`, `shuffle`, `seed`) and creates a proper dataset hierarchy with full provenance tracking.
+`deriva_ml_split_dataset` partitions a dataset into training, testing, and optionally validation subsets. It follows scikit-learn conventions (`test_size`, `train_size`, `val_size`, `shuffle`, `seed`) and creates a proper dataset hierarchy with full provenance tracking.
 
 ### Two-way split (default)
 
@@ -259,13 +272,13 @@ Every dataset has a version number using semantic versioning (`major.minor.patch
 | **Minor** (0.X.0) | New data, new features, non-breaking additions | Members added, new feature annotations, split created |
 | **Patch** (0.0.X) | Bug fixes, metadata corrections | Fixed mislabeled records, corrected metadata, typo fixes |
 
-DerivaML assigns version `0.1.0` when a dataset is created. The tools `add_dataset_members` and `split_dataset` auto-increment the minor version. For other changes, call `increment_dataset_version` manually.
+DerivaML assigns version `0.1.0` when a dataset is created. The tools `deriva_ml_add_dataset_members` and `deriva_ml_split_dataset` auto-increment the minor version. For other changes, call `deriva_ml_increment_dataset_version` manually.
 
 ### Versions are snapshots
 
 Each version is tied to a catalog snapshot timestamp. When you download a specific version, you get the exact data that existed when that version was created — not the current state. This is the foundation of reproducibility: the same dataset RID + version always produces the same data.
 
-**If you've modified data since the last version** (added features, updated records, corrected labels), those changes are NOT included in existing versions. Call `increment_dataset_version` to create a new version that captures the current state.
+**If you've modified data since the last version** (added features, updated records, corrected labels), those changes are NOT included in existing versions. Call `deriva_ml_increment_dataset_version` to create a new version that captures the current state.
 
 ### When to increment
 
@@ -351,7 +364,7 @@ DatasetSpec(rid="28EA", version="0.4.0")
 DatasetSpecConfig(rid="28EA", version="0.4.0")
 ```
 
-Use the `get_dataset_spec` MCP tool to generate the correct `DatasetSpecConfig` string for a dataset, including its current version. The `deriva://dataset/{rid}` resource also shows the current version.
+Use the `deriva_ml_get_dataset_spec` MCP tool to generate the correct `DatasetSpecConfig` string for a dataset, including its current version. The `deriva_ml_get_dataset` tool also shows the current version.
 
 ### Binding to a specific version
 
@@ -361,7 +374,7 @@ current = dataset.current_version  # e.g., "1.2.0"
 
 # Bind a dataset object to a specific version for version-aware operations
 versioned_dataset = dataset.set_version("1.0.0")
-members = versioned_dataset.resource deriva://dataset/{rid}/members ()  # members at v1.0.0
+members = versioned_dataset.list_dataset_members()  # members at v1.0.0
 ```
 
 ## Exploring and Navigating Datasets
@@ -373,8 +386,8 @@ Once a dataset exists, you need to understand what's in it — its structure, co
 Start by checking its metadata — types, element types, version, and description:
 
 ```
-# MCP
-Read resource: deriva://dataset/{rid}
+# MCP — typed call (preferred)
+deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 ```
 
 ```python
@@ -396,65 +409,58 @@ Members are the records that belong to a dataset. Results are returned as a JSON
 }
 ```
 
-This is the starting point for browsing — the table names tell you which element types to explore with `preview_denormalized_dataset`.
+This is the starting point for browsing — the table names tell you which element types to explore with `deriva_ml_denormalize_dataset`.
 
 **MCP tools:**
 ```
 # All members of the current version
-resource deriva://dataset/{rid}/members (dataset_rid="1-ABC4")
+deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 
 # Members at a specific version
-resource deriva://dataset/{rid}/members (dataset_rid="1-ABC4", version="1.0.0")
+deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
 
 # Members including all nested child datasets
-resource deriva://dataset/{rid}/members (dataset_rid="1-ABC4", recurse=true)
+deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", recurse=true)
 
 # Limit results (useful for large datasets)
-resource deriva://dataset/{rid}/members (dataset_rid="1-ABC4", limit=100)
+deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", limit=100)
 ```
 
 **Python API:**
 ```python
 # Current version — returns dict[str, list[dict]]
-members = dataset.resource deriva://dataset/{rid}/members ()
+members = dataset.list_dataset_members()
 for table_name, rids in members.items():
     print(f"{table_name}: {len(rids)} members")
 
 # Specific version
-members_v1 = dataset.resource deriva://dataset/{rid}/members (version="1.0.0")
+members_v1 = dataset.list_dataset_members(version="1.0.0")
 ```
 
-Note that resource `deriva://dataset/{rid}/members` returns only RIDs, not actual record data. To see the data values (demographics, labels, metadata), use `preview_denormalized_dataset` with the table names discovered here (no dataset RID needed for schema exploration; add `dataset_rid` and `limit` for actual data) — see [Using Datasets](#using-datasets).
+`deriva_ml_list_dataset_members` returns only RIDs, not actual record data. To see the data values (demographics, labels, metadata), use `deriva_ml_denormalize_dataset` with the table names discovered here (no dataset RID needed for schema exploration; add `dataset_rid` and `limit` for actual data) — see [Using Datasets](#using-datasets).
 
 ### Navigating hierarchies
 
-Datasets form parent-child hierarchies. The most common is the split hierarchy created by `split_dataset`, but you can nest manually too.
+Datasets form parent-child hierarchies. The most common is the split hierarchy created by `deriva_ml_split_dataset`, but you can nest manually too.
 
-**Listing children:**
+**Listing children and parents in one call:**
 ```
-# Direct children only
-# Resource: deriva://dataset/{rid} (dataset_rid="1-ABC4")
+# Both directions in a single call (replaces the legacy split list_dataset_children / list_dataset_parents)
+deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 
-# All descendants (children, grandchildren, etc.)
-# Resource: deriva://dataset/{rid} (dataset_rid="1-ABC4", recurse=true)
+# Recurse for the full tree
+deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", recurse=true)
 
-# Children at a specific version
-# Resource: deriva://dataset/{rid} (dataset_rid="1-ABC4", version="1.0.0")
+# At a specific version
+deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
 ```
 
-**Listing parents:**
-```
-# Direct parents
-list_dataset_parents(dataset_rid="1-CHD")
-
-# All ancestors
-list_dataset_parents(dataset_rid="1-CHD", recurse=true)
-```
+> Note: the legacy `list_dataset_parents(rid)` was generalized into `deriva_ml_list_dataset_relations(rid)`, which returns both parents and children together. There is no separate parents-only call.
 
 **When to use recursion:**
 - Use `recurse=false` (default) when you only need the immediate level — e.g., listing the Training/Testing/Validation children of a Split dataset
 - Use `recurse=true` when you need the full tree — e.g., listing all members across a Complete → Split → Training/Testing hierarchy
-- Recursive member listing (resource `deriva://dataset/{rid}/members` with `recurse=true`) aggregates members from the dataset and all its descendants
+- Recursive member listing (`deriva_ml_list_dataset_members(..., recurse=true)`) aggregates members from the dataset and all its descendants
 
 ### Checking element types
 
@@ -462,7 +468,10 @@ Element types determine which tables can contribute members. Check what's availa
 
 ```
 # MCP — catalog-wide registered element types
-Read resource: deriva://catalog/dataset-element-types
+Read resource: deriva://catalog/{h}/{c}/ml/registries
+
+# Or per-dataset element types
+deriva_ml_list_dataset_element_types(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 ```
 
 ```python
@@ -477,8 +486,8 @@ for table in element_types:
 Track which executions created or used a dataset:
 
 ```
-# MCP
-# Resource: deriva://dataset/{rid} (dataset_rid="1-ABC4")
+# MCP — `deriva_ml_get_dataset` includes execution provenance
+deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 ```
 
 This returns all executions that used this dataset as an input — useful for understanding a dataset's lineage and which experiments depend on it.
@@ -493,10 +502,10 @@ Every dataset has a page in the Chaise web interface where you can browse its me
 
 ```
 # MCP — permanent URL with snapshot timestamp
-cite(rid="1-ABC4")
+cite(hostname="data.example.org", catalog_id="1", rid="1-ABC4")
 
 # URL to current state (no snapshot)
-cite(rid="1-ABC4", current=true)
+cite(hostname="data.example.org", catalog_id="1", rid="1-ABC4", current=true)
 ```
 
 ```python
@@ -524,7 +533,7 @@ training_data = DatasetSpecConfig(
 )
 ```
 
-Use the `get_dataset_spec` MCP tool to generate the correct config string including the current version. See the `write-hydra-config` and `configure-experiment` skills for how dataset configs integrate into experiment configurations.
+Use the `deriva_ml_get_dataset_spec` MCP tool to generate the correct config string including the current version. See the `write-hydra-config` and `configure-experiment` skills for how dataset configs integrate into experiment configurations.
 
 ### Query via MCP tools
 
@@ -532,13 +541,13 @@ For interactive exploration without downloading:
 
 ```
 # Explore schema shape (no dataset needed)
-preview_denormalized_dataset(include_tables=["Image", "Subject"])
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Subject"])
 
 # Denormalize with dataset-scoped info + row data
-preview_denormalized_dataset(include_tables=["Image", "Subject"], dataset_rid="1-ABC4", limit=50)
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Subject"], dataset_rid="1-ABC4", limit=50)
 
 # Query individual tables
-preview_table(table_name="Image", filters={"Subject": "2-SUB1"})
+query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Image", filter={"Subject": "2-SUB1"})
 ```
 
 ### Download as a BDBag
@@ -546,11 +555,10 @@ preview_table(table_name="Image", filters={"Subject": "2-SUB1"})
 For production training pipelines and reproducible experiments, download the dataset as a self-contained archive:
 
 ```
-# MCP
-# Python API: dataset.download_dataset_bag(dataset_rid="1-ABC4", version="1.0.0")
+# MCP — preview size + manifest first
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
 
-# Within an execution (records provenance)
-download_execution_dataset(dataset_rid="1-ABC4", version="1.0.0")
+# Python API: dataset.download_dataset_bag(dataset_rid="1-ABC4", version="1.0.0")
 ```
 
 ```python
@@ -577,7 +585,7 @@ print(dataset.dataset_types)
 
 # Work with a specific version
 v1 = dataset.set_version("1.0.0")
-members = v1.resource deriva://dataset/{rid}/members ()
+members = v1.list_dataset_members()
 
 # Download and work with the bag
 bag = dataset.download_dataset_bag(version="1.0.0")
@@ -639,8 +647,9 @@ By default, symlinks are used to save disk space. Set `use_symlinks=False` to co
 ### Previewing before download
 
 ```
-# MCP
-estimate_bag_size(dataset_rid="1-ABC4", version="1.0.0")
+# MCP — `deriva_ml_bag_info` returns the size estimate plus the manifest
+# (the legacy estimate_bag_size is subsumed by this tool)
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
 ```
 
 Returns row counts and asset sizes per table. Use this to verify expected tables, estimate disk space, and decide whether to adjust timeout or use `exclude_tables`.
@@ -655,10 +664,10 @@ Datasets can be soft-deleted (marked as deleted but data preserved in the catalo
 
 ```
 # MCP — delete a single dataset
-delete_dataset(dataset_rid="1-ABC4")
+deriva_ml_delete_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 
 # Delete dataset and all nested children
-delete_dataset(dataset_rid="1-ABC4", recurse=true)
+deriva_ml_delete_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", recurse=true)
 ```
 
 ```python
@@ -675,33 +684,32 @@ Deletion removes the dataset container and member associations, not the member r
 
 | Operation | MCP Tool | Python API | Notes |
 |-----------|----------|------------|-------|
-| Create dataset | `create_dataset` | `exe.create_dataset()` | Within an execution for provenance |
-| Add types | `add_dataset_type` | `dataset.add_dataset_type()` | Additive labels |
-| Remove types | `remove_dataset_type` | `dataset.remove_dataset_type()` | |
-| Create custom type | `create_dataset_type_term` | `ml.add_term(MLVocab.dataset_type, ...)` | Check existing types first |
-| Register element type | `add_dataset_element_type` | `ml.add_dataset_element_type()` | Catalog-level, idempotent |
-| Add members | `add_dataset_members` | `dataset.add_dataset_members()` | Auto-increments version |
-| Remove members | `delete_dataset_members` | `dataset.delete_dataset_members()` | |
-| Split | `split_dataset` | `split_dataset(ml, rid, ...)` | Auto-increments version |
-| Nest datasets | `add_dataset_child` | `parent.add_dataset_members()` | Manual hierarchy |
-| Increment version | `increment_dataset_version` | `dataset.increment_dataset_version()` | Always provide description |
-| Set description | `set_dataset_description` | — | |
-| Delete | `delete_dataset` | `ml.delete_dataset()` | Soft delete, optional recurse |
+| Create dataset | `deriva_ml_create_dataset` | `exe.create_dataset()` | Within an execution for provenance |
+| Add types | `deriva_ml_update_dataset(dataset_rid, dataset_types=[...])` | `dataset.add_dataset_type()` | Additive labels |
+| Remove types | `update_entities` on the type-association table | `dataset.remove_dataset_type()` | Manual via update_entities |
+| Create custom type | `add_term(schema="deriva-ml", table="Dataset_Type", ...)` | `ml.add_term(MLVocab.dataset_type, ...)` | Generic add_term |
+| Register element type | `deriva_ml_add_dataset_element_type` | `ml.add_dataset_element_type()` | Catalog-level, idempotent |
+| Add members | `deriva_ml_add_dataset_members` | `dataset.add_dataset_members()` | Auto-increments version |
+| Remove members | `deriva_ml_delete_dataset_members` | `dataset.delete_dataset_members()` | |
+| Split | `deriva_ml_split_dataset` | `split_dataset(ml, rid, ...)` | Auto-increments version |
+| Nest datasets | `deriva_ml_add_dataset_members(parent, members={"Dataset": [child_rid]})` | `parent.add_dataset_members()` | Children are members of element-type Dataset |
+| Increment version | `deriva_ml_increment_dataset_version` | `dataset.increment_dataset_version()` | Always provide description |
+| Update description | `deriva_ml_update_dataset(rid, description=...)` | — | Subsumes legacy set_dataset_description |
+| Delete | `deriva_ml_delete_dataset` | `ml.delete_dataset()` | Soft delete, optional recurse |
 
 ### Navigation and discovery
 
 | Operation | MCP Tool | Python API | Notes |
 |-----------|----------|------------|-------|
-| Find datasets | `rag_search("...", doc_type="catalog-data")` or Resource: `deriva://catalog/datasets` | `ml.find_datasets()` | RAG for discovery; resource for full list |
-| Lookup by RID | `get_record("Dataset", rid)` | `ml.lookup_dataset(rid)` | Get specific dataset |
-| List members | resource `deriva://dataset/{rid}/members` | `dataset.resource deriva://dataset/{rid}/members ()` | Grouped by table; supports `version`, `recurse`, `limit` |
-| List children | resource `deriva://dataset/{rid}` | `dataset.list_dataset_children()` | Supports `recurse`, `version` |
-| List parents | `list_dataset_parents` | `dataset.list_dataset_parents()` | Supports `recurse`, `version` |
-| Check element types | Resource: `dataset-element-types` | `ml.list_dataset_element_types()` | Catalog-wide |
-| List executions | resource `deriva://dataset/{rid}` | — | Provenance: which runs used this dataset |
-| Validate RIDs | `validate_rids` | — | Check RIDs exist before adding |
-| Estimate bag size | `estimate_bag_size` | `dataset.estimate_bag_size()` | Preview before download |
-| Get version spec | `get_dataset_spec` | — | Generate `DatasetSpecConfig` string |
+| Find datasets | `rag_search("...", doc_type="catalog-data")` or `deriva_ml_list_datasets` | `ml.find_datasets()` | RAG for discovery; typed list for full surface |
+| Lookup by RID | `deriva_ml_get_dataset(rid)` | `ml.lookup_dataset(rid)` | Get specific dataset |
+| List members | `deriva_ml_list_dataset_members` | `dataset.list_dataset_members()` | Grouped by table; supports `version`, `recurse`, `limit` |
+| List relations (parents + children) | `deriva_ml_list_dataset_relations` | `dataset.list_dataset_relations()` | Both directions in one call; supports `recurse`, `version` |
+| Check element types | `deriva_ml_list_dataset_element_types` or `deriva://catalog/{h}/{c}/ml/registries` | `ml.list_dataset_element_types()` | Per-dataset or catalog-wide |
+| List executions | `deriva_ml_get_dataset` (includes provenance) | — | Provenance: which runs used this dataset |
+| Validate RIDs | `get_entities(filter={"RID": "..."})` per candidate table; check for empty result | — | The legacy validate_rids tool was removed; use generic entity fetch |
+| Bag info / size estimate | `deriva_ml_bag_info` (subsumes legacy estimate_bag_size) | `dataset.estimate_bag_size()` | Preview before download |
+| Get version spec | `deriva_ml_get_dataset_spec` | — | Generate `DatasetSpecConfig` string |
 | Cite | `cite` | `ml.cite(rid)` | Permanent shareable URL |
 
 ### Download and export
@@ -712,5 +720,5 @@ Deletion removes the dataset container and member associations, not the member r
 | Download in execution | Python API `exe.download_dataset_bag()` | `exe.download_dataset_bag()` | Records provenance |
 | Restructure assets | Python API `bag.restructure_assets()` | `bag.restructure_assets()` | ML-ready directory layout |
 | Validate bag | Python API bag inspection | — | Cross-check bag vs catalog |
-| Schema shape + size | `preview_denormalized_dataset(include_tables=[...])` | `ml.denormalize_info()` / `dataset.denormalize_info()` | No dataset needed for schema-only |
-| Denormalize with data | `preview_denormalized_dataset(..., dataset_rid=..., limit=N)` | `dataset.denormalize_as_dataframe()` | Flat DataFrame for analysis |
+| Schema shape + size | `deriva_ml_denormalize_dataset(include_tables=[...])` | `ml.denormalize_info()` / `dataset.denormalize_info()` | No dataset needed for schema-only |
+| Denormalize with data | `deriva_ml_denormalize_dataset(..., dataset_rid=..., limit=N)` | `dataset.denormalize_as_dataframe()` | Flat DataFrame for analysis |

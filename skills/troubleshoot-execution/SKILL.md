@@ -9,7 +9,11 @@ disable-model-invocation: true
 
 This guide covers errors specific to the **DerivaML execution lifecycle** — the things that can only break when you're using `deriva-ml` and `deriva-ml-mcp` (Python API patterns like `ml.create_execution()`, `exe.asset_file_path()`, `exe.upload_execution_outputs()`; MCP execution-status tools; dataset versioning; feature value uploads).
 
-> **Generic catalog errors** (auth, permissions, invalid RID, missing record, vocabulary term not found, connect failures) are NOT covered here. See the **`troubleshoot-deriva-errors`** skill in `deriva-skills` for those — those errors surface in any Deriva catalog operation and don't require the execution machinery to reproduce.
+> **Generic catalog errors** (auth, permissions, invalid RID, missing record, vocabulary term not found, connect failures) are NOT covered here. See the **`/deriva:troubleshoot-deriva-errors`** skill *(tier-1, deriva-skills)* for those — those errors surface in any Deriva catalog operation and don't require the execution machinery to reproduce.
+
+## Stateless model
+
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. Lifecycle tools also take an explicit `execution_rid` — there is no implicit "active execution".
 
 ---
 
@@ -27,8 +31,8 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
   with ml.create_execution(config) as exe:
       # All execution work goes here
   ```
-- With MCP tools, ensure you called `start_execution()` before attempting execution-scoped operations.
-- If the execution was started but the error persists, the execution may have been stopped or may have failed. Check with resource `deriva://execution/{rid}`.
+- With MCP tools, ensure you called `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` before attempting execution-scoped operations. The execution_rid must be the one returned by `deriva_ml_create_execution`.
+- If the execution was started but the error persists, the execution may have been committed or aborted. Check with `deriva_ml_get_execution(hostname, catalog_id, execution_rid)`.
 
 ---
 
@@ -39,7 +43,7 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 **Cause**: Python API `exe.upload_execution_outputs()` was not called, or files were written to the wrong path.
 
 **Solution**:
-1. Call `upload_execution_outputs()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it after `stop_execution()`.
+1. Call `upload_execution_outputs()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it after `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`.
 2. Ensure files are written to the **exact path** returned by `asset_file_path()`. Writing to any other directory will cause the upload to miss those files.
 3. Verify the file actually exists at the path before uploading:
    ```python
@@ -47,7 +51,7 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
    # Write file to `path`
    # Verify: os.path.exists(path) should be True
    ```
-4. Check that the execution is still in `Running` status when you attempt the upload. If it was already stopped or failed, uploads will not work.
+4. Check that the execution is still in `Running` status when you attempt the upload. If it was already committed or aborted, uploads will not work.
 
 ---
 
@@ -59,11 +63,11 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 **Solution**:
 - **Search first with `rag_search`**: Use `rag_search("your dataset description", doc_type="catalog-data")` to find datasets by description, type, or purpose. This is the best way to discover the correct RID when you are unsure.
-- Verify you are connected to the correct catalog with `connect_catalog` or check the active catalog.
-- Check the dataset resources to list available datasets.
-- Use `validate_rids` to confirm the RID is valid and belongs to a dataset table.
+- Verify you are passing the correct `hostname` and `catalog_id` arguments — the new MCP server is stateless, so any tool call against the wrong catalog will quietly miss the record.
+- Call `deriva_ml_list_datasets(hostname, catalog_id)` to list available datasets.
+- Confirm the RID resolves to a dataset by calling `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`. If it errors / returns empty, the RID is wrong, the dataset was deleted, or it lives in a different catalog. The legacy `validate_rids` tool was removed; use the typed lookup instead.
 - If the dataset was recently created, it should be visible immediately -- there is no propagation delay.
-- If the RID resolves to a non-dataset table, that's a generic record-not-found case — see the tier-1 `troubleshoot-deriva-errors` skill.
+- If the RID resolves to a non-dataset table, that's a generic record-not-found case — see the `/deriva:troubleshoot-deriva-errors` skill *(tier-1, deriva-skills)*.
 
 ---
 
@@ -74,10 +78,10 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 **Cause**: The dataset was modified after the version was pinned, or version tracking was not used.
 
 **Solution**:
-- Check the dataset's version history through the dataset resources.
-- Use `increment_dataset_version` after making changes to a dataset to create a new version snapshot.
+- Check the dataset's version history with `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`.
+- Use `deriva_ml_increment_dataset_version(hostname, catalog_id, dataset_rid, ...)` after making changes to a dataset to create a new version snapshot.
 - When referencing datasets in workflows, consider pinning to a specific version.
-- Use `get_dataset_spec` to see the current dataset specification and version.
+- Use `deriva_ml_get_dataset_spec(hostname, catalog_id, dataset_rid)` to see the current dataset specification and version.
 
 ---
 
@@ -89,9 +93,9 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 **Solution**:
 - **Search first with `rag_search`**: Use `rag_search("your feature description", doc_type="catalog-schema")` to find features by name, target table, or vocabulary. This is the best way to discover exact feature names before calling tools.
-- Check the feature resources to list existing features.
-- Feature names are case-sensitive. Verify exact spelling.
-- **Tool**: `create_feature` to create the feature if it does not exist.
+- Call `deriva_ml_list_features(hostname, catalog_id)` to list existing features.
+- Feature names are case-sensitive. Verify exact spelling with `deriva_ml_get_feature(hostname, catalog_id, target_table, feature_name)`.
+- **Tool**: `deriva_ml_create_feature(hostname, catalog_id, ...)` to create the feature if it does not exist.
 - Ensure the feature is associated with the correct table.
 
 ---
@@ -107,7 +111,7 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 - For large files, consider breaking them into smaller batches.
 - The server may have upload size limits. Check with your catalog administrator.
 - Retry the upload -- transient network issues are the most common cause.
-- **Tool**: resource `deriva://execution/{rid}` to check if partial uploads succeeded.
+- **Tool**: `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to check if partial uploads succeeded.
 
 ---
 
@@ -119,9 +123,11 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 **Solution**:
 - **Best practice**: Always use the context manager (`with ml.create_execution(config) as exe:`) which automatically handles cleanup on both success and failure.
-- To fix a stuck execution manually:
-  - **Tool**: `update_execution_status` with `status="Failed"` and `message="Manually marked as failed"` (or `status="Completed"` if the work actually finished).
-- **Tool**: resource `deriva://execution/{rid}` to inspect the execution's current state and metadata.
+- To fix a stuck execution manually, pick the right tool for the transition:
+  - Failure: `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` — sets status to `Failed`/`Aborted`.
+  - Success: `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — sets status to `Completed`. Only use this if the work actually finished.
+  - Arbitrary status with a custom message: `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status="Failed", message="Manually marked as failed")`.
+- **Tool**: `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to inspect the execution's current state and metadata.
 - For future runs, always use the context manager to prevent this issue.
 
 ---
@@ -133,33 +139,50 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 **Cause**: The DerivaML built-in vocabulary needs to be extended with a domain-specific term.
 
 **Solution**:
-- For DerivaML built-in vocabularies, use the dedicated extender tools rather than generic `add_term`:
-  - `Dataset_Type` → `create_dataset_type_term`
-  - `Workflow_Type` → `add_workflow_type`
-  - `Asset_Type` → `add_asset_type`
-- For other vocabularies (custom domain vocabs), use `add_term`.
-- For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the tier-1 `troubleshoot-deriva-errors` skill.
+- All DerivaML built-in vocabularies live in the `deriva-ml` schema and are extended with the generic `add_term` tool — the legacy dedicated extender tools (`create_dataset_type_term`, `add_workflow_type`, `add_asset_type`) were removed.
+  - `Dataset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Dataset_Type", name=..., description=...)`
+  - `Workflow_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`
+  - `Asset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`
+- For other vocabularies (custom domain vocabs), use `add_term` with the appropriate schema and table.
+- For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the `/deriva:troubleshoot-deriva-errors` skill *(tier-1, deriva-skills)*.
+
+---
+
+## Problem: "I Need to Resume an Aborted Execution"
+
+**Symptom**: An execution failed or was aborted. You want to pick up from where it left off.
+
+**Cause**: This is a known gap, not an error — the legacy `restore_execution` tool has **no equivalent** in the new MCP surface.
+
+**Solution (workaround):**
+
+1. **Inspect the prior execution.** Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to retrieve the workflow RID, dataset RIDs, asset RIDs, and description from the original execution.
+2. **Decide whether to retry.** If the failure was transient (network, timeout) re-running with the same config makes sense. If it was a code or config bug, fix it first.
+3. **Create a fresh execution.** Call `deriva_ml_create_execution(hostname, catalog_id, ...)` with the same workflow, dataset_rids, and asset_rids. This creates a new execution record with a new RID — the prior aborted execution remains in its terminal state for provenance.
+4. **Continue the lifecycle as normal.** `deriva_ml_start_execution` → do the work → `deriva_ml_commit_execution`.
+
+**Note:** This means the new execution's RID is different from the old one. If you need to relate them, capture both RIDs in your experiment notes (see the `maintain-experiment-notes` skill) — the catalog itself does not link aborted executions to their re-run replacements.
 
 ---
 
 ## Reference Resources
 
-- `references/execution-lifecycle.md` — Full execution lifecycle reference: workflow creation, execution configuration, upload tuning (timeouts, chunk sizes, retries), source code detection, nested executions, restoring executions, and dry run debugging. Read this for the complete execution workflow and parameter details.
-- `deriva://execution/{rid}` — Inspect execution state, status, and metadata
+- `references/execution-lifecycle.md` — Full execution lifecycle reference: workflow creation, execution configuration, upload tuning (timeouts, chunk sizes, retries), source code detection, nested executions, the re-run-after-abort workaround, and dry run debugging. Read this for the complete execution workflow and parameter details.
+- `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` — Inspect execution state, status, and metadata
 - `deriva://storage/execution-dirs` — Check execution working directories
 
 ## General Debugging Tips (Execution-Specific)
 
 ### Inspect Execution State
 
-- **Tool**: resource `deriva://execution/{rid}` with the execution RID to see full execution metadata, status, inputs, and outputs.
-- **Tool**: Python API `exe.working_dir` to find the local working directory and inspect files directly. (No params -- operates on the active execution.)
+- **Tool**: `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see full execution metadata, status, inputs, and outputs.
+- **Tool**: Python API `exe.working_dir` to find the local working directory and inspect files directly.
 
 ### Review Recent Executions
 
-- Check the recent executions resource to see the latest execution activity, statuses, and any patterns of failure.
-- **Tool**: `list_nested_executions` if the execution is part of a larger workflow to see the full execution tree.
-- **Tool**: resource `deriva://execution/{rid}` to find the parent execution if this is a nested step.
+- Call `deriva_ml_list_executions(hostname, catalog_id)` to see the latest execution activity, statuses, and any patterns of failure.
+- **Tool**: `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` to see descendants if the execution is the parent of a multirun or pipeline.
+- **Tool**: `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` to find ancestors if this is a nested step.
 
 ### Verify Working Directory
 

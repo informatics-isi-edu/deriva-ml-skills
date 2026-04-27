@@ -244,9 +244,12 @@ Overrides use Hydra's syntax. Comma-separated values create the sweep:
 
 ### Navigating multirun results
 
-- `list_nested_executions` with the parent execution RID — see all children
-- resource `deriva://execution/{rid}` with a child RID — find the parent
-- Read `deriva://experiment/{parent_rid}` — see the full multirun with description and children
+> The new MCP server is stateless — every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
+- `deriva_ml_list_execution_children(hostname=..., catalog_id=..., execution_rid="<parent_rid>")` — see all children of a parent multirun execution
+- `deriva_ml_list_execution_parents(hostname=..., catalog_id=..., execution_rid="<child_rid>")` — find the parent of a given child execution
+- `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<parent_rid>")` — fetch the parent execution record (which holds the multirun description); pair with `deriva_ml_list_execution_children(...)` to see its children
+- The legacy `list_nested_executions` tool was split into the two `_children` / `_parents` calls above
 
 ## Best Practices
 

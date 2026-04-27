@@ -11,15 +11,9 @@ An asset is a file-based record in a Deriva catalog — it combines a file (stor
 For background on asset tables, types, RIDs, object storage, caching, and provenance, see `references/concepts.md`.
 
 
-## Prerequisite: Connect to a Catalog
+## Stateless model
 
-All operations in this skill require an active catalog connection. Before anything else:
-
-```
-connect_catalog(hostname="...", catalog_id="...")
-```
-
-If already connected (check `deriva://catalog/connections`), skip this step.
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 
 ## Critical Rules
@@ -38,12 +32,10 @@ If already connected (check `deriva://catalog/connections`), skip this step.
    rag_search("image assets", doc_type="catalog-schema")
    rag_search("model weights files", doc_type="catalog-schema")
    ```
-2. Read `deriva://catalog/asset-tables` or `deriva://catalog/assets` — full structured list of asset tables and counts
-3. Read `deriva://table/{table_name}/assets` — browse assets in a table
-4. Read `deriva://asset/{asset_rid}` — inspect a specific asset (metadata, types, provenance, Chaise URL)
-5. `list_asset_executions` — find which execution created or used an asset
-6. Read `deriva://execution/{rid}/metadata` — find auto-generated metadata files for an execution
-7. Read `deriva://execution/{rid}/outputs` — find output assets for an execution
+2. `deriva_ml_list_asset_tables(hostname, catalog_id)` — full list of asset tables.
+3. `deriva_ml_list_assets(hostname, catalog_id, ...)` — browse assets across tables (filterable).
+4. `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` — inspect a specific asset (metadata, types, producer execution).
+5. `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` — find auto-generated metadata files and output assets for an execution.
 
 ### Downloading assets
 
@@ -54,37 +46,35 @@ If already connected (check `deriva://catalog/connections`), skip this step.
 
 ### Creating asset tables
 
-1. `create_asset_table` — define a new asset table with optional custom columns and FK references
+1. **No dedicated tool** — use `create_table` (tier-1 deriva-mcp-core) with the standard hatrac column shape and an Asset_Type FK. The legacy `create_asset_table` shortcut was removed; see `references/concepts.md` for the manual recipe.
 
 ### Uploading assets (within an execution)
 
-1. `create_execution` + `start_execution` — start provenance tracking
-2. Python API `exe.asset_file_path()` — register each output file for upload (returns a path to write to)
-3. Python API `exe.upload_execution_outputs()` — upload all registered files to the object store and catalog
-4. `stop_execution` — finalize
+1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` — start provenance tracking. Capture the returned `execution_rid`.
+2. Python API `exe.asset_file_path()` — register each output file for upload (returns a path to write to).
+3. Python API `exe.upload_execution_outputs()` — upload all registered files to the object store and catalog.
+4. `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — finalize on success (use `deriva_ml_abort_execution` on failure).
 
 ### Managing asset types
 
-1. `add_asset_type` — create a new term in the Asset_Type vocabulary
-2. `add_asset_type_to_asset` / `remove_asset_type_from_asset` — tag or untag assets
+1. **Create a new term in the Asset_Type vocabulary:** `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`. The legacy `add_asset_type` shortcut was removed; generic `add_term` works.
+2. **Tag / untag an asset with a type:** no dedicated tool — use `update_entities(hostname, catalog_id, schema, table, entities=[{"RID": asset_rid, "Asset_Type": <term>}])` to set the value, or pass `null` to clear it. The legacy `add_asset_type_to_asset` and `remove_asset_type_from_asset` were removed; see `references/workflow.md` for the manual recipe.
 
 For the full step-by-step guide with MCP tool parameters and Python API examples, see `references/workflow.md`.
 
 ## Reference Resources
 
-- `references/concepts.md` — What assets are, asset tables, RIDs, types, object storage, caching, provenance, execution metadata vs execution assets, notebook output assets
-- `references/workflow.md` — Step-by-step MCP and Python API workflows, finding assets by type and execution
-- `references/restructure-guide.md` — Restructuring assets for ML: group_by options, value selectors, file transformers, ML framework patterns, upload tuning
-- `rag_search("file assets in DerivaML", doc_type="user-guide")` — Search the user guide for file asset documentation
-- `deriva://catalog/asset-tables` — List all asset tables
-- `deriva://catalog/assets` — Asset tables with record counts
-- `deriva://table/{table_name}/assets` — Browse assets in a table
-- `deriva://asset/{asset_rid}` — Asset details and provenance
-- `deriva://execution/{rid}/metadata` — Auto-generated metadata files for an execution
-- `deriva://execution/{rid}/outputs` — Output assets for an execution
+- `references/concepts.md` — What assets are, asset tables, RIDs, types, object storage, caching, provenance, execution metadata vs execution assets, notebook output assets, and the manual recipe for creating an asset table.
+- `references/workflow.md` — Step-by-step MCP and Python API workflows, finding assets by type and execution.
+- `references/restructure-guide.md` — Restructuring assets for ML: group_by options, value selectors, file transformers, ML framework patterns, upload tuning.
+- `rag_search("file assets in DerivaML", doc_type="user-guide")` — Search the user guide for file asset documentation.
+- Use `deriva_ml_list_asset_tables(hostname, catalog_id)`, `deriva_ml_list_assets(hostname, catalog_id, ...)`, and `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` for the typed asset reads.
+- `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` returns metadata files and output assets for an execution.
 
 ## Related Skills
 
 - **`execution-lifecycle`** — Full execution lifecycle including asset upload patterns
 - **`ml-data-engineering`** — Downloading and restructuring assets for ML training
 - **`dataset-lifecycle`** — Datasets organize assets into versioned collections for reproducibility
+- **`/deriva:route-catalog-schema`** *(tier-1, deriva-skills)* — Generic table creation via `create_table`, used to build new asset tables
+- **`/deriva:manage-vocabulary`** *(tier-1, deriva-skills)* — Generic vocabulary CRUD via `add_term`/`delete_term`, used to manage Asset_Type terms

@@ -8,15 +8,9 @@ description: "Use this skill whenever the user asks about DerivaML versions, upd
 You are a router skill. Based on the user's request, load the appropriate specialized skill.
 
 
-## Prerequisite: Connect to a Catalog
+## Stateless model
 
-Most skills routed from here require an active catalog connection:
-
-```
-connect_catalog(hostname="...", catalog_id="...")
-```
-
-If already connected (check `deriva://catalog/connections`), skip this step.
+Every MCP tool routed from here is stateless — it takes `hostname=` and `catalog_id=` arguments explicitly. There is no `connect_catalog` step or "active catalog" state. Substitute your catalog's host and ID in every tool example shown by the routed skills.
 
 
 ## Routing Rules

@@ -2,6 +2,8 @@
 
 This skill covers the pre-flight checks and CLI commands for running experiments using `deriva-ml-run`. It assumes your hydra-zen configs are already set up (see the `configure-experiment` skill).
 
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. (`deriva-ml-run` itself reads its `hostname`/`catalog` from the Hydra config or from CLI overrides — not affected by MCP statelessness.)
+
 ## Pre-Flight Checklist
 
 Before running any experiment, complete these checks. **Stop and fix any issues before proceeding.**
@@ -190,10 +192,12 @@ uv run deriva-ml-run +experiment=baseline,long_training --multirun
 
 ### Check Executions
 
-After the run completes, verify the execution was recorded. Use the MCP resource:
+After the run completes, verify the execution was recorded. Use the MCP tools:
 
-- Read `deriva://catalog/executions` to list recent executions.
-- Read `deriva://execution/{rid}` for details on a specific execution.
+- `deriva_ml_list_executions(hostname="data.example.org", catalog_id="1")` to list recent executions.
+- `deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="...")` for details on a specific execution.
+
+The same content is available via the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}`.
 
 ### View in Chaise
 
@@ -203,7 +207,7 @@ Open the execution in the web interface. The Chaise URL is typically:
 https://{host}/chaise/record/#{catalog_id}/{schema}:Execution/RID={execution_rid}
 ```
 
-The MCP resource `deriva://chaise-url/{rid}` provides the direct URL (pass the execution RID).
+Use `cite(hostname, catalog_id, rid)` to generate a permanent URL for an execution.
 
 Verify:
 - The execution status is "Completed".
@@ -219,7 +223,7 @@ Verify:
 | `Connection refused` | Wrong host or host is down | Verify `--host` value, check network |
 | `Authentication error` | Expired or missing credentials | Run `deriva-globus-auth-utils login --host {host}` |
 | `Dataset not found: RID=...` | RID does not exist in the target catalog | Verify RIDs match the target catalog (dev vs prod) |
-| `Version X not found for dataset` | Requested version does not exist | Check available versions with `deriva://dataset/{rid}` |
+| `Version X not found for dataset` | Requested version does not exist | Check available versions with `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)` |
 | `Dirty git state warning` | Uncommitted changes when running | Commit changes before running |
 | `Lock file out of date` | `uv.lock` does not match `pyproject.toml` | Run `uv lock` and commit |
 | `ModuleNotFoundError` | Dependencies not installed | Run `uv sync` |

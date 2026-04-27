@@ -2,6 +2,8 @@
 
 How to choose, use, and write feature selectors in DerivaML.
 
+> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## What is a selector?
 
 A selector is a function that picks one feature value when a record has multiple values for the same feature. This happens when:
@@ -13,7 +15,7 @@ Without a selector, the API returns ALL values — including duplicates per reco
 
 ## Built-in selectors
 
-All selectors live on `FeatureRecord` and work everywhere: catalog queries (resource `deriva://table/{name}/features`, `list_feature_values`), bag queries, and Python API `bag.restructure_assets()`.
+All selectors live on `FeatureRecord` and work everywhere: catalog queries (`deriva_ml_list_feature_values`, `list_feature_values`), bag queries, and Python API `bag.restructure_assets()`.
 
 | Selector | Type | What it does | When to use |
 |----------|------|-------------|-------------|
@@ -28,19 +30,11 @@ All selectors live on `FeatureRecord` and work everywhere: catalog queries (reso
 **With MCP tools** — pass the selector name as a string:
 
 ```
-resource deriva://table/{name}/features (table_name="Image", feature_name="Diagnosis", selector="newest")
-resource deriva://table/{name}/features (table_name="Image", feature_name="Diagnosis", selector="first")
-resource deriva://table/{name}/features (table_name="Image", feature_name="Diagnosis", selector="majority_vote")
-resource deriva://table/{name}/features (table_name="Image", execution="3-XYZ")
-resource deriva://table/{name}/features (table_name="Image", workflow="Training")
-```
-
-**With MCP resources** — pre-deduplicated:
-
-```
-deriva://table/Image/feature-values/newest
-deriva://table/Image/feature-values/first
-deriva://table/Image/feature-values/majority_vote
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis", selector="newest")
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis", selector="first")
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis", selector="majority_vote")
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", execution="3-XYZ")
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", workflow="Training")
 ```
 
 **With Python API** — pass the callable directly:
@@ -49,22 +43,22 @@ deriva://table/Image/feature-values/majority_vote
 from deriva_ml.feature import FeatureRecord
 
 # Static selectors
-features = ml.resource deriva://table/{name}/features ("Image", selector=FeatureRecord.select_newest)
-features = ml.resource deriva://table/{name}/features ("Image", selector=FeatureRecord.select_first)
+features = ml.fetch_table_features("Image", selector=FeatureRecord.select_newest)
+features = ml.fetch_table_features("Image", selector=FeatureRecord.select_first)
 
 # Factory selectors — call them to get a selector function
-features = ml.resource deriva://table/{name}/features ("Image",
+features = ml.fetch_table_features("Image",
     selector=FeatureRecord.select_by_execution("3-XYZ"))
 
 # Majority vote — auto-detects column for single-term features
 feat = ml.lookup_feature("Image", "Diagnosis")
 RecordClass = feat.feature_record_class()
-features = ml.resource deriva://table/{name}/features ("Image",
+features = ml.fetch_table_features("Image",
     feature_name="Diagnosis",
     selector=RecordClass.select_majority_vote())
 
 # Or specify column explicitly
-features = ml.resource deriva://table/{name}/features ("Image",
+features = ml.fetch_table_features("Image",
     feature_name="Diagnosis",
     selector=FeatureRecord.select_majority_vote("Diagnosis_Type"))
 ```
@@ -143,7 +137,7 @@ def select_weighted(records: list[FeatureRecord]) -> FeatureRecord:
 **Python API** — pass directly:
 
 ```python
-features = ml.resource deriva://table/{name}/features ("Image",
+features = ml.fetch_table_features("Image",
     feature_name="Diagnosis",
     selector=select_highest_confidence)
 

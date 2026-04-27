@@ -8,15 +8,9 @@ disable-model-invocation: false
 
 Features link domain objects (e.g., Image, Subject) to structured values — controlled vocabulary terms, computed values, or assets — with full provenance tracking through executions.
 
-## Prerequisite: Connect to a Catalog
+## Stateless model
 
-All feature operations require an active catalog connection:
-
-```
-connect_catalog(hostname="...", catalog_id="...")
-```
-
-If already connected (check `deriva://catalog/connections`), skip this step.
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Phase 1: Assess
 
@@ -34,11 +28,11 @@ rag_search("diagnosis label classification", doc_type="catalog-schema")
 rag_search("quality score confidence", doc_type="catalog-schema")
 ```
 
-Then use resources for full structured details of a specific feature:
+Then use the typed tools for full structured details:
 ```
-Read resource: deriva://catalog/features               # All features (structured JSON)
-Read resource: deriva://feature/{table_name}/{feature_name}  # Specific feature details
-Read resource: deriva://table/{table_name}/feature-values/newest  # Existing values
+deriva_ml_list_features(hostname="data.example.org", catalog_id="1")               # All features (structured JSON)
+deriva_ml_get_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")  # Specific feature details
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis", selector="newest")  # Existing values
 ```
 
 ```python
@@ -47,7 +41,7 @@ feature = ml.lookup_feature("Image", "Diagnosis")
 ```
 
 **Before creating, ask:**
-- Does a feature with this purpose already exist? The `semantic-awareness` skill (auto-loaded by the `deriva-skills` tier-1 plugin) checks automatically, and `create_feature` warns about near-duplicates.
+- Does a feature with this purpose already exist? The `semantic-awareness` skill (auto-loaded by the `deriva-skills` tier-1 plugin) checks automatically, and `deriva_ml_create_feature` warns about near-duplicates.
 - Can the existing feature be extended with new vocabulary terms?
 - Is this really a feature, or should it be a column on the table?
 
@@ -83,14 +77,16 @@ For the full design guide, see `references/concepts.md` under "Designing a Featu
 
 1. **Create vocabulary + terms** (if term-based; see `/deriva:manage-vocabulary` *(tier-1, deriva-skills)* for the generic vocabulary CRUD surface):
    ```
-   create_vocabulary(vocabulary_name="Diagnosis_Type", comment="...")
-   add_term(vocabulary_name="Diagnosis_Type", term_name="Normal", description="...")
+   create_vocabulary(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Diagnosis_Type", comment="...")
+   add_term(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Diagnosis_Type", name="Normal", description="...")
    ```
 
 2. **Create the feature**:
    ```
-   create_feature(table_name="Image", feature_name="Diagnosis",
-                   terms=["Diagnosis_Type"], comment="Clinical diagnosis for this image")
+   deriva_ml_create_feature(hostname="data.example.org", catalog_id="1",
+                             target_table="Image", feature_name="Diagnosis",
+                             terms=["Diagnosis_Type"],
+                             comment="Clinical diagnosis for this image")
    ```
 
 ### Description guidance
@@ -116,12 +112,12 @@ Before adding values, check what the feature expects. **Start with RAG search:**
 rag_search("Diagnosis feature columns types", doc_type="catalog-schema")
 ```
 
-For the full structured definition, read the resource:
+For the full structured definition, call:
 ```
-Read resource: deriva://feature/{table_name}/{feature_name}
+deriva_ml_get_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")
 ```
 
-The resource returns:
+The tool returns:
 - **term_columns** — vocabulary-controlled fields with the vocabulary table name and whether required
 - **asset_columns** — file reference fields with the asset table name
 - **value_columns** — free-form fields with data type (float4, text, etc.)
@@ -134,9 +130,9 @@ For **term columns**, discover valid values with RAG search first:
 rag_search("Diagnosis_Type vocabulary terms", doc_type="catalog-schema")
 ```
 
-For the complete term list, read the resource:
+For the complete term list, call:
 ```
-Read resource: deriva://vocabulary/{vocabulary_table_name}
+list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Diagnosis_Type")
 ```
 
 For **value columns**, check the type:
@@ -159,52 +155,65 @@ Feature values modify catalog data, so the approach depends on scale and reprodu
 **For quick testing** (verifying the feature works, adding a few sample values), MCP tools are fine:
 
 ```
-create_execution(workflow_name="Expert Annotation", workflow_type="Annotation")
-start_execution()
+deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1", name="Expert Annotation", workflow_type="Annotation", description="...")
+deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description="...")
+deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
 ```
 
-**Simple features** (single term or asset column) — use `add_feature_value`:
-```
-add_feature_value(table_name="Image", feature_name="Diagnosis",
-                  entries=[{"target_rid": "2-IMG1", "value": "Normal"},
-                           {"target_rid": "2-IMG2", "value": "Abnormal"}])
-```
-
-**Multi-column features** — use `add_feature_value_record` with explicit column names:
-```
-add_feature_value_record(table_name="Image", feature_name="Diagnosis",
-                          entries=[{"target_rid": "2-IMG1",
-                                    "Diagnosis_Type": "Normal",
-                                    "confidence": 0.95},
-                                   {"target_rid": "2-IMG2",
-                                    "Diagnosis_Type": "Abnormal",
-                                    "confidence": 0.87}])
-```
+**Adding feature values** — use `deriva_ml_add_feature_values` (always plural; pass a single-element list for one value). Both single-column and multi-column features go through the same tool — supply a `values` list of dicts with `target_rid` plus the columns the feature defines:
 
 ```
-stop_execution()
+# Single-column feature (e.g., Diagnosis with one Diagnosis_Type term)
+deriva_ml_add_feature_values(
+    hostname="data.example.org",
+    catalog_id="1",
+    target_table="Image",
+    feature_name="Diagnosis",
+    values=[
+        {"target_rid": "2-IMG1", "Diagnosis_Type": "Normal"},
+        {"target_rid": "2-IMG2", "Diagnosis_Type": "Abnormal"},
+    ]
+)
+
+# Multi-column feature (e.g., Diagnosis_Type + confidence)
+deriva_ml_add_feature_values(
+    hostname="data.example.org",
+    catalog_id="1",
+    target_table="Image",
+    feature_name="Diagnosis",
+    values=[
+        {"target_rid": "2-IMG1", "Diagnosis_Type": "Normal", "confidence": 0.95},
+        {"target_rid": "2-IMG2", "Diagnosis_Type": "Abnormal", "confidence": 0.87},
+    ]
+)
+```
+
+> Note: the legacy `add_feature_value` (singular, simple shape) and `add_feature_value_record` (multi-column) tools were both subsumed by `deriva_ml_add_feature_values` (plural). Pass a single-element list when you only have one value.
+
+```
+deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
 ```
 
 ### Batch adding guidance
 
-- **Batch size**: Both tools accept lists of entries — batch them rather than calling one at a time
+- **Batch size**: `deriva_ml_add_feature_values` accepts a list of entries — batch them rather than calling one at a time
 - **One execution per logical task**: All labels from one annotator's session go in one execution. Don't create a new execution per label
 - **Multiple annotators**: Each annotator gets their own execution (creates provenance trail)
 - **Model predictions**: Each model run gets its own execution
 - **Optional columns can be omitted**: Only required fields must be present in every entry. Optional fields can vary per entry
-- **Boolean values**: Pass as native booleans (`true`/`false` without quotes) — the MCP tools pass values to Pydantic which expects actual `bool` type for boolean columns
+- **Boolean values**: Pass as native booleans (`true`/`false` without quotes) — the MCP tool passes values to Pydantic which expects actual `bool` type for boolean columns
 
 ### Common mistakes
 
 | Mistake | What happens | Fix |
 |---------|-------------|-----|
-| Adding values without an execution | Error — provenance required | `create_execution` + `start_execution` first |
+| Adding values without an execution | Error — provenance required | `deriva_ml_create_execution` + `deriva_ml_start_execution` first |
 | Using MCP tools for production batch annotations | Works but no code provenance | Write and commit a script, run via `deriva-ml-run` |
-| Using wrong term name | Error — must match vocabulary exactly | `rag_search("{vocab} terms", doc_type="catalog-schema")` or read `deriva://vocabulary/{vocab}` |
-| Missing required column | Error — required fields must be present | `rag_search("{feature} columns", doc_type="catalog-schema")` or read `deriva://feature/{table}/{feature}` |
+| Using wrong term name | Error — must match vocabulary exactly | `rag_search("{vocab} terms", doc_type="catalog-schema")` or `list_vocabulary_terms(hostname=..., catalog_id=..., schema=..., table=...)` |
+| Missing required column | Error — required fields must be present | `rag_search("{feature} columns", doc_type="catalog-schema")` or `deriva_ml_get_feature(...)` |
 | One execution per label | Works but clutters provenance | Batch labels from same source into one execution |
 | Passing boolean as string `"true"`/`"false"` | Pydantic validation error | Pass as native bool: `true` / `false` (no quotes) |
-| Forgetting `stop_execution()` | Execution stays "running" | Always stop after adding values |
+| Forgetting `deriva_ml_commit_execution` | Execution stays "running" | Always commit (or `deriva_ml_abort_execution` on failure) after adding values |
 
 For the complete MCP tool parameters and Python API examples, see `references/workflow.md`.
 
@@ -217,7 +226,7 @@ Feature queries fall into two categories. **Always choose the right one — neve
 - **User asks to get, retrieve, list, or show feature values** → ALWAYS use the Python API via a script. Even for small numbers of values. Results stay out of context and are cached for reuse.
 - **User asks exploratory questions** ("what features exist?", "what does this feature look like?", "what columns does it have?") → Preview tools are fine for a small sample.
 
-**NEVER use `preview_table` with large limits to retrieve feature values.** This dumps raw records into the conversation context, which is wasteful and doesn't support selectors or caching.
+**NEVER use `query_attribute` or `get_table_sample_data` with large limits to retrieve feature values.** This dumps raw records into the conversation context, which is wasteful and doesn't support selectors or caching.
 
 ### Exploratory preview (MCP tools — understanding shape, not retrieving data)
 
@@ -225,13 +234,13 @@ Use MCP tools only for speculative, exploratory questions — understanding what
 
 ```
 # Spot-check: what do a few values look like? (keep limit small)
-preview_table(table_name="Execution_Image_Scouts_Pick", limit=5)
+get_table_sample_data(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Execution_Image_Scouts_Pick", limit=5)
 
 # What columns would a join produce? (no dataset needed)
-preview_denormalized_dataset(include_tables=["Image", "Image_Classification"])
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Image_Classification"])
 
 # Preview actual data from a dataset
-preview_denormalized_dataset(include_tables=["Image", "Image_Classification"], dataset_rid="...", limit=5)
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Image_Classification"], dataset_rid="...", limit=5)
 ```
 
 **To discover the feature table name**, use RAG search — don't guess from naming conventions:
@@ -239,10 +248,10 @@ preview_denormalized_dataset(include_tables=["Image", "Image_Classification"], d
 rag_search("Scouts_Pick feature", doc_type="catalog-schema")
 ```
 
-MCP resources also provide structured feature metadata:
+Typed feature tools also provide structured metadata:
 ```
-Read resource: deriva://catalog/features               # All features overview
-Read resource: deriva://feature/{table}/{feature}      # Specific feature structure
+deriva_ml_list_features(hostname="data.example.org", catalog_id="1")               # All features overview
+deriva_ml_get_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")      # Specific feature structure
 ```
 
 ### Full retrieval (DerivaML Python API — always for actual values)
@@ -373,9 +382,9 @@ See `references/concepts.md` under "Feature Selection" for the full Python API a
 Features are tightly coupled with datasets:
 
 - **In dataset bags** — feature values for dataset members are automatically included in BDBag exports
-- **In preview_denormalized_dataset** — include feature tables to see labels alongside data (no dataset RID needed for schema exploration). Column names: `{FeatureTableName}_{ColumnName}`
-- **Dataset versioning** — adding feature values does NOT update existing versions. Call `increment_dataset_version` after adding features to make them visible in new versions
-- **In split_dataset** — the `stratify_by_column` parameter references feature columns in denormalized format
+- **In deriva_ml_denormalize_dataset** — include feature tables to see labels alongside data (no dataset RID needed for schema exploration). Column names: `{FeatureTableName}_{ColumnName}`
+- **Dataset versioning** — adding feature values does NOT update existing versions. Call `deriva_ml_increment_dataset_version` after adding features to make them visible in new versions
+- **In deriva_ml_split_dataset** — the `stratify_by_column` parameter references feature columns in denormalized format
 
 ## Reference Resources
 
@@ -383,13 +392,9 @@ Features are tightly coupled with datasets:
 - `references/workflow.md` — Step-by-step MCP and Python API examples
 - `references/feature-selectors.md` — Complete guide to writing and using feature selectors
 - `deriva://docs/features` — Full user guide to features in DerivaML
-- `deriva://catalog/features` — Browse all existing features (target tables, types, columns)
-- `deriva://feature/{table_name}/{feature_name}` — Feature details and column schema
-- `deriva://feature/{table_name}/{feature_name}/values` — Feature values with provenance
-- `deriva://table/{table_name}/feature-values` — All feature values (raw, no dedup)
-- `deriva://table/{table_name}/feature-values/newest` — Deduplicated to newest per record
-- `deriva://table/{table_name}/feature-values/first` — Deduplicated to earliest per record
-- `deriva://table/{table_name}/feature-values/majority_vote` — Deduplicated to consensus per record
+- `deriva_ml_list_features(hostname, catalog_id)` — Browse all existing features (target tables, types, columns)
+- `deriva_ml_get_feature(hostname, catalog_id, target_table, feature_name)` — Feature details and column schema
+- `deriva_ml_list_feature_values(hostname, catalog_id, target_table, feature_name, selector=...)` — Feature values with selectors (`newest`, `first`, `majority_vote`, etc.) and per-execution / per-workflow filtering
 
 ## Related Skills
 

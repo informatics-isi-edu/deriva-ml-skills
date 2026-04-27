@@ -2,6 +2,8 @@
 
 Background on features in DerivaML. For the step-by-step guide, see `workflow.md`.
 
+> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+
 ## Table of Contents
 
 - [What is a Feature?](#what-is-a-feature)
@@ -78,19 +80,19 @@ Not every piece of metadata belongs in a feature. Features have overhead (a sepa
 
 Before creating a new feature, check what already exists. Duplicate features fragment annotations and confuse downstream consumers.
 
-**MCP resources and tools:**
+**MCP tools:**
 ```
 # Browse all features in the catalog — shows target tables, types, column schemas
-Read resource: deriva://catalog/features
+deriva_ml_list_features(hostname="data.example.org", catalog_id="1")
 
 # Get details about a specific feature
-Read resource: deriva://feature/{table_name}/{feature_name}
+deriva_ml_get_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")
 
-# See all feature values for a table (grouped by feature)
-Read resource: deriva://table/{table_name}/feature-values
+# See feature values for a table — pass `feature_name` to scope to one feature
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image")
 
 # See deduplicated values (newest per record per feature)
-Read resource: deriva://table/{table_name}/feature-values/newest
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", selector="newest")
 ```
 
 **Python API:**
@@ -111,14 +113,14 @@ print(f"Value columns: {[c.name for c in feature.value_columns]}")
 ```
 
 **Before creating, ask:**
-- Does a feature with this purpose already exist on this table? Check `deriva://catalog/features`.
-- Does a similar feature exist under a different name? (The `semantic-awareness` skill checks for this automatically, and `create_feature` warns about near-duplicates.)
+- Does a feature with this purpose already exist on this table? Check `deriva_ml_list_features(hostname=..., catalog_id=...)`.
+- Does a similar feature exist under a different name? (The `semantic-awareness` skill checks for this automatically, and `deriva_ml_create_feature` warns about near-duplicates.)
 - Can the existing feature be extended with new vocabulary terms instead of creating a new one?
 - Is this really a feature, or should it be a column? (See [When to Use a Feature vs a Column](#when-to-use-a-feature-vs-a-column).)
 
 ## Feature Types
 
-| Type | `create_feature` parameter | Use case |
+| Type | `deriva_ml_create_feature` parameter | Use case |
 |------|---------------------------|----------|
 | Term-based | `terms=["Tumor_Grade"]` | Classification labels, categories |
 | Asset-based | `assets=["Mask_Image"]` | Segmentation masks, annotation overlays |
@@ -149,6 +151,8 @@ ml.create_feature(
 ### Asset-based features
 
 Link derived files (segmentation masks, embeddings, annotation overlays) to domain objects.
+
+Asset tables are typically created via the generic `create_table` tool with the standard hatrac column shape (URL, Filename, Length, MD5, Description) plus an `Asset_Type` FK — see `/deriva:create-table` *(tier-1, deriva-skills)* for the exact recipe. (The legacy `create_asset_table` shortcut was not ported to the new MCP surface.)
 
 ```python
 ml.create_asset("Segmentation_Mask", comment="Binary segmentation masks")
@@ -249,7 +253,7 @@ Every feature has a set of columns — some required, some optional. Understandi
 
 ### How to check column requirements
 
-The MCP resource `deriva://feature/{table}/{feature}` returns the full column schema including:
+The `deriva_ml_get_feature(hostname, catalog_id, target_table, feature_name)` tool returns the full column schema including:
 - `required_fields` — list of all column names that must be provided
 - Per-column `required` boolean for each term, asset, and value column
 - The vocabulary table name for term columns (tells you what values are valid)
@@ -260,7 +264,7 @@ The MCP resource `deriva://feature/{table}/{feature}` returns the full column sc
 **Term columns** — values must exactly match a term name in the referenced vocabulary:
 ```
 # See valid term names for a feature's term column
-Read resource: deriva://vocabulary/{vocabulary_table_name}
+list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocabulary_table_name>")
 ```
 Term names are case-sensitive. "Normal" ≠ "normal". Using an invalid term name will produce an error.
 
@@ -280,7 +284,7 @@ Term names are case-sensitive. "Normal" ≠ "normal". Using an invalid term name
 
 ### Adding values with optional columns
 
-When using `add_feature_value_record`, optional columns can be:
+When using `deriva_ml_add_feature_values`, optional columns can be:
 - **Included** in some entries and **omitted** in others
 - **Set to null** explicitly
 - **Mixed** — some entries with the column, some without
@@ -289,10 +293,16 @@ This is common for confidence scores: human annotations may not have confidence,
 
 ```
 # Some entries with confidence, some without — valid because confidence is optional
-add_feature_value_record("Image", "Diagnosis", [
-    {"target_rid": "2-IMG1", "Diagnosis_Type": "Normal"},
-    {"target_rid": "2-IMG2", "Diagnosis_Type": "Abnormal", "confidence": 0.87},
-])
+deriva_ml_add_feature_values(
+    hostname="data.example.org",
+    catalog_id="1",
+    target_table="Image",
+    feature_name="Diagnosis",
+    values=[
+        {"target_rid": "2-IMG1", "Diagnosis_Type": "Normal"},
+        {"target_rid": "2-IMG2", "Diagnosis_Type": "Abnormal", "confidence": 0.87},
+    ]
+)
 ```
 
 ## Multivalued Features
@@ -314,25 +324,16 @@ The choice depends on your use case:
 - **By workflow** — use values from a specific workflow type, e.g., only expert annotations or only model predictions
 - **By execution** — use values from a specific execution run, e.g., comparing Run A vs Run B
 
-### MCP resources (browsing and exploration)
+### MCP tool: deriva_ml_list_feature_values
 
-Resources provide quick, no-parameter access for exploring what feature data exists.
+The single feature-values tool exposes both the all-values shape and the deduplication options. Returns a JSON dict mapping feature names to lists of feature value records.
 
-| Resource | What it returns |
-|----------|----------------|
-| `deriva://table/{table}/feature-values` | All feature values for a table, grouped by feature name. Includes duplicates. |
-| `deriva://table/{table}/feature-values/newest` | Deduplicated to one value per target record per feature — picks newest by RCT. |
-| `deriva://feature/{table}/{feature}/values` | All values for a specific feature, with full provenance (Execution RID, RCT). |
-
-### MCP tool: resource `deriva://table/{name}/features`
-
-The tool provides filtering options that resources can't express. Returns a JSON dict mapping feature names to lists of feature value records.
-
-Call resource `deriva://table/{name}/features` with:
-- `table_name` (required): the target table (e.g., `"Image"`)
-- `feature_name` (optional): fetch only a specific feature; if omitted, fetches all
+Call `deriva_ml_list_feature_values` with:
+- `hostname`, `catalog_id`
+- `target_table` (required): the target table (e.g., `"Image"`)
+- `feature_name` (optional): fetch only a specific feature; if omitted, fetches all features on the table
 - One of the following selection options (mutually exclusive):
-  - `selector="newest"` — picks the most recent value (RCT) per record
+  - `selector="newest"` / `"first"` / `"latest"` / `"majority_vote"` — built-in selectors
   - `workflow` — a Workflow RID or Workflow_Type name. Filters to values from executions of that workflow, then picks newest
   - `execution` — an Execution RID. Filters to values from that specific execution
 
@@ -344,10 +345,10 @@ If none of `selector`, `workflow`, or `execution` is specified, all values are r
 from deriva_ml.feature import FeatureRecord
 
 # Newest by creation time
-features = ml.resource deriva://table/{name}/features ("Image", selector=FeatureRecord.select_newest)
+features = ml.fetch_table_features("Image", selector=FeatureRecord.select_newest)
 
 # Filter by execution RID, then pick newest
-features = ml.resource deriva://table/{name}/features (
+features = ml.fetch_table_features(
     "Image",
     selector=FeatureRecord.select_by_execution("3WY2"),
 )
@@ -365,7 +366,7 @@ values = list(ml.list_feature_values(
 ```python
 from collections import defaultdict
 
-features = ml.resource deriva://table/{name}/features ("Image", feature_name="Classification")
+features = ml.fetch_table_features("Image", feature_name="Classification")
 records = features.get("Classification", [])
 
 grouped = defaultdict(list)
@@ -383,7 +384,7 @@ The MCP tool's `workflow` parameter handles this grouping automatically.
 def select_best(records):
     return max(records, key=lambda r: getattr(r, "Confidence", 0))
 
-features = ml.resource deriva://table/{name}/features ("Image", selector=select_best)
+features = ml.fetch_table_features("Image", selector=select_best)
 ```
 
 ### Predefined selectors
@@ -418,17 +419,6 @@ from deriva_ml.feature import FeatureRecord
 | Custom logic | Write a Python script | `selector=my_custom_function` |
 | No deduplication | Omit selection params | Omit `selector` |
 
-### MCP Resources for feature values
-
-Feature values are also available as MCP resources, pre-deduplicated:
-
-| Resource URI | What it returns |
-|-------------|----------------|
-| `deriva://table/{table}/feature-values` | All feature values (no deduplication) |
-| `deriva://table/{table}/feature-values/newest` | One value per record (most recent) |
-| `deriva://table/{table}/feature-values/first` | One value per record (earliest) |
-| `deriva://table/{table}/feature-values/majority_vote` | One value per record (consensus) |
-
 ### Writing custom selectors
 
 When the predefined selectors don't fit, write a Python callable with signature `(list[FeatureRecord]) -> FeatureRecord`. The same signature works for both catalog queries and bag Python API `bag.restructure_assets()`.
@@ -441,7 +431,7 @@ def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
     return max(records, key=lambda r: getattr(r, "Confidence", 0))
 
 # Works with catalog queries
-features = ml.resource deriva://table/{name}/features (
+features = ml.fetch_table_features(
     "Image", feature_name="Diagnosis",
     selector=select_highest_confidence,
 )
@@ -465,7 +455,7 @@ When the MCP tool's built-in selectors are insufficient, write the script, test 
 | `majority_vote` without `feature_name` | Error — needs to know which feature to look up column info | Always specify `feature_name` with `majority_vote` |
 | No selector, surprised by duplicates | Returns ALL values including multiple per record | Add `selector="newest"` or another selection option |
 | `workflow="Training"` vs `workflow="2-ABC1"` | Both work — auto-detected as type name vs RID | Just pass whichever you have |
-| Using resource `deriva://table/{name}/features` for one feature | Works but returns a dict | Use `list_feature_values` for a flat list |
+| Using `deriva_ml_list_feature_values` for one feature | Works but returns a dict | Use `list_feature_values` (Python API) for a flat list |
 
 ## Feature Value Table Naming
 
@@ -511,7 +501,7 @@ Feature values for dataset members are automatically included in BDBag exports. 
 ```python
 # Query features in a downloaded bag (same API as live catalog)
 bag = dataset.download_dataset_bag(version="1.0.0")
-features = bag.resource deriva://table/{name}/features ("Image")
+features = bag.fetch_table_features("Image")
 values = list(bag.list_feature_values("Image", "Diagnosis",
                                        selector=FeatureRecord.select_newest))
 features_on_table = bag.find_features("Image")
@@ -519,21 +509,21 @@ features_on_table = bag.find_features("Image")
 
 Note: `select_by_workflow` is not available on bags since it requires live catalog access.
 
-### In preview_denormalized_dataset
+### In deriva_ml_denormalize_dataset
 
 Feature tables can be included in denormalization. Column names follow the pattern `{FeatureTableName}_{ColumnName}`:
 
 ```
 # Schema exploration (no dataset needed)
-preview_denormalized_dataset(include_tables=["Image", "Image_Classification"])
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Image_Classification"])
 # Produces columns like: Image_RID, Image_Filename, Image_Classification_Image_Class
 ```
 
-This is how the `stratify_by_column` parameter in `split_dataset` references feature columns.
+This is how the `stratify_by_column` parameter in `deriva_ml_split_dataset` references feature columns.
 
 ### Dataset versioning impact
 
-Adding feature values to records in a dataset does NOT automatically update existing dataset versions. Existing versions are frozen snapshots. After adding or modifying feature values, call `increment_dataset_version` to create a new version that includes the changes.
+Adding feature values to records in a dataset does NOT automatically update existing dataset versions. Existing versions are frozen snapshots. After adding or modifying feature values, call `deriva_ml_increment_dataset_version` to create a new version that includes the changes.
 
 ## Exploring and Navigating Features
 
@@ -541,7 +531,7 @@ Adding feature values to records in a dataset does NOT automatically update exis
 
 ```
 # MCP — feature schema (columns, types, requirements)
-Read resource: deriva://feature/{table_name}/{feature_name}
+deriva_ml_get_feature(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")
 ```
 
 ```python
@@ -558,13 +548,13 @@ print(f"Value columns: {[c.name for c in feature.value_columns]}")
 
 ```
 # MCP — all values for a feature with provenance
-Read resource: deriva://feature/{table}/{feature}/values
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis")
 
 # MCP — all features on a table, deduplicated to newest
-Read resource: deriva://table/{table}/feature-values/newest
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", selector="newest")
 
 # MCP — fetch with selection/filtering
-resource deriva://table/{name}/features (table_name="Image", feature_name="Diagnosis", selector="newest")
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Diagnosis", selector="newest")
 ```
 
 ```python
@@ -577,7 +567,7 @@ for v in ml.list_feature_values("Image", "Diagnosis"):
 
 ```
 # MCP
-Read resource: deriva://catalog/features
+deriva_ml_list_features(hostname="data.example.org", catalog_id="1", target_table="Image")
 ```
 
 ```python
@@ -593,20 +583,16 @@ for f in features:
 
 | Operation | MCP Tool | Python API | Notes |
 |-----------|----------|------------|-------|
-| Create feature | `create_feature` | `ml.create_feature()` | Vocabulary must exist first |
-| Add values (simple) | `add_feature_value` | `exe.add_features()` | Single term/asset column |
-| Add values (multi-column) | `add_feature_value_record` | `exe.add_features()` | Multiple columns per record |
-| Delete feature | `delete_feature` | `ml.delete_feature()` | Removes feature table and all values |
+| Create feature | `deriva_ml_create_feature` | `ml.create_feature()` | Vocabulary must exist first |
+| Add values | `deriva_ml_add_feature_values` | `exe.add_features()` | Plural — pass single-element list for one value (subsumes legacy add_feature_value / add_feature_value_record) |
+| Delete feature | `deriva_ml_delete_feature` | `ml.delete_feature()` | Removes feature table and all values |
 
 ### Discovery and navigation
 
-| Operation | MCP Tool / Resource | Python API | Notes |
+| Operation | MCP Tool | Python API | Notes |
 |-----------|---------------------|------------|-------|
-| Browse all features | Resource: `deriva://catalog/features` | `ml.find_features()` | All features in catalog |
-| Features on a table | Resource: `deriva://catalog/features` | `ml.find_features("Image")` | Filtered to one table |
-| Feature details | Resource: `deriva://feature/{table}/{name}` | `ml.lookup_feature()` | Column types, requirements |
-| Feature values (all) | Resource: `deriva://feature/{table}/{name}/values` | `ml.list_feature_values()` | With provenance |
-| Table values (all) | Resource: `deriva://table/{table}/feature-values` | `ml.resource deriva://table/{name}/features ()` | Grouped by feature |
-| Table values (newest) | Resource: `deriva://table/{table}/feature-values/newest` | `ml.resource deriva://table/{name}/features (..., selector=...)` | Deduplicated |
-| Fetch with selection | resource `deriva://table/{name}/features` | `ml.resource deriva://table/{name}/features ()` | selector, workflow, execution |
-| Values in a bag | — | `bag.resource deriva://table/{name}/features ()` | Same API on downloaded bags |
+| Browse all features | `deriva_ml_list_features` | `ml.find_features()` | All features in catalog |
+| Features on a table | `deriva_ml_list_features(target_table=...)` | `ml.find_features("Image")` | Filtered to one table |
+| Feature details | `deriva_ml_get_feature` | `ml.lookup_feature()` | Column types, requirements |
+| Feature values | `deriva_ml_list_feature_values` | `ml.list_feature_values()` | With provenance, supports selectors |
+| Values in a bag | — | `bag.fetch_table_features()` | Same API on downloaded bags |

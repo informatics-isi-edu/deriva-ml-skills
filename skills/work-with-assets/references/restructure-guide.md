@@ -1,5 +1,7 @@
 # Restructuring Assets for ML
 
+> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. (Most of this skill is Python-API-driven; only the few MCP tool examples need the parameters.)
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -21,17 +23,7 @@ For the complete asset upload and download workflow, see `workflow.md`. For back
 
 ## Basic Usage
 
-### MCP tool
-
-```
-restructure_assets(
-    dataset_rid="2-XXXX",
-    asset_table="Image",
-    output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    version="1.0.0"
-)
-```
+`restructure_assets` is a Python-only operation on a downloaded `DatasetBag` — there is no MCP tool equivalent. Download the bag (via MCP or Python) first, then call `restructure_assets()` on the resulting bag object:
 
 ### Python API
 
@@ -180,5 +172,5 @@ exe.upload_execution_outputs(
 | Python API `ml.download_asset(rid)` | Download single asset by RID |
 | Python API `exe.asset_file_path()` | Register file for upload |
 | Python API `exe.upload_execution_outputs()` | Upload staged files to catalog |
-| `create_asset_table` | Create new asset table with custom columns |
-| `estimate_bag_size` | Preview what a download will contain |
+| (gap) Creating an asset table | Legacy `create_asset_table` was removed; use the manual `create_table` recipe — see `concepts.md` |
+| `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)` | Preview what a download will contain (subsumes the legacy `estimate_bag_size`) |

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I have a dataset of chest X-ray images (RID 28CT, version 0.9.0) with a Diagnosis feature. I want to organize them into training/Normal and training/Abnormal directories for PyTorch ImageFolder. Show me the steps.",
-      "expected_output": "Should start with estimate_bag_size or bag_info to check size. Should download with download_dataset. Should use restructure_assets with asset_table='Image', group_by=['Diagnosis'] to organize by diagnosis label. Should explain the resulting directory structure (training/Normal/, training/Abnormal/). Should mention use_symlinks=True for disk savings.",
+      "expected_output": "Should start with deriva_ml_bag_info or deriva_ml_bag_info to check size. Should download with download_dataset. Should use restructure_assets with asset_table='Image', group_by=['Diagnosis'] to organize by diagnosis label. Should explain the resulting directory structure (training/Normal/, training/Abnormal/). Should mention use_symlinks=True for disk savings.",
       "files": []
     },
     {
@@ -28,7 +28,7 @@
     {
       "id": 5,
       "prompt": "I want to preview what's in a dataset bag before I download the full 10 GB. How can I check the contents and size?",
-      "expected_output": "Should use bag_info or estimate_bag_size with dataset_rid and version. Should explain the returned info: tables with row counts, is_asset flags, asset_bytes. Should mention total_asset_size for human-readable size. Should suggest materialize=False to download just metadata if only tabular data is needed.",
+      "expected_output": "Should use deriva_ml_bag_info or deriva_ml_bag_info with dataset_rid and version. Should explain the returned info: tables with row counts, is_asset flags, asset_bytes. Should mention total_asset_size for human-readable size. Should suggest materialize=False to download just metadata if only tabular data is needed.",
       "files": []
     },
     {

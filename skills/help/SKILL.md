@@ -87,5 +87,5 @@ When the user asks what's possible or needs orientation, present the following g
 - **Start with `rag_search`** for any "what is" or "what exists" question — it searches schema, data, and docs in one call
 - **You don't need to know command names** — just describe what you want in plain language
 - **I'll guide you through the steps** — each capability includes best practices and common pitfalls
-- **Start with a connected catalog** — most operations need a catalog connection first. Just say *"connect to my catalog"*
+- **Tools are stateless** — every MCP tool takes `hostname=` and `catalog_id=` arguments explicitly. There's no "connect" step; just tell me which catalog you want to work with (e.g., *"work with the cifar10 catalog on dev.derivacloud.org"*)
 - **Use dry runs** when experimenting — add "dry run" to any request to preview without making changes
