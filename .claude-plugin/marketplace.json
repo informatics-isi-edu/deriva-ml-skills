@@ -9,7 +9,7 @@
       "name": "deriva-ml",
       "source": "./",
       "description": "DerivaML skills for ML workflows. Requires deriva-ml-mcp server and the deriva-skills (deriva) plugin (install both: /plugin marketplace add informatics-isi-edu/deriva-skills && /plugin install deriva).",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "ISI Informatics"
       },
