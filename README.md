@@ -18,7 +18,7 @@ You need both marketplaces and both plugins:
 /plugin install deriva-ml
 ```
 
-You also need a Deriva MCP server with the `deriva-ml-mcp` plugin loaded. See the [`deriva-mcp-core`](https://github.com/informatics-isi-edu/deriva-mcp) deployment docs.
+You also need a Deriva MCP server with the `deriva-ml-mcp` plugin loaded. See the [`deriva-mcp-core`](https://github.com/informatics-isi-edu/deriva-mcp-core) deployment docs.
 
 ## Updating
 
@@ -95,7 +95,7 @@ claude --plugin-dir /path/to/deriva-ml-skills
 ## Related Projects
 
 - [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) — Companion **tier-1** plugin: core Deriva catalog skills (required dependency)
-- [`deriva-mcp-core`](https://github.com/informatics-isi-edu/deriva-mcp) — Core MCP framework + the deriva-py-backed MCP server
+- [`deriva-mcp-core`](https://github.com/informatics-isi-edu/deriva-mcp-core) — Core MCP framework + generic Deriva catalog tools
 - [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) — DerivaML MCP plugin (loaded by deriva-mcp-core); required for these skills' MCP tools
 - [`deriva-ml`](https://github.com/informatics-isi-edu/deriva-ml) — Core Python library for ML workflows on Deriva
 - [`deriva-py`](https://github.com/informatics-isi-edu/deriva-py) — Python SDK for Deriva scientific data management
