@@ -1,0 +1,20 @@
+[
+  {"query": "I need to write a Python script that creates an execution with a workflow, downloads input datasets, trains a model, and uploads the results", "should_trigger": true},
+  {"query": "how do I use the context manager pattern with ml.create_execution() to track provenance for my training run?", "should_trigger": true},
+  {"query": "what's the right way to register output files using asset_file_path() and then upload them after the execution?", "should_trigger": true},
+  {"query": "I want to create a nested execution within my parent pipeline — preprocessing step followed by training step", "should_trigger": true},
+  {"query": "how do I restore a previous execution to re-download its assets and inspect what happened?", "should_trigger": true},
+  {"query": "I need to create an ExecutionConfiguration with a workflow, input datasets, and asset RIDs for my analysis script", "should_trigger": true},
+  {"query": "can you show me the MCP tools workflow for start_execution, asset_file_path, stop_execution, upload_execution_outputs?", "should_trigger": true},
+  {"query": "I need to create a new asset table for storing processed images, and then set up asset types to categorize them", "should_trigger": true},
+  {"query": "how do I configure a hydra-zen experiment with datasets, model config, and multirun sweeps?", "should_trigger": false},
+  {"query": "what's the CLI command to run deriva-ml-run with a specific experiment name?", "should_trigger": false},
+  {"query": "I want to split my dataset 80/20 for training and testing", "should_trigger": false},
+  {"query": "how do I create a feature that labels images with vocabulary terms?", "should_trigger": false},
+  {"query": "can you create a new table with columns for Name, Age, and Species?", "should_trigger": false},
+  {"query": "I need to query all subjects in the catalog that have species Mouse", "should_trigger": false},
+  {"query": "how do I set up visible columns and row name patterns in Chaise?", "should_trigger": false},
+  {"query": "my execution is stuck in Running status but the process crashed — how do I fix it?", "should_trigger": false},
+  {"query": "I want to denormalize my dataset into a flat DataFrame for sklearn training", "should_trigger": false},
+  {"query": "how do I develop a DerivaML notebook with papermill parameters and execution tracking?", "should_trigger": false}
+]

@@ -1,0 +1,22 @@
+[
+  {"query": "I want to create a vocabulary called Diagnosis — can you check if there's already a vocabulary with the same or similar name in the catalog?", "should_trigger": true},
+  {"query": "before I create a Patient table, can you search for existing tables that might already serve this purpose? maybe Subject or Participant?", "should_trigger": true},
+  {"query": "I need a feature for labeling images with quality scores — does something like Image_Quality or Quality already exist on the Image table?", "should_trigger": true},
+  {"query": "I want to add a term called 'Xray' to my Imaging_Type vocabulary — can you check if 'X-ray' or 'X_ray' already exists as a term or synonym?", "should_trigger": true},
+  {"query": "before creating a new workflow for ResNet training, check if there's an existing workflow with a similar name or description I should reuse", "should_trigger": true},
+  {"query": "I'm about to create a dataset for training — search the catalog to see if there's already a training dataset with similar member composition", "should_trigger": true},
+  {"query": "can you look up whether a feature called 'Severity' or 'Severity_Grade' already exists somewhere in the catalog before I create one?", "should_trigger": true},
+  {"query": "I typed 'Diagnossis' as my feature name — can you check if the correct spelling 'Diagnosis' already exists and I should use that instead?", "should_trigger": true},
+  {"query": "I want to create a table called Sample_Measurement — can you check if Measurement or Observation already captures this concept with similar columns?", "should_trigger": true},
+  {"query": "before adding the term 'Mouse' to Species, check all vocabularies for existing entries like 'Mus musculus' that might be the same thing with a different name", "should_trigger": true},
+  {"query": "I need to query all the images in dataset 2-B4C8 for training my model", "should_trigger": false},
+  {"query": "how do I run my experiment with dry_run=true from the CLI?", "should_trigger": false},
+  {"query": "I want to denormalize my dataset into a flat DataFrame with Image and Subject columns", "should_trigger": false},
+  {"query": "can you set visible columns on my Image table in the Chaise compact view?", "should_trigger": false},
+  {"query": "I need to write a hydra-zen config for my new experiment with dataset and model configs", "should_trigger": false},
+  {"query": "how do I download the asset with RID 2-IMG1 from the catalog?", "should_trigger": false},
+  {"query": "my execution failed with an upload timeout — how do I troubleshoot?", "should_trigger": false},
+  {"query": "I want to increment the version of dataset 2-B4C8 after adding new feature annotations", "should_trigger": false},
+  {"query": "can you generate a description for the Enrollment_Date column I just added to Subject?", "should_trigger": false},
+  {"query": "how do I set up the notebook environment with uv sync --group=jupyter and kernel installation?", "should_trigger": false}
+]

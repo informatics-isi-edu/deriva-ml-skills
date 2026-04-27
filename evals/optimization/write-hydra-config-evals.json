@@ -1,0 +1,22 @@
+[
+  {"query": "I need to add a DatasetSpecConfig entry for dataset RID 28DM at version 0.9.0 in my configs/datasets.py with a description", "should_trigger": true},
+  {"query": "how do I write an asset_store config with AssetSpecConfig(rid='3WS2', cache=True) for caching my large pretrained weights?", "should_trigger": true},
+  {"query": "can you create an experiment config in experiments.py that combines cifar10_extended model with the labeled split dataset using make_config and hydra_defaults?", "should_trigger": true},
+  {"query": "I need to add a multirun_config in configs/multiruns.py that sweeps learning rate over 0.0001, 0.001, 0.01, and 0.1", "should_trigger": true},
+  {"query": "how do I use builds() with zen_partial=True to create a model config for my VisionTransformer class?", "should_trigger": true},
+  {"query": "I want to create a notebook_config for my roc_analysis notebook with custom parameters show_per_class and confidence_threshold", "should_trigger": true},
+  {"query": "what's the correct way to use with_description() for my dataset configs? I'm getting a DictConfig merge error with my default config", "should_trigger": true},
+  {"query": "I need to write a workflow config using builds(Workflow, ...) with workflow_type=['Training', 'Image Classification'] and a markdown description", "should_trigger": true},
+  {"query": "how do I set up the DerivaMLConfig in configs/deriva.py for connecting to localhost catalog 6?", "should_trigger": true},
+  {"query": "I just created a new dataset in the catalog and need to add it to my configs/datasets.py — what's the pattern with store and with_description?", "should_trigger": true},
+  {"query": "I want to run my baseline experiment with the CLI command — what's the right uv run deriva-ml-run invocation?", "should_trigger": false},
+  {"query": "how do I run a dry run of my experiment before doing a real production run?", "should_trigger": false},
+  {"query": "I need to create a new dataset in the catalog with 500 images and add it as training data", "should_trigger": false},
+  {"query": "can you write a Python script that creates an execution, downloads data, and uploads results?", "should_trigger": false},
+  {"query": "how do I denormalize my dataset into a flat DataFrame for feeding into my model?", "should_trigger": false},
+  {"query": "I need to set up my Jupyter environment with the right kernel and dependencies", "should_trigger": false},
+  {"query": "can you customize the Chaise display for my Subject table — set visible columns and row name pattern?", "should_trigger": false},
+  {"query": "I want to create a new vocabulary called Tissue_Type with terms for different tissue classifications", "should_trigger": false},
+  {"query": "my execution failed — the config couldn't find the experiment name. How do I debug this?", "should_trigger": false},
+  {"query": "I want to validate that all the RIDs in my config files actually exist in the connected catalog", "should_trigger": false}
+]

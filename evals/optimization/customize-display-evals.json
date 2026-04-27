@@ -1,0 +1,22 @@
+[
+  {"query": "I need to hide the RCT, RMT, RCB, and RMB system columns from the compact view of my Image table in Chaise", "should_trigger": true},
+  {"query": "can you set the row name pattern on the Subject table so it shows as 'LastName, FirstName' in Chaise breadcrumbs and FK links?", "should_trigger": true},
+  {"query": "I want to reorder the visible columns on the Image table so Filename comes first, then Subject, then Diagnosis, then URL", "should_trigger": true},
+  {"query": "how do I change the display name of the Age_At_Enrollment column to 'Age at Enrollment' so it looks nicer in the Chaise UI?", "should_trigger": true},
+  {"query": "the compact view of my Subject table shows way too many columns — I only want Name, Age, Sex, Species, and Diagnosis visible", "should_trigger": true},
+  {"query": "I need to configure the detailed view to show different columns than the compact view for the Measurement table", "should_trigger": true},
+  {"query": "can you add the Image_Subject_fkey as a visible foreign key on the Subject detail page so I can see related images?", "should_trigger": true},
+  {"query": "I want to set a column display on the URL column so it renders as a clickable 'Download' link in the compact view using markdown", "should_trigger": true},
+  {"query": "run apply_catalog_annotations to set up reasonable defaults for all tables in my catalog, then I'll tweak specific ones", "should_trigger": true},
+  {"query": "the entry form for Image shows too many fields — I want to limit it to just Filename, Subject, Diagnosis, and Description using set_visible_columns", "should_trigger": true},
+  {"query": "I need to create a new table called Blood_Sample with columns for sample_id, collection_date, and volume", "should_trigger": false},
+  {"query": "how do I query all subjects in my catalog where Species equals 'Mus musculus'?", "should_trigger": false},
+  {"query": "I want to write a Python script using ColumnAnnotation and TableAnnotation builder classes to configure my catalog annotations programmatically", "should_trigger": false},
+  {"query": "can you create a feature called Tumor_Grade that labels images with vocabulary terms Grade I through Grade IV?", "should_trigger": false},
+  {"query": "I need to add a new workflow type term called 'Quality Control' to the Workflow_Type vocabulary", "should_trigger": false},
+  {"query": "how do I download all the images from dataset 2-B4C8 for training my model?", "should_trigger": false},
+  {"query": "can you create a dataset from the 500 most recent Image records and split it 80/20 for training?", "should_trigger": false},
+  {"query": "my execution is stuck in Running status but the Python process already exited — how do I fix it?", "should_trigger": false},
+  {"query": "I want to set the description on my Image table to explain what the records represent — can you use set_table_description?", "should_trigger": false},
+  {"query": "I need to write hydra-zen config files for my datasets, assets, and experiment definitions", "should_trigger": false}
+]

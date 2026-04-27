@@ -1,0 +1,22 @@
+[
+  {"query": "should I use lookup_dataset or find_datasets when I have the exact RID of the dataset I need?", "should_trigger": true},
+  {"query": "what's the difference between list_dataset_members and find_datasets? I'm confused about which prefix to use", "should_trigger": true},
+  {"query": "I need to search for datasets by type but I'm not sure if I should use find_datasets, list_datasets, or query_table with a filter", "should_trigger": true},
+  {"query": "when do I use get_ vs lookup_ in the DerivaML API? they both seem to return a single entity", "should_trigger": true},
+  {"query": "I want to understand the convention for add_ vs create_ — when should I create a new entity vs add something to an existing one?", "should_trigger": true},
+  {"query": "what's the naming pattern for removal methods? should I use delete_term or remove_term to get rid of a vocabulary entry?", "should_trigger": true},
+  {"query": "I'm writing a script and need to know whether to call set_table_description or update_table_description — which prefix is correct for changing a property?", "should_trigger": true},
+  {"query": "can you explain the DerivaML API prefix conventions? I keep mixing up lookup, find, list, and get when browsing catalog entities", "should_trigger": true},
+  {"query": "is there a find_ method for locating features by target table, or should I use list_ or lookup_ for that?", "should_trigger": true},
+  {"query": "I'm looking at the API and see both add_dataset_members and create_dataset — what's the conceptual difference between the add_ and create_ prefixes?", "should_trigger": true},
+  {"query": "I need to actually call lookup_dataset with RID 2-B4C8 to get its details — can you run that for me?", "should_trigger": false},
+  {"query": "can you create a new dataset called 'Training Set v2' with 1000 images from the Image table?", "should_trigger": false},
+  {"query": "I want to query all subjects in my catalog where Species = 'Mouse'", "should_trigger": false},
+  {"query": "how do I write a hydra-zen config for my datasets and experiments?", "should_trigger": false},
+  {"query": "I need to run my experiment with the CLI command and Hydra overrides", "should_trigger": false},
+  {"query": "can you set visible columns on my Image table using the Chaise display tools?", "should_trigger": false},
+  {"query": "my execution is stuck in Running status — how do I update it to Failed?", "should_trigger": false},
+  {"query": "I want to add the term 'Benign' to my Diagnosis vocabulary with a description", "should_trigger": false},
+  {"query": "how do I denormalize my dataset into a flat DataFrame for training?", "should_trigger": false},
+  {"query": "I need to download the asset with RID 2-IMG1 for my analysis notebook", "should_trigger": false}
+]

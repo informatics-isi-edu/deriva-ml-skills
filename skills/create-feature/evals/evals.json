@@ -1,0 +1,77 @@
+{
+  "skill_name": "create-feature",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to set up diagnostic labels for about 10,000 chest X-ray images. There are 5 diagnosis categories: Normal, Pneumonia, COVID-19, Tuberculosis, and Lung_Cancer. Multiple radiologists will be labeling the same images independently, and I need to track who labeled what. Some images will also have a confidence score from a model.",
+      "expected_output": "Should check existing features first via deriva://catalog/features. Should create a vocabulary (Diagnosis_Type) with the 5 terms. Should recognize that radiologist labels and model predictions are separate features or at least separate executions. Should create the feature with provenance tracking. Should mention that multivalued features enable inter-annotator comparison. Should wrap value addition in an execution. Should consider whether confidence is a metadata column on the feature or a separate feature.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to track image quality for our fundus images. Should I add a 'quality' column to the Image table, or create a feature? Different technicians rate quality differently and I want to know who scored what.",
+      "expected_output": "Should clearly recommend a feature over a column because: multiple scorers (multivalued), need provenance (who scored it), and controlled vocabulary (consistent ratings). Should explain the feature vs column decision criteria. Should suggest creating a Quality vocabulary with terms like Acceptable/Borderline/Rejected. Should mention that features track execution provenance automatically.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I already have a Diagnosis feature on my Image table but now I also need to track severity (Mild/Moderate/Severe). Should I add severity as another column on the existing Diagnosis feature, or create a separate Severity feature?",
+      "expected_output": "Should apply the 'always set together?' test. If diagnosis and severity are always assigned in the same annotation act, add Severity_Level as a second term column on the Diagnosis feature (multi-column). If they're assigned by different processes, create a separate feature. Should explain the tradeoffs. Should NOT suggest modifying the existing feature table directly — should explain that adding a column to an existing feature requires recreating it.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I just added diagnosis labels to 5,000 images in my dataset (RID 28EA, version 0.4.0). But when I download the dataset bag, the labels aren't there. What's going on?",
+      "expected_output": "Should explain that dataset versions are frozen snapshots. Adding feature values doesn't update existing versions. Must call increment_dataset_version to create a new version that captures the feature values. Should mention updating the DatasetSpecConfig to the new version. Should reference the dataset-lifecycle skill for versioning details.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I have a dataset with images that have been labeled by three different pathologists. I need to get the consensus label for each image — the most common label among the three. How do I do that?",
+      "expected_output": "Should recommend selector='majority_vote' on the MCP tool (requires feature_name). Should show fetch_table_features with selector='majority_vote' and feature_name='Diagnosis'. Should mention the MCP resource deriva://table/Image/feature-values/majority_vote as an alternative. Should explain that majority_vote auto-detects the term column for single-term features. Should note that for Python, use RecordClass.select_majority_vote().",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "What features exist on the Image table in my catalog? I want to see what annotations are available before I start my analysis.",
+      "expected_output": "Should use the discovery flow: read deriva://catalog/features to see all features, or read feature-specific resources. Should show how to browse values with deriva://table/Image/feature-values/newest for a quick summary. Should use fetch_table_features MCP tool for filtered queries. Should follow a systematic exploration: discover features → inspect structure → browse values.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I have images annotated by multiple model runs. I only want the labels from the training workflow, not from the inference workflow. How do I filter?",
+      "expected_output": "Should recommend using workflow parameter on fetch_table_features: fetch_table_features(table_name='Image', feature_name='Prediction', workflow='Training'). Should explain that workflow accepts either a workflow type name or a workflow RID. Should note mutual exclusivity — can't combine with selector or execution. Should mention that this approach requires a live catalog connection (doesn't work on bags).",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "I want to get the original labels for my images — the very first annotation that was done, not the latest corrections. How?",
+      "expected_output": "Should recommend selector='first' on the MCP tool: fetch_table_features(table_name='Image', feature_name='Diagnosis', selector='first'). Should mention the MCP resource deriva://table/Image/feature-values/first as an alternative for browsing. Should explain that select_first picks the earliest by RCT (creation timestamp). Should mention FeatureRecord.select_first for Python API usage.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "I need a custom selector that picks the annotation with the highest confidence score. The built-in selectors don't cover this. How do I do it?",
+      "expected_output": "Should explain that custom selectors use signature (list[FeatureRecord]) -> FeatureRecord. Should show a Python script example using getattr(r, 'Confidence', 0). Should explain that the same selector works for both catalog queries (selector= param) and bag restructuring (value_selector= param). Should mention that custom selectors can't be passed as MCP string names — must use Python API. Should reference feature-selectors.md for more examples.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "I have a Diagnosis feature on my Image table and I need to add labels for 500 images. How do I figure out what values I can use and what columns are required?",
+      "expected_output": "Should read the feature resource: deriva://feature/Image/Diagnosis to see column schema including required_fields, term_columns with vocabulary reference, and value_columns with types. Should then read the vocabulary resource: deriva://vocabulary/{vocabulary_name} to see valid term values. Should explain the difference between required and optional columns. Should show how to use add_feature_value for simple features or add_feature_value_record for multi-column features. Should mention wrapping in an execution for provenance.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "I need to add diagnosis labels to 2000 images. Three pathologists are labeling independently. What's the best way to organize the executions and batch the values?",
+      "expected_output": "Should recommend one execution per pathologist per labeling session — not one per image. Should show creating an execution with a descriptive workflow name. Should batch all labels from one pathologist into a single add_feature_value call with a list of entries. Should explain that this creates proper provenance (can distinguish labels by annotator via execution). Should mention stop_execution after each batch.",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "I have a feature with both a required Diagnosis_Type column (vocabulary) and an optional confidence column (float4). Some images have confidence scores and some don't. How do I add values for both?",
+      "expected_output": "Should use add_feature_value_record with mixed entries. Should show that required columns (Diagnosis_Type) must be in every entry, but optional columns (confidence) can be omitted from some entries. Should show example entries where some have confidence and some don't. Should mention reading deriva://feature/Image/Diagnosis to confirm which columns are required vs optional.",
+      "files": []
+    }
+  ]
+}

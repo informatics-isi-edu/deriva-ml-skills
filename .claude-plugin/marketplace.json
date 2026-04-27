@@ -1,0 +1,43 @@
+{
+  "name": "deriva-ml-plugins",
+  "owner": {
+    "name": "ISI Informatics",
+    "email": "isrd@isi.edu"
+  },
+  "plugins": [
+    {
+      "name": "deriva-ml",
+      "source": "./",
+      "description": "DerivaML skills for ML workflows. Requires deriva-ml-mcp server and the deriva-skills (deriva) plugin (install both: /plugin marketplace add informatics-isi-edu/deriva-skills && /plugin install deriva).",
+      "version": "1.0.0",
+      "author": {
+        "name": "ISI Informatics"
+      },
+      "skills": [
+        "./skills/api-naming-conventions",
+        "./skills/catalog-operations-workflow",
+        "./skills/check-deriva-ml-versions",
+        "./skills/configure-experiment",
+        "./skills/create-feature",
+        "./skills/dataset-lifecycle",
+        "./skills/debug-bag-contents",
+        "./skills/deriva-ml-context",
+        "./skills/execution-lifecycle",
+        "./skills/generate-scripts",
+        "./skills/help",
+        "./skills/maintain-experiment-notes",
+        "./skills/manage-storage",
+        "./skills/ml-data-engineering",
+        "./skills/model-development-workflow",
+        "./skills/new-model",
+        "./skills/route-project-setup",
+        "./skills/route-run-workflows",
+        "./skills/run-notebook",
+        "./skills/setup-notebook-environment",
+        "./skills/troubleshoot-execution",
+        "./skills/work-with-assets",
+        "./skills/write-hydra-config"
+      ]
+    }
+  ]
+}

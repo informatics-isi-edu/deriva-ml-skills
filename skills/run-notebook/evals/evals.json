@@ -1,0 +1,35 @@
+{
+  "skill_name": "run-notebook",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to create a new analysis notebook that loads a dataset, computes some metrics, and saves a plot. What's the basic structure?",
+      "expected_output": "Should show the three-stage development cycle: interactive → restart-and-run-all → CLI production. Should show the config module with notebook_config(). Should show the initialization cell with run_notebook() returning ml, execution, config. Should show asset_file_path for saving output plots. Should show upload_execution_outputs() as the final cell.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "How do I run my analysis notebook from the command line with full provenance tracking?",
+      "expected_output": "Should show uv run deriva-ml-run-notebook notebooks/analysis.ipynb. Should mention dry_run=true for testing first. Should explain that the CLI runner records git commit hash, executes via papermill, converts to markdown, and uploads both .ipynb and .md as execution assets. Should mention commit code before production runs.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My notebook needs custom parameters — a threshold (float) and number of iterations (int). How do I add these to the config?",
+      "expected_output": "Should create a config class inheriting from BaseConfig with the custom parameters as dataclass fields. Should show notebook_config() with config_class parameter. Should show accessing parameters via config.threshold and config.num_iterations in the notebook. Should NOT use papermill parameter cells.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I want to run the same notebook with two different asset configurations — one for quick testing and one for the full dataset. How do I set up named configs?",
+      "expected_output": "Should show two notebook_config() calls with different names and different defaults (e.g., different asset groups). Should show how to select configs from CLI: uv run deriva-ml-run-notebook notebook.ipynb assets=quick_assets or assets=full_assets. Should explain that the run_notebook() name in the cell must match the notebook_config() name.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "My notebook runs fine interactively but fails when I run it from the CLI. What's likely wrong?",
+      "expected_output": "Should explain the most common cause: hidden state dependencies from running cells out of order. Should recommend Restart & Run All first. Should mention checking that run_notebook() config name matches notebook_config() name. Should mention checking that outputs are cleared and code is committed. Should reference the three-stage development cycle.",
+      "files": []
+    }
+  ]
+}

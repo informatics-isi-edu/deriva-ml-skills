@@ -1,0 +1,22 @@
+[
+  {"query": "we decided to use patient-level splitting instead of image-level splitting to prevent data leakage — the 80/20 split with seed 42 gives us cleaner test results", "should_trigger": true},
+  {"query": "I chose ResNet-50 over VGG-16 because it has better parameter efficiency and the pretrained weights from ImageNet transfer well to our chest X-ray domain", "should_trigger": true},
+  {"query": "after reviewing the learning rate sweep results, 0.001 gives the best validation AUC at 0.94 — 0.01 caused instability after epoch 15 and 0.0001 was too slow", "should_trigger": true},
+  {"query": "we're going to reuse the existing Disease_Classification feature rather than creating a new Diagnosis feature — it already has 3,200 values and fragmenting would cause confusion", "should_trigger": true},
+  {"query": "I decided to add the Enrollment_Date column to the existing Subject table instead of creating a new Patient table, since Subject already has 1,247 records and 8 incoming FKs", "should_trigger": true},
+  {"query": "we picked cifar10_small_labeled_split over cifar10_small_split because the test partition needs ground truth labels for ROC analysis — the unlabeled split has no test labels", "should_trigger": true},
+  {"query": "I'm choosing dropout 0.25 and weight decay 1e-4 for the extended model because the quick model showed clear overfitting by epoch 30 with no regularization", "should_trigger": true},
+  {"query": "after testing both stratified random split and group-by-patient split on dataset 2-B4C8, we went with group-by-patient to avoid multiple images from the same patient appearing in both train and test", "should_trigger": true},
+  {"query": "we decided to create a separate Augmented dataset rather than adding augmented samples to the original training set, so we can cleanly compare augmented vs non-augmented results", "should_trigger": true},
+  {"query": "I chose to use 3 epochs for the quick config because it's enough to verify the pipeline works without wasting compute — the extended 50-epoch config is for final results", "should_trigger": true},
+  {"query": "I need to run the cifar10_quick experiment with dry_run=true to test the pipeline", "should_trigger": false},
+  {"query": "how do I write a hydra-zen experiment config with make_config and hydra_defaults?", "should_trigger": false},
+  {"query": "can you create a dataset with 500 images and split it 80/20 for training and testing?", "should_trigger": false},
+  {"query": "I want to query all subjects in the catalog where Species = 'Mouse'", "should_trigger": false},
+  {"query": "how do I set visible columns on the Image table in the Chaise compact view?", "should_trigger": false},
+  {"query": "I need to create a new vocabulary called Tissue_Type with terms for histology classification", "should_trigger": false},
+  {"query": "can you denormalize my dataset into a flat DataFrame for model training?", "should_trigger": false},
+  {"query": "my execution failed with an authentication error — how do I re-authenticate?", "should_trigger": false},
+  {"query": "I want to download the asset with RID 2-3WS6 to inspect the prediction results", "should_trigger": false},
+  {"query": "how do I set up my Jupyter notebook environment with the right kernel?", "should_trigger": false}
+]

@@ -1,0 +1,20 @@
+[
+  {"query": "I need to add a new table to my Deriva catalog for tracking blood samples collected from patients. It should have columns for sample ID, collection date, volume, and a link back to the Subject table", "should_trigger": true},
+  {"query": "we need to create an asset table called Slide_Image that stores microscopy images with magnification and stain metadata, linked to Sample records", "should_trigger": true},
+  {"query": "can you add a Weight_kg column to the existing Subject table? it should be a float and nullable", "should_trigger": true},
+  {"query": "what column types are available in Deriva? I need to store timestamps with timezone info and also some JSON data", "should_trigger": true},
+  {"query": "I want to set up a table hierarchy: Subject -> Sample -> Measurement, with cascading deletes so removing a subject removes all its samples", "should_trigger": true},
+  {"query": "how do i create a vocabulary table for different tissue types like 'brain', 'liver', 'kidney'?", "should_trigger": true},
+  {"query": "I need to create a new naming convention where all my tables use CamelCase and columns use snake_case, is there a standard?", "should_trigger": true},
+  {"query": "need to make the Notes column on Subject required instead of optional, how do i change nullability?", "should_trigger": true},
+  {"query": "I want to create a feature called Tumor_Grade that labels images with vocabulary terms like Grade I, Grade II, Grade III", "should_trigger": false},
+  {"query": "how do I query all the subjects in my catalog that have species = Mouse?", "should_trigger": false},
+  {"query": "I need to set up the visible columns in Chaise so the compact view of my Image table only shows Filename, Subject, and Diagnosis", "should_trigger": false},
+  {"query": "can you create a dataset called 'Training Set v1' with 500 labeled images from the Image table?", "should_trigger": false},
+  {"query": "I want to split my existing dataset 80/20 for training and testing with stratification by diagnosis label", "should_trigger": false},
+  {"query": "what's the best way to denormalize my dataset into a flat DataFrame for feeding into sklearn?", "should_trigger": false},
+  {"query": "how do I set up my jupyter notebook environment for this DerivaML project? I need to install the kernel and nbstripout", "should_trigger": false},
+  {"query": "my execution is stuck in Running status but the process already finished, how do I fix it?", "should_trigger": false},
+  {"query": "I need to configure a hydra-zen experiment with learning rate sweep from 0.001 to 0.1", "should_trigger": false},
+  {"query": "can you set a row name pattern on the Subject table so records show as 'LastName, FirstName' in Chaise?", "should_trigger": false}
+]

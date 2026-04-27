@@ -1,0 +1,22 @@
+[
+  {"query": "I want to run the cifar10_quick experiment — what's the full pre-flight checklist I should go through before running in production?", "should_trigger": true},
+  {"query": "uv run deriva-ml-run +experiment=baseline dry_run=true — does this look right for testing my experiment without writing to the catalog?", "should_trigger": true},
+  {"query": "how do I run a named multirun sweep that tests quick vs extended training configs? I defined it in multiruns.py", "should_trigger": true},
+  {"query": "I need to override the learning rate to 0.001 when running my baseline experiment from the CLI — what's the Hydra override syntax?", "should_trigger": true},
+  {"query": "my experiment just finished — how do I verify the execution was recorded correctly? I want to check status, datasets, and output assets", "should_trigger": true},
+  {"query": "I want to run an ad-hoc multirun sweep over learning rates 1e-2, 1e-3, and 1e-4 with the baseline experiment — do I need the --multirun flag?", "should_trigger": true},
+  {"query": "before running my production experiment, I need to check git status, bump the version, and verify the lock file — walk me through it", "should_trigger": true},
+  {"query": "how do I inspect the resolved config without actually running the experiment? I want to see what --info shows", "should_trigger": true},
+  {"query": "I want to run my experiment against a different catalog — how do I override host and catalog_id from the command line?", "should_trigger": true},
+  {"query": "my last experiment run failed partway through — should I re-run it or is there a way to check what went wrong first?", "should_trigger": true},
+  {"query": "I need to set up hydra-zen config files for a new experiment with datasets, assets, model config, and workflow definitions", "should_trigger": false},
+  {"query": "how do I write a multirun_config in configs/multiruns.py with a grid search over learning rate and batch size?", "should_trigger": false},
+  {"query": "can you create a DatasetSpecConfig for dataset RID 2-B4C8 at version 1.2.0 in my configs/datasets.py?", "should_trigger": false},
+  {"query": "I want to run my ROC analysis notebook with specific asset overrides — how do I use deriva-ml-run-notebook?", "should_trigger": false},
+  {"query": "I need to write a Python script that creates an execution, downloads datasets, trains a model, and uploads results", "should_trigger": false},
+  {"query": "how do I denormalize dataset 2-B4C8 into a flat DataFrame for model training?", "should_trigger": false},
+  {"query": "can you create a new table for storing prediction results with columns for Image RID and predicted class?", "should_trigger": false},
+  {"query": "my execution is stuck in Running status but the process already finished — how do I fix the status?", "should_trigger": false},
+  {"query": "I need to set up my Jupyter notebook environment with the right kernel and nbstripout", "should_trigger": false},
+  {"query": "I want to configure the Chaise display for my Image table — set visible columns and row name patterns", "should_trigger": false}
+]

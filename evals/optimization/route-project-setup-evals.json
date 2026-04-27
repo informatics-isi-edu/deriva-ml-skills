@@ -1,0 +1,22 @@
+[
+  {"query": "I just cloned the template repo — how do I set up the environment to start developing notebooks?", "should_trigger": true},
+  {"query": "the Jupyter kernel isn't showing up after I ran uv sync — what am I missing?", "should_trigger": true},
+  {"query": "how do I authenticate with Globus to connect to ml.derivacloud.org?", "should_trigger": true},
+  {"query": "I need to install nbstripout to make sure notebook outputs don't get committed", "should_trigger": true},
+  {"query": "check if my DerivaML packages are up to date — I think I might be running an old version", "should_trigger": true},
+  {"query": "what version of deriva-ml and deriva-mcp am I running? do I need to update?", "should_trigger": true},
+  {"query": "I'm setting up a new DerivaML project from scratch — what should my pyproject.toml look like?", "should_trigger": true},
+  {"query": "should I use Google or NumPy docstring format for this project? and what ruff rules should I enable?", "should_trigger": true},
+  {"query": "when should I bump the version — before or after running experiments?", "should_trigger": true},
+  {"query": "do I need to add uv.lock to the git repo or should it be in .gitignore?", "should_trigger": true},
+  {"query": "how do I install the PyTorch dependency group without breaking the base environment?", "should_trigger": true},
+  {"query": "I want to create a dataset with labeled images for training a CNN", "should_trigger": false},
+  {"query": "run the cifar10_quick experiment with a dry run", "should_trigger": false},
+  {"query": "create a new table called Slide with columns for stain type and magnification", "should_trigger": false},
+  {"query": "my execution failed with a missing file error during upload", "should_trigger": false},
+  {"query": "write a hydra-zen config for a multirun sweep over learning rates", "should_trigger": false},
+  {"query": "query the Image table and show me records where Diagnosis = 'Normal'", "should_trigger": false},
+  {"query": "create a feature called Image_Classification for labeling images with diagnosis terms", "should_trigger": false},
+  {"query": "download the prediction CSV from execution 4-ABCD and check its provenance", "should_trigger": false},
+  {"query": "denormalize my dataset into a DataFrame with image URLs and labels", "should_trigger": false}
+]

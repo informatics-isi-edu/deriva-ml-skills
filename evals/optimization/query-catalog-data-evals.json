@@ -1,0 +1,20 @@
+[
+  {"query": "how do I query all subjects in my Deriva catalog that have species Mouse and status Active?", "should_trigger": true},
+  {"query": "I need to look up a specific record by RID 2-B4C8 — what table is it in and what are its column values?", "should_trigger": true},
+  {"query": "can you show me sample data from the Image table? I want to understand what columns are available", "should_trigger": true},
+  {"query": "how do I paginate through a large table? I have 10,000 subjects and need to fetch them in batches of 100", "should_trigger": true},
+  {"query": "I want to count how many images are in the catalog total, and how many have diagnosis Malignant", "should_trigger": true},
+  {"query": "what vocabularies are available in this catalog? I need to see the terms in the Species vocabulary", "should_trigger": true},
+  {"query": "how do I find all images that belong to a specific subject? the subject RID is 2-A1B2", "should_trigger": true},
+  {"query": "I need to check which executions used asset RID 2-IMG1 — was it an input or output?", "should_trigger": true},
+  {"query": "what tables exist in this catalog and how many rows does each have?", "should_trigger": true},
+  {"query": "I need to get the Chaise URL for a specific subject record so I can share it with my colleague", "should_trigger": true},
+  {"query": "I need to create a new table for blood samples with columns for ID, date, and volume", "should_trigger": false},
+  {"query": "how do I create a dataset and split it 80/20 for training?", "should_trigger": false},
+  {"query": "I want to denormalize my dataset and build a training DataFrame for sklearn", "should_trigger": false},
+  {"query": "can you set up visible columns in Chaise so the compact view shows only Filename and Diagnosis?", "should_trigger": false},
+  {"query": "I need to configure a hydra-zen experiment with a learning rate sweep", "should_trigger": false},
+  {"query": "how do I create an execution with provenance tracking using the context manager?", "should_trigger": false},
+  {"query": "my bag export is missing expected data — the images aren't in the BDBag", "should_trigger": false},
+  {"query": "I want to create a feature for labeling images with disease classifications", "should_trigger": false}
+]

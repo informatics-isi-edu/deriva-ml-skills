@@ -1,0 +1,22 @@
+[
+  {"query": "my execution is stuck in Running status but the Python process already exited — how do I fix the execution status?", "should_trigger": true},
+  {"query": "I'm getting a 401 Unauthorized error when trying to create an execution — my credentials might have expired", "should_trigger": true},
+  {"query": "my execution completed but the output files aren't visible in the catalog — I called upload_execution_outputs but nothing appeared", "should_trigger": true},
+  {"query": "I'm getting 'No Active Execution' when calling asset_file_path — I thought I started an execution but something went wrong", "should_trigger": true},
+  {"query": "upload_execution_outputs is hanging and eventually timing out — I have a 500MB model checkpoint to upload", "should_trigger": true},
+  {"query": "I'm getting 'Dataset Not Found' for RID 2-B4C8 but I know it exists — could I be connected to the wrong catalog?", "should_trigger": true},
+  {"query": "the dataset contents in my execution don't match what I expected — the version might be wrong or outdated", "should_trigger": true},
+  {"query": "my execution failed with 'Feature Not Found' for Quality_Score — the feature name might be wrong or it was never created", "should_trigger": true},
+  {"query": "I wrote my output file to a custom directory instead of the path from asset_file_path and now the upload missed it — how do I fix this?", "should_trigger": true},
+  {"query": "my execution shows 'Permission Denied' when trying to create records in the Image table — do I need elevated permissions?", "should_trigger": true},
+  {"query": "I need to create a new execution with a workflow and input datasets — what's the Python pattern for this?", "should_trigger": false},
+  {"query": "how do I run my experiment with uv run deriva-ml-run +experiment=baseline from the CLI?", "should_trigger": false},
+  {"query": "I want to write a hydra-zen config for my new experiment with datasets and model config", "should_trigger": false},
+  {"query": "can you create a new dataset with 500 images and split it for training and testing?", "should_trigger": false},
+  {"query": "how do I denormalize my dataset into a flat DataFrame for sklearn?", "should_trigger": false},
+  {"query": "I need to set up my Jupyter environment with the right kernel and dependencies", "should_trigger": false},
+  {"query": "can you customize the Chaise display for my Subject table?", "should_trigger": false},
+  {"query": "I want to add the term 'Benign' to my Diagnosis vocabulary", "should_trigger": false},
+  {"query": "how do I query all images in the catalog where Diagnosis = 'Normal'?", "should_trigger": false},
+  {"query": "I need to generate a Python script for creating datasets with full provenance tracking", "should_trigger": false}
+]

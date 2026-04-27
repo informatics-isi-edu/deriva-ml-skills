@@ -1,0 +1,41 @@
+{
+  "skill_name": "ml-data-engineering",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a dataset of chest X-ray images (RID 28CT, version 0.9.0) with a Diagnosis feature. I want to organize them into training/Normal and training/Abnormal directories for PyTorch ImageFolder. Show me the steps.",
+      "expected_output": "Should start with estimate_bag_size or bag_info to check size. Should download with download_dataset. Should use restructure_assets with asset_table='Image', group_by=['Diagnosis'] to organize by diagnosis label. Should explain the resulting directory structure (training/Normal/, training/Abnormal/). Should mention use_symlinks=True for disk savings.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "My images have been labeled by three pathologists and I need to use the majority vote label for training. How do I restructure with the consensus label?",
+      "expected_output": "Should use restructure_assets with value_selector='majority_vote' (MCP) or FeatureRecord.select_majority_vote() (Python). Should explain that this picks the most common label per image across annotators, with ties broken by newest. Should mention that majority_vote requires the feature to have a term column.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I need to build a flat DataFrame with subject demographics alongside image features for a tabular ML model. How do I join the tables?",
+      "expected_output": "Should use denormalize_dataset with include_tables=['Subject', 'Image', 'Image_Classification'] or similar. Should explain the column naming convention: TableName_ColumnName (e.g., Subject_Age, Image_Classification_Label). Should mention the limit parameter for sampling. Should note that denormalize_dataset works on both live catalog and bags.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "My dataset has DICOM images but I need PNGs for my model. Can I convert during restructuring?",
+      "expected_output": "Should explain file_transformer parameter on restructure_assets. Should show an example transformer function that converts DICOM to PNG. Should mention that when file_transformer is provided, use_symlinks is ignored. Should note that the transformer must return the actual Path it wrote.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to preview what's in a dataset bag before I download the full 10 GB. How can I check the contents and size?",
+      "expected_output": "Should use bag_info or estimate_bag_size with dataset_rid and version. Should explain the returned info: tables with row counts, is_asset flags, asset_bytes. Should mention total_asset_size for human-readable size. Should suggest materialize=False to download just metadata if only tabular data is needed.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I have a multi-element dataset with both Subject and Image records. I want to restructure only the images, not the subjects. How?",
+      "expected_output": "Should use restructure_assets with asset_table='Image' — this filters to only the Image asset records. Should explain that asset_table specifies which table's files to organize. Should mention that Subject metadata can still influence grouping if there are FK relationships.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {"query": "I need to create a new dataset that contains all 12,000 fundus images from our retinal imaging study, split it 70/15/15 for training, and make sure each split has the same proportion of glaucoma vs no-glaucoma labels", "should_trigger": true},
+  {"query": "my dataset 28EA is at version 0.3.0 but I added 200 new images and fixed some labels since then. How do I make a new version that captures these changes before I retrain?", "should_trigger": true},
+  {"query": "what's in dataset 2-B4C8? I inherited this project and need to understand what data is there before I start my analysis", "should_trigger": true},
+  {"query": "I want to browse just the Subject records in my multi-element dataset separately from the Image records. The dataset has both types.", "should_trigger": true},
+  {"query": "the download for my 15GB dataset keeps timing out. Is there a way to check how big it is first and maybe cache it before running my experiment?", "should_trigger": true},
+  {"query": "how do I set up a DatasetSpecConfig in my hydra-zen config file to reference dataset 28CT at version 0.9.0?", "should_trigger": true},
+  {"query": "should I compute my train/test split on the fly every time I run an experiment, or create explicit split datasets in the catalog?", "should_trigger": true},
+  {"query": "I need to add Augmented as a dataset type. Can a dataset have both Training and Augmented types at the same time?", "should_trigger": true},
+  {"query": "I want to tag 500 chest X-ray images with diagnostic labels from three different radiologists and track who labeled what", "should_trigger": false},
+  {"query": "how do I run my CIFAR-10 training experiment with deriva-ml-run and verify the results are recorded correctly?", "should_trigger": false},
+  {"query": "I need to create a Diagnosis vocabulary with terms Normal, Pneumonia, COVID-19, Tuberculosis, and Lung_Cancer", "should_trigger": false},
+  {"query": "how do I upload my trained model weights file to the catalog so my team can reference it?", "should_trigger": false},
+  {"query": "I want to restructure the downloaded images into PyTorch ImageFolder format with training/Normal and training/Abnormal directories", "should_trigger": false},
+  {"query": "what tables exist in my catalog and how are they related? I want to see the schema", "should_trigger": false},
+  {"query": "I need to set up a new DerivaML project with hydra-zen configs for my image classification experiments", "should_trigger": false},
+  {"query": "my notebook runs fine interactively but fails when I run it from the CLI with deriva-ml-run-notebook", "should_trigger": false},
+  {"query": "I want to find all executions that used a specific asset and trace the provenance chain", "should_trigger": false},
+  {"query": "how do I write a custom feature selector that picks the annotation with the highest confidence score?", "should_trigger": false},
+  {"query": "I need to check if my DerivaML packages are up to date and update them if not", "should_trigger": false},
+  {"query": "can I create a new table in my catalog with a foreign key to the Species vocabulary?", "should_trigger": false}
+]

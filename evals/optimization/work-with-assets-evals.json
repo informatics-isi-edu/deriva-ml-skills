@@ -1,0 +1,22 @@
+[
+  {"query": "how do I find all asset tables in my catalog? I need to discover which tables store images, CSVs, and model files", "should_trigger": true},
+  {"query": "I want to download the asset with RID 2-IMG1 — it's a slide image from a previous execution that I need for my analysis", "should_trigger": true},
+  {"query": "can you check the provenance of asset 2-3WS6? I need to know which execution produced it and what inputs it used", "should_trigger": true},
+  {"query": "I need to list all executions that consumed or produced asset 2-IMG1 using list_asset_executions", "should_trigger": true},
+  {"query": "how do I query the Slide_Image table to find all assets associated with Subject 2-A1B2?", "should_trigger": true},
+  {"query": "I want to download all the assets from execution 2-EXEC's input configuration — what tool should I use?", "should_trigger": true},
+  {"query": "where are the downloaded assets stored on my local filesystem after calling download_execution_dataset?", "should_trigger": true},
+  {"query": "can you show me the metadata for a specific asset record — filename, size, MD5, and description?", "should_trigger": true},
+  {"query": "I need to find all prediction CSV assets produced by executions that used my baseline workflow", "should_trigger": true},
+  {"query": "how do I look up a specific asset by its RID to check its URL and file size before downloading?", "should_trigger": true},
+  {"query": "I need to write a Python script that creates an execution, trains a model, and uploads the output checkpoint as an Execution_Asset", "should_trigger": false},
+  {"query": "how do I create a new asset table called Processed_Image for storing preprocessed microscopy images?", "should_trigger": false},
+  {"query": "I want to add a new asset type called 'Model Checkpoint' to my Execution_Asset table", "should_trigger": false},
+  {"query": "I need to run my cifar10_extended experiment and have it upload training metrics and model weights", "should_trigger": false},
+  {"query": "can you set up the asset RID configs in my hydra-zen assets.py for the ROC analysis notebook?", "should_trigger": false},
+  {"query": "how do I use asset_file_path to write output files during an execution so they get uploaded correctly?", "should_trigger": false},
+  {"query": "I want to create a dataset from the outputs of my last three executions", "should_trigger": false},
+  {"query": "my execution failed to upload assets — I'm getting a timeout error during upload_execution_outputs", "should_trigger": false},
+  {"query": "I need to write a hydra-zen AssetSpecConfig with cache=True for my large pretrained weights file", "should_trigger": false},
+  {"query": "how do I denormalize my dataset to get a flat table with image URLs and labels for training?", "should_trigger": false}
+]

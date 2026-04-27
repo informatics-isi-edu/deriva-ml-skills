@@ -1,0 +1,22 @@
+[
+  {"query": "I need to set up my DerivaML notebook environment from scratch — install dependencies, Jupyter kernel, and nbstripout", "should_trigger": true},
+  {"query": "how do I install the Jupyter kernel for my DerivaML project so it appears in JupyterLab's kernel list?", "should_trigger": true},
+  {"query": "I ran uv sync but when I open JupyterLab my project kernel doesn't show up — how do I fix this?", "should_trigger": true},
+  {"query": "do I need to run uv sync --group=jupyter separately from uv sync? what does the jupyter group install?", "should_trigger": true},
+  {"query": "I need to authenticate to ml.derivacloud.org before running my notebooks — what's the command for Globus auth?", "should_trigger": true},
+  {"query": "nbstripout isn't working — my notebook outputs are still being committed to git. how do I verify and reinstall it?", "should_trigger": true},
+  {"query": "I'm getting ModuleNotFoundError for torch when running my notebook — I think I need to install the pytorch dependency group", "should_trigger": true},
+  {"query": "can you walk me through the complete setup checklist for running DerivaML notebooks? I want to verify each step", "should_trigger": true},
+  {"query": "how do I authenticate to multiple Deriva hosts? I need both the production and dev catalogs accessible from my notebooks", "should_trigger": true},
+  {"query": "I can't start JupyterLab — the jupyter lab command is not found even after uv sync", "should_trigger": true},
+  {"query": "I'm developing a new notebook for ROC analysis — what's the required structure with parameters cell and execution context?", "should_trigger": false},
+  {"query": "how do I run my analysis notebook with asset overrides from the CLI using deriva-ml-run-notebook?", "should_trigger": false},
+  {"query": "I need to run my cifar10_quick experiment using uv run deriva-ml-run from the command line", "should_trigger": false},
+  {"query": "how do I write a hydra-zen config for my notebook with custom parameters?", "should_trigger": false},
+  {"query": "I want to create a new dataset with 500 labeled images for training", "should_trigger": false},
+  {"query": "can you denormalize my dataset into a flat DataFrame for model training?", "should_trigger": false},
+  {"query": "my execution failed with a permission error — how do I troubleshoot?", "should_trigger": false},
+  {"query": "I need to set up my project repository with uv, pyproject.toml, and Git workflow", "should_trigger": false},
+  {"query": "can you set visible columns on my Image table in the Chaise UI?", "should_trigger": false},
+  {"query": "I want to write a Python script for batch loading feature annotations into the catalog", "should_trigger": false}
+]

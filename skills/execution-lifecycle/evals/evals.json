@@ -1,0 +1,41 @@
+{
+  "skill_name": "execution-lifecycle",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to run my CIFAR-10 training experiment. The config references dataset 28CT version 0.9.0 and model weights asset 3WSE. Walk me through the steps to validate everything and run it.",
+      "expected_output": "Should start with pre-flight validation: validate_rids to check all RIDs exist, bag_info to check cache status and size, cache_dataset if not cached. Should check git status and version. Should show either the CLI command (deriva-ml-run) or the MCP tool sequence (create_execution → start → download → work → stop → upload). Should recommend dry_run=True first. Should verify results after completion.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I need to create an execution that downloads a dataset, runs inference, and uploads the prediction results. Show me the full MCP tool sequence.",
+      "expected_output": "Should show the complete MCP lifecycle: create_execution with workflow_name and workflow_type, start_execution, download_execution_dataset with dataset_rid and version, do work, asset_file_path to register outputs, optionally add_feature_value for predictions, stop_execution, upload_execution_outputs. Should mention that steps 2-7 operate on the active execution.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My dataset is 15 GB and I don't want it downloading during my experiment run. How do I warm the cache ahead of time?",
+      "expected_output": "Should recommend bag_info first to check current cache status. Should then use cache_dataset with dataset_rid and version to download ahead of time. Should explain that subsequent download_execution_dataset calls will use the cached copy. Should mention materialize=True for full download or False for metadata only.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I ran an experiment but the status shows 'Running' even though it finished. What happened and how do I fix it?",
+      "expected_output": "Should explain that stop_execution was likely not called (or the execution crashed before stop). Should mention restore_execution to regain control. Should show update_execution_status to fix the status. Should explain that the context manager in Python handles this automatically (sets Failed on exception).",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to run a hyperparameter sweep over 4 learning rates. How do I set this up so all runs are linked together?",
+      "expected_output": "Should describe nested executions — parent execution represents the sweep, children are individual runs. Should show either multirun_config for CLI or add_nested_execution for MCP tools. Should mention that the parent provides grouping and the children have their own RIDs, inputs, and outputs. Should reference the configure-experiment skill for multirun_config syntax.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Before I run my experiment, I want to make sure all the dataset RIDs and versions in my config actually exist in the catalog. How?",
+      "expected_output": "Should use validate_rids with dataset_rids and dataset_versions parameters. Should show checking for warnings about missing descriptions. Should mention that this catches typos, deleted datasets, and wrong version numbers before runtime. Should recommend doing this as the first step of pre-flight validation.",
+      "files": []
+    }
+  ]
+}

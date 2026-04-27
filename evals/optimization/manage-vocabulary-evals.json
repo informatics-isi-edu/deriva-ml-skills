@@ -1,0 +1,22 @@
+[
+  {"query": "I need to create a new vocabulary table called Tissue_Type for classifying histology samples with terms like Epithelial, Connective, Muscle, and Nervous", "should_trigger": true},
+  {"query": "can you add the term 'Malignant' to my Diagnosis vocabulary with a description about cancerous findings requiring staging?", "should_trigger": true},
+  {"query": "I want to add a synonym 'HE' for the existing 'H&E' term in my Stain_Type vocabulary so searches for either spelling find it", "should_trigger": true},
+  {"query": "what vocabularies already exist in my catalog? I want to browse all vocabulary tables and their term counts before creating a new one", "should_trigger": true},
+  {"query": "how do I look up whether a term called 'Mouse' or 'Mus musculus' already exists in any vocabulary? I don't want to create duplicates", "should_trigger": true},
+  {"query": "I need to update the description of the 'Normal' term in my Diagnosis vocabulary to be more specific about what 'no pathological findings' means", "should_trigger": true},
+  {"query": "can you delete the 'Artifact' term from my Image_Quality vocabulary? it's not referenced by any records", "should_trigger": true},
+  {"query": "I want to remove the synonym 'CT' from the Connective term in Tissue_Type and replace it with 'Connective Tissue'", "should_trigger": true},
+  {"query": "I need to add a new dataset type called 'Augmented' using add_dataset_type for datasets that contain augmented samples", "should_trigger": true},
+  {"query": "can you show me all the terms in the Species vocabulary along with their descriptions and any registered synonyms?", "should_trigger": true},
+  {"query": "I need to create a feature called Severity that labels Image records using the Severity_Grade vocabulary", "should_trigger": false},
+  {"query": "how do I create a new table with a foreign key column that references the Species vocabulary for dropdown selection?", "should_trigger": false},
+  {"query": "I want to query all subjects in the catalog where the Species column equals 'Mus musculus'", "should_trigger": false},
+  {"query": "can you set the visible columns on my Diagnosis table to show Name, Description, and Synonyms in the compact view?", "should_trigger": false},
+  {"query": "I need to denormalize my dataset into a flat DataFrame that includes the Diagnosis vocabulary labels as a column", "should_trigger": false},
+  {"query": "how do I create a dataset with 500 images stratified by the Diagnosis vocabulary terms?", "should_trigger": false},
+  {"query": "I want to write a hydra-zen config entry for my labeled dataset that uses the Diagnosis vocabulary", "should_trigger": false},
+  {"query": "can you help me write a Python script that loads bulk annotations from a CSV and creates feature values for each image?", "should_trigger": false},
+  {"query": "my execution failed with 'Vocabulary Term Not Found' — the term name might be misspelled", "should_trigger": false},
+  {"query": "I need to set up a training pipeline that uses vocabulary-based labels for classification — what's the workflow?", "should_trigger": false}
+]

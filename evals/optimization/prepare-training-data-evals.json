@@ -1,0 +1,22 @@
+[
+  {"query": "I have dataset 2-B4C8 with Image and Subject records — how do I denormalize it into a flat DataFrame I can feed into sklearn?", "should_trigger": true},
+  {"query": "what's the best way to extract image URLs and their corresponding Diagnosis labels from my dataset for building a training set?", "should_trigger": true},
+  {"query": "I need to download the full BDBag for dataset 2-B4C8 with all images materialized locally for my PyTorch DataLoader", "should_trigger": true},
+  {"query": "after denormalization, the columns are prefixed like Image.URL and Subject.Age — how do I select features and labels from this format?", "should_trigger": true},
+  {"query": "I want to use denormalize_dataset with include_tables=['Image', 'Subject', 'Diagnosis'] to limit the join to only the tables I need", "should_trigger": true},
+  {"query": "how do I explore what's in my dataset before extracting data? I want to see element types, table schemas, and sample data", "should_trigger": true},
+  {"query": "I need to build a training DataFrame with numeric features from the Measurement table and categorical labels from the Diagnosis vocabulary", "should_trigger": true},
+  {"query": "should I use denormalize_dataset or download_dataset for my production training pipeline? what's the tradeoff?", "should_trigger": true},
+  {"query": "I want to query specific columns from the Image table — just RID, Filename, URL, and Subject — for building my data loader", "should_trigger": true},
+  {"query": "how do I handle categorical variables from vocabulary columns when preparing my denormalized dataset for model training?", "should_trigger": true},
+  {"query": "I need to create a new dataset with 500 images balanced across 3 diagnostic categories", "should_trigger": false},
+  {"query": "can you create a feature called Quality_Score for labeling images with numeric quality ratings?", "should_trigger": false},
+  {"query": "I want to run my cifar10_quick experiment with dry_run=true to test the pipeline", "should_trigger": false},
+  {"query": "how do I write a hydra-zen DatasetSpecConfig for my training dataset at version 1.2.0?", "should_trigger": false},
+  {"query": "my dataset bag is missing Image records — the FK traversal from Subject isn't picking them up", "should_trigger": false},
+  {"query": "I need to split my dataset 80/20 for training and testing with patient-level stratification", "should_trigger": false},
+  {"query": "I want to increment the dataset version after adding new annotations to the images", "should_trigger": false},
+  {"query": "how do I create a new table for storing model predictions with columns for Image RID, predicted class, and confidence?", "should_trigger": false},
+  {"query": "can you set visible columns on the Image table so the Chaise compact view only shows Filename and Diagnosis?", "should_trigger": false},
+  {"query": "my execution is stuck in Running status — the training script crashed but the execution wasn't cleaned up", "should_trigger": false}
+]

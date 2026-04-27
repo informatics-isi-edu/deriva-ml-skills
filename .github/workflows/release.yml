@@ -1,0 +1,60 @@
+name: Release Skills Plugin
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Update Version and Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          # Verify plugin.json already has the correct version
+          # (bump-version updates it before tagging)
+          PLUGIN_VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
+          if [ "$PLUGIN_VERSION" != "$VERSION" ]; then
+            echo "::warning::plugin.json version ($PLUGIN_VERSION) does not match tag ($VERSION)"
+          fi
+
+      - name: Create release archive
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Create a tarball of the plugin contents
+          tar -czf deriva-ml-skills-${VERSION}.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='evals' \
+            --exclude='docs/superpowers' \
+            .claude-plugin/ \
+            skills/
+
+      - name: Draft GitHub Release
+        uses: release-drafter/release-drafter@v5
+        with:
+          config-name: release-drafter.yml
+          publish: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release archive
+        uses: softprops/action-gh-release@v1
+        with:
+          files: deriva-ml-skills-*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

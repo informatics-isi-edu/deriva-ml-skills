@@ -1,0 +1,22 @@
+[
+  {"query": "I'm about to call create_dataset but I didn't write a description — can you generate one based on what we've been discussing?", "should_trigger": true},
+  {"query": "I created a new feature called Quality_Score but left the description blank — can you suggest a meaningful description?", "should_trigger": true},
+  {"query": "I need a good description for my new workflow — it trains a ResNet-50 classifier on chest X-ray images with cosine annealing LR schedule", "should_trigger": true},
+  {"query": "can you write a description for the Enrollment_Date column I just added to the Subject table? it stores when the patient was enrolled", "should_trigger": true},
+  {"query": "I'm creating a vocabulary term 'Grade III' for my Tumor_Grade vocabulary — what should the description say to distinguish it from Grade I and II?", "should_trigger": true},
+  {"query": "my new execution needs a description — it preprocesses 12,450 chest X-ray images, applies augmentation, and saves the results as a new dataset", "should_trigger": true},
+  {"query": "I just created a table called Measurement but forgot to set a description — can you generate one that explains what the records represent?", "should_trigger": true},
+  {"query": "I need descriptions for all the columns in my new Blood_Sample table: sample_id, collection_date, volume_ml, and storage_temp", "should_trigger": true},
+  {"query": "can you auto-generate a description for dataset RID 2-B4C8? it has 500 labeled images split into train/test with stratified diagnosis labels", "should_trigger": true},
+  {"query": "I'm about to add a new asset type called 'Confusion Matrix' — what would be a good description for it?", "should_trigger": true},
+  {"query": "I need to query all subjects in the catalog where Species = 'Mouse'", "should_trigger": false},
+  {"query": "how do I run my experiment with dry_run=true before committing to a production run?", "should_trigger": false},
+  {"query": "I want to set visible columns on the Image table in Chaise so the compact view is cleaner", "should_trigger": false},
+  {"query": "can you help me write a hydra-zen DatasetSpecConfig with version pinning for my training dataset?", "should_trigger": false},
+  {"query": "I need to denormalize my dataset into a flat DataFrame for sklearn training", "should_trigger": false},
+  {"query": "my execution is stuck in Running status — the process already exited", "should_trigger": false},
+  {"query": "I want to create a vocabulary called Stain_Type for histological staining protocols", "should_trigger": false},
+  {"query": "how do I download the asset with RID 2-IMG1 for my analysis?", "should_trigger": false},
+  {"query": "I need to write a Python script that creates datasets and features with full provenance tracking", "should_trigger": false},
+  {"query": "what's the difference between lookup_dataset and find_datasets in the DerivaML API?", "should_trigger": false}
+]

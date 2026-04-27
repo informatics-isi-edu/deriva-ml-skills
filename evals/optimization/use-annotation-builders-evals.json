@@ -1,0 +1,22 @@
+[
+  {"query": "I need to write a Python script that uses VisibleColumns and Context to programmatically set the compact and detailed column lists for my Image table", "should_trigger": true},
+  {"query": "can you show me how to use PseudoColumn with OutboundFK to display the Subject name in my Image table's compact view via a foreign key traversal?", "should_trigger": true},
+  {"query": "I want to create a reusable Python configuration that sets up FacetList with Facet entries for filtering by Diagnosis and Image_Type in the Chaise sidebar", "should_trigger": true},
+  {"query": "how do I use the TableDisplay builder class to set the row name pattern and default row ordering for my Subject table?", "should_trigger": true},
+  {"query": "I'm writing a deployment script that needs to import ColumnDisplay from deriva.ml.annotation_builders and set markdown patterns for rendering URLs as download links", "should_trigger": true},
+  {"query": "can you show me the InboundFK and Aggregate.COUNT_DISTINCT pattern to display a count of related images as a pseudo-column on the Subject compact view?", "should_trigger": true},
+  {"query": "I need to write a production catalog configuration script using Display, VisibleColumns, VisibleForeignKeys, and apply them all to a table via table.annotations", "should_trigger": true},
+  {"query": "what Context constants are available for annotation builders? I need Context.COMPACT, Context.DETAILED, and Context.ENTRY for my configuration code", "should_trigger": true},
+  {"query": "how do I create a Facet with source path through an outbound FK for faceted search on a related table's Name column?", "should_trigger": true},
+  {"query": "I'm building a notebook that configures catalog annotations for multiple tables — need to import the builder classes and push changes with ml.apply_annotations()", "should_trigger": true},
+  {"query": "can you use set_visible_columns MCP tool to change which columns appear in the compact view of my Image table?", "should_trigger": false},
+  {"query": "I want to interactively reorder the visible columns on Subject using the reorder_visible_columns MCP tool", "should_trigger": false},
+  {"query": "how do I call add_visible_foreign_key to show the Image section on the Subject detail page?", "should_trigger": false},
+  {"query": "can you set the row name pattern on Subject to '{{{Name}}}' using the set_row_name_pattern tool?", "should_trigger": false},
+  {"query": "I need to create a new table with columns for patient demographics and foreign keys to the Species vocabulary", "should_trigger": false},
+  {"query": "how do I query all images in dataset 2-B4C8 to get their filenames and URLs?", "should_trigger": false},
+  {"query": "I want to add a new term 'Benign' to my Diagnosis vocabulary with a description", "should_trigger": false},
+  {"query": "can you help me write a hydra-zen DatasetSpecConfig for my training dataset with version 1.2.0?", "should_trigger": false},
+  {"query": "I need to run apply_catalog_annotations to set default display annotations across all tables in my catalog", "should_trigger": false},
+  {"query": "how do I create a feature that associates vocabulary terms with Image records?", "should_trigger": false}
+]

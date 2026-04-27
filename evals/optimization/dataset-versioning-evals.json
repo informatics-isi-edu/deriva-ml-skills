@@ -1,0 +1,22 @@
+[
+  {"query": "I just added 200 new images to my training dataset — do I need to increment the version before running my next experiment?", "should_trigger": true},
+  {"query": "my DatasetSpecConfig uses version='current' for the production experiment — is that okay or should I pin to a specific version?", "should_trigger": true},
+  {"query": "I ran an experiment last week on version 1.2.0 of dataset 2-B4C8, but now the catalog has new feature annotations. How do I make the new data visible?", "should_trigger": true},
+  {"query": "what's the correct way to call increment_dataset_version? I fixed 47 mislabeled images and need to capture that change", "should_trigger": true},
+  {"query": "should I use semantic versioning for my datasets? when do I bump major vs minor vs patch?", "should_trigger": true},
+  {"query": "my config file has DatasetSpecConfig(rid='28DM') without a version parameter — is that a problem for reproducibility?", "should_trigger": true},
+  {"query": "after splitting my dataset into train/test, should I increment the version of the parent dataset before using the children in experiments?", "should_trigger": true},
+  {"query": "I'm about to run a production experiment — what's the pre-experiment checklist for dataset versions? I want to make sure everything is pinned", "should_trigger": true},
+  {"query": "I updated the description on increment_dataset_version to say 'Added severity grading feature to all 12,450 images' — is that a good version description?", "should_trigger": true},
+  {"query": "my experiment config references dataset version 0.9.0 but the current version is 1.1.0 — should I update it or keep the old version?", "should_trigger": true},
+  {"query": "I need to create a new dataset with 500 labeled images from the Image table for my training pipeline", "should_trigger": false},
+  {"query": "how do I split my existing dataset 80/20 for training and testing with stratification by diagnosis?", "should_trigger": false},
+  {"query": "I want to download dataset 2-B4C8 as a BDBag for use in my training script", "should_trigger": false},
+  {"query": "can you denormalize my dataset into a flat DataFrame so I can feed it into sklearn?", "should_trigger": false},
+  {"query": "how do I add new members to an existing dataset? I have a list of Image RIDs to add", "should_trigger": false},
+  {"query": "I need to write a hydra-zen DatasetSpecConfig entry for my new dataset in configs/datasets.py", "should_trigger": false},
+  {"query": "what's the pre-flight checklist for running an experiment? I need to check git status and lock file", "should_trigger": false},
+  {"query": "how do I query the catalog to find all images that belong to dataset 2-B4C8?", "should_trigger": false},
+  {"query": "my bag export is missing some images that should be in the dataset — how do I debug this?", "should_trigger": false},
+  {"query": "I want to create a feature called Tumor_Grade for labeling images with severity levels", "should_trigger": false}
+]

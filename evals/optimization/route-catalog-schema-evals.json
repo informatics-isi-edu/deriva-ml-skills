@@ -1,0 +1,22 @@
+[
+  {"query": "I need to add a new table called Subject to our catalog with columns for age, sex, and species — each linked to a vocabulary", "should_trigger": true},
+  {"query": "how do I create an asset table for storing histology slide images with a foreign key back to Subject?", "should_trigger": true},
+  {"query": "can you add a nullable float column called 'weight_kg' to the existing Subject table?", "should_trigger": true},
+  {"query": "I want to set up a controlled vocabulary for Diagnosis with terms like Normal, Mild, Moderate, Severe", "should_trigger": true},
+  {"query": "what tables are in our catalog and how many rows does each have?", "should_trigger": true},
+  {"query": "look up RID 3-HXMC and show me all the columns for that record", "should_trigger": true},
+  {"query": "query the Image table and filter where Diagnosis = 'Normal' and show me the first 20 results", "should_trigger": true},
+  {"query": "the columns in my Subject table are showing in a weird order in the browser — I want to hide RCT and RMT and put Name first", "should_trigger": true},
+  {"query": "I need to write a Python script using VisibleColumns and PseudoColumn to configure the compact view for our Image table", "should_trigger": true},
+  {"query": "what's the difference between lookup_ and find_ and list_ in the DerivaML API? I keep picking the wrong one", "should_trigger": true},
+  {"query": "add a synonym 'X-ray' for the existing term 'Radiograph' in our Modality vocabulary", "should_trigger": true},
+  {"query": "I want to create a dataset with all the labeled images from our catalog for training", "should_trigger": false},
+  {"query": "how do I split my dataset 80/20 into training and testing?", "should_trigger": false},
+  {"query": "run the cifar10_quick experiment with a dry run first", "should_trigger": false},
+  {"query": "I need to create a feature called Image_Classification that maps images to diagnosis labels", "should_trigger": false},
+  {"query": "my execution is stuck in Running status but the process already exited", "should_trigger": false},
+  {"query": "how do I set up the Jupyter kernel for running DerivaML notebooks?", "should_trigger": false},
+  {"query": "I want to download the prediction CSV files from my last experiment and check which execution created them", "should_trigger": false},
+  {"query": "write a hydra-zen config for a new experiment that sweeps learning rates 0.001 to 0.1", "should_trigger": false},
+  {"query": "I need to scaffold a new model function for a ResNet classifier and wire it into the project", "should_trigger": false}
+]

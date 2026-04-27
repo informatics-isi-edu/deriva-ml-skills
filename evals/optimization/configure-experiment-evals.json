@@ -1,0 +1,20 @@
+[
+  {"query": "I need to set up hydra-zen config files for a new DerivaML project — datasets, assets, model config, and experiment definitions", "should_trigger": true},
+  {"query": "how do I define a multirun sweep in hydra-zen that tests learning rates 0.0001, 0.001, and 0.01 across batch sizes 16, 32, 64?", "should_trigger": true},
+  {"query": "can you create an experiment config that combines the production deriva_ml connection, cell_images_v3 dataset, segmentation_assets, and resnet50_default model?", "should_trigger": true},
+  {"query": "what goes in configs/datasets.py? I need to add a DatasetSpecConfig for dataset RID 2-B4C8 version 3 with a description", "should_trigger": true},
+  {"query": "I want to add a new model config using builds() with zen_partial=True for my VisionTransformer class — where does that go?", "should_trigger": true},
+  {"query": "how do I use make_config with hydra_defaults to compose an experiment from existing config groups?", "should_trigger": true},
+  {"query": "what's the project structure for a DerivaML experiment? where do datasets.py, assets.py, experiments.py go?", "should_trigger": true},
+  {"query": "I need to add a workflow config for my training pipeline — it should have name, url, workflow_type, and description", "should_trigger": true},
+  {"query": "I want to run my baseline experiment with a learning rate override of 0.01, what's the CLI command?", "should_trigger": false},
+  {"query": "my experiment run failed with 'Config error: could not find experiments/X' — what do I check?", "should_trigger": false},
+  {"query": "I need to create a dataset with 500 images and split it 80/20 for training", "should_trigger": false},
+  {"query": "how do I write a Python script that creates an execution, downloads datasets, and uploads results?", "should_trigger": false},
+  {"query": "can you set up my jupyter notebook environment with the right kernel and nbstripout?", "should_trigger": false},
+  {"query": "I want to add descriptions to my existing config files using with_description() — some of my dataset configs are missing descriptions", "should_trigger": false},
+  {"query": "how do I create a new table in the catalog for storing blood sample measurements?", "should_trigger": false},
+  {"query": "what's the pre-flight checklist before running a production experiment? git status, version bump, lock file?", "should_trigger": false},
+  {"query": "I need to customize the Chaise display for my Image table — set visible columns and row name pattern", "should_trigger": false},
+  {"query": "how do I query the catalog to find all images that belong to a specific subject?", "should_trigger": false}
+]

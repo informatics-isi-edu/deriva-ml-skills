@@ -1,0 +1,22 @@
+[
+  {"query": "I have a trained model weights file (model_v3.pt, about 2 GB) that I want to upload to the catalog so my team can use it", "should_trigger": true},
+  {"query": "how do I find out which execution created asset 3-JSE4? I want to trace its provenance", "should_trigger": true},
+  {"query": "what's the difference between an asset and a dataset? When should I use each?", "should_trigger": true},
+  {"query": "I need to create a new asset table called Segmentation_Mask that references the Image table", "should_trigger": true},
+  {"query": "I want to download model weights with RID 3-WSE to my local machine for testing", "should_trigger": true},
+  {"query": "how do I tag some Image assets as Training_Data and others as Validation_Data?", "should_trigger": true},
+  {"query": "what asset tables exist in my catalog and how many records does each have?", "should_trigger": true},
+  {"query": "I need to find all prediction CSV files that were produced by my training workflow", "should_trigger": true},
+  {"query": "I need to create a dataset and split it 70/15/15 for training", "should_trigger": false},
+  {"query": "how do I create a Diagnosis feature with vocabulary terms?", "should_trigger": false},
+  {"query": "I want to run my experiment with deriva-ml-run", "should_trigger": false},
+  {"query": "how do I create a Species vocabulary with terms?", "should_trigger": false},
+  {"query": "I need to restructure images into PyTorch ImageFolder format", "should_trigger": false},
+  {"query": "what's in dataset 2-B4C8? I want to browse its members", "should_trigger": false},
+  {"query": "how do I set up hydra-zen configs for experiments?", "should_trigger": false},
+  {"query": "I need to create a notebook with DerivaML provenance", "should_trigger": false},
+  {"query": "how do I increment a dataset version after adding new data?", "should_trigger": false},
+  {"query": "I want to set visible columns for my table in Chaise", "should_trigger": false},
+  {"query": "how do I do a hyperparameter sweep with nested executions?", "should_trigger": false},
+  {"query": "I need to check my DerivaML package versions", "should_trigger": false}
+]

@@ -1,0 +1,35 @@
+{
+  "skill_name": "configure-experiment",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm setting up a new DerivaML project for image classification. What config files do I need and what goes in each?",
+      "expected_output": "Should list the config groups in order: deriva.py (connection), datasets.py (dataset RIDs+versions), assets.py (model weights), workflow.py (what the code does), model config (hyperparameters), base.py (default composition), experiments.py (named presets). Should explain the composition model: base + experiment overrides + CLI overrides.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to create a hyperparameter sweep over 4 learning rates. How do I set up a multirun?",
+      "expected_output": "Should show multirun_config() in configs/multiruns.py with overrides list using comma-separated values. Should show the CLI command: uv run deriva-ml-run +multirun=lr_sweep. Should explain that multiruns create parent-child execution hierarchy automatically. Should mention the description field for the parent execution.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How do I pin a specific dataset version in my experiment config so results are reproducible?",
+      "expected_output": "Should show DatasetSpecConfig(rid='...', version='...') with an explicit version string. Should explain why version is required — dataset versions are frozen snapshots. Should warn against using current_version as it can change. Should mention get_dataset_spec MCP tool to find the current version.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I want to compare two model architectures — a small CNN and a larger ResNet. How do I set up experiment presets for each?",
+      "expected_output": "Should show two entries in configs/experiments.py using make_config with bases=(DerivaModelConfig,) and hydra_defaults overriding model_config. Should show that each experiment references a different model config. Should mention description field explaining what each experiment tests. Should show running: uv run deriva-ml-run +experiment=small_cnn or +experiment=resnet.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I ran uv run deriva-ml-run +experiment=baseline but the wrong dataset was used. How do I debug which config values were actually resolved?",
+      "expected_output": "Should show --info to see the full resolved config. Should show --cfg job for the complete YAML. Should show --cfg job --package datasets to inspect just the datasets group. Should explain the composition order: base defaults → experiment overrides → CLI overrides.",
+      "files": []
+    }
+  ]
+}

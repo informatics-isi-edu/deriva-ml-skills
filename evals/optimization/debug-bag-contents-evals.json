@@ -1,0 +1,22 @@
+[
+  {"query": "I exported a BDBag from my dataset but the Image files are missing — the bag has Subject records but no images even though they're linked via FK", "should_trigger": true},
+  {"query": "my dataset bag export is taking forever and timing out — I think the FK traversal is going through too many intermediate tables", "should_trigger": true},
+  {"query": "I added Observation records as dataset members but they don't appear in the exported bag — could the element type registration be missing?", "should_trigger": true},
+  {"query": "how do I use validate_dataset_bag to compare expected vs actual RIDs in my bag? some records seem to be dropped during export", "should_trigger": true},
+  {"query": "the vocabulary terms referenced by my Image records are not showing up in the bag export — shouldn't they be included automatically?", "should_trigger": true},
+  {"query": "I recently added new members to my dataset but the bag still shows the old count — is this a stale version issue with the bag export?", "should_trigger": true},
+  {"query": "my bag preview shows 0 rows for the Measurement table but I know there are measurements linked to my Subject members via FK", "should_trigger": true},
+  {"query": "the FK path from Subject to Image goes through a Sample intermediate table — is that why my images aren't in the bag?", "should_trigger": true},
+  {"query": "I can see records in the catalog UI but when I download the dataset bag, those specific records are missing from the CSV files", "should_trigger": true},
+  {"query": "how do I check which tables are registered as element types for my dataset? I think some tables are silently excluded from the bag", "should_trigger": true},
+  {"query": "I need to create a new dataset with 500 labeled images for training my classification model", "should_trigger": false},
+  {"query": "how do I download my dataset for use in a training pipeline? I want to use download_dataset", "should_trigger": false},
+  {"query": "I want to denormalize my dataset into a flat DataFrame with columns from Image, Subject, and Diagnosis tables", "should_trigger": false},
+  {"query": "can you help me split my dataset 80/20 for training and testing with stratification?", "should_trigger": false},
+  {"query": "how do I add new Image RIDs as members to my existing dataset?", "should_trigger": false},
+  {"query": "I need to query the Image table to see all records with Diagnosis = 'Normal'", "should_trigger": false},
+  {"query": "my execution failed with a permission denied error when trying to download the dataset", "should_trigger": false},
+  {"query": "I want to increment my dataset version after adding new feature annotations", "should_trigger": false},
+  {"query": "how do I write a hydra-zen config for my dataset with version pinning?", "should_trigger": false},
+  {"query": "I need to create a new table for storing processed measurement data with FK to Subject", "should_trigger": false}
+]

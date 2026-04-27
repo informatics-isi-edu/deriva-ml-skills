@@ -1,0 +1,22 @@
+[
+  {"query": "I want to run my CIFAR-10 training experiment. The config references dataset 28CT version 0.9.0 and model weights asset 3WSE. Walk me through validating everything and running it.", "should_trigger": true},
+  {"query": "my experiment config has dataset RIDs and versions in it. How do I verify they all exist in the catalog before I waste time on a failed run?", "should_trigger": true},
+  {"query": "my dataset is 15GB and I don't want it downloading during my experiment. How do I warm the cache ahead of time?", "should_trigger": true},
+  {"query": "I need to create an execution that downloads a dataset, runs inference, and uploads prediction results. Show me the MCP tool sequence.", "should_trigger": true},
+  {"query": "I want to do a hyperparameter sweep over 4 learning rates with all runs linked together under one parent execution", "should_trigger": true},
+  {"query": "how do I run uv run deriva-ml-run +experiment=baseline with a dry run first?", "should_trigger": true},
+  {"query": "my execution shows Running status but the work is done. What happened and how do I fix it?", "should_trigger": true},
+  {"query": "I ran an experiment last week and want to look at its inputs and outputs. How do I find and inspect a previous execution?", "should_trigger": true},
+  {"query": "I need to create a vocabulary for classifying chest X-ray images into 5 diagnosis categories", "should_trigger": false},
+  {"query": "how do I create a new dataset with 12000 images and split it for training?", "should_trigger": false},
+  {"query": "I want to restructure downloaded images into PyTorch ImageFolder format", "should_trigger": false},
+  {"query": "how do I add diagnostic labels to images as a feature with provenance?", "should_trigger": false},
+  {"query": "what tables exist in my catalog? I want to see the schema structure", "should_trigger": false},
+  {"query": "I need to upload my trained model weights to the catalog", "should_trigger": false},
+  {"query": "how do I create a new table with custom columns and foreign keys?", "should_trigger": false},
+  {"query": "I want to check if my DerivaML packages are up to date", "should_trigger": false},
+  {"query": "how do I set visible columns for a table in the Chaise web UI?", "should_trigger": false},
+  {"query": "I need to write a Python script to batch-load 10000 records into a catalog table", "should_trigger": false},
+  {"query": "how do I create a new analysis notebook with DerivaML provenance tracking?", "should_trigger": false},
+  {"query": "what's the difference between an asset and a dataset in DerivaML?", "should_trigger": false}
+]

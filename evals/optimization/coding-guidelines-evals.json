@@ -1,0 +1,22 @@
+[
+  {"query": "I'm starting a new DerivaML project from scratch — how should I set up the repository with uv, pyproject.toml, and the right directory structure?", "should_trigger": true},
+  {"query": "what's the recommended pyproject.toml structure for a DerivaML project? I need to know where to put dependencies and optional groups", "should_trigger": true},
+  {"query": "should I use Google-style or NumPy-style docstrings for my DerivaML model code? what format does the project expect?", "should_trigger": true},
+  {"query": "how should I set up ruff for linting and formatting my DerivaML project code? what rules should I enable?", "should_trigger": true},
+  {"query": "what's the git workflow for DerivaML projects? should I use feature branches and PRs, or commit directly to main?", "should_trigger": true},
+  {"query": "when should I bump the version of my DerivaML project — before every experiment run, or only for significant changes?", "should_trigger": true},
+  {"query": "I need to extend DerivaML with project-specific helper methods — should I modify the library or create a subclass?", "should_trigger": true},
+  {"query": "what type hint conventions should I follow for my DerivaML model functions? should I use modern Python 3.11+ syntax?", "should_trigger": true},
+  {"query": "I want to add torch and torchvision as dependencies — should I use uv add, pip install, or add them to pyproject.toml manually?", "should_trigger": true},
+  {"query": "do I need to commit uv.lock to my repository? I've been adding it to .gitignore because it's a generated file", "should_trigger": true},
+  {"query": "I need to write a hydra-zen config file for my new experiment with dataset, model, and workflow definitions", "should_trigger": false},
+  {"query": "how do I run my cifar10_quick experiment with dry_run=true from the CLI?", "should_trigger": false},
+  {"query": "I want to create a new table in the catalog for storing blood sample measurements", "should_trigger": false},
+  {"query": "can you set up my Jupyter notebook environment with the kernel and nbstripout?", "should_trigger": false},
+  {"query": "I need to create a feature called Severity that labels Image records using a vocabulary", "should_trigger": false},
+  {"query": "how do I denormalize my dataset to extract features and labels for training?", "should_trigger": false},
+  {"query": "my execution failed with a permission error when uploading results — how do I troubleshoot?", "should_trigger": false},
+  {"query": "I want to set visible columns on my Image table in the Chaise web UI", "should_trigger": false},
+  {"query": "should I use lookup_dataset or find_datasets to search for a dataset by name?", "should_trigger": false},
+  {"query": "I need to generate a Python script for batch loading feature annotations with provenance tracking", "should_trigger": false}
+]

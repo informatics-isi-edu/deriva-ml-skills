@@ -1,0 +1,22 @@
+[
+  {"query": "I need to set up diagnostic labels for 10000 chest X-ray images with 5 categories. Multiple radiologists will label independently and I need to track who labeled what.", "should_trigger": true},
+  {"query": "should I add a quality column to the Image table or create a feature? Different technicians rate quality differently and I want provenance.", "should_trigger": true},
+  {"query": "what features exist on my Image table? I want to see what annotations are available before starting analysis.", "should_trigger": true},
+  {"query": "I have images labeled by three pathologists and need the consensus label — the most common one among the three. How?", "should_trigger": true},
+  {"query": "I want to get the original labels for my images, the very first annotation, not the latest corrections.", "should_trigger": true},
+  {"query": "I have a Diagnosis feature and need to add labels for 500 images. How do I figure out what values I can use and what columns are required?", "should_trigger": true},
+  {"query": "three pathologists are labeling 2000 images independently. What's the best way to organize executions and batch the values?", "should_trigger": true},
+  {"query": "my feature has both a required Diagnosis_Type column and optional confidence column. How do I add values with mixed optionality?", "should_trigger": true},
+  {"query": "I need to create a vocabulary for Species with terms Homo sapiens and Mus musculus", "should_trigger": false},
+  {"query": "how do I create a dataset and split it 70/15/15 for training?", "should_trigger": false},
+  {"query": "I want to run my experiment with deriva-ml-run and check pre-flight validation", "should_trigger": false},
+  {"query": "how do I restructure downloaded assets into PyTorch ImageFolder format?", "should_trigger": false},
+  {"query": "I need to upload my model weights file to the catalog", "should_trigger": false},
+  {"query": "what's in dataset 2-B4C8? I want to browse its contents", "should_trigger": false},
+  {"query": "how do I create a new table with foreign keys in my catalog?", "should_trigger": false},
+  {"query": "I need to set up hydra-zen configs for my experiment project", "should_trigger": false},
+  {"query": "how do I create a Jupyter notebook that tracks provenance with DerivaML?", "should_trigger": false},
+  {"query": "I want to set the display name and visible columns for a table in Chaise", "should_trigger": false},
+  {"query": "how do I clone a catalog from facebase to my local server?", "should_trigger": false},
+  {"query": "I need to check my DerivaML package versions and update if needed", "should_trigger": false}
+]

@@ -1,0 +1,22 @@
+[
+  {"query": "run the cifar10_quick experiment with a dry run first to make sure everything is wired up", "should_trigger": true},
+  {"query": "I want to do a learning rate sweep across 0.0001, 0.001, 0.01, and 0.1 using the named multirun config", "should_trigger": true},
+  {"query": "before I run the production experiment, do the pre-flight checks — git status, versions, lock file", "should_trigger": true},
+  {"query": "create a new notebook for ROC curve analysis that downloads prediction CSVs and plots AUC comparisons", "should_trigger": true},
+  {"query": "run my roc_analysis notebook against the production catalog with the lr_sweep asset config", "should_trigger": true},
+  {"query": "I need to write a Python script that creates an execution, downloads the dataset, trains a model, and uploads the results", "should_trigger": true},
+  {"query": "write a hydra-zen config for a new experiment preset called cifar10_full that uses the labeled split and extended CNN", "should_trigger": true},
+  {"query": "add a new model config variant with 128 channels and a dropout of 0.3 to configs/cifar10_cnn.py", "should_trigger": true},
+  {"query": "scaffold a new model function for a ResNet-based classifier and wire it into configs, workflows, and experiments", "should_trigger": true},
+  {"query": "my execution is stuck in Running status but the Python process already exited — how do I fix it?", "should_trigger": true},
+  {"query": "getting a 401 Unauthorized error halfway through my experiment — credentials seem to have expired", "should_trigger": true},
+  {"query": "how do I create a multirun_config with a rich markdown description for comparing quick vs extended training?", "should_trigger": true},
+  {"query": "I want to create a dataset with 500 labeled images for training", "should_trigger": false},
+  {"query": "add a new column called weight_kg to the Subject table", "should_trigger": false},
+  {"query": "create a feature called Image_Quality that maps images to Good/Fair/Poor terms", "should_trigger": false},
+  {"query": "download the BDBag for dataset 28EA and check if all images are materialized", "should_trigger": false},
+  {"query": "hide the system columns from the Image table in the browser UI", "should_trigger": false},
+  {"query": "how do I install the Jupyter kernel for this project?", "should_trigger": false},
+  {"query": "check if my DerivaML packages are up to date", "should_trigger": false},
+  {"query": "set up a controlled vocabulary for Stain_Type with H&E, PAS, and Trichrome terms", "should_trigger": false}
+]

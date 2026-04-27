@@ -1,0 +1,23 @@
+[
+  {"query": "I need to create a dataset containing all labeled tumor histology images, register Image and Subject as element types, and add 500 member RIDs", "should_trigger": true},
+  {"query": "how do I split my dataset into training (70%), testing (15%), and validation (15%) with stratification by diagnosis label?", "should_trigger": true},
+  {"query": "can you create a dataset within an execution context so the provenance is tracked? I want it to have types Training and Labeled", "should_trigger": true},
+  {"query": "I need to add more members to my existing dataset — about 200 new image RIDs — and then increment the version", "should_trigger": true},
+  {"query": "what are dataset element types and why do I need to register them before adding members?", "should_trigger": true},
+  {"query": "I want to do a dry run preview of an 80/20 split before actually creating the child datasets", "should_trigger": true},
+  {"query": "how do I create nested datasets manually? I want to link a Training Subset as a child of my main dataset", "should_trigger": true},
+  {"query": "can you create a custom dataset type called 'Augmented' for datasets that contain augmented samples?", "should_trigger": true},
+  {"query": "create a random sample of 100 elements from my E15.5 subset for quick development", "should_trigger": true},
+  {"query": "I need a small dev dataset — 50 random images from my existing labeled dataset for iteration", "should_trigger": true},
+  {"query": "filter my dataset to only include images with confidence > 0.9 and create a new curated subset", "should_trigger": true},
+  {"query": "I need to create a new table for blood samples with columns for sample ID, date, and volume", "should_trigger": false},
+  {"query": "how do I denormalize my dataset into a flat DataFrame for training a model?", "should_trigger": false},
+  {"query": "I want to create a feature called Diagnosis that labels images with disease categories", "should_trigger": false},
+  {"query": "what's the CLI command to run my experiment with deriva-ml-run?", "should_trigger": false},
+  {"query": "my bag export is missing data — images aren't showing up in the downloaded BDBag", "should_trigger": false},
+  {"query": "I need to set up hydra-zen configs for my datasets with DatasetSpecConfig and with_description()", "should_trigger": false},
+  {"query": "how do I write a script that creates an execution, downloads data, and uploads results?", "should_trigger": false},
+  {"query": "can you customize the Chaise display for the Dataset table to show Name, Description, and Version?", "should_trigger": false},
+  {"query": "what's the difference between lookup_ and find_ and list_ methods in DerivaML?", "should_trigger": false},
+  {"query": "I want to query all datasets in the catalog and see which ones have type Training", "should_trigger": false}
+]

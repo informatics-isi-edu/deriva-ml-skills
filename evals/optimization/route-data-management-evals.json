@@ -1,0 +1,22 @@
+[
+  {"query": "I want to create a dataset with all the labeled images from our catalog for training a classifier", "should_trigger": true},
+  {"query": "split my dataset 80/20 into training and testing, stratified by diagnosis label", "should_trigger": true},
+  {"query": "how do I add the Image table as an element type and then add 50 image RIDs as members?", "should_trigger": true},
+  {"query": "I need to create a feature called Image_Classification that maps each image to a diagnosis vocabulary term", "should_trigger": true},
+  {"query": "bulk annotate all images in dataset 28EA with their ground truth labels from a CSV file", "should_trigger": true},
+  {"query": "denormalize my dataset into a flat DataFrame so I can see the image URLs alongside their diagnosis labels", "should_trigger": true},
+  {"query": "download the full BDBag for dataset 28EA version 0.4.0 with all image files materialized", "should_trigger": true},
+  {"query": "I downloaded a dataset bag but the Image_Classification labels are missing — the CSV only has image records", "should_trigger": true},
+  {"query": "find all the prediction CSV assets from my last learning rate sweep and check which execution produced each one", "should_trigger": true},
+  {"query": "do I need to increment the dataset version after adding new feature values?", "should_trigger": true},
+  {"query": "write a Python script that loads annotations from a JSON file and creates features with provenance tracking", "should_trigger": true},
+  {"query": "I need to create a new table called Subject with columns for age and species", "should_trigger": false},
+  {"query": "run the cifar10_quick experiment with dry_run=true", "should_trigger": false},
+  {"query": "how do I set up a controlled vocabulary for Tissue_Type?", "should_trigger": false},
+  {"query": "hide the RCT and RMT columns from the Image table in the Chaise UI", "should_trigger": false},
+  {"query": "my execution failed with a 401 Unauthorized error after running for 2 hours", "should_trigger": false},
+  {"query": "write a hydra-zen experiment config that combines the small labeled split with the quick CNN model", "should_trigger": false},
+  {"query": "how do I install the Jupyter kernel and authenticate with Globus?", "should_trigger": false},
+  {"query": "query the Subject table and filter where Species = 'Mouse'", "should_trigger": false},
+  {"query": "scaffold a new model function for a transformer-based classifier", "should_trigger": false}
+]

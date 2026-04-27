@@ -1,0 +1,41 @@
+{
+  "skill_name": "work-with-assets",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a trained model weights file (model_v3.pt, about 2 GB) that I want to upload to the catalog so my team can use it. How do I do this?",
+      "expected_output": "Should explain that assets must be uploaded within an execution for provenance. Should show the execution lifecycle: create_execution, start_execution, asset_file_path to register the file, upload_execution_outputs to upload. Should mention that asset_file_path returns a path to write to or stages an existing file. Should NOT suggest directly inserting into a table.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "How do I find out which execution created a specific asset with RID 3-JSE4? I want to trace its provenance.",
+      "expected_output": "Should use list_asset_executions with asset_rid='3-JSE4' and optionally asset_role='Output' to find the creating execution. Should mention the deriva://asset/3-JSE4 resource for quick metadata lookup. Should explain that provenance links are automatic when assets are uploaded via asset_file_path.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What's the difference between an asset and a dataset? When should I use each?",
+      "expected_output": "Should explain: an asset is a single file with metadata (image, model weight, CSV), while a dataset is a versioned collection of records. Assets are tracked individually with RIDs; datasets organize multiple records for reproducible experiments. Should mention that datasets can contain assets — downloading a dataset bag includes all asset files reachable from members.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I need to create a new asset table called 'Segmentation_Mask' that references the Image table and has a 'Method' column. Show me how.",
+      "expected_output": "Should use create_asset_table with asset_name='Segmentation_Mask', referenced_tables=['Image'], and columns for Method. Should explain that standard asset columns (URL, Filename, Length, MD5) are added automatically. Should mention that the asset table needs to exist before uploading files to it.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to download a specific asset (model weights with RID 3-WSE) to my local machine for testing. I'm not running inside an execution.",
+      "expected_output": "Should use download_asset with asset_rid='3-WSE'. Should mention that outside an execution context, the download doesn't record provenance. Should suggest cache_dataset for warming the cache if the asset will be used in future executions. Should mention the deriva://asset/3-WSE resource for checking metadata first.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I want to tag some of my Image assets as 'Training_Data' and others as 'Validation_Data'. How do asset types work?",
+      "expected_output": "Should explain that asset types come from the Asset_Type vocabulary. Should show add_asset_type to create new type terms if needed, then add_asset_type_to_asset to tag individual assets. Should mention that an asset can have multiple types. Should show remove_asset_type_from_asset for untagging.",
+      "files": []
+    }
+  ]
+}

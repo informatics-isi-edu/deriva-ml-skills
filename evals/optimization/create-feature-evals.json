@@ -1,0 +1,20 @@
+[
+  {"query": "I need to create a feature called Diagnosis that labels Image records with disease categories like Normal, Pneumonia, and COVID-19", "should_trigger": true},
+  {"query": "how do I set up a labeling system for my images? I want pathologists to be able to assign tumor grades to each image", "should_trigger": true},
+  {"query": "I need to add feature values for Tumor_Classification — about 200 images need to be labeled as Grade I, II, or III within an execution", "should_trigger": true},
+  {"query": "can you create a vocabulary called Cell_Type with terms Epithelial, Stromal, Immune, Necrotic and then create a feature linking it to the Image table?", "should_trigger": true},
+  {"query": "I want to create a feature that uses asset files instead of vocabulary terms — segmentation masks stored in a Mask_Image table", "should_trigger": true},
+  {"query": "how do I query all the feature values for Tumor_Classification to see which images have been labeled and by which execution?", "should_trigger": true},
+  {"query": "I need to add synonyms to my Tumor_Grade vocabulary — 'Low Grade' as a synonym for 'Grade I' and 'High Grade' for 'Grade III'", "should_trigger": true},
+  {"query": "what's the right way to delete the old Severity feature and recreate it with different vocabulary terms?", "should_trigger": true},
+  {"query": "I need to create a new table called Observation with columns for measurement value, date, and a link to Subject", "should_trigger": false},
+  {"query": "can you split my dataset into training and testing with 80/20 ratio, stratified by the Diagnosis feature?", "should_trigger": false},
+  {"query": "I want to customize the Chaise display so the Image table shows Filename and Diagnosis in the compact view", "should_trigger": false},
+  {"query": "how do I prepare my labeled dataset for training a PyTorch model? I need to denormalize it into a DataFrame", "should_trigger": false},
+  {"query": "I want to create a dataset containing all images that have been labeled with the Cell_Classification feature", "should_trigger": false},
+  {"query": "how do I add a column called Severity_Score of type float8 to the existing Observation table?", "should_trigger": false},
+  {"query": "can you configure a hydra-zen experiment that uses the cell_images_v3 dataset with ResNet-50?", "should_trigger": false},
+  {"query": "what's the convention for DerivaML method names — when should I use lookup_ vs find_ vs list_?", "should_trigger": false},
+  {"query": "my bag export is missing the feature values — the Tumor_Classification data isn't showing up in the downloaded bag", "should_trigger": false},
+  {"query": "I need to set up an execution context to run some manual annotation work and track which images I labeled", "should_trigger": false}
+]

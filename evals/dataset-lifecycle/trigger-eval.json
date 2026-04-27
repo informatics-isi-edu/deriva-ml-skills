@@ -1,0 +1,22 @@
+[
+  {"query": "I have about 12,000 labeled chest X-ray images in my eye-ai catalog and I need to create a training dataset, split it 80/20, and make sure the test set has ground truth labels", "should_trigger": true},
+  {"query": "my colleague sent me dataset RID 2-B4C8 and I want to understand what's in it before I plug it into my training config — can you help me explore the contents?", "should_trigger": true},
+  {"query": "I just added 500 new OCT scans to the catalog and fixed some mislabeled images. My experiment config still points to dataset version 0.3.0. What do I need to do?", "should_trigger": true},
+  {"query": "we're setting up a new project and need to figure out what dataset types to create. We have fundus and OCT images, some labeled by experts and some by a model, from two clinical sites", "should_trigger": true},
+  {"query": "I want to see what's actually in dataset 3-XYZ9 — like what kinds of images are there, how the diagnoses break down, and whether any are missing labels", "should_trigger": true},
+  {"query": "how do I reference dataset 28EA version 0.4.0 in my hydra-zen config file so the experiment picks it up?", "should_trigger": true},
+  {"query": "I need a small dev subset of 500 images from the main dataset for quick iteration. Don't want to mess up the original", "should_trigger": true},
+  {"query": "my BDBag download for the image dataset keeps timing out after about 10 minutes. The FK chain goes through Sample, Subject, Study, and Institution tables", "should_trigger": true},
+  {"query": "I need to add Image as an element type so I can put images into datasets, and then check what element types are already registered in the catalog", "should_trigger": true},
+  {"query": "what's the difference between a Complete dataset and a Split dataset? when should I use add_dataset_child vs split_dataset?", "should_trigger": true},
+  {"query": "I need to create a new feature called Diagnosis that links Image records to a controlled vocabulary of diagnosis terms like Normal and Abnormal", "should_trigger": false},
+  {"query": "can you help me write a hydra-zen config for my ResNet50 training run? I need to set up the model architecture, learning rate, and batch size parameters", "should_trigger": false},
+  {"query": "I want to create a new table called Subject with columns for Name, Age, and Gender, plus a foreign key to the Study table", "should_trigger": false},
+  {"query": "how do I run my training notebook with papermill and track the execution in the catalog? I want to use deriva-ml-run with my cifar10 experiment", "should_trigger": false},
+  {"query": "I need to upload my trained model weights as an asset to the catalog within an execution context for provenance tracking", "should_trigger": false},
+  {"query": "can you help me set up the Chaise display annotations so the Image table shows the filename and subject columns in the compact view?", "should_trigger": false},
+  {"query": "I want to add a new vocabulary term 'Severe' to the existing Diagnosis_Type vocabulary and also add 'mild' as a synonym for 'Mild'", "should_trigger": false},
+  {"query": "how do I authenticate with the Deriva server? I'm getting a 401 error when trying to connect. Do I need to log in through Globus first?", "should_trigger": false},
+  {"query": "I need to denormalize the Image and Subject tables to build a pandas DataFrame for my analysis — how do I join them through the foreign key?", "should_trigger": false},
+  {"query": "can you check what version of deriva-ml is installed and whether I need to update? also make sure nbstripout is configured for my notebooks", "should_trigger": false}
+]
