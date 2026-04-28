@@ -42,7 +42,7 @@ DerivaML is a **reproducible-ML layer built on top of Deriva catalogs**. It reco
 The DerivaML stack:
 
 - **`deriva-ml`** — the Python library; provides the `DerivaML` class, `Workflow`, `ExecutionConfiguration`, dataset / feature / asset APIs, and the `with ml.create_execution(config) as exe:` context manager pattern.
-- **`deriva-ml-mcp`** — the MCP plugin loaded by `deriva-mcp-core`; exposes the `deriva_ml_*` MCP tools (e.g., `deriva_ml_create_dataset`, `deriva_ml_start_execution`, `deriva_ml_add_feature_value`) and the `deriva://catalog/{h}/{c}/ml/...` resource family.
+- **`deriva-ml-mcp`** — the MCP plugin loaded by `deriva-mcp-core`; exposes the `deriva_ml_*` MCP tools (e.g., `deriva_ml_create_dataset`, `deriva_ml_start_execution`, `deriva_ml_add_feature_values`) and the `deriva://catalog/{h}/{c}/ml/...` resource family.
 - **`deriva-ml-skills`** — this Claude Code plugin; ~24 skills that drive the above two layers through Claude.
 
 ## The five core abstractions
