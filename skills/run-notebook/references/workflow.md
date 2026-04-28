@@ -259,7 +259,7 @@ uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb --info
 |---------|-------|-----|
 | `NameError` on config variables | Config name mismatch or no `notebook_config()` with that name | Verify the string in `run_notebook("name")` matches a `notebook_config("name")` call |
 | `No kernel named X` | Project kernel not installed | Run `uv run deriva-ml-install-kernel` |
-| Execution status stuck at "Running" | Notebook crashed without clean exit | Call `deriva_ml_abort_execution(hostname=..., catalog_id=..., execution_rid="...")` to mark the run failed (or `deriva_ml_update_execution(hostname=..., catalog_id=..., execution_rid="...", status=..., message=...)` for a custom status). The legacy `update_execution_status` tool was subsumed by these. |
+| Execution status stuck at "Running" | Notebook crashed without clean exit | Call `deriva_ml_abort_execution(hostname=..., catalog_id=..., execution_rid="...", reason="<explanation>")` to mark the run failed. The legacy `update_execution_status` tool was subsumed by this. |
 | Outputs still in committed notebook | `nbstripout` not installed | Run `uv run nbstripout --install` |
 | `PapermillExecutionError` | A cell raised an exception during CLI run | Check the output notebook for the traceback |
 | `AuthenticationError` during execution | Credentials expired mid-run | Re-authenticate and re-run |

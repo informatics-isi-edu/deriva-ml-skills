@@ -77,10 +77,10 @@ Then call `deriva_ml_start_execution(hostname=..., catalog_id=..., execution_rid
 **Step 2:** Add values using `deriva_ml_add_feature_values` (one tool — singular vs multi-column shape was unified):
 
 - `hostname`, `catalog_id`
-- `target_table`: the target table (e.g., `"Image"`)
+- `table`: the target table (e.g., `"Image"`) — the table the feature is defined on
 - `feature_name`: the feature name (e.g., `"Tumor_Classification"`)
-- `values`: list of dicts, each with `target_rid` plus column values matching the feature's schema. For a single-column feature, supply `target_rid` plus the one term column (e.g., `Tumor_Grade`). For a multi-column feature, include all required columns and any optional ones you have values for.
-- `execution_rid` (optional): defaults to the active execution
+- `execution_rid`: REQUIRED — the RID of an active execution (Running, or Created if you want the hybrid auto-wrap path to drive the lifecycle)
+- `entries`: list of dicts, each with `target_rid` plus column values matching the feature's schema. For a single-column feature, supply `target_rid` plus the one term column (e.g., `Tumor_Grade`). For a multi-column feature, include all required columns and any optional ones you have values for.
 
 **Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. (Use `deriva_ml_abort_execution` instead if something went wrong.) Feature values are written directly to the catalog by `deriva_ml_add_feature_values` — no Python API `exe.upload_execution_outputs()` call is needed unless you also registered file assets with Python API `exe.asset_file_path()`.
 
@@ -175,7 +175,7 @@ Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", wo
 
 Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")`.
 
-Call `deriva_ml_add_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="Cell_Classification", values=[{"target_rid": "2-IMG1", "Cell_Type": "Epithelial"}, {"target_rid": "2-IMG2", "Cell_Type": "Immune"}])`.
+Call `deriva_ml_add_feature_values(hostname="data.example.org", catalog_id="1", table="Image", feature_name="Cell_Classification", execution_rid="<execution_rid>", entries=[{"target_rid": "2-IMG1", "Cell_Type": "Epithelial"}, {"target_rid": "2-IMG2", "Cell_Type": "Immune"}])`.
 
 Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")` to finalize. Feature values were already written to the catalog by `deriva_ml_add_feature_values`.
 

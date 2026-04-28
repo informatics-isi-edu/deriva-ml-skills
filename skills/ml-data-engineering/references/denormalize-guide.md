@@ -88,10 +88,8 @@ deriva_ml_denormalize_dataset(
 Returns:
 ```json
 {
-  "status": "success",
-  "columns": [["Image_RID", "ermrest_rid"], ["Image_Filename", "text"],
-              ["Subject_Gender", "text"], ["Diagnosis_Label", "text"]],
-  "join_path": ["Image", "Subject", "Diagnosis"],
+  "mode": "catalog_shape",
+  "include_tables": ["Image", "Subject", "Diagnosis"],
   "tables": {
     "Image": {"row_count": 3200, "is_asset": true, "asset_bytes": 45000000},
     "Subject": {"row_count": 1500, "is_asset": false, "asset_bytes": 0},
@@ -102,6 +100,8 @@ Returns:
   "total_asset_size": "45.0 MB"
 }
 ```
+
+The top-level discriminator is `mode` (one of `catalog_shape`, `dataset_describe`, `dataset_preflight_required`), NOT `status`. Catalog-wide calls (no `dataset_rid`) return `mode: "catalog_shape"` with the size estimate above. Dataset-scoped calls return `mode: "dataset_describe"` with additional fields describing the resolved denormalization plan (e.g., `columns`, `join_path`, `row_per`).
 
 **Python API (from a bag):**
 ```python

@@ -22,7 +22,7 @@
     {
       "id": 4,
       "prompt": "I ran an experiment but the status shows 'Running' even though it finished. What happened and how do I fix it?",
-      "expected_output": "Should explain that deriva_ml_commit_execution was likely not called (or the execution crashed before stop). Should mention deriva_ml_get_execution + create fresh execution (gap; restore_execution was not ported) to regain control. Should show deriva_ml_update_execution to fix the status. Should explain that the context manager in Python handles this automatically (sets Failed on exception).",
+      "expected_output": "Should explain that deriva_ml_commit_execution was likely not called (or the execution crashed before stop). Should mention deriva_ml_get_execution + create fresh execution (gap; restore_execution was not ported) to regain control. Should show deriva_ml_abort_execution(reason=...) as the way to mark the stuck execution failed (deriva_ml_update_execution accepts only description=, not status=). Should explain that the context manager in Python handles this automatically (sets Failed on exception).",
       "files": []
     },
     {

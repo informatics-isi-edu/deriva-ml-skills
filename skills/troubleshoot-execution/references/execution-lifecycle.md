@@ -105,10 +105,14 @@ all_workflows = ml.find_workflows()
 ### MCP tools
 
 ```
+# Resolve the workflow first (look up by URL or create if new)
+deriva_ml_find_workflow_by_url(hostname="data.example.org", catalog_id="1",
+    url="https://github.com/my-org/my-repo/blob/abc123/train.py")
+# → capture workflow_rid from result, e.g. "2-WF01"
+
 deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_name="ResNet50 Training",
-    workflow_type="Training",
-    description="Training run with augmented data")
+    workflow_rid="2-WF01",
+    description="ResNet50 Training run with augmented data")
 # Capture the returned execution_rid (e.g. "2-YYYY") and pass it explicitly:
 deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="2-YYYY")
@@ -370,9 +374,9 @@ deriva_ml_get_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="1-XYZ")
 
 # 2. Create a fresh execution with the same config (new RID)
+# workflow_rid comes from the prior execution's Workflow field (captured in step 1)
 deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_name="ResNet50 Training",
-    workflow_type="Training",
+    workflow_rid="<workflow_rid>",
     description="Re-run after transient network failure (prior: 1-XYZ)",
     dataset_rids=[...],
     asset_rids=[...])
@@ -472,7 +476,7 @@ Use the Python API: `exe.working_dir` returns the local filesystem path for the 
 | `deriva://catalog/{h}/{c}/ml/execution/{rid}` | Resource form of the same content |
 | `deriva://storage/execution-dirs` | Local execution working directories |
 | Python API `exe.working_dir` | Local filesystem path for the execution |
-| `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status=..., message=...)` | Report progress / arbitrary status changes during long runs |
+| `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` | Update an execution's description after the fact (description-only; status transitions go through start/commit/abort) |
 | `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` | Mark execution as Completed (success path) |
 | `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` | Mark execution as Failed/Aborted (failure path) |
 | `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` | Walk down a nested-execution tree |

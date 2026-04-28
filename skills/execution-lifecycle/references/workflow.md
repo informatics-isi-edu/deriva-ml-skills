@@ -120,7 +120,9 @@ Call Python API `exe.asset_file_path()` to register each output file for upload.
 
 On success: call `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`. Sets status to "Completed" and records the stop time.
 
-On failure: call `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)`. For arbitrary status transitions or progress messages mid-run, call `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status=..., message=...)`.
+On failure: call `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<explanation>")`. The reason text is recorded in the audit log.
+
+For mid-run progress recording, use the Python API's `metrics_file` (write JSON-lines to a metrics file as the run progresses) — the catalog itself does not support arbitrary status transitions or free-form progress messages on the Execution row. To update an execution's description after the fact, use `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` (description-only; status changes go through start/commit/abort).
 
 **Step 7: Upload outputs.**
 
@@ -260,7 +262,7 @@ For creating new asset tables and managing asset types, see the `work-with-asset
 
 An execution can also record **feature values** (e.g., per-image predictions, classification labels). Like output files, feature values are **staged locally** and uploaded when Python API `exe.upload_execution_outputs()` is called — they are not written to the catalog immediately.
 
-In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, target_table, feature_name, values=[...])` during the execution (the legacy single-value `add_feature_value` and `add_feature_value_record` are subsumed — pass a single-element list). In Python, call `execution.add_features(records)`. Both write JSONL files to the execution's `feature/` directory on disk. The catalog is updated when `upload_execution_outputs()` processes these files.
+In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution (the legacy single-value `add_feature_value` and `add_feature_value_record` are subsumed — pass a single-element list). In Python, call `execution.add_features(records)`. Both write JSONL files to the execution's `feature/` directory on disk. The catalog is updated when `upload_execution_outputs()` processes these files.
 
 For creating features and populating values, see the `create-feature` skill.
 
@@ -387,21 +389,23 @@ End-to-end workflow combining MCP tools (for lifecycle management) with Python A
 
 **Step 1:** Call `deriva_ml_list_workflows(hostname="data.example.org", catalog_id="1")` (or read `deriva://catalog/data.example.org/1/ml/workflows`) to check for existing workflows.
 
-**Step 2:** Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_name="Image Classification", workflow_type="Training", description="Train CNN on labeled CIFAR-10 subset", dataset_rids=["2-ABC1"])`. Capture the returned execution RID, e.g. `"2-YYYY"`.
+**Step 2:** If the workflow does not yet exist, call `deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1", name="Image Classification", url="https://github.com/my-org/my-repo/blob/abc123/train.py", workflow_type="Training")` to register it and capture the returned `workflow_rid` (e.g. `"2-WF01"`). If it already exists, use `deriva_ml_find_workflow_by_url` to retrieve the RID.
 
-**Step 3:** Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`.
+**Step 3:** Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="2-WF01", description="Train CNN on labeled CIFAR-10 subset", dataset_rids=["2-ABC1"])`. Capture the returned execution RID, e.g. `"2-YYYY"`.
 
-**Step 4:** Call Python API `exe.download_dataset_bag()` with `dataset_rid`: `"2-ABC1"`, `version`: `"1.0.0"`.
+**Step 4:** Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`.
 
-**Step 5:** Call Python API `exe.working_dir` to find the local data path. Run your training script.
+**Step 5:** Call Python API `exe.download_dataset_bag()` with `dataset_rid`: `"2-ABC1"`, `version`: `"1.0.0"`.
 
-**Step 6:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"model_weights.pt"`, `asset_types`: `["Model_Weights"]`. Write the weights to the returned path.
+**Step 6:** Call Python API `exe.working_dir` to find the local data path. Run your training script.
 
-**Step 7:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"predictions.csv"`, `asset_types`: `["Predictions"]`. Write the predictions to the returned path.
+**Step 7:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"model_weights.pt"`, `asset_types`: `["Model_Weights"]`. Write the weights to the returned path.
 
-**Step 8:** Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`. (On failure, call `deriva_ml_abort_execution` instead.)
+**Step 8:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"predictions.csv"`, `asset_types`: `["Predictions"]`. Write the predictions to the returned path.
 
-**Step 9:** Call Python API `exe.upload_execution_outputs()`.
+**Step 9:** Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`. (On failure, call `deriva_ml_abort_execution` instead.)
+
+**Step 10:** Call Python API `exe.upload_execution_outputs()`.
 
 ## Complete Example: Python API
 

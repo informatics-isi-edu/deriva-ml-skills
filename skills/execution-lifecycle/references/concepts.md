@@ -111,13 +111,14 @@ Created → Initializing → Pending → Running → Completed
 | `Pending` → `Running` | `deriva_ml_start_execution(...)` is called (automatic in the context manager); records the start timestamp |
 | `Running` → `Completed` | `deriva_ml_commit_execution(...)` is called (automatic on context manager exit); records the stop timestamp |
 | `Running` → `Failed` | An unhandled exception occurs inside the context manager; the error is recorded |
-| Any → `Aborted` | Manual intervention via `deriva_ml_abort_execution(...)`, or `deriva_ml_update_execution(rid, status="Aborted", message="...")` for arbitrary state |
+| Any → `Aborted` | `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="...")`. The state machine forbids manual `Status` edits via `update_execution`; abort is the only entry to the Aborted state. |
 
-The execution context manager automatically transitions through `Created` → `Initializing` → `Pending` → `Running` → `Completed` (or `Failed` on exception). You have three patterns for arbitrary status changes from MCP tools:
+The execution context manager automatically transitions through `Created` → `Initializing` → `Pending` → `Running` → `Completed` (or `Failed` on exception). You have three patterns for status changes from MCP tools:
 
 - `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — normal success completion
 - `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` — failure marking
-- `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status="Running", message="Epoch 12 of 20")` — arbitrary transitions or progress messages
+- `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` — update the execution's description after the fact (description-only; status edits are not allowed)
+- For mid-run progress (e.g. "epoch 12 of 20"), write JSON-lines to a metrics file via the Python API's `exe.metrics_file().open("a")`. The catalog does not store free-form progress messages on the Execution row.
 
 **MCP tools vs Python API:** Both MCP tools and the Python API use the same underlying `Execution` class, so the status transitions work identically. The difference is only in how the lifecycle is driven:
 
@@ -244,8 +245,9 @@ For custom multi-step workflows, create nested executions manually:
 
 ```
 # Create the parent
+# workflow_rid is the RID of a pre-registered Workflow record
 deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_name="Architecture Comparison", workflow_type="Analysis")
+    workflow_rid="<workflow_rid>")
 deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="1-PARENT")
 # ... parent-level work (e.g., shared preprocessing) ...
@@ -255,7 +257,7 @@ deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
 # Record the parent RID, then create children
 # Each child is its own execution with its own inputs/outputs
 deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_name="ResNet Training", workflow_type="Training", ...)
+    workflow_rid="<workflow_rid>", ...)
 deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="1-CHILD1")
 # ... child work ...
@@ -352,7 +354,7 @@ Until Python API `exe.upload_execution_outputs()` is called, output files exist 
 
 An execution can also produce **feature values** — structured annotations on catalog records (e.g., per-image classification labels, confidence scores). Like output files, feature values are **staged locally** and uploaded when Python API `exe.upload_execution_outputs()` is called:
 
-- In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, target_table, feature_name, values=[...])` during the execution.
+- In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution.
 - In Python, call `execution.add_features(records)`. This writes JSONL files to disk in the execution's `feature/` directory — the catalog is not updated until `upload_execution_outputs()` runs.
 
 Both output files and feature values are linked to the execution for provenance. For creating features and populating values, see the `create-feature` skill.

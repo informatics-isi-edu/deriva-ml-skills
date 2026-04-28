@@ -160,16 +160,17 @@ deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow
 deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
 ```
 
-**Adding feature values** — use `deriva_ml_add_feature_values` (always plural; pass a single-element list for one value). Both single-column and multi-column features go through the same tool — supply a `values` list of dicts with `target_rid` plus the columns the feature defines:
+**Adding feature values** — use `deriva_ml_add_feature_values` (always plural; pass a single-element list for one value). Both single-column and multi-column features go through the same tool — supply an `entries` list of dicts with `target_rid` plus the columns the feature defines:
 
 ```
 # Single-column feature (e.g., Diagnosis with one Diagnosis_Type term)
 deriva_ml_add_feature_values(
     hostname="data.example.org",
     catalog_id="1",
-    target_table="Image",
+    table="Image",
     feature_name="Diagnosis",
-    values=[
+    execution_rid="<execution_rid>",
+    entries=[
         {"target_rid": "2-IMG1", "Diagnosis_Type": "Normal"},
         {"target_rid": "2-IMG2", "Diagnosis_Type": "Abnormal"},
     ]
@@ -179,9 +180,10 @@ deriva_ml_add_feature_values(
 deriva_ml_add_feature_values(
     hostname="data.example.org",
     catalog_id="1",
-    target_table="Image",
+    table="Image",
     feature_name="Diagnosis",
-    values=[
+    execution_rid="<execution_rid>",
+    entries=[
         {"target_rid": "2-IMG1", "Diagnosis_Type": "Normal", "confidence": 0.95},
         {"target_rid": "2-IMG2", "Diagnosis_Type": "Abnormal", "confidence": 0.87},
     ]
