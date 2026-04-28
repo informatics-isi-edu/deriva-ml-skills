@@ -4,6 +4,35 @@ description: "ALWAYS load this context when the deriva-ml plugin is active. Esta
 disable-model-invocation: false
 ---
 
+<!--
+SYNC NOTE — KEEP IN LOCKSTEP WITH `deriva_ml_concepts` MCP PROMPT.
+
+This skill's conceptual sections (What is DerivaML, the five core
+abstractions, the provenance principle / steering principle, the
+vocabulary-extension pattern) deliberately mirror the
+`_CONCEPTS_GUIDE` constant in
+`deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`.
+
+The duplication is intentional:
+  - Claude Code clients with this skill loaded get the conceptual
+    frame pushed into context proactively (this is the always-on
+    "load-bearing" path the audit named).
+  - Non-Claude-Code clients (Cursor, SDK-based agents, raw FastMCP
+    clients, etc.) pull the same frame in via the
+    `deriva_ml_concepts` prompt over the MCP wire.
+
+The skill is RICHER than the prompt — it adds tool-selection guidance,
+cross-references to other skills (`/deriva-ml:dataset-lifecycle`,
+`/deriva:troubleshoot-deriva-errors`, etc.), and the worked
+"when to reach back to the raw catalog surface" table. The prompt is
+the conceptual FLOOR; this skill is floor + Claude-Code value-add.
+
+When the abstractions evolve (rare — they're fundamental), update BOTH:
+  1. This file (`skills/deriva-ml-context/SKILL.md`)
+  2. `_CONCEPTS_GUIDE` in `deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`
+     (same repo's CLAUDE.md flags this with a similar comment).
+-->
+
 # DerivaML Plugin Context
 
 ## What is DerivaML?
