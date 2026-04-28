@@ -354,7 +354,7 @@ Until Python API `exe.upload_execution_outputs()` is called, output files exist 
 
 An execution can also produce **feature values** — structured annotations on catalog records (e.g., per-image classification labels, confidence scores). Like output files, feature values are **staged locally** and uploaded when Python API `exe.upload_execution_outputs()` is called:
 
-- In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, target_table, feature_name, values=[...])` during the execution.
+- In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution.
 - In Python, call `execution.add_features(records)`. This writes JSONL files to disk in the execution's `feature/` directory — the catalog is not updated until `upload_execution_outputs()` runs.
 
 Both output files and feature values are linked to the execution for provenance. For creating features and populating values, see the `create-feature` skill.
