@@ -124,9 +124,8 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 **Solution**:
 - **Best practice**: Always use the context manager (`with ml.create_execution(config) as exe:`) which automatically handles cleanup on both success and failure.
 - To fix a stuck execution manually, pick the right tool for the transition:
-  - Failure: `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` — sets status to `Failed`/`Aborted`.
+  - Failure: `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<short explanation>")` — sets status to `Failed`/`Aborted`. The `reason` is recorded in the audit log and visible on the execution row.
   - Success: `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — sets status to `Completed`. Only use this if the work actually finished.
-  - Arbitrary status with a custom message: `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status="Failed", message="Manually marked as failed")`.
 - **Tool**: `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to inspect the execution's current state and metadata.
 - For future runs, always use the context manager to prevent this issue.
 

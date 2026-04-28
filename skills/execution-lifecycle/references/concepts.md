@@ -111,13 +111,14 @@ Created → Initializing → Pending → Running → Completed
 | `Pending` → `Running` | `deriva_ml_start_execution(...)` is called (automatic in the context manager); records the start timestamp |
 | `Running` → `Completed` | `deriva_ml_commit_execution(...)` is called (automatic on context manager exit); records the stop timestamp |
 | `Running` → `Failed` | An unhandled exception occurs inside the context manager; the error is recorded |
-| Any → `Aborted` | Manual intervention via `deriva_ml_abort_execution(...)`, or `deriva_ml_update_execution(rid, status="Aborted", message="...")` for arbitrary state |
+| Any → `Aborted` | `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="...")`. The state machine forbids manual `Status` edits via `update_execution`; abort is the only entry to the Aborted state. |
 
-The execution context manager automatically transitions through `Created` → `Initializing` → `Pending` → `Running` → `Completed` (or `Failed` on exception). You have three patterns for arbitrary status changes from MCP tools:
+The execution context manager automatically transitions through `Created` → `Initializing` → `Pending` → `Running` → `Completed` (or `Failed` on exception). You have three patterns for status changes from MCP tools:
 
 - `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — normal success completion
 - `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` — failure marking
-- `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status="Running", message="Epoch 12 of 20")` — arbitrary transitions or progress messages
+- `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` — update the execution's description after the fact (description-only; status edits are not allowed)
+- For mid-run progress (e.g. "epoch 12 of 20"), write JSON-lines to a metrics file via the Python API's `exe.metrics_file().open("a")`. The catalog does not store free-form progress messages on the Execution row.
 
 **MCP tools vs Python API:** Both MCP tools and the Python API use the same underlying `Execution` class, so the status transitions work identically. The difference is only in how the lifecycle is driven:
 

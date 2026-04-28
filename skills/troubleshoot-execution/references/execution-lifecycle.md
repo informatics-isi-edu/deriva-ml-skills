@@ -476,7 +476,7 @@ Use the Python API: `exe.working_dir` returns the local filesystem path for the 
 | `deriva://catalog/{h}/{c}/ml/execution/{rid}` | Resource form of the same content |
 | `deriva://storage/execution-dirs` | Local execution working directories |
 | Python API `exe.working_dir` | Local filesystem path for the execution |
-| `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status=..., message=...)` | Report progress / arbitrary status changes during long runs |
+| `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` | Update an execution's description after the fact (description-only; status transitions go through start/commit/abort) |
 | `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` | Mark execution as Completed (success path) |
 | `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` | Mark execution as Failed/Aborted (failure path) |
 | `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` | Walk down a nested-execution tree |

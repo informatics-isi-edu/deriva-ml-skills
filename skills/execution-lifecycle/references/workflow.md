@@ -120,7 +120,9 @@ Call Python API `exe.asset_file_path()` to register each output file for upload.
 
 On success: call `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`. Sets status to "Completed" and records the stop time.
 
-On failure: call `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)`. For arbitrary status transitions or progress messages mid-run, call `deriva_ml_update_execution(hostname, catalog_id, execution_rid, status=..., message=...)`.
+On failure: call `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<explanation>")`. The reason text is recorded in the audit log.
+
+For mid-run progress recording, use the Python API's `metrics_file` (write JSON-lines to a metrics file as the run progresses) — the catalog itself does not support arbitrary status transitions or free-form progress messages on the Execution row. To update an execution's description after the fact, use `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` (description-only; status changes go through start/commit/abort).
 
 **Step 7: Upload outputs.**
 
