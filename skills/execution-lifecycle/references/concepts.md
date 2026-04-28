@@ -244,8 +244,9 @@ For custom multi-step workflows, create nested executions manually:
 
 ```
 # Create the parent
+# workflow_rid is the RID of a pre-registered Workflow record
 deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_name="Architecture Comparison", workflow_type="Analysis")
+    workflow_rid="<workflow_rid>")
 deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="1-PARENT")
 # ... parent-level work (e.g., shared preprocessing) ...
@@ -255,7 +256,7 @@ deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
 # Record the parent RID, then create children
 # Each child is its own execution with its own inputs/outputs
 deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_name="ResNet Training", workflow_type="Training", ...)
+    workflow_rid="<workflow_rid>", ...)
 deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="1-CHILD1")
 # ... child work ...

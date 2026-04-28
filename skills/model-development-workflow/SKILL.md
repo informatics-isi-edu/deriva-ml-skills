@@ -143,8 +143,8 @@ Before training, confirm the feature schema works with your development data.
 deriva_ml_create_execution(
     hostname="data.example.org",
     catalog_id="1",
-    workflow_name="Dev Labeling",
-    workflow_type="Annotation",
+    workflow_rid="<workflow_rid>",
+    description="Dev labeling annotation run",
 )
 deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<exec_rid>")
 deriva_ml_add_feature_values(
@@ -188,8 +188,7 @@ uv run deriva-ml-run +experiment=my_experiment dry_run=true
 deriva_ml_create_execution(
     hostname="data.example.org",
     catalog_id="1",
-    workflow_name="My Training",
-    workflow_type="Training",
+    workflow_rid="<workflow_rid>",
     dataset_rids=["<dev_dataset_rid>"],
     dry_run=True,
 )

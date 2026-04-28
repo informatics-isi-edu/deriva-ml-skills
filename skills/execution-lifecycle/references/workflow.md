@@ -387,21 +387,23 @@ End-to-end workflow combining MCP tools (for lifecycle management) with Python A
 
 **Step 1:** Call `deriva_ml_list_workflows(hostname="data.example.org", catalog_id="1")` (or read `deriva://catalog/data.example.org/1/ml/workflows`) to check for existing workflows.
 
-**Step 2:** Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_name="Image Classification", workflow_type="Training", description="Train CNN on labeled CIFAR-10 subset", dataset_rids=["2-ABC1"])`. Capture the returned execution RID, e.g. `"2-YYYY"`.
+**Step 2:** If the workflow does not yet exist, call `deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1", name="Image Classification", url="https://github.com/my-org/my-repo/blob/abc123/train.py", workflow_type="Training")` to register it and capture the returned `workflow_rid` (e.g. `"2-WF01"`). If it already exists, use `deriva_ml_find_workflow_by_url` to retrieve the RID.
 
-**Step 3:** Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`.
+**Step 3:** Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="2-WF01", description="Train CNN on labeled CIFAR-10 subset", dataset_rids=["2-ABC1"])`. Capture the returned execution RID, e.g. `"2-YYYY"`.
 
-**Step 4:** Call Python API `exe.download_dataset_bag()` with `dataset_rid`: `"2-ABC1"`, `version`: `"1.0.0"`.
+**Step 4:** Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`.
 
-**Step 5:** Call Python API `exe.working_dir` to find the local data path. Run your training script.
+**Step 5:** Call Python API `exe.download_dataset_bag()` with `dataset_rid`: `"2-ABC1"`, `version`: `"1.0.0"`.
 
-**Step 6:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"model_weights.pt"`, `asset_types`: `["Model_Weights"]`. Write the weights to the returned path.
+**Step 6:** Call Python API `exe.working_dir` to find the local data path. Run your training script.
 
-**Step 7:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"predictions.csv"`, `asset_types`: `["Predictions"]`. Write the predictions to the returned path.
+**Step 7:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"model_weights.pt"`, `asset_types`: `["Model_Weights"]`. Write the weights to the returned path.
 
-**Step 8:** Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`. (On failure, call `deriva_ml_abort_execution` instead.)
+**Step 8:** Call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"predictions.csv"`, `asset_types`: `["Predictions"]`. Write the predictions to the returned path.
 
-**Step 9:** Call Python API `exe.upload_execution_outputs()`.
+**Step 9:** Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`. (On failure, call `deriva_ml_abort_execution` instead.)
+
+**Step 10:** Call Python API `exe.upload_execution_outputs()`.
 
 ## Complete Example: Python API
 

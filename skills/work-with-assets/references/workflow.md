@@ -135,7 +135,7 @@ Asset upload happens within an execution context. The workflow is: register file
 
 ### Step 1: Create and start an execution
 
-Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_name=..., workflow_type=..., description=...)` and capture the returned `execution_rid`. Then call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)`.
+Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description=...)` and capture the returned `execution_rid`. Then call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)`. The `workflow_rid` is the RID of an already-registered Workflow record — look it up with `deriva_ml_find_workflow_by_url` or create it with `deriva_ml_create_workflow`.
 
 ### Step 2: Register output files
 
