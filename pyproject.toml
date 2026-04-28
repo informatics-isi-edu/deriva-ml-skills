@@ -1,6 +1,6 @@
 [project]
 name = "deriva-ml-skills"
-version = "1.1.0"
+version = "1.2.0"
 requires-python = ">=3.12"
 
 [dependency-groups]
@@ -29,7 +29,7 @@ tag_message = "Bump version: {current_version} → {new_version}"
 allow_dirty = false
 message = "Bump version: {current_version} → {new_version}"
 post_commit_hooks = ["git push", "git push --tags"]
-current_version = "1.1.0"
+current_version = "1.2.0"
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"
