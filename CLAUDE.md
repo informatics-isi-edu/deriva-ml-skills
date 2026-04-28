@@ -112,6 +112,47 @@ The companion `deriva-skills` plugin (tier-1) is a documented dependency:
 - **Shared script (legacy):** `check-deriva-versions/scripts/check_versions.py` lives in the tier-1 repo today and knows about the entire ecosystem (deriva-py + deriva-mcp-core + deriva-ml + deriva-ml-mcp + both plugins). Phase 4 of the restructure (the v1.4 MCP surface sweep) will split it; until then, the `--component` flag is the boundary, and the tier-2 `check-deriva-ml-versions` skill points at the tier-1 sibling's script.
 - **Release coordination:** the two plugins are independently versioned and released. A tier-1 release does NOT automatically bump tier-2; coordinate manually when a tier-1 change has tier-2 implications.
 
+## Cross-Repo Sync: `deriva-ml-context` skill ↔ `deriva_ml_concepts` prompt
+
+The `skills/deriva-ml-context/SKILL.md` file in this repo and the
+`_CONCEPTS_GUIDE` constant in
+`../deriva-ml-mcp/src/deriva_ml_mcp/prompts.py` (rendered as the
+`deriva_ml_concepts` MCP prompt) share their conceptual content
+DELIBERATELY. Both must explain:
+
+- What DerivaML is (one paragraph)
+- The five core abstractions (Dataset, Workflow, Execution, Feature, Asset)
+- The provenance principle (every artifact links to its producing Execution)
+- The vocabulary-extension pattern (use core's `add_term` with `schema="deriva-ml"`)
+
+The duplication is intentional. The two surfaces serve different LLM
+clients with different invocation models:
+
+- **Claude Code clients** with this plugin loaded get the conceptual
+  frame pushed into context proactively via the always-on
+  `deriva-ml-context` skill (the audit-named "load-bearing" path).
+- **Non-Claude-Code clients** (Cursor, SDK-based agents, raw FastMCP
+  clients, etc.) pull the same frame in via the `deriva_ml_concepts`
+  prompt over the MCP wire from `deriva-ml-mcp`.
+
+This skill is RICHER than the prompt — it adds tool-selection
+guidance, cross-references to other skills (`/deriva-ml:dataset-lifecycle`,
+`/deriva:troubleshoot-deriva-errors`, etc.), the worked "when to reach
+back to the raw catalog surface" table, and other Claude-Code-specific
+value-add. The prompt is the conceptual FLOOR; this skill is floor +
+Claude-Code value-add.
+
+**When updating the abstractions** (rare — they're fundamental),
+update BOTH:
+
+1. `skills/deriva-ml-context/SKILL.md` (this repo)
+2. `_CONCEPTS_GUIDE` in `../deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`
+
+Both files carry an inline comment block at their top pointing at the
+other side. The matching cross-repo note lives in
+`../deriva-ml-mcp/CLAUDE.md` under the same section heading so the
+constraint is visible from either repo.
+
 ## Gotchas
 
 - **Description field is critical** — the `description` in SKILL.md frontmatter controls when Claude auto-invokes the skill. Poorly written descriptions cause false triggers or missed triggers.

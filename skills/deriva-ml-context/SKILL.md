@@ -4,6 +4,35 @@ description: "ALWAYS load this context when the deriva-ml plugin is active. Esta
 disable-model-invocation: false
 ---
 
+<!--
+SYNC NOTE — KEEP IN LOCKSTEP WITH `deriva_ml_concepts` MCP PROMPT.
+
+This skill's conceptual sections (What is DerivaML, the five core
+abstractions, the provenance principle / steering principle, the
+vocabulary-extension pattern) deliberately mirror the
+`_CONCEPTS_GUIDE` constant in
+`deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`.
+
+The duplication is intentional:
+  - Claude Code clients with this skill loaded get the conceptual
+    frame pushed into context proactively (this is the always-on
+    "load-bearing" path the audit named).
+  - Non-Claude-Code clients (Cursor, SDK-based agents, raw FastMCP
+    clients, etc.) pull the same frame in via the
+    `deriva_ml_concepts` prompt over the MCP wire.
+
+The skill is RICHER than the prompt — it adds tool-selection guidance,
+cross-references to other skills (`/deriva-ml:dataset-lifecycle`,
+`/deriva:troubleshoot-deriva-errors`, etc.), and the worked
+"when to reach back to the raw catalog surface" table. The prompt is
+the conceptual FLOOR; this skill is floor + Claude-Code value-add.
+
+When the abstractions evolve (rare — they're fundamental), update BOTH:
+  1. This file (`skills/deriva-ml-context/SKILL.md`)
+  2. `_CONCEPTS_GUIDE` in `deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`
+     (same repo's CLAUDE.md flags this with a similar comment).
+-->
+
 # DerivaML Plugin Context
 
 ## What is DerivaML?
@@ -59,6 +88,58 @@ DerivaML ships four built-in vocabularies. The legacy dedicated extender tools (
 The steering principle still applies: even though you are using the generic `add_term` for the term itself, the **lifecycle of Datasets / Workflows / Executions / Features / Assets** must go through the `deriva_ml_*` tools, never through raw entity CRUD.
 
 For all *other* vocabularies (your own domain vocabs like `Sample_Type`, `Tissue_Type`, `Image_Quality`), use the same generic `add_term` documented in tier-1's `manage-vocabulary` skill — pass your domain schema name instead of `"deriva-ml"`.
+
+## The entity resolution workflow
+
+This applies to **any catalog entity** referenced by name — tables, columns, schemas, vocabulary terms, datasets, workflows, executions, features, assets, or anything else the catalog tracks. ML-domain or generic, the workflow is the same.
+
+When the user mentions an entity by name, OR when the user asks to create a new one, follow these steps:
+
+1. **Exact match first.** If the user-supplied string matches a known canonical name exactly (case-sensitive), use it. Don't search, don't ask. Catalog names are case-sensitive: `"Training"` is the `Dataset_Type` term; `"training"` is not.
+
+2. **Semantic search if ambiguous, fuzzy, or descriptive.** If the user's phrasing doesn't match a canonical name exactly — it's descriptive (`"the training data type"`), abbreviated (`"DR"`), misspelled (`"Diagnossis"`), or just unfamiliar — call `rag_search` with their phrase. Use the appropriate `doc_type`:
+
+   - `catalog-schema` for tables, columns, features, vocabulary terms
+   - `catalog-data` for datasets, workflows, executions
+   - `ml-docs` / `user-guide` for documentation references
+
+3. **Present a picker when multiple options appear.** If RAG returns more than one plausible candidate, list 3-5 of them with their canonical name + one-line description + RID (or `table.column` for column hits) and ask the user to pick. Don't choose blindly when reasonable people might disagree. If RAG returns ONE clear top hit (significantly above runners-up), use it but tell the user what you resolved it to in one sentence (`"I'm using the Training Dataset_Type."`). If RAG returns NO useful hits, ask a clarifying question. **Do NOT fabricate a name; do NOT call `create_*` with a guessed identifier.**
+
+4. **Lookup path ends here.** With the canonical entity in hand, call the relevant `lookup_*` / `get_*` / `find_*` tool, or pass the canonical name / RID to whatever operation the user requested.
+
+5. **Create path has one more step.** If you arrived here because the user asked to CREATE a new entity, before actually calling `create_*`, surface the candidates from step 3 to the user explicitly:
+
+   > "I found these similar existing entities: `<list>`. Would modifying or reusing one of these work, or do you want to create a new one?"
+
+   If the user picks an existing one, switch to the lookup path. If the user confirms a new one is needed, proceed to step 6.
+
+6. **Description handling on create.** Every `create_*` / `add_*` tool that accepts a `description` (or `comment`) argument SHOULD receive a non-empty one. Descriptions become part of the catalog's RAG index and are visible to every future user; an empty description means future LLMs and humans cannot tell what the entity was for.
+
+   **If the user did not supply a description**, generate a suggestion from conversation context (what was the user trying to accomplish? what role does this entity play in their workflow?), then SHOW IT TO THE USER for confirmation or edit:
+
+   > "I'm going to create the `<entity>` with this description: '`<generated suggestion>`'. OK to proceed, or would you like to edit it?"
+
+   Pass the confirmed text (or the user's edit) to the tool. **Don't pass an empty string. Don't pass placeholder text** like `"TODO"` or `"(no description)"`. **Don't fabricate a description without showing the user.**
+
+   If you're operating autonomously with no human in the loop (an unattended agent script), fall back to your best generated suggestion and add a note in your response so a future audit can see which descriptions were auto-generated without confirmation.
+
+### Why this workflow matters
+
+The cost of getting it wrong:
+- **Fabricating a name** leads to FK-violation errors at best, or silent data corruption at worst (e.g. a typo'd `"Trianing"` Dataset_Type that creates a duplicate vocab term).
+- **Skipping the picker** when there are multiple matches lets the LLM commit the user to an entity they didn't intend.
+- **Empty descriptions** destroy catalog discoverability — a catalog with 500 datasets all described as `""` is indistinguishable from a catalog with 500 datasets nobody can find.
+
+The cost of doing it right is one or two extra round-trips per operation. **Always prefer the round-trips.**
+
+### Related tier-1 skills
+
+The tier-1 `deriva-skills` plugin ships two always-on skills that reinforce this workflow:
+
+- **`/deriva:semantic-awareness`** — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. Always-on; it should already be active when this skill is loaded.
+- **`/deriva:generate-descriptions`** — description-generation guidance; teaches what makes a *good* description (the content of the suggestion you're generating in step 6). Always-on.
+
+This skill links the two together into one workflow; the tier-1 skills cover each half in more depth.
 
 ## When to reach back to the raw catalog surface
 
