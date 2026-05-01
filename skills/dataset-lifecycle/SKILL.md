@@ -65,7 +65,9 @@ Types describe independent dimensions of a dataset — they are orthogonal tags,
 - Don't compound dimensions — use `Training` + `Labeled`, never `TrainingLabeled`
 - Check existing types first — use `rag_search("dataset types", doc_type="catalog-schema")` or `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type")` for the full list
 
-For detailed naming conventions, facet design, anti-patterns, and the substitution test, see `references/type-naming-strategy.md`.
+For DerivaML-specific guidance — what the built-in `Dataset_Type` terms mean, how multiple types compose on a single Dataset row, and worked examples for an imaging-domain catalog — see `references/type-naming-strategy.md`.
+
+The **generic naming and design principles** that apply to all four DerivaML vocabularies (`Dataset_Type`, `Workflow_Type`, `Asset_Type`, `Execution_Status_Type`) and to any custom domain vocabulary live in two tier-1 skills in `deriva-skills`: `entity-naming` covers naming (PascalCase, singular form, descriptive, short, specific, FK column conventions); `manage-vocabulary/references/term-naming-strategy.md` covers vocabulary-term-specific design concerns (orthogonal tagging, dimension identification, term descriptions, synonyms, anti-patterns, the substitution test, semantic checking). Read both before adding terms to any DerivaML vocabulary.
 
 For creating custom types, see `references/workflow.md` under "Managing Types."
 
@@ -415,7 +417,7 @@ bag.restructure_assets(
 - `references/concepts.md` — Full background: what datasets are, types, element types, versioning, navigation, consumption, bag downloads
 - `references/workflow.md` — Step-by-step MCP and Python API examples for every operation
 - `references/bags.md` — BDBag contents, FK traversal, materialization, caching, timeouts
-- `references/type-naming-strategy.md` — Orthogonal tagging principles, naming conventions, anti-patterns
+- `references/type-naming-strategy.md` — DerivaML-specific: built-in `Dataset_Type` dimensions, composing multiple types on a Dataset, worked imaging-domain examples. (Generic vocabulary design principles live in tier-1 `deriva-skills` at `skills/manage-vocabulary/references/term-naming-strategy.md`.)
 - `rag_search("...", doc_type="catalog-data")` — Discover datasets by description, type, or purpose
 - `deriva_ml_list_datasets(hostname, catalog_id)` — Full structured list of all datasets (preferred over the URI form)
 - `deriva://catalog/{h}/{c}/ml/datasets` — Same content via resource URI
