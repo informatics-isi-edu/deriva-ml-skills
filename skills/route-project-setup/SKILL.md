@@ -25,7 +25,7 @@ Analyze the user's intent and read the matching skill:
 - **Checking if the DerivaML ecosystem is up to date, deriva-ml Python lib version, deriva-ml-mcp plugin version, deriva-ml-skills plugin version** → Read and follow `../check-deriva-ml-versions/SKILL.md`. Run the tier-1 check first when both plugins are installed; tier-2 components depend on tier-1.
 
 ### Coding standards and project setup
-- **Project setup from scratch, pyproject.toml structure, uv configuration, Git workflow, Google docstrings, ruff linting, type hints, version bumping** → Read and follow `/deriva:coding-guidelines` *(tier-1, deriva-skills)*. The standards apply to any DerivaML / Deriva project regardless of tier.
+- **Project setup from scratch, pyproject.toml structure, uv configuration, Git workflow, Google docstrings, ruff linting, type hints, version bumping** → Read and follow `../coding-guidelines/SKILL.md`. The standards apply to any DerivaML project.
 
 ### Troubleshooting data exports
 - **Missing data in downloaded dataset bags, FK traversal issues, materialization problems, bag export timeouts, Python API bag inspection** → Read and follow `../debug-bag-contents/SKILL.md`
