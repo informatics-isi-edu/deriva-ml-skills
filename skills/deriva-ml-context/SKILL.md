@@ -132,14 +132,15 @@ The cost of getting it wrong:
 
 The cost of doing it right is one or two extra round-trips per operation. **Always prefer the round-trips.**
 
-### Related tier-1 skills
+### Related always-on skills
 
-The tier-1 `deriva-skills` plugin ships two always-on skills that reinforce this workflow:
+Several always-on skills reinforce this workflow:
 
-- **`/deriva:semantic-awareness`** — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. Always-on; it should already be active when this skill is loaded.
-- **`/deriva:generate-descriptions`** — description-generation guidance; teaches what makes a *good* description (the content of the suggestion you're generating in step 6). Always-on.
+- **`/deriva:semantic-awareness`** *(tier-1, deriva-skills)* — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on.
+- **`/deriva:generate-descriptions`** *(tier-1, deriva-skills)* — description-generation guidance for generic catalog entities (tables, columns, vocabularies, vocabulary terms).
+- **`/deriva-ml:generate-descriptions`** *(tier-2, this plugin)* — description-generation guidance for DerivaML entities (Datasets, Workflows, Executions, Features, Assets, Experiments). The tier-1 and tier-2 description skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
 
-This skill links the two together into one workflow; the tier-1 skills cover each half in more depth.
+This skill links them together into one workflow; the always-on skills cover each half in more depth.
 
 ## When to reach back to the raw catalog surface
 

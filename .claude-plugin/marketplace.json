@@ -27,6 +27,7 @@
         "./skills/debug-bag-contents",
         "./skills/deriva-ml-context",
         "./skills/execution-lifecycle",
+        "./skills/generate-descriptions",
         "./skills/generate-scripts",
         "./skills/help",
         "./skills/maintain-experiment-notes",

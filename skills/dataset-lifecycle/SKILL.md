@@ -150,7 +150,7 @@ Every dataset needs a description that explains its composition, purpose, and ke
 
 For split datasets, note the split strategy and rationale.
 
-For description templates and quality guidelines, see the `/deriva:generate-descriptions` *(tier-1, deriva-skills; auto-loaded)* skill.
+For description templates and quality guidelines, see the `/deriva-ml:generate-descriptions` skill (always-on; auto-loaded). It carries the Dataset, Workflow, Execution, Feature, Asset, Experiment, and multirun templates.
 
 ### Why render splits explicitly in the catalog
 

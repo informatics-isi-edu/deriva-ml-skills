@@ -99,7 +99,7 @@ Every feature needs a description explaining what it measures, what values it ta
 
 Since features are multivalued, note whether it's intended for ground truth, model predictions, or computed metrics.
 
-For description templates and quality guidelines, see the `/deriva:generate-descriptions` *(tier-1, deriva-skills; auto-loaded)* skill.
+For description templates and quality guidelines, see the `/deriva-ml:generate-descriptions` skill (always-on; auto-loaded). It carries the Feature template along with the other DerivaML entity templates.
 
 ## Phase 4: Add Feature Values
 
