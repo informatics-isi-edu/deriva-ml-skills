@@ -147,7 +147,8 @@ The companion tier-1 `deriva` plugin remains active alongside this one. Use its 
 
 - **Custom domain tables** — `Subject`, `Sample`, `Image`, anything specific to your project's data model → `/deriva:create-table`, `/deriva:query-catalog-data`
 - **Generic vocabularies** — anything that isn't `Dataset_Type` / `Workflow_Type` / `Asset_Type` / `Execution_Status_Type` → `/deriva:manage-vocabulary`
-- **Schema introspection** — listing tables, browsing columns, reading the ERD → `/deriva:browse-erd`, `/deriva:query-catalog-data`
+- **Schema introspection** — listing tables, browsing columns → `/deriva:query-catalog-data`
+- **Visualizing the catalog ERD** — interactive entity-relationship diagram → `/deriva-ml:browse-erd` *(tier-2)*
 - **Display customization (interactive MCP tool path)** — Chaise annotations on any table → `/deriva:customize-display` *(tier-1, deriva-skills)*
 - **Display customization (Python builder classes)** — type-safe annotation builders for scripts and notebooks → `/deriva-ml:use-annotation-builders`
 - **Generic catalog errors** — auth, permissions, invalid RIDs, missing records, generic vocab term not found → `/deriva:troubleshoot-deriva-errors` (always check this first when an error doesn't smell execution-specific)
