@@ -21,6 +21,7 @@
         "./skills/compare-model-runs",
         "./skills/configure-experiment",
         "./skills/create-feature",
+        "./skills/create-web-app",
         "./skills/dataset-lifecycle",
         "./skills/debug-bag-contents",
         "./skills/deriva-ml-context",
@@ -37,6 +38,7 @@
         "./skills/run-notebook",
         "./skills/setup-notebook-environment",
         "./skills/troubleshoot-execution",
+        "./skills/use-annotation-builders",
         "./skills/work-with-assets",
         "./skills/write-hydra-config"
       ]
