@@ -302,7 +302,8 @@ ML development is iterative. After each production run:
 
 | Task | Skill | Plugin |
 |------|-------|--------|
-| Design tables, columns, FKs | `/deriva:create-table` via `/deriva:route-catalog-schema` | tier-1 (deriva-skills) |
+| Design tables, columns, FKs | `/deriva:create-table` | tier-1 (deriva-skills) |
+| Load row data into tables (CSV/JSON, asset uploads via deriva-upload-cli) | `/deriva:load-data` | tier-1 (deriva-skills) |
 | Create vocabularies and terms | `/deriva:manage-vocabulary` | tier-1 (deriva-skills) |
 | Create features for annotations | `create-feature` | this plugin |
 | Create/split/version datasets | `dataset-lifecycle` | this plugin |

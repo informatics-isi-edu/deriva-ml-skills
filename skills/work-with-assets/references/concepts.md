@@ -198,7 +198,7 @@ The "asset" shape is a regular catalog table whose columns include the standard 
 
 ### Step 1: Create the table with the hatrac column shape
 
-Call the tier-1 `create_table` tool (see `/deriva:route-catalog-schema` for full parameter docs) with the standard hatrac columns:
+Call the tier-1 `create_table` tool (see `/deriva:create-table` for full parameter docs) with the standard hatrac columns:
 
 ```
 create_table(hostname="data.example.org", catalog_id="1",
@@ -225,7 +225,7 @@ add_term(hostname="data.example.org", catalog_id="1",
 
 ### Step 3: Add the Asset_Type FK column on the new table
 
-Use the tier-1 `add_column` tool to add an `Asset_Type` column on the new table that foreign-keys to `deriva-ml:Asset_Type`. (See `/deriva:route-catalog-schema` for the exact `add_column` and `create_foreign_key` invocations.)
+Use the tier-1 `add_column` tool to add an `Asset_Type` column on the new table that foreign-keys to `deriva-ml:Asset_Type`. (See `/deriva:create-table` for the exact `add_column` and `create_foreign_key` invocations.)
 
 ### Step 4 (optional): Add domain FKs
 
