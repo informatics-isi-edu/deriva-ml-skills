@@ -1,6 +1,6 @@
 ---
 name: troubleshoot-execution
-description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, or produces unexpected results. Tier-2: covers errors specific to the deriva-ml execution lifecycle (asset_file_path, upload_execution_outputs, stuck Running status, dataset version mismatch, missing features). For generic catalog errors (auth, permissions, invalid RID, missing record), see the tier-1 troubleshoot-deriva-errors skill."
+description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, or produces unexpected results. Tier-2: covers errors specific to the deriva-ml execution lifecycle (asset_file_path, upload_execution_outputs, stuck Running status, dataset version mismatch, missing features). Also covers checking and updating the three DerivaML components (deriva-ml Python lib, deriva-ml-mcp MCP server, deriva-ml-skills plugin) — version mismatches between them are a common cause of confusing errors. For generic catalog errors (auth, permissions, invalid RID, missing record), see the tier-1 troubleshoot-deriva-errors skill (which carries the equivalent versioning section for the foundation: deriva-py, deriva-mcp-core, deriva plugin). Triggers on: 'execution failed', 'execution stuck', 'asset_file_path', 'upload_execution_outputs', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml', 'upgrade derivaml packages'."
 user-invocable: false
 disable-model-invocation: true
 ---
@@ -194,6 +194,39 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 ### Clean Up
 
 - **Resource**: Read `deriva://storage/execution-dirs` to list local execution working directories. Remove unneeded directories manually to free disk space.
+
+## Versioning and updates
+
+If an execution starts failing "out of nowhere" — especially "tool not found", "unknown parameter", or behavior that doesn't match the documentation — the cause is often a version mismatch between the three DerivaML components (the `deriva-ml` Python library, the `deriva-ml-mcp` MCP server, and the `deriva-ml` Claude Code plugin). They each have their own update path; there is no unified update command.
+
+This is the tier-2 mirror of the equivalent section in tier-1's `/deriva:troubleshoot-deriva-errors`, which covers the three foundation components (`deriva-py`, `deriva-mcp-core`, `deriva` plugin). When in doubt about which side is stale, check both — tier-2 components depend on tier-1, so foundation versions should be current first.
+
+**The short version of the fix:**
+
+- **Check** which version is running:
+  - MCP server: `server_status(hostname=...)` — returns the running framework version plus the list of loaded plugins. The `deriva-ml-mcp` plugin appears in that list with its version.
+  - Python library: `uv pip show deriva-ml` (in your project venv).
+  - Claude Code plugin: `cat ~/.claude/plugins/cache/deriva-plugins/deriva-ml/*/plugin.json` — the `version` field.
+- **Update the plugin** by setting `"autoUpdate": true` in `~/.claude/settings.json` (for the `deriva-plugins` marketplace) and restarting Claude Code.
+- **Update the MCP server** by `docker pull ghcr.io/informatics-isi-edu/deriva-ml-mcp:latest && docker restart deriva-ml-mcp` (Docker), or `uv lock --upgrade-package deriva-ml-mcp && uv sync` then restart the server (native install).
+- **Update deriva-ml** in the project that uses it: `uv lock --upgrade-package deriva-ml && uv sync`.
+
+### Why no single "update everything" command
+
+The three DerivaML components live in different worlds (just like the three foundation components): the plugin updates through Claude Code's marketplace machinery, the MCP server updates through whatever deployment owns it (Docker, native install, etc.), and the Python library updates through standard Python tooling. The MCP server can't be restarted from inside Claude (the connection is stateful and would die mid-update), so MCP updates are inherently a user-driven step.
+
+Keep all three reasonably current together. Bumping just one occasionally produces "this tool exists in the server but the plugin doesn't know about it" errors — the surfaces are designed to evolve together. And keep the foundation (`deriva-py`, `deriva-mcp-core`, `deriva` plugin) current too — DerivaML depends on the foundation, so a stale foundation can cause DerivaML errors that look like ML bugs.
+
+### When errors might point at a version issue
+
+Some error patterns are specific to version mismatch:
+
+- **"Tool not found"** when the LLM tries to call an MCP tool whose name is documented in the plugin's skill — the server is older than the plugin.
+- **"Unknown parameter"** in a successful tool call — the plugin's documented signature is newer than the server's.
+- **Plugin documentation references a workflow that doesn't work** — the plugin is older than the server.
+- **`deriva-ml` errors that mention a method that should exist** — the project's locked deriva-ml is older than what the catalog deployment expects.
+
+If errors started right after an update of one component, verify the other two are also current. A server upgrade may have introduced a tool the plugin's docs don't yet cover; a plugin update may reference a server feature the running server doesn't have yet.
 
 ## Related Skills
 
