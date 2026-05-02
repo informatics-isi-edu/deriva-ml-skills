@@ -309,7 +309,7 @@ ML development is iterative. After each production run:
 | Create/split/version datasets | `dataset-lifecycle` | this plugin |
 | Run experiments with provenance | `execution-lifecycle` | this plugin |
 | Upload/download/track assets | `work-with-assets` | this plugin |
-| Restructure data for PyTorch/TF | `ml-data-engineering` via `route-run-workflows` |
-| Write hydra-zen configs | `configure-experiment` via `route-run-workflows` |
-| Run notebooks with tracking | `run-notebook` via `route-run-workflows` |
+| Restructure data for PyTorch/TF | `ml-data-engineering` |
+| Write hydra-zen configs | `configure-experiment`; `write-hydra-config` for syntax |
+| Run notebooks with tracking | `run-notebook` |
 | Document decisions | `maintain-experiment-notes` |

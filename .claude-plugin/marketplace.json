@@ -34,8 +34,6 @@
         "./skills/ml-data-engineering",
         "./skills/model-development-workflow",
         "./skills/new-model",
-        "./skills/route-project-setup",
-        "./skills/route-run-workflows",
         "./skills/run-notebook",
         "./skills/setup-notebook-environment",
         "./skills/troubleshoot-execution",

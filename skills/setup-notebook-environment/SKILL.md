@@ -1,6 +1,6 @@
 ---
 name: setup-notebook-environment
-description: "Set up the environment for running DerivaML Jupyter notebooks — install kernel, uv sync --group=jupyter, configure nbstripout, authenticate with Deriva. Use before developing or running notebooks for the first time."
+description: "ALWAYS use this skill when setting up the development environment for a DerivaML project — installing the Jupyter kernel, syncing uv dependencies (uv sync --group=jupyter), configuring nbstripout, authenticating with Deriva or Globus, installing PyTorch dependencies, or any environment-prep step before running notebooks or models for the first time. Triggers on: 'install jupyter', 'install kernel', 'jupyter kernel', 'install nbstripout', 'configure nbstripout', 'authenticate with deriva', 'authenticate with globus', 'globus login', 'deriva login', 'install pytorch', 'install dependencies', 'uv sync', 'uv sync --group', 'set up environment', 'set up dev environment', 'project environment setup', 'first time environment setup', 'install deriva-ml', 'install deriva-ml-mcp'."
 disable-model-invocation: true
 ---
 
