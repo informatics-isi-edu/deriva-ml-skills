@@ -39,6 +39,7 @@
         "./skills/setup-notebook-environment",
         "./skills/troubleshoot-execution",
         "./skills/use-annotation-builders",
+        "./skills/validate-project-setup",
         "./skills/work-with-assets",
         "./skills/write-hydra-config"
       ]
