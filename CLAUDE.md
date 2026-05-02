@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with the deriva-ml-skill
 
 ## Project Overview
 
-Claude Code plugin providing 23 tier-2 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
+Claude Code plugin providing 28 tier-2 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
 
 This plugin is the **tier-2** surface — the DerivaML-specific surface. It depends on the **tier-1** [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin (the core Deriva catalog ecosystem) and the [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) MCP plugin loaded by `deriva-mcp-core`. See `../deriva-skills/docs/superpowers/plans/2026-04-27-skills-restructure.md` for the rationale and migration history.
 
@@ -29,10 +29,9 @@ claude --plugin-dir /path/to/deriva-ml-skills
 /plugin marketplace add informatics-isi-edu/deriva-ml-skills
 /plugin install deriva-ml
 
-# Run version checker (the script lives in the tier-1 sibling for now;
-# Phase 4 of the migration plan splits it into a tier-2 copy here.)
-python3 ../deriva-skills/skills/check-deriva-versions/scripts/check_versions.py --component deriva-ml --json
 ```
+
+Versioning and updates are documented in `skills/troubleshoot-execution/SKILL.md` ("Versioning and updates" section). The three DerivaML components — deriva-ml, deriva-ml-mcp, the deriva-ml plugin — each have their own update path; there is no unified version-checker tool in the plugin (the previous `check-deriva-ml-versions` skill was deleted because its bash examples referenced a deleted tier-1 script, and `autoUpdate: true` for plugins / `server_status` for the server / `uv pip show` for the library all became reliable enough that wrapping them in a custom skill no longer earned its weight). The tier-1 equivalent is `skills/troubleshoot-deriva-errors/SKILL.md` for the foundation (deriva-py, deriva-mcp-core, deriva plugin); check the foundation first since the DerivaML stack depends on it.
 
 **Release mechanics:** `bump-version` triggers GitHub Actions, which
 bumps version in `plugin.json` + `marketplace.json`, commits back to
@@ -44,8 +43,8 @@ MCP tool is also supported.
 ```
 ├── .claude-plugin/
 │   ├── plugin.json           # Plugin metadata (name, version, description)
-│   └── marketplace.json      # Marketplace registration (lists all 23 tier-2 skills)
-├── skills/                   # 23 tier-2 skills, each in its own directory
+│   └── marketplace.json      # Marketplace registration (lists all 28 tier-2 skills)
+├── skills/                   # 28 tier-2 skills, each in its own directory
 │   ├── {skill-name}/
 │   │   ├── SKILL.md          # Frontmatter (YAML) + skill content (Markdown)
 │   │   ├── scripts/          # Optional Python helper scripts
@@ -61,11 +60,36 @@ MCP tool is also supported.
 
 ### Skill Organization (tier-2)
 
-The 24 tier-2 skills cover the DerivaML domain layer.
+The 28 tier-2 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
 
-**User-invocable (`/deriva-ml:<name>`):** dataset-lifecycle, debug-bag-contents, execution-lifecycle, troubleshoot-execution, create-feature, work-with-assets, manage-storage, configure-experiment, write-hydra-config, new-model, model-development-workflow, setup-notebook-environment, run-notebook, route-run-workflows, route-project-setup, check-deriva-ml-versions, help.
+**User commands (`/deriva-ml:<name>`)** — `user-invocable: true` or unset; the user types the command or asks a question that maps to it:
 
-**Always-on (auto-invoked, no `/command`):** deriva-ml-context (plugin context skill, load-bearing), maintain-experiment-notes, catalog-operations-workflow, api-naming-conventions, ml-data-engineering, generate-scripts.
+- Lifecycle (also auto-fires): `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle`
+- Datasets: `debug-bag-contents`
+- Features: `create-feature`, `compare-model-runs`
+- Assets: `work-with-assets`, `manage-storage`
+- Experiments / configs: `configure-experiment`, `write-hydra-config`
+- Models: `new-model`, `model-development-workflow`
+- Notebooks: `setup-notebook-environment`, `run-notebook`
+- Project setup: `validate-project-setup`
+- Apps + visualization: `create-web-app`, `browse-erd`, `use-annotation-builders`
+- Coding standards: `coding-guidelines`
+- Help / orientation: `help`
+- Troubleshooting: `troubleshoot-execution` (also covers DerivaML versioning)
+
+**Auto-invoked guides (no slash command typed by user)** — `user-invocable: false` or `disable-model-invocation` unset; should NOT be surfaced in user-facing skill lists as if they were commands. These "look over the shoulder" of the ML developer to inject the right framing before mistakes:
+
+- `deriva-ml-context` — always-on plugin context (the precedence principle, the five abstractions, the steering frame)
+- `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle` — auto-fire on broad lifecycle phrasings (dual-mode: also slash-typeable)
+- `model-development-workflow` — auto-fires when starting a project or onboarding
+- `maintain-experiment-notes` — auto-fires after significant decisions
+- `catalog-operations-workflow` — auto-fires before catalog mutations
+- `api-naming-conventions` — auto-fires when writing DerivaML Python code
+- `ml-data-engineering` — auto-fires when designing data egress for ML pipelines
+- `generate-scripts` — auto-fires when generating Python scripts for catalog operations
+- `generate-descriptions` — auto-fires when creating any DerivaML entity without a description
+
+**Convention for adding a new skill:** decide which shape it is. Guide-shaped skills (workflow, lifecycle, discipline, always-relevant guard) get rich auto-fire descriptions and guide the user proactively. Tool-shaped skills (verification, troubleshooting, environment setup, one-shot operations) get `disable-model-invocation: true` and wait for the user to explicitly invoke them. Documentation surfaces (README, marketing copy, help blurbs) should keep the two layers in clearly-separated sections so users don't reach for an auto-invoked guide as if it were a command.
 
 ### Skill Anatomy (`SKILL.md`)
 
@@ -88,7 +112,7 @@ Markdown instructions that Claude follows when the skill is active.
 
 Skills with evals have files under `evals/<skill-name>/`. Workspace iteration outputs (`evals/<skill>/iteration-*/`) are gitignored from releases.
 
-There is also an `evals/optimization/` directory containing a cross-skill eval suite (per-skill evals + a `run_all.py` runner) that was inherited from the pre-restructure layout. It exercises the legacy skill names (some of which were renamed during the migration); update or retire it as part of the v1.4 sweep (Phase 4).
+There is also an `evals/optimization/` directory containing a cross-skill eval suite (per-skill evals + a `run_all.py` runner) that was inherited from the pre-restructure layout. It exercises legacy skill names from before the routers were deleted (May 2026 restructure); update or retire it before relying on its results.
 
 ## Release Process
 
@@ -109,7 +133,7 @@ The companion `deriva-skills` plugin (tier-1) is a documented dependency:
 
 - **Steering principle (load-bearing):** when the deriva-ml plugin is loaded, the DerivaML abstractions (Dataset, Workflow, Execution, Feature, Asset_Type vocabularies) take precedence over the raw catalog primitives that `deriva-skills` documents. Use the `/deriva-ml:` skills and the deriva-ml Python API for these concepts — not the raw `insert_records` / `update_record` / `get_record` core tools. The `deriva-ml-context` always-on skill carries this principle plugin-wide; per-skill steering callouts in select tier-1 skills (`troubleshoot-deriva-errors`, `manage-vocabulary`) reinforce it for users who arrive in those skills directly.
 - **Cross-references TO tier-1 skills:** when a tier-2 skill needs a generic catalog operation (auth troubleshooting, schema introspection, generic vocab CRUD, custom domain table creation), use `/deriva:<skill-name>` references with explicit `(tier-1; deriva-skills)` annotation so users know they need the companion plugin installed.
-- **Shared script (legacy):** `check-deriva-versions/scripts/check_versions.py` lives in the tier-1 repo today and knows about the entire ecosystem (deriva-py + deriva-mcp-core + deriva-ml + deriva-ml-mcp + both plugins). Phase 4 of the restructure (the v1.4 MCP surface sweep) will split it; until then, the `--component` flag is the boundary, and the tier-2 `check-deriva-ml-versions` skill points at the tier-1 sibling's script.
+- **Versioning:** the `check-deriva-versions` and `check-deriva-ml-versions` skills were both deleted (tier-1 commit `b407acf`; tier-2 May 2026 restructure). Versioning content now lives in `troubleshoot-deriva-errors` (tier-1) and `troubleshoot-execution` (tier-2) as "Versioning and updates" sections. Foundation comes first; check tier-1 versions before tier-2.
 - **Release coordination:** the two plugins are independently versioned and released. A tier-1 release does NOT automatically bump tier-2; coordinate manually when a tier-1 change has tier-2 implications.
 
 ## Cross-Repo Sync: `deriva-ml-context` skill ↔ `deriva_ml_concepts` prompt
