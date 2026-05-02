@@ -17,7 +17,6 @@
         "./skills/api-naming-conventions",
         "./skills/browse-erd",
         "./skills/catalog-operations-workflow",
-        "./skills/check-deriva-ml-versions",
         "./skills/coding-guidelines",
         "./skills/compare-model-runs",
         "./skills/configure-experiment",

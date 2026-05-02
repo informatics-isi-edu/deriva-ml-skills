@@ -153,7 +153,7 @@ The companion tier-1 `deriva` plugin remains active alongside this one. Use its 
 - **Display customization (interactive MCP tool path)** — Chaise annotations on any table → `/deriva:customize-display` *(tier-1, deriva-skills)*
 - **Display customization (Python builder classes)** — type-safe annotation builders for scripts and notebooks → `/deriva-ml:use-annotation-builders`
 - **Generic catalog errors** — auth, permissions, invalid RIDs, missing records, generic vocab term not found → `/deriva:troubleshoot-deriva-errors` (always check this first when an error doesn't smell execution-specific)
-- **Version checks for the foundation** — `/deriva:check-deriva-versions` (tier-1) before `/deriva-ml:check-deriva-ml-versions` (tier-2)
+- **Version checks** — `/deriva:troubleshoot-deriva-errors` (tier-1, "Versioning and updates" section) for the foundation; `/deriva-ml:troubleshoot-execution` (tier-2, "Versioning and updates" section) for the DerivaML layer. Check the foundation first — the DerivaML stack depends on it.
 
 ## Pointers
 

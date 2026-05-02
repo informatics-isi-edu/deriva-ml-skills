@@ -13,11 +13,11 @@ When the user asks what's possible or needs orientation, present the following g
 - Set up a new DerivaML project from a template
 - Install Jupyter kernels and configure notebook dependencies
 - Authenticate with Deriva/Globus
-- **Check if your DerivaML ecosystem is up to date** — two version checks:
-  - `/deriva:check-deriva-versions` *(tier-1, deriva-skills)* covers the foundation: deriva-py + deriva-mcp-core + the deriva plugin
-  - `/deriva-ml:check-deriva-ml-versions` *(this plugin)* covers the DerivaML layer: deriva-ml + deriva-ml-mcp + deriva-ml-skills (this plugin)
+- **Check if your DerivaML ecosystem is up to date** — versioning content lives in two troubleshooting skills:
+  - `/deriva:troubleshoot-deriva-errors` *(tier-1, deriva-skills)* — "Versioning and updates" section covers the foundation: deriva-py + deriva-mcp-core + the deriva plugin
+  - `/deriva-ml:troubleshoot-execution` *(this plugin)* — "Versioning and updates" section covers the DerivaML layer: deriva-ml + deriva-ml-mcp + deriva-ml-skills (this plugin)
 
-  Run the tier-1 check first; the tier-2 stack depends on it. Or just ask *"check versions"*.
+  Check the foundation first; the DerivaML stack depends on it. Or just ask *"check versions"* / *"am I up to date?"*.
 - Configure linting, docstrings, and coding standards
 
 **Just ask:** *"help me set up my environment"*, *"am I up to date?"*, or *"check deriva versions"*
