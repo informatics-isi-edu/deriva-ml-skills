@@ -1,6 +1,7 @@
 ---
 name: browse-erd
-description: "Use this skill to launch an interactive ERD (Entity-Relationship Diagram) browser for the currently connected Deriva catalog. Triggers on: 'browse erd', 'show erd', 'schema diagram', 'entity relationship diagram', 'visualize schema', 'catalog diagram', 'show relationships', 'explore schema visually'. Requires an active catalog connection."
+description: "Use to launch an interactive ERD (Entity-Relationship Diagram) browser for the currently connected Deriva catalog. Requires an active catalog connection."
+disable-model-invocation: true
 ---
 
 # Interactive ERD Browser

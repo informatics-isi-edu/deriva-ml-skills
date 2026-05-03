@@ -1,7 +1,7 @@
 ---
 name: compare-model-runs
-description: "ALWAYS use this skill when comparing metrics across multiple ML training executions in DerivaML — ranking model runs by accuracy/F1/loss, finding the best of N recent runs, identifying performance regressions, or aggregating results across a sweep. Covers both metric-storage patterns: features-as-scalars (use `deriva_ml_list_feature_values(execution_rids=...)` for one-round-trip catalog query) and metrics-as-JSONL-asset files (download via Python, parse locally). Triggers on: 'compare runs', 'best model', 'rank executions', 'last 5 runs', 'find best F1', 'compare accuracy across', 'recent training runs', 'model comparison', 'sweep results', 'leaderboard', 'metrics across runs', 'which run got the best', 'training history'."
-disable-model-invocation: false
+description: "Use when comparing metrics across multiple ML training executions in DerivaML — ranking model runs by accuracy/F1/loss, finding the best of N recent runs, identifying performance regressions, or aggregating results across a sweep. Covers both metric-storage patterns: features-as-scalars (use `deriva_ml_list_feature_values(execution_rids=...)` for one-round-trip catalog query) and metrics-as-JSONL-asset files (download via Python, parse locally)."
+disable-model-invocation: true
 ---
 
 # Comparing Model Runs in DerivaML

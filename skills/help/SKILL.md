@@ -1,6 +1,7 @@
 ---
 name: help
-description: "Use this skill when the user asks general questions about DerivaML, Deriva, deriva-mcp, or what they can do with these tools — including 'what is DerivaML', 'how do I use Deriva', 'what can you help me with', 'how does this work', or 'where do I start'. Also trigger for broad orientation questions about catalogs, datasets, experiments, hydra-zen configuration, ML workflows, or the MCP server when the user seems to be asking 'how do I approach this' rather than requesting a specific action. ALWAYS prefer this skill for general 'what/how/why' questions about the DerivaML ecosystem before routing to more specific skills."
+description: "Use when the user asks general questions about DerivaML, Deriva, deriva-mcp, or what they can do with these tools — including 'what is DerivaML', 'how do I use Deriva', 'what can you help me with', 'how does this work', or 'where do I start'. Also use for broad orientation questions about catalogs, datasets, experiments, hydra-zen configuration, ML workflows, or the MCP server when the user is asking 'how do I approach this' rather than requesting a specific action."
+disable-model-invocation: true
 ---
 
 # DerivaML Capabilities Guide

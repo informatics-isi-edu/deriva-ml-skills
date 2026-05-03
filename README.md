@@ -69,16 +69,12 @@ These are skills that **Claude loads on its own** when the situation calls for t
 
 | Skill | When Claude loads it |
 |-------|----------------------|
-| `deriva-ml-context` | Always — establishes the DerivaML domain frame, the five abstractions, and the precedence principle (tier-2 over tier-1 for ML entities) |
+| `deriva-ml-context` | Always — establishes the DerivaML domain frame, the five abstractions, and the inheritance-with-override rule that governs when to use a deriva-ml surface vs the underlying deriva surface |
 | `dataset-lifecycle` | When the user is working with datasets (creating, splitting, versioning, browsing) — guides through the lifecycle phases proactively |
-| `execution-lifecycle` | When the user is running experiments (also slash-typeable) — guides through the state machine and upload discipline |
+| `execution-lifecycle` | When the user is running experiments — guides through the state machine and upload discipline |
 | `experiment-lifecycle` | When the user is designing or running an experiment cycle — names the seven phases and the cross-step disciplines |
-| `model-development-workflow` | When the user is starting or onboarding to a project — the end-to-end "how to develop a model" arc |
+| `create-feature` | When the user is creating or working with features — guides through the assess/design/create phases and the feature-vs-column decision |
 | `maintain-experiment-notes` | After significant decisions in any phase — captures rationale to experiment-decisions.md |
-| `catalog-operations-workflow` | Before performing catalog mutations — directs through committed-script provenance |
-| `api-naming-conventions` | When writing DerivaML Python code — picks the right method-name prefix |
-| `ml-data-engineering` | When designing data egress for ML pipelines (PyTorch, ImageFolder, dataframes) |
-| `generate-scripts` | When generating Python scripts for catalog operations with execution provenance |
 | `generate-descriptions` | When creating any DerivaML entity without a user-supplied description |
 
 You'll see the auto-invoked skills' effects in Claude's behavior (it asks "should we name a hypothesis first?" when starting an experiment; it captures the decision to experiment-decisions.md; it walks the dataset-creation phases in order); you won't see them as commands you can invoke.
