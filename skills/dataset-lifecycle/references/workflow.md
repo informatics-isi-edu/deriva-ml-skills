@@ -2,7 +2,7 @@
 
 Step-by-step MCP tool examples for creating and managing datasets. For background concepts, see `concepts.md`. For bag downloads, see `bags.md`.
 
-> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Table of Contents
 
@@ -323,3 +323,148 @@ with ml.create_execution(config) as exe:
 
 # Execution is automatically committed and outputs uploaded on context exit
 ```
+
+## Bootstrap dataset (no source dataset)
+
+Use this when creating the **first dataset** from records already in the catalog — e.g., "create a dataset with all file records" or "create a dataset from all Image records." There is no existing dataset to filter from.
+
+**Use the script patterns from the `catalog-operations-workflow` skill** (`references/script-patterns.md`), specifically the **Base Script Template** + **Dataset Creation** pattern.
+
+1. **Register element types** (via MCP — idempotent, one-time setup):
+   ```
+   deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", element_table="Image")
+   ```
+
+2. **Generate a standalone script** in `src/scripts/` following the Base Script Template:
+   - Accept `--hostname`, `--catalog-id`, `--schema`, `--workflow-type`, and `--dry-run` as CLI arguments
+   - Connect via `DerivaML(hostname=..., catalog_id=...)`
+   - **Ensure all vocabulary terms exist** before use — call `ml.add_term(vocab_table, term_name, description)` (Python API) or `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table=vocab_table, name=term_name, description=...)` (MCP tool) for `Workflow_Type`, `Dataset_Type`, and any other vocabularies the script references. Catalog clones often have empty vocabulary tables.
+   - Query all RIDs using `list(ml.pathBuilder().schemas[schema].tables[table].entities())` — note `pathBuilder()` is a **method call**, and `entities()` returns a lazy iterator needing `list()`
+   - Create a workflow and execution for provenance — create a workflow with `ml.create_workflow(name, workflow_type)`, then pass it via `ExecutionConfiguration(workflow=workflow)`, then call `ml.create_execution(config)` (or use the context manager `with ml.create_execution(config) as exe:`)
+   - Create the dataset with `exe.create_dataset()`
+   - Add members with `dataset.add_dataset_members({table: rids}, validate=False)` — use **dict form** with `validate=False` for large datasets to avoid expensive per-RID table resolution
+   - **Do NOT add a CLI entry point** in `pyproject.toml`. These are one-time catalog operations, not reusable tools. Run with `uv run python src/scripts/<script>.py`.
+
+3. **Test with `--dry-run`**, commit, then run for real.
+
+4. **Split** (optional — use `dry_run=true` to preview first):
+   ```
+   deriva_ml_split_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="...", test_size=0.2, seed=42, dry_run=true)
+   ```
+
+## MCP-tool-only path (trivial cases)
+
+For creating an empty dataset or adding a small number of known RIDs, the script-based path is overkill. Use these MCP tools directly:
+
+1. **Create a workflow and execution** for provenance tracking:
+   ```
+   deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1", name="Dataset Curation", workflow_type="Dataset_Management", description="...")
+   deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description="...")
+   deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
+   ```
+
+2. **Create the dataset** with types and a good description:
+   ```
+   deriva_ml_create_dataset(hostname="data.example.org", catalog_id="1", description="...", dataset_types=["Complete", "Labeled"])
+   ```
+
+3. **Add members and finalize:**
+   ```
+   deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="...", members={"Image": ["2-IMG1", "2-IMG2"]})
+   deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
+   ```
+
+For large member lists, always pass members as a `{table: [rids]}` dict (the typed form) instead of a flat list to avoid expensive per-RID table resolution.
+
+## Why render splits explicitly in the catalog
+
+**Always create explicit split datasets** (Training, Validation, Testing) and store them as children of the source dataset in the catalog. Don't compute splits on the fly each time you run an experiment.
+
+| Approach | Problem |
+|----------|---------|
+| Split on the fly each run | Different random seeds → different splits → non-reproducible results. No record of which images were in which split |
+| Explicit split datasets in catalog | Fixed, versioned, shareable. Every experiment references the same split by RID + version. Results are reproducible across team members |
+
+The recommended pattern:
+
+1. Create the source dataset with all data
+2. `deriva_ml_split_dataset` to create explicit Training/Validation/Testing children
+3. Reference the split datasets by RID + version in experiment configs (`DatasetSpecConfig`)
+4. All team members use the same splits — results are comparable
+
+This is especially important for stratified splits — recomputing a stratified split each time may produce different partitions if the underlying data changes.
+
+## Explore and browse dataset contents
+
+Once a dataset exists, understand what's in it using MCP tools (no browser needed).
+
+### Step 1: Get the overview — types, version, description, member counts
+
+```
+deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")
+```
+
+### Step 2: See what's inside
+
+Members are returned grouped by element type (table). This tells you which tables have data in this dataset:
+
+```
+deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")
+```
+
+Pass `version` and/or `recurse` as parameters when needed (e.g., `version="1.0.0"`, `recurse=true`).
+
+### Step 3: Explore schema shape
+
+See what columns a denormalized join would produce, plus row counts and asset sizes:
+
+```
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Subject"])
+```
+
+Returns columns, join path, and per-table row counts/asset sizes. Use this to debug FK path errors or find the right column name for stratification.
+
+### Step 4: Browse actual data
+
+Add `dataset_rid` and `limit` to see real values. Include related tables to see joined data (e.g., an Image's Subject metadata, or feature annotations):
+
+```
+# See Image data joined with Subject metadata
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Subject"], dataset_rid="...", limit=10)
+
+# See Images with their classification labels
+deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Image_Classification"], dataset_rid="...", limit=10)
+```
+
+**Important:** `deriva_ml_denormalize_dataset` is a preview only — results are not cached or stored. It returns a small sample (max 100 rows) to help you understand the data shape, column names, and relationships.
+
+Once you understand the shape and decide on your filter criteria, use the DerivaML Python API to access the full dataset for building subsets or ML pipelines.
+
+### Step 5: Check features and labels
+
+See what annotations exist on member records:
+
+```
+deriva_ml_list_features(hostname="data.example.org", catalog_id="1", target_table="Image")
+```
+
+### Step 6: Navigate the hierarchy
+
+Check both parent and child datasets:
+
+```
+deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")              # includes children list
+deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")  # both parents AND children in one call
+deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", recurse=true)   # full tree
+```
+
+### Step 7: Check provenance and validate
+
+```
+deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")              # includes execution provenance
+# Python API: bag inspection for integrity checks
+```
+
+For individual records, use `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Image", filter={"RID": "2-IMG1"})`.
+
+Alternatively, browse in the Chaise web UI — use `cite(hostname=..., catalog_id=..., rid="...")` to generate a URL.
