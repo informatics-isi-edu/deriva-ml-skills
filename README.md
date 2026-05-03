@@ -84,7 +84,7 @@ You'll see the auto-invoked skills' effects in Claude's behavior (it asks "shoul
 - Schema and table operations on any Deriva catalog
 - Generic vocabulary CRUD (e.g., your project's `Sample_Type` or `Tissue_Type`)
 - Querying / browsing catalog data
-- Chaise display annotations
+- Chaise display annotations — both the interactive MCP-tool path (`/deriva:customize-display`) and the type-safe Python builder path (`/deriva:use-annotation-builders`)
 - Generic catalog troubleshooting (auth, RIDs, missing records)
 - Loading row data and uploading assets via `deriva-upload-cli`
 
@@ -94,7 +94,7 @@ You'll see the auto-invoked skills' effects in Claude's behavior (it asks "shoul
 - Experiment configuration (Hydra-zen), model development, training workflows
 - Execution-state-machine debugging
 
-> **Steering principle:** in a deriva-ml-loaded catalog, **the DerivaML abstractions take precedence over the raw catalog primitives** documented in tier-1. Use the `/deriva-ml:` skills and the deriva-ml Python API for the five abstractions, not the raw `insert_records` / `update_record` core tools (which bypass business logic, FK validation, provenance tracking, version management, and RAG re-indexing). The auto-invoked `deriva-ml-context` skill carries this principle plugin-wide.
+> **Inheritance with override.** The deriva-ml plugin extends the deriva plugin. Everything that applies in a Deriva catalog applies in a deriva-ml catalog by default. **Override:** if a deriva-ml surface exists for an operation — a `/deriva-ml:<skill>`, a `deriva_ml_*` MCP tool/prompt/resource, or a deriva-ml Python object — prefer it over the equivalent deriva surface (`/deriva:<skill>`, `deriva-mcp-core` tool, or `deriva-py` call). The five abstractions above are where the override mostly lands; everywhere else the deriva default applies. The auto-invoked `deriva-ml-context` skill carries the rule plugin-wide; ADR-0001 records the design decision.
 
 ## Development
 
