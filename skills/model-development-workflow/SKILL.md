@@ -261,9 +261,19 @@ If you don't already have one, see the `dataset-lifecycle` skill for:
 | 1 | `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)`) | All RIDs and versions exist |
 | 2 | `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=...)` | Check dataset sizes and cache status |
 | 3 | `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid=...)` | Pre-fetch large datasets |
-| 4 | `bump_version("minor")` | Tag the code version |
+| 4 | `uv run bump-version <type>` (or `bump_version("<type>")` MCP) | Tag the code version — see decision matrix below for `<type>` |
 | 5 | `git status` | Confirm clean working tree |
 | 6 | Verify experiment description | Will be recorded in execution |
+
+**Choosing the version bump type:**
+
+| Component | When to use | Examples |
+|-----------|------|----------|
+| **patch** | Bug fixes, small parameter tweaks | Fixed mislabeled records, tightened a loss function, adjusted a hyperparameter default |
+| **minor** | New experiment configurations, new model architectures | Added a new model variant, added a new dataset split, new hydra-zen experiment preset |
+| **major** | Breaking changes to the training pipeline or data format | Restructured the catalog schema, broke backwards compatibility with prior bag exports |
+
+Commit the version bump before running. The git tag created by `bump-version` becomes the version recorded in the execution metadata.
 
 ### Run production
 ```bash
@@ -295,6 +305,29 @@ ML development is iterative. After each production run:
 
 **Never skip back to Tier 3** after a significant change. Always validate with tiers 1–2 first.
 
+## Git workflow
+
+Cross-cutting across all phases — applies whenever you're committing code that an execution will eventually run.
+
+- **Use feature branches for all work** — `git checkout -b feature/add-segmentation-model`. Keep `main` clean and passing.
+- **Use pull requests, even solo** — PRs create a permanent record of what changed and why. The PR description becomes part of the project's institutional memory alongside `experiment-decisions.md`. With the [GitHub CLI (`gh`)](https://cli.github.com/) installed, Claude can create PRs, review diffs, and merge directly from the terminal.
+- **Commit before running** — DerivaML enforces git-clean for executions (`DerivaMLDirtyWorkflowError`). Use `--allow-dirty` only for debugging iterations; the resulting execution has degraded provenance. See `/deriva-ml:execution-lifecycle` for the canonical commit-before-running discipline.
+
+## Extending DerivaML
+
+If you need project-specific helpers that wrap DerivaML behavior, prefer inheritance over modifying the library:
+
+```python
+from deriva_ml import DerivaML
+
+class MyProjectML(DerivaML):
+    """Extended DerivaML with project-specific helpers."""
+
+    def load_training_data(self, dataset_rid: str) -> pd.DataFrame:
+        ...
+```
+
+This keeps the project-specific logic in your repository (versioned, reviewable) while inheriting all of DerivaML's behavior. Avoid monkey-patching DerivaML methods at runtime — those changes don't show up in `git diff` and break debuggability.
 
 ## Quick Reference: Which Skill for What
 

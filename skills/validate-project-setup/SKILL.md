@@ -22,7 +22,7 @@ This skill is the user-driven sanity check for "does my project look right?" Wal
 
 - For environment problems (Jupyter kernel, dependencies, authentication) — that's `/deriva-ml:setup-notebook-environment`.
 - For execution-time errors with a working project — that's `/deriva-ml:troubleshoot-execution`.
-- For coding standards (docstrings, linting, type hints) — that's `/deriva-ml:coding-guidelines`.
+- For starting a fresh project from zero (initial repo, `pyproject.toml`, `gh` install, coding conventions) — that's `/deriva-ml:setup-derivaml-project`.
 
 ## The canonical project shape
 

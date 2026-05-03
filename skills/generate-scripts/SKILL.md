@@ -203,6 +203,7 @@ Ask yourself: **Does this script change the catalog?**
 
 - **maintain-experiment-notes** — Document catalog-modifying scripts in experiment-decisions.md
 - **execution-lifecycle** — Execution context manager pattern for provenance
-- **coding-guidelines** — Code style, git workflow, commit conventions
+- **model-development-workflow** — Git workflow conventions (feature branches, PRs, commit-before-running, version bumping)
+- **setup-derivaml-project** — Project bootstrap and coding conventions (Google docstrings, type hints, ruff)
 - **work-with-assets** — Asset upload patterns (Python API)
 - **dataset-lifecycle** — Dataset operations that scripts may perform

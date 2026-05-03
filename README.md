@@ -1,6 +1,6 @@
 # DerivaML Skills Plugin
 
-[Claude Code](https://claude.ai/claude-code) skills plugin for [DerivaML](https://github.com/informatics-isi-edu/deriva-ml) ML workflows. Provides 28 skills covering the full ML development cycle on top of Deriva catalogs: dataset / execution / experiment lifecycles, features, asset management, Hydra-zen configs, model development, project setup validation, and execution-specific troubleshooting.
+[Claude Code](https://claude.ai/claude-code) skills plugin for [DerivaML](https://github.com/informatics-isi-edu/deriva-ml) ML workflows. Provides 27 skills covering the full ML development cycle on top of Deriva catalogs: dataset / execution / experiment lifecycles, features, asset management, Hydra-zen configs, model development, project setup validation, and execution-specific troubleshooting.
 
 This is the **tier-2** skills plugin — the surface specific to DerivaML. It depends on the **tier-1** [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin (the core Deriva ecosystem) and the [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) MCP plugin. All three are required for full functionality.
 
@@ -55,11 +55,10 @@ Invoke directly with `/deriva-ml:<skill-name>`, or by asking Claude something th
 | | `/deriva-ml:model-development-workflow` | End-to-end model development workflow |
 | **Notebooks** | `/deriva-ml:setup-notebook-environment` | Set up Jupyter environment for DerivaML |
 | | `/deriva-ml:run-notebook` | Develop and run notebooks with execution tracking |
-| **Project setup** | `/deriva-ml:validate-project-setup` | Validate the project conforms to the deriva-ml-model-template shape |
+| **Project setup** | `/deriva-ml:setup-derivaml-project` | Bootstrap a new DerivaML project: repo init, `pyproject.toml` template, `gh` install, coding conventions |
+| | `/deriva-ml:validate-project-setup` | Validate the project conforms to the deriva-ml-model-template shape |
 | **Apps + visualization** | `/deriva-ml:create-web-app` | Build and register custom web apps for DerivaML data |
 | | `/deriva-ml:browse-erd` | Launch the ERD browser for the connected catalog |
-| | `/deriva-ml:use-annotation-builders` | Type-safe Python annotation builders for production scripts |
-| **Coding standards** | `/deriva-ml:coding-guidelines` | uv / pyproject / Git workflow / docstrings / ruff for DerivaML projects |
 | **Help / orientation** | `/deriva-ml:help` | General orientation: what is DerivaML, how to use it, where to start |
 | **Troubleshooting** | `/deriva-ml:troubleshoot-execution` | Execution-lifecycle errors AND DerivaML versioning/updates |
 

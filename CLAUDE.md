@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with the deriva-ml-skill
 
 ## Project Overview
 
-Claude Code plugin providing 28 tier-2 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
+Claude Code plugin providing 27 tier-2 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
 
 This plugin is the **tier-2** surface — the DerivaML-specific surface. It depends on the **tier-1** [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin (the core Deriva catalog ecosystem) and the [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) MCP plugin loaded by `deriva-mcp-core`. See `../deriva-skills/docs/superpowers/plans/2026-04-27-skills-restructure.md` for the rationale and migration history.
 
@@ -43,8 +43,8 @@ MCP tool is also supported.
 ```
 ├── .claude-plugin/
 │   ├── plugin.json           # Plugin metadata (name, version, description)
-│   └── marketplace.json      # Marketplace registration (lists all 28 tier-2 skills)
-├── skills/                   # 28 tier-2 skills, each in its own directory
+│   └── marketplace.json      # Marketplace registration (lists all 27 tier-2 skills)
+├── skills/                   # 27 tier-2 skills, each in its own directory
 │   ├── {skill-name}/
 │   │   ├── SKILL.md          # Frontmatter (YAML) + skill content (Markdown)
 │   │   ├── scripts/          # Optional Python helper scripts
@@ -60,7 +60,7 @@ MCP tool is also supported.
 
 ### Skill Organization (tier-2)
 
-The 28 tier-2 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
+The 27 tier-2 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
 
 **User commands (`/deriva-ml:<name>`)** — `user-invocable: true` or unset; the user types the command or asks a question that maps to it:
 
@@ -71,9 +71,8 @@ The 28 tier-2 skills divide into two shapes by invocation model. The split matte
 - Experiments / configs: `configure-experiment`, `write-hydra-config`
 - Models: `new-model`, `model-development-workflow`
 - Notebooks: `setup-notebook-environment`, `run-notebook`
-- Project setup: `validate-project-setup`
-- Apps + visualization: `create-web-app`, `browse-erd`, `use-annotation-builders`
-- Coding standards: `coding-guidelines`
+- Project setup: `setup-derivaml-project`, `validate-project-setup`
+- Apps + visualization: `create-web-app`, `browse-erd`
 - Help / orientation: `help`
 - Troubleshooting: `troubleshoot-execution` (also covers DerivaML versioning)
 
@@ -205,3 +204,17 @@ the two remaining content pairs.
 - **No tier-1 carry-over** — this repo was carved out of `deriva-skills` via a no-history-preserved import (per the migration plan). The tier-1 surface is fundamentally separate; do not attempt to merge the two repos back together.
 - **`[tool.bumpversion]` config required** — `bump-version` wraps `bump-my-version` which needs `[tool.bumpversion]` in `pyproject.toml` with `tag = true` and `commit = true`. Without it, no tag or commit is created.
 - **Never use `bump-my-version` directly** — always use `uv run bump-version patch|minor|major` which is the DerivaML CLI wrapper. Using `bump-my-version bump` directly bypasses project-specific logic.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked on GitHub at `informatics-isi-edu/deriva-ml-skills` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the five canonical triage role labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.

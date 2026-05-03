@@ -123,11 +123,11 @@ This skill links them together into one workflow; the always-on skills cover eac
 
 ## Routing notes where both plugins have a surface
 
-For most operations the inheritance rule resolves the routing on its own — if a deriva-ml `<thing>` exists, use it; otherwise the deriva default applies. Two cases need a carve-out because both plugins legitimately have a surface and the rule alone doesn't pick:
+For most operations the inheritance rule resolves the routing on its own — if a deriva-ml `<thing>` exists, use it; otherwise the deriva default applies. One genuine ambiguity remains where both plugins legitimately have a surface and the rule alone doesn't pick:
 
-- **Display customization (interactive MCP-tool path)** — Chaise display annotations on any table → `/deriva:customize-display` *(tier-1, deriva-skills)*. The interactive flow is tier-1.
-- **Display customization (Python builder classes)** — type-safe annotation builders for scripts and notebooks → `/deriva-ml:use-annotation-builders`. The script/notebook flow is tier-2.
 - **Version checks** — `/deriva:troubleshoot-deriva-errors` ("Versioning and updates" section) for the foundation (deriva-py, deriva-mcp-core, deriva plugin); `/deriva-ml:troubleshoot-execution` ("Versioning and updates" section) for the DerivaML layer. Check the foundation first — the DerivaML stack depends on it.
+
+Tier-1 also has two paths for Chaise display annotations — `/deriva:customize-display` (interactive MCP-tool path) and `/deriva:use-annotation-builders` (type-safe Python builder classes for production scripts). Both are tier-1; the choice is interactive-vs-script-based, not tier-based.
 
 ## Pointers
 

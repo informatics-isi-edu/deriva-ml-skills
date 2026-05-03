@@ -27,6 +27,8 @@ uv sync
 
 This installs the project and all its core dependencies in an isolated virtual environment.
 
+> **`uv` discipline:** always use `uv run <command>` to execute commands inside the project environment (don't activate `.venv` and run binaries directly; don't `pip install` packages globally). The `uv run` prefix ensures every command sees the project's locked dependency set.
+
 ### Step 2: Install Jupyter Dependencies
 
 ```bash
