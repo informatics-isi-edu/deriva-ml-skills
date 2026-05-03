@@ -10,9 +10,7 @@ DerivaML stores downloaded datasets, execution working directories, and cached a
 
 > **RAG-first:** Start with `rag_search("storage cache dataset", doc_type="catalog-data")` to discover relevant datasets and executions before managing storage. This helps identify which cached items correspond to which catalog entities.
 
-## Stateless model
-
-> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Understanding the Storage Layout
 
@@ -147,7 +145,7 @@ If status is `running` or `pending` (not `completed`), the outputs may not have 
 
 ### Resume and upload
 
-> **Gap:** the legacy `restore_execution(rid)` tool was not ported to the new MCP surface. There is no MCP tool to resume an aborted execution. **Workaround:** if an execution was aborted, manually inspect its state via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")`, salvage any local outputs from the working directory by hand (for example, copy them aside or upload them via `update_asset` / a fresh upload script), then create a fresh execution with `deriva_ml_create_execution` for any new work. Track the relationship in the new execution's description for provenance.
+> **Resuming an aborted execution:** there is no MCP tool that resumes an aborted execution. **Workaround:** inspect the aborted execution's state via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")`, salvage any local outputs from the working directory by hand (copy them aside or upload via `update_asset` / a fresh upload script), then create a fresh execution with `deriva_ml_create_execution` for any new work. Track the relationship in the new execution's description for provenance.
 
 ### After successful upload, clean up
 
@@ -198,7 +196,7 @@ Confirm `cache_status` is `cached_materialized`.
 
 The recommended pre-flight sequence:
 
-1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result. (The legacy single-shot `validate_rids` tool was removed.)
+1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result.
 2. **Check cache** — `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=..., version=...)` — see what's already cached
 3. **Pre-fetch** — `deriva_ml_cache_dataset(...)` — download anything that's `not_cached`
 4. **Verify** — `deriva_ml_bag_info(...)` — confirm `cached_materialized`

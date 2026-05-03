@@ -242,7 +242,7 @@ To free disk space, use Bash `rm -rf ~/.deriva-ml/...` with specific RIDs:
 
 ## Reference Resources
 
-> The new MCP server is stateless — every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 - `deriva://config/experiment-template` — Experiment config template
 - `deriva://config/multirun-template` — Multirun config template

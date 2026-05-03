@@ -61,9 +61,9 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 **Solution**:
 - **Search first with `rag_search`**: Use `rag_search("your dataset description", doc_type="catalog-data")` to find datasets by description, type, or purpose. This is the best way to discover the correct RID when you are unsure.
-- Verify you are passing the correct `hostname` and `catalog_id` arguments — the new MCP server is stateless, so any tool call against the wrong catalog will quietly miss the record.
+- Verify you are passing the correct `hostname` and `catalog_id` arguments — a tool call against the wrong catalog will quietly miss the record.
 - Call `deriva_ml_list_datasets(hostname, catalog_id)` to list available datasets.
-- Confirm the RID resolves to a dataset by calling `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`. If it errors / returns empty, the RID is wrong, the dataset was deleted, or it lives in a different catalog. The legacy `validate_rids` tool was removed; use the typed lookup instead.
+- Confirm the RID resolves to a dataset by calling `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`. If it errors / returns empty, the RID is wrong, the dataset was deleted, or it lives in a different catalog.
 - If the dataset was recently created, it should be visible immediately -- there is no propagation delay.
 - If the RID resolves to a non-dataset table, that's a generic record-not-found case — see the `/deriva:troubleshoot-deriva-errors` skill *(tier-1, deriva-skills)*.
 
@@ -136,7 +136,7 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 **Cause**: The DerivaML built-in vocabulary needs to be extended with a domain-specific term.
 
 **Solution**:
-- All DerivaML built-in vocabularies live in the `deriva-ml` schema and are extended with the generic `add_term` tool — the legacy dedicated extender tools (`create_dataset_type_term`, `add_workflow_type`, `add_asset_type`) were removed.
+- All DerivaML built-in vocabularies live in the `deriva-ml` schema and are extended with the generic `add_term` tool:
   - `Dataset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Dataset_Type", name=..., description=...)`
   - `Workflow_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`
   - `Asset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`

@@ -8,9 +8,7 @@ disable-model-invocation: true
 
 DerivaML notebooks use hydra-zen configuration (not papermill parameters) and a single `run_notebook()` call that handles connection, execution context, config resolution, and dataset/asset downloading automatically. When run via the CLI runner, the executed notebook with all outputs is stored in the catalog as an execution asset.
 
-## Stateless model
-
-> The new MCP server is stateless — every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. There is no `connect_catalog` step (and no `deriva://catalog/connections` resource) any more.
+> Every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 Notebook configs supply the catalog target through the `deriva_ml` config group, and `run_notebook()` accepts `host` / `catalog_id` parameters to override that resolved target at runtime.
 
@@ -253,7 +251,7 @@ uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb assets=roc_lr_sweep
 ## MCP Tools
 
 - `inspect_notebook(notebook_path)` — view notebook structure and tags without running
-- `run_notebook(notebook_path, config_name, dry_run, host, catalog_id)` — execute notebook with parameters and return execution RID. The `config_name` selects the named config defined with `notebook_config()`. Use `host`/`catalog_id` to set the catalog target for that run (no separate `connect_catalog` step is needed in the new stateless surface).
+- `run_notebook(notebook_path, config_name, dry_run, host, catalog_id)` — execute notebook with parameters and return execution RID. The `config_name` selects the named config defined with `notebook_config()`. Use `host`/`catalog_id` to set the catalog target for that run.
 
 ## Pre-Production Checklist
 

@@ -170,7 +170,7 @@ General principles — descriptions should be specific, quantified, purposeful, 
 
 ## MCP Reference Resources
 
-> The new MCP server is stateless — every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 - `deriva://docs/hydra-zen` — Full guide to hydra-zen configuration management in DerivaML
 - `deriva://docs/execution-configuration` — Execution configuration reference
@@ -180,7 +180,7 @@ General principles — descriptions should be specific, quantified, purposeful, 
 - `deriva://config/experiment-template` — Starter template for experiment presets
 - `deriva://config/multirun-template` — Starter template for multirun sweeps
 - `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}` — Look up dataset details including current version (or call `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)`)
-- Browse available `Workflow_Type` vocabulary terms with `list_vocabulary_terms(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type")` (the legacy `deriva://catalog/workflow-types` URI was removed)
+- Browse available `Workflow_Type` vocabulary terms with `list_vocabulary_terms(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type")`
 
 ## Validating Configs Against the Catalog
 
@@ -195,7 +195,7 @@ Before running experiments, validate that all RIDs and versions in config files 
 | `AssetSpecConfig(rid=...)` | RID exists | Same as asset RID strings above |
 | `workflow_type="Training"` | Workflow type term exists | `lookup_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name="Training")` |
 
-> The legacy `validate_rids(rids=[...])` tool was removed. The new pattern is to call `get_entities(...)` (or the appropriate `deriva_ml_*` getter) per candidate table and treat an empty result as "not found".
+> **RID validation pattern:** call `get_entities(...)` (or the appropriate `deriva_ml_*` getter) per candidate table and treat an empty result as "not found".
 
 ### Validation Workflow
 

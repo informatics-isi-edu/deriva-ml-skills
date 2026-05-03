@@ -11,9 +11,7 @@ An asset is a file-based record in a Deriva catalog — it combines a file (stor
 For background on asset tables, types, RIDs, object storage, caching, and provenance, see `references/concepts.md`.
 
 
-## Stateless model
-
-> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 
 ## Critical Rules
@@ -46,7 +44,7 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 
 ### Creating asset tables
 
-1. **No dedicated tool** — use `create_table` (tier-1 deriva-mcp-core) with the standard hatrac column shape and an Asset_Type FK. The legacy `create_asset_table` shortcut was removed; see `references/concepts.md` for the manual recipe.
+1. Use `create_table` (from the deriva plugin) with the standard hatrac column shape and an Asset_Type FK. See `references/concepts.md` for the recipe.
 
 ### Uploading assets (within an execution)
 

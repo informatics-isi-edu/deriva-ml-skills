@@ -7,9 +7,7 @@ description: "Use this skill for ALL DerivaML dataset operations — creating, p
 
 This skill covers the full lifecycle of a DerivaML dataset: assessing whether one is needed, planning its structure and types, creating and populating it, versioning for reproducibility, and consuming it in experiments.
 
-## Stateless model
-
-> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 **Check project context first.** Before running any commands, look for catalog references in the project:
 - `experiment-decisions.md` — records which catalog/hostname previous operations used

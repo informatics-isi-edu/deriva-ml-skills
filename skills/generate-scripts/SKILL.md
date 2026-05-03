@@ -169,7 +169,7 @@ ml.working_data.clear()
 
 All scripts use `DerivaML.from_context()` which reads `.deriva-context.json` from the project working directory. This file contains hostname, catalog_id, default_schema, and working_dir.
 
-The new MCP server is stateless and no longer manages connection state, so the context file is now created/maintained by the project itself (typically written by the project's bootstrap script or a one-time `deriva-ml init` command — see the project's setup notes). Scripts read from it the same way they always did.
+The context file is created and maintained by the project itself — typically written by the project's bootstrap script or a one-time `deriva-ml init` command (see the project's setup notes). Scripts read from it.
 
 **Never hardcode connection details in scripts.** Always use `from_context()`.
 

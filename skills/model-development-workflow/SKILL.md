@@ -11,9 +11,7 @@ This skill teaches the end-to-end development workflow for DerivaML projects. Th
 
 Most wasted compute comes from running full-scale training on broken configurations. This workflow catches problems at each tier before they become expensive.
 
-## Stateless model
-
-> The new MCP server is stateless — every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. There is no `connect_catalog` step any more — pass `hostname=...` and `catalog_id=...` directly to each tool call.
+> Every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## The Three-Tier Development Pattern
 
@@ -100,7 +98,7 @@ deriva_ml_add_dataset_members(
 
 ### Create a "Development" dataset type
 
-If your catalog doesn't have a "Development" type yet, use the generic `add_term` tool against the `Dataset_Type` vocabulary (the legacy `create_dataset_type_term` was removed):
+If your catalog doesn't have a "Development" type yet, use the generic `add_term` tool against the `Dataset_Type` vocabulary:
 
 ```
 add_term(
@@ -196,7 +194,7 @@ deriva_ml_create_execution(
 
 ### What dry_run validates
 - ✅ Config resolves without errors
-- ✅ Dataset RIDs and versions exist (the runner now calls `get_entities(...)` per candidate table internally — the legacy `validate_rids` tool was removed)
+- ✅ Dataset RIDs and versions exist (the runner calls `get_entities(...)` per candidate table internally)
 - ✅ Asset RIDs exist and are downloadable
 - ✅ Data loading code runs without errors
 - ✅ Model initialization works
@@ -216,8 +214,8 @@ Common tier 1 failures:
 Run a real execution against your development dataset. This creates catalog records and tests the full pipeline end-to-end.
 
 ### Pre-flight checklist
-1. Confirm all RIDs by calling `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)` for assets) — the legacy `validate_rids` tool was removed
-2. `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — check cache status (subsumes the legacy `estimate_bag_size`)
+1. Confirm all RIDs by calling `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)` for assets)
+2. `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — check cache status
 3. `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — pre-fetch if needed
 4. Code committed and version bumped (`bump_version(bump_type="patch")`)
 
@@ -233,9 +231,9 @@ uv run deriva-ml-run +experiment=my_experiment \
 ### Verify outputs
 After the run completes:
 1. Check execution status — `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="...")`
-2. Verify outputs were uploaded — call `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid="...")` for each output asset (or `deriva_ml_find_workflow_executions(hostname=..., catalog_id=..., workflow_rid="...")` for the broader query). The legacy `list_asset_executions` tool was removed.
+2. Verify outputs were uploaded — call `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid="...")` for each output asset (or `deriva_ml_find_workflow_executions(hostname=..., catalog_id=..., workflow_rid="...")` for the broader query).
 3. Inspect output files — download and examine predictions, metrics, model weights
-4. Check provenance chain — `deriva_ml_list_execution_children(hostname=..., catalog_id=..., execution_rid="...")` for descendants and `deriva_ml_list_execution_parents(hostname=..., catalog_id=..., execution_rid="...")` for ancestors. The legacy `list_nested_executions` was split into these two calls.
+4. Check provenance chain — `deriva_ml_list_execution_children(hostname=..., catalog_id=..., execution_rid="...")` for descendants and `deriva_ml_list_execution_parents(hostname=..., catalog_id=..., execution_rid="...")` for ancestors.
 
 ### Fix problems at this tier
 Common tier 2 failures:
@@ -260,7 +258,7 @@ If you don't already have one, see the `dataset-lifecycle` skill for:
 
 | Step | Tool | Purpose |
 |------|------|---------|
-| 1 | `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)`) | All RIDs and versions exist (legacy `validate_rids` was removed) |
+| 1 | `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)`) | All RIDs and versions exist |
 | 2 | `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=...)` | Check dataset sizes and cache status |
 | 3 | `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid=...)` | Pre-fetch large datasets |
 | 4 | `bump_version("minor")` | Tag the code version |

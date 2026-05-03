@@ -10,9 +10,7 @@ You have a dataset — now get it into your ML pipeline. This skill covers extra
 
 For creating, populating, splitting, versioning, or browsing datasets, see the `dataset-lifecycle` skill.
 
-## Stateless model
-
-> The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Step 1: Download the Dataset
 
