@@ -9,7 +9,7 @@ An execution is the fundamental unit of provenance in DerivaML. It records what 
 
 For background on the execution hierarchy, statuses, workflows, nested executions, dry run mode, and the working directory layout, see `references/concepts.md`.
 
-> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
 
 ## Git Commit Enforcement
 
@@ -21,100 +21,26 @@ DerivaML enforces that all code is committed before running catalog-mutating ope
 
 ## Phase 1: Pre-Flight Validation
 
-Before running an experiment, validate that everything is in place. **Stop and fix any issues.**
+Before running an experiment, validate that everything is in place. **Stop and fix any issues.** The full pre-flight walkthrough (Hydra `--info` / `--cfg job` invocations, per-RID validation calls, staging script patterns) lives in `references/workflow.md`; this section names what to validate.
 
-### Step 1: Resolve the configuration
+1. **Resolve the configuration.** For CLI runs, dump the resolved config with `uv run deriva-ml-run +experiment=<name> --info` (or `--cfg job` for the full YAML). Extract dataset RIDs, asset RIDs, and versions from the resolved `datasets` and `assets` groups. For MCP-tool / Python-API runs, collect the RIDs from the call site.
+2. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
+3. **Check data readiness with `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`.** Returns size info AND cache status:
 
-Before validating anything, you need to know what the configuration specifies. Identify all dataset RIDs, asset RIDs, and versions that will be used:
+   | Status | Meaning |
+   |---|---|
+   | `not_cached` | Will need to download (check `total_asset_size`) |
+   | `cached_metadata_only` | Table data present; assets need materialization |
+   | `cached_materialized` | Ready to go |
+   | `cached_incomplete` | Needs re-materialization |
 
-**For CLI runs** — use standard Hydra arguments to dump the resolved config:
-```bash
-# deriva-ml-run's built-in config inspector
-uv run deriva-ml-run +experiment=baseline --info
-
-# Standard Hydra config dump (shows the full resolved YAML)
-uv run deriva-ml-run +experiment=baseline --cfg job
-
-# Show just a specific config group
-uv run deriva-ml-run +experiment=baseline --cfg job --package datasets
-uv run deriva-ml-run +experiment=baseline --cfg job --package assets
-```
-Extract the dataset RIDs and versions from the resolved `datasets` group, and asset RIDs from the `assets` group. The `--cfg job` output shows exactly what the execution will receive — including all defaults, overrides, and interpolations resolved.
-
-**For MCP tool runs** — the user provides the RIDs directly in the `deriva_ml_create_execution` call. Collect them before proceeding.
-
-**For Python API runs** — read the `ExecutionConfiguration` or the hydra-zen config module to extract dataset and asset references.
-
-### Step 2: Validate all RIDs and versions
-
-The legacy `validate_rids` tool is gone. Use `get_entities` (tier-1 deriva-mcp-core) per candidate table and check for empty results, or use the typed lookups for each domain object:
-
-```
-deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT")
-deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28D0")
-get_entities(hostname="data.example.org", catalog_id="1", schema="<asset_schema>", table="<asset_table>", filter={"RID": "3WSE"})
-```
-
-For dataset-version validity, `deriva_ml_bag_info(...)` (next step) doubles as a version check — if the version doesn't exist, it errors immediately.
-
-**Stop if any RID returns empty / errors.** Fix the configuration before proceeding.
-
-### Step 3: Check data readiness and decide whether to stage
-
-For each dataset in the config, check cache status and size:
-
-```
-deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
-```
-
-Returns size info AND cache status:
-- `not_cached` → will need to download (check `total_asset_size` to estimate time)
-- `cached_metadata_only` → table data present, assets need materialization
-- `cached_materialized` → ready to go, no download needed
-- `cached_incomplete` → needs re-materialization
-
-**Decision: should you stage data before running?**
-
-| Situation | Action |
-|-----------|--------|
-| Small dataset (<100 MB), not cached | Let execution download it — fast enough |
-| Large dataset (>1 GB), not cached | **Stage first** with `deriva_ml_cache_dataset` |
-| Any dataset, `cached_materialized` | No action needed — will use cache |
-| Asset (model weights), not cached | **Stage first** by downloading via the Python API (`ml.download_asset`) before the run |
-
-### Step 4: Stage data if needed
-
-For datasets:
-```
-deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
-```
-
-For individual assets (model weights, etc.), use the Python API in a short staging script:
-```python
-ml.download_asset("3WSE")
-```
-
-These download into the local cache without creating execution records. Subsequent dataset/asset downloads (via `exe.download_dataset_bag()` / `ml.download_asset()` in Python, or the CLI runner) will use the cached copy.
-
-### Step 5: Code and environment checks (CLI runs)
-
-For `deriva-ml-run` CLI experiments:
-
-1. **Git clean** — `git status` must show no uncommitted changes. DerivaML enforces this: `DerivaMLDirtyWorkflowError` is raised if uncommitted changes exist. Use `--allow-dirty` only for debugging (degraded provenance).
-2. **Version current** — bump with `bump_version("patch")` MCP tool or `uv run bump-version patch|minor` CLI if needed
-3. **Lock file valid** — `uv lock --check` must pass
-
-### Step 6: User confirmation
-
-Present a summary before production runs:
-- Commit hash, version, branch
-- Experiment name and key parameters
-- Dataset versions and cache status (all should be `cached_materialized` after staging)
-- Get explicit approval
+4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — `deriva_ml_cache_dataset(...)` first. Individual assets (model weights) — `ml.download_asset("3WSE")` in a short Python staging script. Staging populates the local cache without creating execution records.
+5. **Code and environment checks (CLI runs).** `git status` clean (`DerivaMLDirtyWorkflowError` if not — use `--allow-dirty` only for debugging). Version current (`bump_version("patch")` or `uv run bump-version patch|minor`). Lock file valid (`uv lock --check`).
+6. **User confirmation.** Present commit hash + version + branch + experiment name + key parameters + dataset versions and cache status. Get explicit approval before production runs.
 
 ## Phase 2: Create and Run
 
-There are three ways to run an execution. Choose based on context:
+Three paths; choose based on context:
 
 | Path | When to use | Lifecycle managed by |
 |------|-------------|---------------------|
@@ -124,30 +50,29 @@ There are three ways to run an execution. Choose based on context:
 
 **Key rule:** Always dry run first — `dry_run=True` (MCP/Python) or `dry_run=True` (CLI override).
 
-The execution lifecycle is always the same regardless of path:
+The lifecycle is the same regardless of path:
+
 1. Create execution (with workflow, inputs, description)
 2. Start → download inputs → do work → register outputs → stop
 3. Upload outputs to catalog
 
-**Important:** Downloading inputs, registering output files, and uploading outputs are done via the **Python API** (not MCP tools). Use `exe.download_dataset_bag()`, `exe.asset_file_path()`, and `exe.upload_execution_outputs()`.
+**I/O goes through the Python API**, not MCP tools: `exe.download_dataset_bag()`, `exe.asset_file_path()`, `exe.upload_execution_outputs()`. MCP tools handle lifecycle state transitions; Python handles file I/O.
 
-**Automatic metadata:** Every execution automatically captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records. See `references/concepts.md` for details.
+**Automatic metadata:** Every execution captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records — see `references/concepts.md`.
 
-**Notebook outputs:** When running notebooks via `deriva-ml-run-notebook`, the executed `.ipynb` and converted `.md` are automatically uploaded as execution assets alongside any files registered via `asset_file_path()`. See `references/workflow.md` for the notebook output flow.
+**Notebook outputs:** When running notebooks via `deriva-ml-run-notebook`, the executed `.ipynb` and converted `.md` are automatically uploaded as execution assets alongside any files registered via `asset_file_path()` — see `references/workflow.md`.
 
-For the complete tool call sequences, code examples, and CLI commands for each path, see `references/workflow.md`.
+For complete tool-call sequences, code examples, and CLI commands for each path, see `references/workflow.md`. For the `deriva-ml-run` CLI surface (Hydra overrides, multirun syntax), see `references/cli-reference.md`.
 
 ## Phase 3: Verify Results
 
 After a run, check the execution:
 
 ```
-deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="{execution_rid}")
-Read resource: deriva://catalog/data.example.org/1/ml/execution/{execution_rid}
-cite(hostname="data.example.org", catalog_id="1", rid="{execution_rid}", current=True)
+deriva_ml_get_execution(hostname, catalog_id, execution_rid="<rid>")
 ```
 
-Verify: status is "Completed", correct inputs linked, output assets attached, git hash matches.
+Or read the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}`, or `cite(hostname, catalog_id, rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Completed`, correct inputs linked, output assets attached, git hash matches.
 
 ## Critical Rules
 
@@ -160,26 +85,23 @@ Verify: status is "Completed", correct inputs linked, output assets attached, gi
 
 ## Reference Resources
 
-**Discovery (use RAG first):**
+- `references/concepts.md` — Execution hierarchy, status state machine, workflows, source code detection, nested executions, metadata auto-generation, dry run, working directory, data flow
+- `references/workflow.md` — Step-by-step MCP and Python API workflows, notebook output handling, complete examples, full pre-flight walkthrough
+- `references/cli-reference.md` — `deriva-ml-run` CLI commands, Hydra overrides, multirun syntax
 - `rag_search("training experiments", doc_type="catalog-data")` — find executions by workflow or status
 - `rag_search("workflow types", doc_type="catalog-schema")` — discover available workflow types
-
-**Structured resources (for complete output):**
-- `references/concepts.md` — Execution hierarchy, statuses (state machine), workflows, source code detection, nested executions, metadata auto-generation, dry run, working directory, data flow
-- `references/workflow.md` — Step-by-step MCP and Python API workflows, notebook output handling, complete examples
-- `references/cli-reference.md` — deriva-ml-run CLI commands, Hydra overrides, multirun syntax
-- `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{execution_rid}` — Execution details and status
+- `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}` — Execution details and status
 - `deriva://catalog/{hostname}/{catalog_id}/ml/executions` — Browse recent executions
 - `deriva://catalog/{hostname}/{catalog_id}/ml/workflows` — Available workflows
 - `deriva://catalog/{hostname}/{catalog_id}/ml/registries` — Workflow type and dataset type vocabulary terms
 
-When in doubt, prefer the typed tool calls: `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_list_workflows`.
+Prefer typed tool calls: `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_list_workflows`.
 
 ## Related Skills
 
-- **`configure-experiment`** — Setting up Hydra-zen config groups and experiment presets
-- **`write-hydra-config`** — Python API patterns for each config type
-- **`run-notebook`** — Notebook-specific creation and development cycle
-- **`dataset-lifecycle`** — Creating and versioning the datasets that executions consume
-- **`create-feature`** — Creating features whose values are produced by executions
-- **`ml-data-engineering`** — Restructuring downloaded data for ML frameworks
+- **`/deriva-ml:configure-experiment`** — Setting up Hydra-zen config groups and experiment presets
+- **`/deriva-ml:write-hydra-config`** — Python API patterns for each config type
+- **`/deriva-ml:run-notebook`** — Notebook-specific creation and development cycle
+- **`/deriva-ml:dataset-lifecycle`** — Creating and versioning the datasets that executions consume
+- **`/deriva-ml:create-feature`** — Creating features whose values are produced by executions
+- **`/deriva-ml:ml-data-engineering`** — Restructuring downloaded data for ML frameworks

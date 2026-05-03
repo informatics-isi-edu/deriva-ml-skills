@@ -10,7 +10,7 @@ Every DerivaML entity that accepts a description should have a meaningful one. I
 
 ## Scope
 
-This skill covers descriptions for the **DerivaML domain entities** — the abstractions that the deriva-ml plugin layers on top of plain Deriva catalogs:
+This skill covers descriptions for the **DerivaML domain entities** — the abstractions the deriva-ml plugin layers on top of plain Deriva catalogs:
 
 - **Datasets** (`deriva_ml_create_dataset` -- description parameter)
 - **Workflows** (`deriva_ml_create_workflow` -- description parameter)
@@ -20,150 +20,45 @@ This skill covers descriptions for the **DerivaML domain entities** — the abst
 - **Experiments** (description parameter on the experiment config)
 - **Multiruns / sweeps** (description parameter on the multirun config)
 
-For the generic catalog entities — tables, columns, vocabularies, vocabulary terms — use the tier-1 `generate-descriptions` skill in `deriva-skills`. The two skills cover non-overlapping entity sets; they share the same generic workflow and quality bar.
+For generic catalog entities — tables, columns, vocabularies, vocabulary terms — use `/deriva:generate-descriptions` *(tier-1, deriva-skills, also auto-fires)*. The two skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
 
-## How to Generate Descriptions
+## Workflow
 
-Gather context from:
+1. Check if the user provided a description.
+2. If not, gather context from all available sources:
+   - The user's request and stated intent
+   - Repository structure (README, hydra-zen configs, existing experiment / dataset definitions)
+   - The producing or consuming Execution (for Datasets and Assets)
+   - Existing entities of the same type (for consistency in tone and depth)
+   - Conversation history and decisions made
+3. Draft a description using the entity-specific template in `references/templates.md`.
+4. Present the draft to the user for confirmation.
+5. Create the entity with the approved description.
 
-1. The user's request and stated intent
-2. Repository structure (README, hydra-zen configs, existing experiment / dataset definitions)
-3. The producing or consuming Execution (for Datasets and Assets)
-4. Existing entities of the same type (for consistency in tone and depth)
-5. Conversation history and decisions made
+DerivaML entities are part of the provenance graph; once created they are referenced by RID and become hard to rename or repurpose. Always confirm before creating.
 
-A good description for a DerivaML entity answers:
+## What a good description answers
 
 - **What** does this entity represent?
 - **Why** does it exist (the experimental question, the workflow purpose)?
 - **How** is it produced or consumed (which Workflow / Execution / Dataset)?
 - **What does it contain** (composition, key characteristics, parameters)?
 
-Always present the draft to the user for confirmation before creating the entity. DerivaML entities are part of the provenance graph; once created they are referenced by RID and become hard to rename or repurpose.
-
-## Templates by Entity Type
-
-### Datasets
-
-Dataset descriptions should cover composition (what's in it), purpose (what it's for), and any important characteristics (balance, splits, provenance). For split datasets, note the split strategy and rationale.
-
-```
-<Purpose> of <source> with <count> <items>. <Key characteristics>. <Usage guidance>.
-```
-
-Example: "Training dataset of chest X-ray images with 12,450 DICOM files. Balanced across 3 diagnostic categories (normal, pneumonia, COVID-19). Use with v2.1.0+ feature annotations."
-
-**For split datasets**, include the split rationale:
-
-Example: "80/20 patient-level stratified split of dataset `2-B4C8`. Split at patient level to prevent data leakage from multiple images per subject. Stratified by diagnosis to maintain class balance across partitions."
-
-### Workflows
-
-Workflow descriptions explain what the workflow's code does — not what a particular run produced (that's the Execution). Capture the workflow's purpose, key inputs, and what it produces.
-
-```
-<What the workflow does>. <Key inputs / configuration>. <What it produces>.
-```
-
-Example: "ResNet-50 image classification training workflow. Takes a labeled dataset and a hyperparameter config; produces trained model weights, per-epoch metrics, and a confusion matrix for the evaluation set."
-
-### Executions
-
-Execution descriptions capture what was done and the key parameters of *this specific run*. For experiments, prefer the experiment description template below; execution descriptions are for ad-hoc or one-off runs.
-
-```
-<Action> <target> using <method>. <Key parameters>. <Expected outputs>.
-```
-
-Example: "Train ResNet-50 classifier on chest X-ray dataset 1-ABC4 v1.2.0. Learning rate 0.001, batch size 32, 100 epochs. Outputs: model weights, training metrics, confusion matrix."
-
-Use markdown tables for complex workflows with multiple steps or parameters.
-
-### Features
-
-Feature descriptions should explain what the feature measures or annotates, what values it takes, and how it's used in the ML workflow. Since features are multivalued (multiple executions can produce different values), note whether it's intended for ground truth, model predictions, or computed metrics.
-
-```
-<What it labels/measures> for <target table>. Values from <vocabulary or type>. <Usage context — ground truth, prediction, metric>.
-```
-
-Example: "Diagnostic classification label for Image table. Values from Diagnosis vocabulary (normal, pneumonia, COVID-19). Primary ground truth label for training classification models. Multiple annotators may label the same image; use `selector='newest'` or filter by execution for a single value per record."
-
-### Assets (Execution Outputs)
-
-Asset descriptions explain what the file contains and how it was produced. Pass via the `description` parameter of `exe.asset_file_path()`. Built-in execution metadata files (Hydra configs, `configuration.json`, `uv.lock`, environment snapshots) receive automatic descriptions — only user-created assets need descriptions.
-
-```
-<What the file contains>. <How it was produced or key parameters>.
-```
-
-Examples:
-
-- "Trained CNN model weights, optimizer state, and training log"
-- "Per-image predicted class and probability distributions over all CIFAR-10 classes"
-- "Per-epoch training log: loss, accuracy, and architecture details"
-- "Test set evaluation summary: loss, accuracy, and configuration"
-
-### Experiments
-
-Experiment descriptions answer *why this experiment exists* — the goal, hypothesis, or question being tested. Technical parameters are already captured in the config; the description provides the scientific or engineering motivation.
-
-```
-<Goal/hypothesis>. <What is being compared or evaluated>. <Expected outcome or success criteria>.
-```
-
-Example: "Test whether dropout 0.25 reduces overfitting on the small labeled split compared to the unregularized baseline. Expect improved validation accuracy at the cost of slower convergence. Success: val accuracy within 2% of train accuracy by epoch 50."
-
-### Multiruns / Sweeps
-
-For multiruns, describe what question the sweep answers — not just what is being varied, but why.
-
-```
-<Question being investigated>. <Range and rationale>. <Success or selection criterion>.
-```
-
-Example: "Sweep learning rates [1e-4 to 1e-1] to find the optimal convergence/stability tradeoff for the 2-layer CNN. Lower rates may underfit within the epoch budget; higher rates risk training instability."
-
-## Formatting with Markdown
-
-Descriptions support **GitHub-flavored Markdown** which renders in the Chaise web UI. Use markdown to make descriptions more readable, especially for longer or structured content:
-
-- **Bold** and *italic* for emphasis
-- Bulleted or numbered lists for multi-part descriptions
-- `code` formatting for RIDs, column names, or config values
-- Markdown tables for parameter summaries or comparisons
-- Headers for long execution descriptions that cover multiple phases
-
-For example, an execution description might use:
-
-```markdown
-Train ResNet-50 on chest X-ray dataset `1-ABC4` v1.2.0.
-
-**Parameters:**
-- Learning rate: 0.001
-- Batch size: 32
-- Epochs: 100
-
-**Expected outputs:** model weights, training metrics, confusion matrix.
-```
-
-Keep simple descriptions as plain text — markdown is most useful for executions, datasets, and multirun descriptions where structured detail helps.
-
-## Quality Checklist
+## Quality checklist
 
 Before finalizing any description, verify it is:
 
-- **Specific**: Avoids generic language like "a dataset" or "some data"
-- **Informative**: Provides enough context for someone unfamiliar with the project
-- **Accurate**: Correctly reflects the entity's actual contents and purpose
-- **Concise**: No unnecessary words, but complete enough to be useful
-- **Consistent**: Matches the tone and style of existing descriptions in the catalog
-- **Actionable**: Helps users understand how to use the entity
+- **Specific** — avoids generic language like "a dataset" or "some data"
+- **Informative** — provides enough context for someone unfamiliar with the project
+- **Accurate** — correctly reflects the entity's actual contents and purpose
+- **Concise** — no unnecessary words, but complete enough to be useful
+- **Consistent** — matches the tone and style of existing descriptions in the catalog
+- **Actionable** — helps users understand how to use the entity
 
-## Workflow
+## Templates
 
-1. Check if the user provided a description
-2. If not, gather context from all available sources (repo, conversation, configs, related entities)
-3. Draft a description using the appropriate template above
-4. Present the draft to the user for confirmation
-5. Create the entity with the approved description
+Per-entity templates and worked examples (Dataset, Workflow, Execution, Feature, Asset, Experiment, multirun) plus the markdown formatting affordance live in `references/templates.md`. Read it when drafting a description for a specific entity type.
+
+## Autonomous-agent fallback
+
+If you're operating with no human in the loop (an unattended agent script), generate the best draft from available context and add a note in your response so a future audit can see which descriptions were auto-generated without confirmation.
