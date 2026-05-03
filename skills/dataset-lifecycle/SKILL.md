@@ -20,7 +20,7 @@ If you don't know the catalog ID, read `deriva://registry/{hostname}` to see ava
 
 ## Phase 1: Assess
 
-Before creating a dataset, determine whether an existing one can be reused, extended, or split.
+Before creating a dataset, determine whether an existing one can be reused, extended, or split. The find-before-you-create discipline is carried by `/deriva:semantic-awareness` *(tier-1, deriva-skills, auto-fires)* — its synonym/abbreviation/spelling-variant search expansion applies to ML entities (Datasets) as well as generic catalog entities. The same skill covers the EAV-vs-wide-table dual extreme, which is worth knowing when designing the *element-type* tables a dataset will draw members from.
 
 1. **Search existing datasets.** Use `rag_search("your purpose", doc_type="catalog-data")` to find datasets by description, type, or purpose. Fall back to `deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")` for the full structured list. Use `get_table_sample_data(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Image")` to understand how much data is available.
 2. **Check available element types.** Read `deriva://catalog/{h}/{c}/ml/registries` to see which tables can contribute members. If the table you need isn't registered, call `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", element_table="Image")`.

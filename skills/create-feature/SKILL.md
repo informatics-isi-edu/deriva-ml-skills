@@ -39,9 +39,9 @@ feature = ml.lookup_feature("Image", "Diagnosis")
 ```
 
 **Before creating, ask:**
-- Does a feature with this purpose already exist? The `semantic-awareness` skill (auto-loaded by the `deriva-skills` tier-1 plugin) checks automatically, and `deriva_ml_create_feature` warns about near-duplicates.
+- Does a feature with this purpose already exist? `/deriva:semantic-awareness` *(tier-1, deriva-skills, auto-fires)* carries the find-before-you-create discipline — the search applies to ML entities (Features) as well as generic catalog entities. `deriva_ml_create_feature` also warns about near-duplicates at create time.
 - Can the existing feature be extended with new vocabulary terms?
-- Is this really a feature, or should it be a column on the table?
+- Is this really a feature, or should it be a column on the table? `/deriva:semantic-awareness` covers the EAV-vs-wide-table dual extreme — features map naturally to the middle ground (typed columns + FK-to-vocab), but if you find yourself reaching for one giant feature with many free-text fields, or one EAV-shaped feature whose `Value` carries every kind of label, step back and rethink.
 
 ## Phase 2: Design
 

@@ -97,6 +97,8 @@ See the `write-hydra-config` skill for the full config API reference.
 
 ### 3. Create a workflow
 
+> **Before creating a new Workflow, search first.** The `/deriva:semantic-awareness` skill *(tier-1, deriva-skills, auto-fires plugin-wide)* carries the find-before-you-create discipline — search the catalog for an existing Workflow whose name, type, or description overlaps with what you're about to register, and reuse it if it does. The same discipline applies to ML entities (Workflows, Datasets, Features) as to generic catalog entities. Tier-1 also covers the EAV-vs-wide-table dual extreme to steer away from when designing supporting tables — see the tier-1 skill for the worked treatment.
+
 Add to `src/configs/workflow.py`:
 
 ```python
