@@ -177,6 +177,21 @@ other side. The matching cross-repo note lives in
 `../deriva-ml-mcp/CLAUDE.md` under the same section heading so the
 constraint is visible from either repo.
 
+### v3.x update: deriva-ml-mcp prompts went from 4 to 2
+
+The deriva-ml-mcp plugin originally shipped four MCP prompts; v3.x
+removed two of them when the [Round 2 audit cleanup](docs/superpowers/plans/2026-05-02-tier-2-audit-cleanup-plan-round-2-refinement.md)
+identified them as architecturally mis-shaped per FastMCP guidance.
+The conceptual frame (`_CONCEPTS_GUIDE` ↔ this skill) and the
+operating contract (`_GETTING_STARTED_GUIDE`) survive as the two
+remaining prompts; `deriva_ml_workflow_dedup` and
+`deriva_ml_execution_lifecycle` were deleted with their content
+redistributed to the relevant tool docstrings (per-tool warnings)
+and the RAG-indexed `user-guide/executions.md` doc in the deriva-ml
+repo (cross-cutting depth). The cross-repo sync discipline above
+is unchanged; the skill ↔ prompt mirror is now skill ↔ prompt for
+the two remaining content pairs.
+
 ## Gotchas
 
 - **Description field is critical** — the `description` in SKILL.md frontmatter controls when Claude auto-invokes the skill. Poorly written descriptions cause false triggers or missed triggers.
