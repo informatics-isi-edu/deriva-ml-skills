@@ -116,16 +116,6 @@ The cycle either terminates or feeds back into phase 1 with an updated hypothesi
 
 The catalog state at the end of one cycle is the starting state of the next: more datasets, more workflows, more executions, more feature values, more assets. Each cycle is a new layer on the same data structure, not a fresh start. **This is what "data-centric" means in practice.** The hypothesis evolves; the catalog accumulates; the project history is the catalog's history.
 
-## Cross-step disciplines
-
-Three disciplines apply across multiple phases — surface them where they belong:
-
-**Progression discipline** (phases 3-4): dry-run → small-data → full-scale, in that order, every cycle. The gates between them prevent escalating costs on broken setups.
-
-**Inter-phase gates**: each gate is one short check that prevents cascading failures into expensive phases. Phase 2 → 3: configs compose. Phase 3 → 4: dry run passes. Phase 4 small-data → 4 full-scale: loss is sane + at least one feature value was uploaded + small-data metrics are within expected range.
-
-**Failure-mode triage** (phase 6): when a run fails, the right diagnosis depends on which phase failed. Config errors → dry-run gap. Catalog state errors → troubleshooting skills. Model code bugs → small-data gap. Resource issues → storage/system.
-
 ## Routing summary
 
 | Phase | Primary skill |

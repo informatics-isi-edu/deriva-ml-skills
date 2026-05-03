@@ -99,20 +99,16 @@ The file belongs in the **project root** alongside `CLAUDE.md`, `pyproject.toml`
 
 ## Commit Prompting
 
-The decisions file is only useful to the team if it gets committed. After writing 3 or more entries during a session, or when the conversation reaches a natural pause (the user has finished a workflow, is about to start something new, or the topic shifts), suggest committing:
+After writing 3 or more entries in a session — or when the conversation reaches a natural pause (workflow finished, topic shift) — suggest committing:
 
 > "You've accumulated several experiment design decisions this session. Want me to commit `experiment-decisions.md` so the team has the rationale on record?"
 
-If the user says yes, commit just `experiment-decisions.md` with a message like "Record experiment design decisions" — do not bundle it with unrelated changes. If the user says no or not yet, don't ask again until more entries are added.
-
-Do not prompt after every single entry — that would be annoying. Wait for a batch to accumulate or a natural break in the work.
+Commit just `experiment-decisions.md` with a message like "Record experiment design decisions"; don't bundle with unrelated changes. Don't prompt after every entry — wait for a batch or a natural break.
 
 ## Writing Guidelines
 
 - Lead with the decision, not the process that led to it
 - Always state what was *rejected* and why — "chose X over Y because Z"
-- Reference RIDs for catalog entities so entries are traceable
-- Include quantitative evidence when available (accuracy numbers, counts, sizes)
-- Keep each entry to 2-5 lines — these should be scannable
-- Don't duplicate information that's already in experiment descriptions or config files
+- Reference RIDs for catalog entities; include quantitative evidence (numbers, counts, sizes) when available
+- Keep each entry 2-5 lines — scannable
 - Write in past tense — these are settled decisions, not plans

@@ -100,15 +100,7 @@ When the user mentions an entity by name, OR when the user asks to create a new 
 
    If the user picks an existing one, switch to the lookup path. If the user confirms a new one is needed, proceed to step 6.
 
-6. **Description handling on create.** Every `create_*` / `add_*` tool that accepts a `description` (or `comment`) argument SHOULD receive a non-empty one. Descriptions become part of the catalog's RAG index and are visible to every future user; an empty description means future LLMs and humans cannot tell what the entity was for.
-
-   **If the user did not supply a description**, generate a suggestion from conversation context (what was the user trying to accomplish? what role does this entity play in their workflow?), then SHOW IT TO THE USER for confirmation or edit:
-
-   > "I'm going to create the `<entity>` with this description: '`<generated suggestion>`'. OK to proceed, or would you like to edit it?"
-
-   Pass the confirmed text (or the user's edit) to the tool. **Don't pass an empty string. Don't pass placeholder text** like `"TODO"` or `"(no description)"`. **Don't fabricate a description without showing the user.**
-
-   If you're operating autonomously with no human in the loop (an unattended agent script), fall back to your best generated suggestion and add a note in your response so a future audit can see which descriptions were auto-generated without confirmation.
+6. **Description handling on create.** Every `create_*` / `add_*` tool that accepts a `description` (or `comment`) argument SHOULD receive a non-empty, user-confirmed one — never empty, never placeholder text like `"TODO"`, never a fabricated description without showing the user. The full discipline (gather context → draft → confirm → create) and the autonomous-agent fallback live in the always-on `/deriva:generate-descriptions` (generic entities) and `/deriva-ml:generate-descriptions` (ML entities) skills.
 
 ### Why this workflow matters
 

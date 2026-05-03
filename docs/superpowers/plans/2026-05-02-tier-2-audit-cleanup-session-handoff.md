@@ -9,15 +9,15 @@ that emerged during the refinement interviews.
 ## TL;DR
 
 A two-part audit (tier-2 skills + MCP surface) of the DerivaML
-domain layer produced a six-round cleanup plan. Rounds 1, 2, and 3
-are complete; rounds 4–6 are designed but not yet executed.
+domain layer produced a six-round cleanup plan. Rounds 1-4 are
+complete; rounds 5-6 are designed but not yet executed.
 
 | Round | Status | Effort | Description |
 |---|---|---|---|
 | 1 | ✅ Done | ~75 min | Tier-2 mechanical cleanup (deleted 2 routers + 1 broken skill; added experiment-lifecycle and validate-project-setup skills; fixed 11 stale tier-1 references; brought lifecycle trio to uniform behavior) |
 | 2 | ✅ Done | ~90 min | MCP prompt restructure (deleted 2 mis-shaped prompts + redistributed content to docstrings; widened RAG indexing to top-level docs; bumped deriva-ml-mcp v3.1.1 → v3.2.0) |
 | 3 | ✅ Done | ~3 hr | Inheritance-with-override rule across all three planes (skills, MCP, Python) replaces the old "DerivaML abstractions take precedence" framing; ADR-0001 captures the rule-vs-table call; "What DerivaML adds on top" paragraph names the data-design ↔ process-design orthogonality; tier-2 cross-reference audit (33 refs, all bucket-1 inheritance, no edits needed); legacy-MCP scaffolding cleaned from 14 tier-2 skill files; 3 skills cross-reference tier-1 `semantic-awareness`; cross-repo sync to deriva-ml-mcp `_CONCEPTS_GUIDE` (bumped v3.2.0 → v3.2.1) |
-| 4 | ⏳ Drafted | ~1-2 hr | Tier-2 always-on weight reduction (~1234 → <500 lines) |
+| 4 | ✅ Done | ~2 hr | Tier-2 always-on weight reduction (1994 → 879 lines, -56%). Re-targeted from the parent plan's literal slimming list to the actual auto-fire skills. Three skills flipped to slash-only (`compare-model-runs`, `help`, `browse-erd`) for a 376-line one-shot drop; four heavy slims (`dataset-lifecycle` 434→129, `create-feature` 403→174, `execution-lifecycle` 185→107, `generate-descriptions` 169→64) move depth to references/; light-touch trim on three smaller skills (`deriva-ml-context`, `experiment-lifecycle`, `maintain-experiment-notes`); README "Auto-invoked guides" table corrected (was claiming 11 auto-fire skills; only 6 actually were). |
 | 5 | ⏳ Drafted | ~2-3 hr | Tier placement decisions (coding-guidelines / use-annotation-builders / create-web-app) |
 | 6 | ⏳ Drafted | ~2-4 hr | MCP tool and resource additions (get_lineage, rank_executions, validate_dataset_spec) |
 
@@ -35,6 +35,7 @@ These are the durable artifacts; resume by reading them in order.
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-1-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-1-refinement.md) | Round 1 refinement: 12 design questions resolved + 7-commit execution shape + the "guide-shaped vs tool-shaped" operating principle |
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-2-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-2-refinement.md) | Round 2 refinement: 12 design questions resolved + 4-commit execution shape; the "prompts shouldn't be static reference docs" reframing; the cross-repo asks raised in parallel |
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-3-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-3-refinement.md) | Round 3 refinement: 9 design questions resolved + 5-commit execution shape; reshapes Round 3 from "precedence map table" to "inheritance-with-override rule across all three planes" + ADR-0001 |
+| [`2026-05-02-tier-2-audit-cleanup-plan-round-4-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-4-refinement.md) | Round 4 refinement: 6 design questions resolved + 5-commit execution shape; reshapes Round 4 from the parent plan's literal slimming list (which mixed auto-fire and slash-only skills) to "re-target on actual auto-fire weight; flip slash-only candidates; slim the keepers using tier-1's reference-pattern" |
 | [`../../adr/0001-precedence-as-rule-not-table.md`](../../adr/0001-precedence-as-rule-not-table.md) | ADR-0001: precedence as inheritance-with-override rule, not a routing table. Captures the rule-vs-table call and the surface-bounded (vs concept-bounded) framing of the override boundary. |
 
 ## Round 1 commits (deriva-ml-skills)
@@ -90,6 +91,22 @@ audited (all bucket-1 inheritance, no edits needed); 3 skills
 gained explicit semantic-awareness pointers; cross-repo sync to
 deriva-ml-mcp landed as v3.2.1; ADR-0001 records the rule-vs-table
 design decision.
+
+## Round 4 commits (deriva-ml-skills)
+
+| Hash | What |
+|---|---|
+| [`a3a6cf1`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/a3a6cf1) | `tier-2: flip 3 skills to slash-only; correct README auto-fire list` (also lands the Round 4 refinement addendum) |
+| [`845f330`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/845f330) | `dataset-lifecycle: slim auto-fire body; move depth to references` (434 → 129; new references/curated-subsets.md) |
+| [`b18c563`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/b18c563) | `create-feature: slim auto-fire body; move depth to references` (403 → 174) |
+| [`7fec0a8`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/7fec0a8) | `execution-lifecycle, generate-descriptions: slim auto-fire bodies` (185 → 107; 169 → 64; new references/templates.md for the latter) |
+| (this commit) | `tier-2: opportunistic compression on light-touch trio + round 4 handoff` |
+
+Net: tier-2 auto-fire weight 1994 → 879 lines (-56%, matching
+tier-1's 58% reduction). The 7 keepers each fall under 200 lines.
+Round 4 also incidentally completed the auto-fire-table correction
+in the README (it was claiming 11 auto-fire skills; only 6
+actually were).
 
 ## Operating principles established during refinement
 
@@ -204,21 +221,15 @@ shape, and [ADR-0001](../../adr/0001-precedence-as-rule-not-table.md)
 for the rule-vs-table decision. Commit hashes are in the "Round 3
 commits" section above.
 
-## Round 4 (drafted; not refined or executed)
+## Round 4 (✅ Done)
 
-**Scope:** apply tier-1's slimming patterns to the tier-2 always-on
-layer. Target: drop tier-2 always-on weight from ~1,234 to under
-500 lines. Slim `api-naming-conventions`, `generate-descriptions`,
-`generate-scripts`, `ml-data-engineering`, `dataset-lifecycle`,
-`create-feature`. Same skill-creator-style patterns tier-1's recent
-work used (the slimmed `semantic-awareness` 170 → 31 lines is the
-canonical model).
-
-**Estimated effort:** ~1-2 hr.
-
-**Dependencies:** Round 3 should ship first so the precedence
-framing in `deriva-ml-context` is in place before slimming related
-skills.
+Reshaped during refinement from "drop always-on weight from ~1,234
+to <500 lines" (anchored on an out-of-date count that mixed
+auto-fire and slash-only skills) to "re-target on actual auto-fire
+weight; flip slash-only candidates; slim the keepers using tier-1's
+reference-pattern." See [Round 4 refinement addendum](2026-05-02-tier-2-audit-cleanup-plan-round-4-refinement.md)
+for the 6 design questions resolved and the 5-commit execution
+shape. Commit hashes are in the "Round 4 commits" section above.
 
 ## Round 5 (drafted; not refined or executed)
 
@@ -269,14 +280,16 @@ in v3.2.0 baseline. Round 6 would bump again.
    API addition (`add_instructions` or `exclude_paths`) is now
    available in deriva-mcp-core, the corresponding follow-up round
    becomes possible (and architecturally preferred to the current
-   Round 4-6 sequencing).
-4. **Pick the next round** — Round 4 (always-on weight reduction)
-   is the natural next step. Note for Round 4: with the inheritance
-   rule landing, `deriva-ml-context` is now smaller AND more
-   load-bearing — Round 4's slimming pass should preserve the rule
-   as the highest-priority always-on content.
-5. **Run a refinement interview** following the 9-12 question
-   pattern from Rounds 1-3: walk down the design tree one question
+   Round 5-6 sequencing).
+4. **Pick the next round** — Round 5 (tier placement decisions
+   for `coding-guidelines`, `use-annotation-builders`,
+   `create-web-app`) is the natural next step. With Round 4 having
+   sharpened the always-on-vs-slash-only distinction, the tier
+   placement decisions in Round 5 inherit a clearer mental model —
+   the question becomes "which plugin AND which invocation mode?"
+   not just "which plugin?".
+5. **Run a refinement interview** following the 6-12 question
+   pattern from Rounds 1-4: walk down the design tree one question
    at a time, recommended-answer-with-each-question, prefer codebase
    exploration over questions when discoverable.
 6. **Save the refinement as an addendum** to this directory using
@@ -290,9 +303,9 @@ in v3.2.0 baseline. Round 6 would bump again.
 
 | Repo | Branch | Latest commit | Latest tag |
 |---|---|---|---|
-| deriva-ml-skills | main | 2c057ab (commit 4 of Round 3 to land after this update) | (skill plugin; tag-triggered release on bump-version) |
+| deriva-ml-skills | main | 7fec0a8 (commit 5 of Round 4 to land after this update) | (skill plugin; tag-triggered release on bump-version) |
 | deriva-ml-mcp | main | b2626cb | v3.2.1 |
-| deriva-skills (tier-1) | main | (untouched in Rounds 1-3) | (last touched in earlier session work documented in plans for that repo) |
+| deriva-skills (tier-1) | main | (untouched in Rounds 1-4) | (last touched in earlier session work documented in plans for that repo) |
 | deriva-mcp-core | (separate maintainer) | (untouched here) | (cross-repo asks raised separately) |
 
 Both touched repos have clean working trees as of this handoff.
