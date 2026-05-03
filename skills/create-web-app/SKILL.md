@@ -1,6 +1,6 @@
 ---
 name: create-web-app
-description: "Use this skill when creating custom web applications or visualizations for DerivaML data — including data dashboards, result viewers, interactive charts, and custom analysis tools. Also use when registering or managing apps in the app server. Triggers on: 'create a web app', 'build a visualization', 'custom dashboard', 'register app', 'app server', 'data viewer', 'interactive chart for my data'."
+description: "Use when building custom web applications or visualizations to run alongside Schema Workbench and Storage Manager via the deriva-ml-apps server — data dashboards, result viewers, interactive charts, custom analysis tools. Covers registration in the app server, the proxy-based catalog access pattern, and the Claude-generates-an-app workflow. Triggers on: 'create a web app for deriva-ml', 'build a visualization', 'custom dashboard', 'register app', 'deriva-ml-apps', 'app server', 'data viewer', 'interactive chart for my data'."
 disable-model-invocation: true
 ---
 
