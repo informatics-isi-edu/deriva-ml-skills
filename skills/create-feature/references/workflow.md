@@ -2,7 +2,7 @@
 
 Step-by-step MCP tool and Python API examples for creating and populating features. For background concepts (feature types, multivalued features, selection), see `concepts.md`.
 
-> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Table of Contents
 
@@ -54,7 +54,7 @@ This creates the feature record and a `{FeatureName}_Feature_Value` association 
 
 **Term-based feature** (classification labels): call with `target_table`: `"Image"`, `feature_name`: `"Tumor_Classification"`, `terms`: `["Tumor_Grade"]`.
 
-**Asset-based feature** (segmentation masks): call with `target_table`: `"Image"`, `feature_name`: `"Segmentation_Mask"`, `assets`: `["Mask_Image"]`. (Asset tables are created via the generic `create_table` tool with the standard hatrac column shape — see `/deriva:create-table` *(tier-1, deriva-skills)*. The legacy `create_asset_table` shortcut was not ported.)
+**Asset-based feature** (segmentation masks): call with `target_table`: `"Image"`, `feature_name`: `"Segmentation_Mask"`, `assets`: `["Mask_Image"]`. (Asset tables are created via the generic `create_table` tool with the standard hatrac column shape — see `/deriva:create-table` *(tier-1, deriva-skills)*.)
 
 **Mixed feature** (labels with overlays): include both `terms` and `assets`.
 
@@ -84,7 +84,7 @@ Then call `deriva_ml_start_execution(hostname=..., catalog_id=..., execution_rid
 
 **Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. (Use `deriva_ml_abort_execution` instead if something went wrong.) Feature values are written directly to the catalog by `deriva_ml_add_feature_values` — no Python API `exe.upload_execution_outputs()` call is needed unless you also registered file assets with Python API `exe.asset_file_path()`.
 
-> Note: the legacy `add_feature_value` (singular) and `add_feature_value_record` (multi-column) tools were both subsumed by `deriva_ml_add_feature_values` (plural). Pass a single-element list when you only have one value.
+> `deriva_ml_add_feature_values` (plural) handles both single and multi-column feature values. Pass a single-element list when you only have one value.
 
 ### Python API with context manager
 

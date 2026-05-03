@@ -2,7 +2,7 @@
 
 Background on features in DerivaML. For the step-by-step guide, see `workflow.md`.
 
-> **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
+> Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Table of Contents
 
@@ -152,7 +152,7 @@ ml.create_feature(
 
 Link derived files (segmentation masks, embeddings, annotation overlays) to domain objects.
 
-Asset tables are typically created via the generic `create_table` tool with the standard hatrac column shape (URL, Filename, Length, MD5, Description) plus an `Asset_Type` FK — see `/deriva:create-table` *(tier-1, deriva-skills)* for the exact recipe. (The legacy `create_asset_table` shortcut was not ported to the new MCP surface.)
+Asset tables are typically created via the generic `create_table` tool with the standard hatrac column shape (URL, Filename, Length, MD5, Description) plus an `Asset_Type` FK — see `/deriva:create-table` *(tier-1, deriva-skills)* for the exact recipe.
 
 ```python
 ml.create_asset("Segmentation_Mask", comment="Binary segmentation masks")
@@ -584,7 +584,7 @@ for f in features:
 | Operation | MCP Tool | Python API | Notes |
 |-----------|----------|------------|-------|
 | Create feature | `deriva_ml_create_feature` | `ml.create_feature()` | Vocabulary must exist first |
-| Add values | `deriva_ml_add_feature_values` | `exe.add_features()` | Plural — pass single-element list for one value (subsumes legacy add_feature_value / add_feature_value_record) |
+| Add values | `deriva_ml_add_feature_values` | `exe.add_features()` | Plural — pass single-element list for one value |
 | Delete feature | `deriva_ml_delete_feature` | `ml.delete_feature()` | Removes feature table and all values |
 
 ### Discovery and navigation
