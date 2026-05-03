@@ -9,14 +9,14 @@ that emerged during the refinement interviews.
 ## TL;DR
 
 A two-part audit (tier-2 skills + MCP surface) of the DerivaML
-domain layer produced a six-round cleanup plan. Rounds 1 and 2 are
-complete; rounds 3–6 are designed but not yet executed.
+domain layer produced a six-round cleanup plan. Rounds 1, 2, and 3
+are complete; rounds 4–6 are designed but not yet executed.
 
 | Round | Status | Effort | Description |
 |---|---|---|---|
 | 1 | ✅ Done | ~75 min | Tier-2 mechanical cleanup (deleted 2 routers + 1 broken skill; added experiment-lifecycle and validate-project-setup skills; fixed 11 stale tier-1 references; brought lifecycle trio to uniform behavior) |
 | 2 | ✅ Done | ~90 min | MCP prompt restructure (deleted 2 mis-shaped prompts + redistributed content to docstrings; widened RAG indexing to top-level docs; bumped deriva-ml-mcp v3.1.1 → v3.2.0) |
-| 3 | ⏳ Designed; not started | ~1 hr | Precedence map + ML-extension philosophy in `deriva-ml-context` |
+| 3 | ✅ Done | ~3 hr | Inheritance-with-override rule across all three planes (skills, MCP, Python) replaces the old "DerivaML abstractions take precedence" framing; ADR-0001 captures the rule-vs-table call; "What DerivaML adds on top" paragraph names the data-design ↔ process-design orthogonality; tier-2 cross-reference audit (33 refs, all bucket-1 inheritance, no edits needed); legacy-MCP scaffolding cleaned from 14 tier-2 skill files; 3 skills cross-reference tier-1 `semantic-awareness`; cross-repo sync to deriva-ml-mcp `_CONCEPTS_GUIDE` (bumped v3.2.0 → v3.2.1) |
 | 4 | ⏳ Drafted | ~1-2 hr | Tier-2 always-on weight reduction (~1234 → <500 lines) |
 | 5 | ⏳ Drafted | ~2-3 hr | Tier placement decisions (coding-guidelines / use-annotation-builders / create-web-app) |
 | 6 | ⏳ Drafted | ~2-4 hr | MCP tool and resource additions (get_lineage, rank_executions, validate_dataset_spec) |
@@ -34,6 +34,8 @@ These are the durable artifacts; resume by reading them in order.
 | [`2026-05-02-tier-2-audit-cleanup-plan.md`](2026-05-02-tier-2-audit-cleanup-plan.md) | The original 6-round plan with the full audit context (tier-2 skills audit findings; MCP prompts/tools/resources audit findings; the precedence-principle steering reminder) |
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-1-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-1-refinement.md) | Round 1 refinement: 12 design questions resolved + 7-commit execution shape + the "guide-shaped vs tool-shaped" operating principle |
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-2-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-2-refinement.md) | Round 2 refinement: 12 design questions resolved + 4-commit execution shape; the "prompts shouldn't be static reference docs" reframing; the cross-repo asks raised in parallel |
+| [`2026-05-02-tier-2-audit-cleanup-plan-round-3-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-3-refinement.md) | Round 3 refinement: 9 design questions resolved + 5-commit execution shape; reshapes Round 3 from "precedence map table" to "inheritance-with-override rule across all three planes" + ADR-0001 |
+| [`../../adr/0001-precedence-as-rule-not-table.md`](../../adr/0001-precedence-as-rule-not-table.md) | ADR-0001: precedence as inheritance-with-override rule, not a routing table. Captures the rule-vs-table call and the surface-bounded (vs concept-bounded) framing of the override boundary. |
 
 ## Round 1 commits (deriva-ml-skills)
 
@@ -68,6 +70,26 @@ auto-fire; tool-shaped skills are on-demand).
 Net: MCP prompts 4 → 2; ~5 tool docstrings expanded with the
 redistributed warnings; RAG sources 1 → 2; released as **deriva-ml-mcp
 v3.2.0** with the prompt removals as documented breaking changes.
+
+## Round 3 commits (deriva-ml-skills + cross-repo deriva-ml-mcp)
+
+| Hash | Repo | What |
+|---|---|---|
+| [`f7ca92f`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/f7ca92f) | deriva-ml-skills | `deriva-ml-context: replace steering principle with inheritance rule + cleanup` — also adds ADR-0001 + Round 3 refinement addendum |
+| [`f3f1c93`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/f3f1c93) | deriva-ml-skills | `tier-2 audit: remove legacy-MCP scaffolding from three skills` (initial pass — narrow grep) |
+| [`4457bf7`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/4457bf7) | deriva-ml-skills | `tier-2 audit: complete legacy-MCP cleanup across remaining 11 skills` (wider re-grep caught the boilerplate "the new MCP server is stateless" pattern that the first pass missed) |
+| [`2c057ab`](https://github.com/informatics-isi-edu/deriva-ml-skills/commit/2c057ab) | deriva-ml-skills | `new-model, create-feature, dataset-lifecycle: cross-reference tier-1 semantic-awareness` |
+| [`4bd77be`](https://github.com/informatics-isi-edu/deriva-ml-mcp/commit/4bd77be) | deriva-ml-mcp | `refactor(prompts): align _CONCEPTS_GUIDE with deriva-ml-skills inheritance rule` |
+| [`b2626cb`](https://github.com/informatics-isi-edu/deriva-ml-mcp/commit/b2626cb) | deriva-ml-mcp | Auto-generated bump-version commit (3.2.0 → **3.2.1**) |
+
+Net: deriva-ml-context shrank by 16 lines while gaining the
+inheritance rule and the data-design ↔ process-design orthogonality
+paragraph; legacy-MCP scaffolding removed from 14 tier-2 skill
+files (no MCP veterans in the audience); 33 tier-1 cross-references
+audited (all bucket-1 inheritance, no edits needed); 3 skills
+gained explicit semantic-awareness pointers; cross-repo sync to
+deriva-ml-mcp landed as v3.2.1; ADR-0001 records the rule-vs-table
+design decision.
 
 ## Operating principles established during refinement
 
@@ -172,28 +194,15 @@ prefixes to drop the indexed maintainer files (currently mild
 noise: deriva-ml/CLAUDE.md, deriva-ml-mcp/CLAUDE.md,
 deriva-ml-mcp/docs/scratch/*.md).
 
-## Round 3 (designed; not refined or executed)
+## Round 3 (✅ Done)
 
-**Scope:** add the explicit precedence map to `deriva-ml-context`
-SKILL.md; add the "DerivaML extends data-centricity with
-reproducibility and provenance" framing; audit each tier-2 skill
-body for places where it currently says "see also `/deriva:<skill>`"
-and reframe as directional precedence; cross-reference tier-1
-`semantic-awareness` from the relevant tier-2 skills (`new-model`,
-`create-feature`, `dataset-lifecycle`) so the LLM applies the
-discipline to ML entities too.
-
-**Estimated effort:** ~30-45 min for the additions + ~30 min for
-the audit pass.
-
-**Dependencies:** Round 1 (cleanup) is done; Round 2 (the
-deriva-ml-mcp surface clarification) is done. No upstream
-dependencies remain.
-
-**To start:** open the parent plan document and the Round 1
-refinement addendum for context, then begin a new refinement
-interview for Round 3 following the 12-question pattern from
-Rounds 1-2.
+Reshaped during refinement from "add a precedence map table" to
+"replace the steering principle with an inheritance-with-override
+rule." See [Round 3 refinement addendum](2026-05-02-tier-2-audit-cleanup-plan-round-3-refinement.md)
+for the 9 design questions resolved and the 5-commit execution
+shape, and [ADR-0001](../../adr/0001-precedence-as-rule-not-table.md)
+for the rule-vs-table decision. Commit hashes are in the "Round 3
+commits" section above.
 
 ## Round 4 (drafted; not refined or executed)
 
@@ -260,12 +269,15 @@ in v3.2.0 baseline. Round 6 would bump again.
    API addition (`add_instructions` or `exclude_paths`) is now
    available in deriva-mcp-core, the corresponding follow-up round
    becomes possible (and architecturally preferred to the current
-   Round 3-6 sequencing).
-4. **Pick the next round** — Round 3 is the natural next step
-   (highest-value LLM-routing change; small effort).
-5. **Run a refinement interview** following the 12-question pattern
-   from Rounds 1-2: walk down the design tree one question at a
-   time, recommended-answer-with-each-question, prefer codebase
+   Round 4-6 sequencing).
+4. **Pick the next round** — Round 4 (always-on weight reduction)
+   is the natural next step. Note for Round 4: with the inheritance
+   rule landing, `deriva-ml-context` is now smaller AND more
+   load-bearing — Round 4's slimming pass should preserve the rule
+   as the highest-priority always-on content.
+5. **Run a refinement interview** following the 9-12 question
+   pattern from Rounds 1-3: walk down the design tree one question
+   at a time, recommended-answer-with-each-question, prefer codebase
    exploration over questions when discoverable.
 6. **Save the refinement as an addendum** to this directory using
    the same naming convention:
@@ -278,9 +290,9 @@ in v3.2.0 baseline. Round 6 would bump again.
 
 | Repo | Branch | Latest commit | Latest tag |
 |---|---|---|---|
-| deriva-ml-skills | main | 7df48e9 | (skill plugin; tag-triggered release on bump-version) |
-| deriva-ml-mcp | main | 655aac7 | v3.2.0 |
-| deriva-skills (tier-1) | main | (untouched in Rounds 1-2) | (last touched in earlier session work documented in plans for that repo) |
+| deriva-ml-skills | main | 2c057ab (commit 4 of Round 3 to land after this update) | (skill plugin; tag-triggered release on bump-version) |
+| deriva-ml-mcp | main | b2626cb | v3.2.1 |
+| deriva-skills (tier-1) | main | (untouched in Rounds 1-3) | (last touched in earlier session work documented in plans for that repo) |
 | deriva-mcp-core | (separate maintainer) | (untouched here) | (cross-repo asks raised separately) |
 
 Both touched repos have clean working trees as of this handoff.
