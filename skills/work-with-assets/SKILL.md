@@ -57,8 +57,8 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 
 ### Managing asset types
 
-1. **Create a new term in the Asset_Type vocabulary:** `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`. The legacy `add_asset_type` shortcut was removed; generic `add_term` works.
-2. **Tag / untag an asset with a type:** no dedicated tool — use `update_entities(hostname, catalog_id, schema, table, entities=[{"RID": asset_rid, "Asset_Type": <term>}])` to set the value, or pass `null` to clear it. The legacy `add_asset_type_to_asset` and `remove_asset_type_from_asset` were removed; see `references/workflow.md` for the manual recipe.
+1. **Create a new term in the Asset_Type vocabulary:** `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`.
+2. **Tag / untag an asset with a type:** `update_entities(hostname, catalog_id, schema, table, entities=[{"RID": asset_rid, "Asset_Type": <term>}])` to set the value, or pass `null` to clear it. See `references/workflow.md` for the full recipe.
 
 For the full step-by-step guide with MCP tool parameters and Python API examples, see `references/workflow.md`.
 

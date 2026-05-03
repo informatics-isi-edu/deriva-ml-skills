@@ -11,8 +11,8 @@ Consistent naming conventions for API methods ensure discoverability and predict
 
 > **MCP tools vs Python API**: This reference covers both **MCP tools** (available directly in Claude conversations via `deriva-mcp-core` and the `deriva-ml-mcp` plugin) and **Python API methods** (available only in Python scripts and notebooks via `from deriva_ml import DerivaML`). The distinction matters:
 >
-> - **MCP tools (core)**: From `deriva-mcp-core`, generic catalog operations. Bare names: `add_term`, `delete_term`, `query_attribute`, `get_table_sample_data`, `get_entities`, `insert_entities`, `update_entities`, `lookup_term`. All take `hostname=` and `catalog_id=` parameters explicitly — no connection state.
-> - **MCP tools (deriva-ml plugin)**: From the `deriva-ml-mcp` plugin loaded by `deriva-mcp-core`. **All prefixed `deriva_ml_*`**: `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_create_feature`, `deriva_ml_add_feature_values`, etc. Same stateless calling convention.
+> - **MCP tools (core)**: Generic catalog operations with bare names: `add_term`, `delete_term`, `query_attribute`, `get_table_sample_data`, `get_entities`, `insert_entities`, `update_entities`, `lookup_term`. All take `hostname=` and `catalog_id=` parameters explicitly.
+> - **MCP tools (deriva-ml)**: **All prefixed `deriva_ml_*`**: `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_create_feature`, `deriva_ml_add_feature_values`, etc. Same calling convention.
 > - **Python API only**: Must be used in Python scripts or notebooks. These are marked with "Python API" in the tables below (e.g., `lookup_dataset`, `find_datasets`, `list_vocabulary_terms`, `list_tables`). When working via MCP, use the corresponding MCP tool instead (e.g., `deriva_ml_list_datasets`, `rag_search()`, `query_attribute`).
 > - **MCP resources**: Read-only data accessed via `deriva://catalog/{hostname}/{catalog_id}/...` URIs. These provide catalog state without requiring a tool call.
 
@@ -122,9 +122,9 @@ Adds an item to an existing entity.
 
 **Behavior**: Modifies an existing entity. Returns None.
 
-> **Note on legacy wrappers**: `add_workflow_type`, `add_asset_type`, `add_dataset_type` (and `create_dataset_type_term`) were dedicated wrappers in the legacy MCP surface. They were **not ported** — extend the four built-in DerivaML vocabularies via the generic `add_term` with `schema="deriva-ml"` and `table=` set to `Workflow_Type`, `Asset_Type`, or `Dataset_Type`. To tag a specific asset with an Asset_Type, use `update_entities` on the asset's row.
+> **Extending built-in DerivaML vocabularies** (`Workflow_Type`, `Asset_Type`, `Dataset_Type`): use the generic `add_term` with `schema="deriva-ml"` and `table=` set to the vocabulary table. To tag a specific asset with an Asset_Type, use `update_entities` on the asset's row.
 
-> **Note on dataset hierarchy**: The legacy `add_dataset_child` wrapper is gone. To make a dataset a child of another dataset, use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members with element-type `Dataset`.
+> **Dataset hierarchy**: to make a dataset a child of another dataset, use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members with element-type `Dataset`.
 
 ### `delete_*` / `remove_*` -- Remove Items
 
@@ -142,7 +142,7 @@ Removes entities or relationships.
 
 **Behavior**: Removes the specified entity or relationship. Returns None.
 
-> **Note on legacy wrappers**: `remove_dataset_type`, `remove_asset_type_from_asset`, `delete_dataset_type_term` were not ported. Use `delete_term` for vocab-term deletion (with `schema="deriva-ml"` for built-ins), or `update_entities` on the dataset/asset row to clear a type association.
+> **Removing terms or type associations**: use `delete_term` for vocab-term deletion (with `schema="deriva-ml"` for built-ins), or `update_entities` on the dataset/asset row to clear a type association.
 
 ### `set_*` -- Set/Update Properties
 
