@@ -1,36 +1,15 @@
 ---
 name: deriva-ml-context
-description: "ALWAYS load this context when the deriva-ml plugin is active. Establishes what DerivaML is (a reproducible-ML layer on top of Deriva catalogs), the five core abstractions (Dataset, Workflow, Execution, Feature, Asset), and the steering principle that DerivaML abstractions take precedence over raw Deriva catalog primitives whenever both are available. Triggers on: 'derivaml', 'deriva-ml', 'dataset', 'workflow', 'execution', 'feature', 'asset', 'experiment', 'training run', 'model', 'pipeline', 'reproducible', 'provenance', 'hydra-zen', 'configure-experiment'."
+description: "ALWAYS load this context when the deriva-ml plugin is active. Establishes what DerivaML is (a reproducible-ML layer on top of Deriva catalogs), the five core abstractions (Dataset, Workflow, Execution, Feature, Asset), and the inheritance-with-override rule that governs when to use a deriva-ml surface versus the underlying deriva surface. Triggers on: 'derivaml', 'deriva-ml', 'dataset', 'workflow', 'execution', 'feature', 'asset', 'experiment', 'training run', 'model', 'pipeline', 'reproducible', 'provenance', 'hydra-zen', 'configure-experiment'."
 disable-model-invocation: false
 ---
 
 <!--
-SYNC NOTE — KEEP IN LOCKSTEP WITH `deriva_ml_concepts` MCP PROMPT.
-
-This skill's conceptual sections (What is DerivaML, the five core
-abstractions, the provenance principle / steering principle, the
-vocabulary-extension pattern) deliberately mirror the
-`_CONCEPTS_GUIDE` constant in
-`deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`.
-
-The duplication is intentional:
-  - Claude Code clients with this skill loaded get the conceptual
-    frame pushed into context proactively (this is the always-on
-    "load-bearing" path the audit named).
-  - Non-Claude-Code clients (Cursor, SDK-based agents, raw FastMCP
-    clients, etc.) pull the same frame in via the
-    `deriva_ml_concepts` prompt over the MCP wire.
-
-The skill is RICHER than the prompt — it adds tool-selection guidance,
-cross-references to other skills (`/deriva-ml:dataset-lifecycle`,
-`/deriva:troubleshoot-deriva-errors`, etc.), and the worked
-"when to reach back to the raw catalog surface" table. The prompt is
-the conceptual FLOOR; this skill is floor + Claude-Code value-add.
-
-When the abstractions evolve (rare — they're fundamental), update BOTH:
-  1. This file (`skills/deriva-ml-context/SKILL.md`)
-  2. `_CONCEPTS_GUIDE` in `deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`
-     (same repo's CLAUDE.md flags this with a similar comment).
+SYNC: this skill mirrors `_CONCEPTS_GUIDE` in
+`deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`. When the conceptual
+core changes (the five abstractions, the inheritance rule, the
+vocabulary-extension pattern), update both. See CLAUDE.md ("Cross-Repo
+Sync") for the full convention. Inheritance-rule rationale: ADR-0001.
 -->
 
 # DerivaML Plugin Context
@@ -42,8 +21,10 @@ DerivaML is a **reproducible-ML layer built on top of Deriva catalogs**. It reco
 The DerivaML stack:
 
 - **`deriva-ml`** — the Python library; provides the `DerivaML` class, `Workflow`, `ExecutionConfiguration`, dataset / feature / asset APIs, and the `with ml.create_execution(config) as exe:` context manager pattern.
-- **`deriva-ml-mcp`** — the MCP plugin loaded by `deriva-mcp-core`; exposes the `deriva_ml_*` MCP tools (e.g., `deriva_ml_create_dataset`, `deriva_ml_start_execution`, `deriva_ml_add_feature_values`) and the `deriva://catalog/{h}/{c}/ml/...` resource family.
-- **`deriva-ml-skills`** — this Claude Code plugin; ~24 skills that drive the above two layers through Claude.
+- **`deriva_ml_*` MCP tools** — e.g., `deriva_ml_create_dataset`, `deriva_ml_start_execution`, `deriva_ml_add_feature_values`, plus the `deriva://catalog/{h}/{c}/ml/...` resource family.
+- **`deriva-ml-skills`** — this Claude Code plugin; ~28 skills that drive the above two layers through Claude.
+
+All `deriva_ml_*` tools take `hostname=` and `catalog_id=` arguments explicitly — see `/deriva:deriva-context` for the stateless-model framing that applies to the whole stack.
 
 ## The five core abstractions
 
@@ -57,15 +38,17 @@ These are the surface DerivaML adds on top of plain Deriva. Each is stored as on
 | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | `deriva_ml_create_feature`, `deriva_ml_add_feature_values` |
 | **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and uploaded by `exe.upload_execution_outputs()`. | `work-with-assets` | `deriva_ml_list_asset_tables`, `deriva_ml_lookup_asset`, `deriva_ml_update_asset` |
 
-## Stateless model
+## The rule: inheritance with override
 
-Every `deriva_ml_*` tool is **stateless**: it takes `hostname=` and `catalog_id=` arguments explicitly. There is no `connect_catalog` call, no "active catalog" state, and no default schema. Substitute your catalog's host and ID in every example below.
+The deriva-ml plugin **extends** the deriva plugin. Everything that applies in a Deriva catalog applies in a deriva-ml catalog by default. **Override:** if a deriva-ml surface exists for an operation, prefer it over the equivalent deriva surface. This applies symmetrically on all three planes:
 
-## Steering principle: DerivaML abstractions take precedence
+- **Skills:** prefer `/deriva-ml:<skill>` over `/deriva:<skill>` when both exist.
+- **MCP:** prefer `deriva_ml_*` MCP tools, prompts, and resources over the equivalent `deriva-mcp-core` tool / prompt / resource.
+- **Python API:** prefer `deriva-ml` objects and methods (`DerivaML`, `Dataset`, `Workflow`, `Execution`, `Feature`, the `with ml.create_execution(config) as exe:` context manager, `exe.asset_file_path()`, etc.) over the equivalent `deriva-py` calls (`ErmrestCatalog`, `PathBuilder`, raw entity resource access).
 
-Datasets, Workflows, Executions, Features, and Asset_Type vocabularies are first-class DerivaML concepts. **In a deriva-ml-loaded catalog you must use the deriva-ml abstractions for them** — the `deriva_ml_*` MCP tools listed above and the deriva-ml Python API — NOT the raw `insert_entities` / `update_entities` / `get_entities` core tools from `deriva-mcp-core`.
+The override boundary is mechanical: "is there a deriva-ml `<thing>` for this?" If yes, use it. If no, the deriva default applies and the LLM should reach for the corresponding `/deriva:<skill>`, `deriva-mcp-core` tool, or `deriva-py` call.
 
-The raw tools bypass:
+The five abstractions above are where the override mostly lands. Going around them — using `insert_entities` / `update_entities` / `delete_entities` to mutate Datasets, Workflows, Executions, Features, or Asset rows — bypasses real machinery:
 
 - **Business logic** — e.g., `deriva_ml_add_dataset_members` validates RIDs against the dataset's element-type spec; raw inserts will let you add wrong-table rows that break the dataset on materialization.
 - **FK validation across the Dataset / Workflow / Execution graph** — DerivaML enforces invariants (every Execution links to a Workflow, every output Dataset links to its producing Execution); raw inserts can create dangling references.
@@ -74,9 +57,13 @@ The raw tools bypass:
 - **RAG re-indexing** — the `deriva_ml_*` tools fire surgical re-index hooks so freshly mutated rows are searchable on the next `rag_search`. Raw inserts do not.
 - **Audit emission** — every `deriva_ml_*` mutation emits an audit event with the operation name, hostname, catalog, and result; raw inserts use the generic core audit which lacks DerivaML-specific context.
 
-## Built-in DerivaML vocabularies — extend with generic `add_term`
+## What DerivaML adds on top
 
-DerivaML ships four built-in vocabularies. The legacy dedicated extender tools (`add_dataset_type`, `add_workflow_type`, `add_asset_type`, `create_dataset_type_term`) were **not ported** to the new MCP surface. Extend them via the generic `add_term` tool from `deriva-mcp-core`, passing `schema="deriva-ml"` and the appropriate `table=`:
+Deriva's seven design pillars (see `/deriva:deriva-context`) are about **data design** — how to model your data so it's findable, accessible, interoperable, and reusable. DerivaML adds **process design** — how to run an ML pipeline against that data so the run itself is reproducible. The two are orthogonal: a Deriva catalog with no DerivaML use can be FAIR-by-construction; a DerivaML catalog adds reproducibility-by-construction on top. The mechanism is three abstractions doing complementary jobs: **Datasets pin** which rows the run consumed; **Workflows pin** which code (URL + git commit) ran them; **Executions link** the two so any output Feature or Asset traces back to (specific code) × (specific inputs).
+
+## Built-in DerivaML vocabularies
+
+DerivaML ships four built-in vocabularies. Extend them via the generic `add_term` tool, passing `schema="deriva-ml"` and the appropriate `table=`:
 
 | Vocabulary | How to add a term | Notes |
 |---|---|---|
@@ -85,9 +72,9 @@ DerivaML ships four built-in vocabularies. The legacy dedicated extender tools (
 | `Asset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Asset_Type", name=..., description=...)` | Tag specific assets via `deriva_ml_update_asset(...)` |
 | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions happen via `deriva_ml_start_execution` / `deriva_ml_commit_execution` / `deriva_ml_abort_execution` |
 
-The steering principle still applies: even though you are using the generic `add_term` for the term itself, the **lifecycle of Datasets / Workflows / Executions / Features / Assets** must go through the `deriva_ml_*` tools, never through raw entity CRUD.
+The inheritance rule still applies: even though you are using the generic `add_term` for the term itself (no deriva-ml override exists for it), the **lifecycle of Datasets / Workflows / Executions / Features / Assets** must go through the `deriva_ml_*` tools.
 
-For all *other* vocabularies (your own domain vocabs like `Sample_Type`, `Tissue_Type`, `Image_Quality`), use the same generic `add_term` documented in tier-1's `manage-vocabulary` skill — pass your domain schema name instead of `"deriva-ml"`.
+For all *other* vocabularies (your own domain vocabs like `Sample_Type`, `Tissue_Type`, `Image_Quality`), use the same generic `add_term` documented in `/deriva:manage-vocabulary` — pass your domain schema name instead of `"deriva-ml"`.
 
 ## The entity resolution workflow
 
@@ -136,24 +123,19 @@ The cost of doing it right is one or two extra round-trips per operation. **Alwa
 
 Several always-on skills reinforce this workflow:
 
-- **`/deriva:semantic-awareness`** *(tier-1, deriva-skills)* — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on.
+- **`/deriva:semantic-awareness`** *(tier-1, deriva-skills)* — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
 - **`/deriva:generate-descriptions`** *(tier-1, deriva-skills)* — description-generation guidance for generic catalog entities (tables, columns, vocabularies, vocabulary terms).
 - **`/deriva-ml:generate-descriptions`** *(tier-2, this plugin)* — description-generation guidance for DerivaML entities (Datasets, Workflows, Executions, Features, Assets, Experiments). The tier-1 and tier-2 description skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
 
 This skill links them together into one workflow; the always-on skills cover each half in more depth.
 
-## When to reach back to the raw catalog surface
+## Routing notes where both plugins have a surface
 
-The companion tier-1 `deriva` plugin remains active alongside this one. Use its skills for catalog objects that are **NOT** one of the five DerivaML domain concepts:
+For most operations the inheritance rule resolves the routing on its own — if a deriva-ml `<thing>` exists, use it; otherwise the deriva default applies. Two cases need a carve-out because both plugins legitimately have a surface and the rule alone doesn't pick:
 
-- **Custom domain tables** — `Subject`, `Sample`, `Image`, anything specific to your project's data model → `/deriva:create-table`, `/deriva:query-catalog-data`
-- **Generic vocabularies** — anything that isn't `Dataset_Type` / `Workflow_Type` / `Asset_Type` / `Execution_Status_Type` → `/deriva:manage-vocabulary`
-- **Schema introspection** — listing tables, browsing columns → `/deriva:query-catalog-data`
-- **Visualizing the catalog ERD** — interactive entity-relationship diagram → `/deriva-ml:browse-erd` *(tier-2)*
-- **Display customization (interactive MCP tool path)** — Chaise annotations on any table → `/deriva:customize-display` *(tier-1, deriva-skills)*
-- **Display customization (Python builder classes)** — type-safe annotation builders for scripts and notebooks → `/deriva-ml:use-annotation-builders`
-- **Generic catalog errors** — auth, permissions, invalid RIDs, missing records, generic vocab term not found → `/deriva:troubleshoot-deriva-errors` (always check this first when an error doesn't smell execution-specific)
-- **Version checks** — `/deriva:troubleshoot-deriva-errors` (tier-1, "Versioning and updates" section) for the foundation; `/deriva-ml:troubleshoot-execution` (tier-2, "Versioning and updates" section) for the DerivaML layer. Check the foundation first — the DerivaML stack depends on it.
+- **Display customization (interactive MCP-tool path)** — Chaise display annotations on any table → `/deriva:customize-display` *(tier-1, deriva-skills)*. The interactive flow is tier-1.
+- **Display customization (Python builder classes)** — type-safe annotation builders for scripts and notebooks → `/deriva-ml:use-annotation-builders`. The script/notebook flow is tier-2.
+- **Version checks** — `/deriva:troubleshoot-deriva-errors` ("Versioning and updates" section) for the foundation (deriva-py, deriva-mcp-core, deriva plugin); `/deriva-ml:troubleshoot-execution` ("Versioning and updates" section) for the DerivaML layer. Check the foundation first — the DerivaML stack depends on it.
 
 ## Pointers
 
@@ -166,10 +148,12 @@ DerivaML domain workflows (this plugin):
 - `/deriva-ml:configure-experiment` — DerivaML experiment project structure (Hydra-zen configs)
 - `/deriva-ml:write-hydra-config` — Hydra-zen config files for experiments
 - `/deriva-ml:new-model` — Scaffold a new model function
+- `/deriva-ml:browse-erd` — Interactive entity-relationship diagram for the catalog
 - `/deriva-ml:troubleshoot-execution` — Execution-lifecycle troubleshooting (asset paths, upload, stuck Running, version mismatch, missing feature)
 
 Generic catalog operations (tier-1; install `deriva-skills`):
 
+- `/deriva:deriva-context` — Plugin-wide context for the deriva plugin (the seven design pillars, stateless-model framing, plugin scope)
 - `/deriva:troubleshoot-deriva-errors` — Generic catalog troubleshooting
 - `/deriva:manage-vocabulary` — Generic vocabulary CRUD
 - `/deriva:create-table` — Custom domain tables
