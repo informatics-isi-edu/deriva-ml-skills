@@ -10,7 +10,12 @@ that emerged during the refinement interviews.
 
 A two-part audit (tier-2 skills + MCP surface) of the DerivaML
 domain layer produced a six-round cleanup plan. Rounds 1-5 are
-complete; round 6 is designed but not yet executed.
+complete; Round 6 has been refined, reshaped (architectural
+reframing — see the Round 6 refinement addendum), and split into
+two phases: a prerequisite phase staged via three spawned
+grill-with-docs tasks (in the deriva-ml repo), and a wrapper
+phase (Round 6b) that follows in deriva-ml-skills + deriva-ml-mcp
+once the three deriva-ml methods land.
 
 | Round | Status | Effort | Description |
 |---|---|---|---|
@@ -19,7 +24,7 @@ complete; round 6 is designed but not yet executed.
 | 3 | ✅ Done | ~3 hr | Inheritance-with-override rule across all three planes (skills, MCP, Python) replaces the old "DerivaML abstractions take precedence" framing; ADR-0001 captures the rule-vs-table call; "What DerivaML adds on top" paragraph names the data-design ↔ process-design orthogonality; tier-2 cross-reference audit (33 refs, all bucket-1 inheritance, no edits needed); legacy-MCP scaffolding cleaned from 14 tier-2 skill files; 3 skills cross-reference tier-1 `semantic-awareness`; cross-repo sync to deriva-ml-mcp `_CONCEPTS_GUIDE` (bumped v3.2.0 → v3.2.1) |
 | 4 | ✅ Done | ~2 hr | Tier-2 always-on weight reduction (1994 → 879 lines, -56%). Re-targeted from the parent plan's literal slimming list to the actual auto-fire skills. Three skills flipped to slash-only (`compare-model-runs`, `help`, `browse-erd`) for a 376-line one-shot drop; four heavy slims (`dataset-lifecycle` 434→129, `create-feature` 403→174, `execution-lifecycle` 185→107, `generate-descriptions` 169→64) move depth to references/; light-touch trim on three smaller skills (`deriva-ml-context`, `experiment-lifecycle`, `maintain-experiment-notes`); README "Auto-invoked guides" table corrected (was claiming 11 auto-fire skills; only 6 actually were). |
 | 5 | ✅ Done | ~3 hr | Tier placement: `use-annotation-builders` moved to tier-1 (deriva-skills v1.1.1 → v1.2.0); `coding-guidelines` reframed (was misnamed — content is project-bootstrap-and-operations, not generic coding standards) and content distributed to a new tier-2 `setup-derivaml-project` skill (bootstrap moment), `setup-notebook-environment` (uv discipline), `model-development-workflow` (git workflow + version-bumping decision matrix + DerivaML extensibility), with redundant atoms deleted; `create-web-app` description sharpened to lead with the deriva-ml-apps server prerequisite; tier-2 README's Tier-1-vs-Tier-2 framing updated to ADR-0001's inheritance-with-override rule (carryover correction from Round 3) and to reflect the two tier-1 Chaise-annotation paths. Tier-2 skill count: 28 → 27. |
-| 6 | ⏳ Drafted | ~2-4 hr | MCP tool and resource additions (get_lineage, rank_executions, validate_dataset_spec) |
+| 6 | 🔄 Refined + reshaped; deriva-ml prerequisite phase staged via 3 spawned tasks | ~30 min refinement; ~6-12 hr spawned tasks; ~1-2 hr Round 6b wrapper | Reshaped during refinement: the parent plan's framing ("add 3 tools + 3 resources to deriva-ml-mcp") was challenged by an architectural side-question — provenance traversal, execution ranking, and dataset spec validation are deriva-ml domain operations, not MCP transport operations; the canonical implementation belongs in the deriva-ml Python library with thin MCP wrappers. ADR-0001's inheritance rule operationalized. Three `/grill-with-docs` tasks spawned to design `get_lineage`, `rank_executions`, `validate_dataset_spec` against the deriva-ml repo. Round 6b (the deriva-ml-mcp wrapper work + tier-2 skill slims) is queued for after the three methods land. |
 
 The full audit context and round structure are in three plan
 documents in this directory; this handoff cross-references them and
@@ -37,6 +42,7 @@ These are the durable artifacts; resume by reading them in order.
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-3-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-3-refinement.md) | Round 3 refinement: 9 design questions resolved + 5-commit execution shape; reshapes Round 3 from "precedence map table" to "inheritance-with-override rule across all three planes" + ADR-0001 |
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-4-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-4-refinement.md) | Round 4 refinement: 6 design questions resolved + 5-commit execution shape; reshapes Round 4 from the parent plan's literal slimming list (which mixed auto-fire and slash-only skills) to "re-target on actual auto-fire weight; flip slash-only candidates; slim the keepers using tier-1's reference-pattern" |
 | [`2026-05-02-tier-2-audit-cleanup-plan-round-5-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-5-refinement.md) | Round 5 refinement: 8 design questions resolved + 5-commit execution shape; reshapes Round 5 from "decide where 3 borderline skills belong" to the more substantive "use-annotation-builders moves to tier-1; coding-guidelines is misnamed and gets distributed across 3 skills (one new); create-web-app stays with a description reframe" |
+| [`2026-05-02-tier-2-audit-cleanup-plan-round-6-refinement.md`](2026-05-02-tier-2-audit-cleanup-plan-round-6-refinement.md) | Round 6 refinement: architectural reframing — the three new operations (provenance traversal, execution ranking, dataset spec validation) belong in the deriva-ml Python library first, with thin deriva-ml-mcp wrappers. Three `/grill-with-docs` tasks spawned to design each method against the deriva-ml repo. The deriva-ml-mcp wrapper work becomes Round 6b after the three methods land. |
 | [`../../adr/0001-precedence-as-rule-not-table.md`](../../adr/0001-precedence-as-rule-not-table.md) | ADR-0001: precedence as inheritance-with-override rule, not a routing table. Captures the rule-vs-table call and the surface-bounded (vs concept-bounded) framing of the override boundary. |
 
 ## Round 1 commits (deriva-ml-skills)
@@ -264,25 +270,62 @@ reframe. See [Round 5 refinement addendum](2026-05-02-tier-2-audit-cleanup-plan-
 for the 8 design questions resolved and the per-atom distribution
 table. Commit hashes are in the "Round 5 commits" section above.
 
-## Round 6 (drafted; not refined or executed)
+## Round 6 (🔄 refined + reshaped; deriva-ml prerequisite phase staged via 3 spawned tasks)
 
-**Scope:** add three missing MCP tools and three resources that
-close real workflow gaps identified in the audit.
+Reshaped during refinement when an architectural side-question
+("should this go into MCP, or even deriva-ml?") flipped the round
+from "MCP-first" to "deriva-ml-first with thin MCP wrappers." The
+three operations (provenance traversal, execution ranking, dataset
+spec validation) are deriva-ml domain operations, not MCP transport
+operations; the canonical implementation belongs in the library,
+where every existing `deriva_ml_*` MCP tool already wraps a deriva-ml
+Python method. ADR-0001's inheritance-with-override rule is the
+load-bearing principle that drove the reframing.
 
-- `deriva_ml_get_lineage(rid, depth=2)` — returns the full
-  provenance chain for any artifact
-- `deriva_ml_rank_executions(workflow_rid, by_feature, top_n)` —
-  server-side aggregation for the comparison pattern
-- `deriva_ml_validate_dataset_spec(specs=[...])` — round-trips
-  against the catalog to verify (RID, version) pairs
-- `deriva-ml://lineage/{rid}` resource form
-- `deriva-ml://executions?status={status}` filtered execution list
-- `deriva-ml://dataset/{rid}/spec` resource form of get_dataset_spec
+The work is split across two phases:
 
-**Estimated effort:** ~2-4 hr.
+**Prerequisite phase (in flight via spawned tasks):** Three
+`/grill-with-docs` tasks queued via `mcp__ccd_session__spawn_task`,
+one per method:
 
-**Dependencies:** Round 2 is done; the deriva-ml-mcp surface is
-in v3.2.0 baseline. Round 6 would bump again.
+1. **`get_lineage`** — provenance traversal in one call. Auto-detect
+   RID type; unbounded walk by default with mandatory cycle
+   avoidance; tree-with-summaries response. Most-grilled before the
+   reframing.
+2. **`rank_executions`** — server-side top-N executions of a
+   workflow ranked by a feature value. Replaces the manual Phase 2A
+   walkthrough in tier-2 `compare-model-runs`.
+3. **`validate_dataset_spec`** — bulk pre-flight validation of
+   `(RID, version)` pairs from Hydra-zen configs. Replaces per-RID
+   `get_entities` loops in tier-2 `write-hydra-config`.
+
+Each spawned task carries its own self-contained context (what the
+function does, decisions already settled, what to grill,
+deliverable, coordination notes). Each ships independently as a new
+deriva-ml minor version. They can be picked up in any order.
+
+**Round 6b (queued; waits on the prerequisite phase):** Once all
+three deriva-ml methods land, run the deriva-ml-mcp wrapper round:
+
+- Add three thin `deriva_ml_*` MCP tool wrappers in deriva-ml-mcp.
+- Add three corresponding read-only resources
+  (`deriva://catalog/{h}/{c}/ml/lineage/{rid}`,
+  `deriva://catalog/{h}/{c}/ml/executions?status={status}`,
+  `deriva://catalog/{h}/{c}/ml/dataset/{rid}/spec`).
+- Bump deriva-ml-mcp (likely v3.2.1 → v3.3.0 since adding new
+  tools/resources).
+- Slim tier-2 `compare-model-runs` Phase 2A and `write-hydra-config`
+  validation section to use the new tools.
+- Update this handoff doc to mark Round 6 ✅ Done.
+
+Estimated effort for Round 6b: ~1-2 hr (much smaller than the
+parent plan's 2-4 hr because the heavy implementation work moved
+upstream to the spawned tasks).
+
+See [Round 6 refinement addendum](2026-05-02-tier-2-audit-cleanup-plan-round-6-refinement.md)
+for the full reshape rationale, the 6 grilling questions resolved
+before the reframing, and the 3 architectural decisions resolved
+after.
 
 ## To resume in a new session
 
@@ -293,37 +336,52 @@ in v3.2.0 baseline. Round 6 would bump again.
    cd /Users/carl/GitHub/DerivaML/deriva-ml-skills && git status
    cd /Users/carl/GitHub/DerivaML/deriva-ml-mcp && git status
    ```
-3. **Check whether the cross-repo asks have landed** — if either
+3. **Check the spawned-task status for Round 6's prerequisite phase.**
+   Three `/grill-with-docs` tasks are queued (chips visible in this
+   workspace), one per deriva-ml method:
+   - `get_lineage` — provenance traversal
+   - `rank_executions` — server-side top-N executions by feature value
+   - `validate_dataset_spec` — bulk pre-flight for Hydra-zen configs
+
+   Each lands as a new deriva-ml minor version when its task ships.
+   Pick them up in any order; they don't block each other. Status
+   check: `cd /Users/carl/GitHub/DerivaML/deriva-ml && git log
+   --oneline | head -10` — look for commits naming any of the three
+   methods.
+
+4. **Once all three deriva-ml methods land, run Round 6b** — the
+   deriva-ml-mcp wrapper round:
+   - Add three thin `deriva_ml_*` MCP tool wrappers in deriva-ml-mcp
+     that call into the new methods.
+   - Add three corresponding read-only resources
+     (`deriva://catalog/{h}/{c}/ml/lineage/{rid}`,
+     `deriva://catalog/{h}/{c}/ml/executions?status={status}`,
+     `deriva://catalog/{h}/{c}/ml/dataset/{rid}/spec`).
+   - Bump deriva-ml-mcp (likely v3.2.1 → v3.3.0).
+   - Slim tier-2 `compare-model-runs` Phase 2A and
+     `write-hydra-config` validation section to use the new tools.
+   - Update this handoff to mark Round 6 ✅ Done.
+
+5. **Check whether the cross-repo asks have landed** — if either
    API addition (`add_instructions` or `exclude_paths`) is now
-   available in deriva-mcp-core, the corresponding follow-up round
-   becomes possible (and architecturally preferred to the current
-   Round 6 sequencing).
-4. **Pick the next round** — Round 6 (MCP tool and resource
-   additions: `get_lineage`, `rank_executions`,
-   `validate_dataset_spec` plus three corresponding read-only
-   resources) is the natural next step. This is the heaviest round
-   — touches deriva-ml-mcp source code, needs new tools +
-   resources + tests + version bump. With Rounds 1-5 having cleaned
-   the docs/skills surface, Round 6 can focus entirely on the MCP
-   server side.
-5. **Run a refinement interview** following the 6-12 question
-   pattern from Rounds 1-5: walk down the design tree one question
-   at a time, recommended-answer-with-each-question, prefer codebase
-   exploration over questions when discoverable.
-6. **Save the refinement as an addendum** to this directory using
-   the same naming convention:
-   `2026-05-02-tier-2-audit-cleanup-plan-round-N-refinement.md`.
-7. **Execute as the planned commits**, content-first ordering,
-   each independently revertable. Update this handoff doc at the
-   end of the round.
+   available in deriva-mcp-core, those become unblocked follow-up
+   work (independent of Round 6/6b sequencing).
+
+6. **For any future round**, run a refinement interview following
+   the 6-12 question pattern from Rounds 1-6: walk down the design
+   tree one question at a time, recommended-answer-with-each-
+   question, prefer codebase exploration over questions when
+   discoverable. Save the refinement as an addendum using the
+   convention `2026-05-02-tier-2-audit-cleanup-plan-round-N-refinement.md`.
 
 ## Current state of touched repos
 
 | Repo | Branch | Latest commit | Latest tag |
 |---|---|---|---|
-| deriva-ml-skills | main | 51c3808 (commit 5 of Round 5 to land after this update) | (skill plugin; tag-triggered release on bump-version) |
+| deriva-ml-skills | main | c137195 (Round 5 done; this handoff update for Round 6 refinement to land after) | (skill plugin; tag-triggered release on bump-version) |
 | deriva-ml-mcp | main | b2626cb | v3.2.1 |
 | deriva-skills (tier-1) | main | c0f3649 (touched in Round 5: `use-annotation-builders` move + bump-my-version dev-deps fix + version bump) | **v1.2.0** |
+| deriva-ml | main | (untouched in Rounds 1-5; will gain `get_lineage`, `rank_executions`, `validate_dataset_spec` via spawned tasks for Round 6) | (deriva-ml uses setuptools_scm; tag-triggered) |
 | deriva-mcp-core | (separate maintainer) | (untouched here) | (cross-repo asks raised separately) |
 
-All three touched repos have clean working trees as of this handoff.
+All four touched repos have clean working trees as of this handoff.
