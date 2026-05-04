@@ -2,18 +2,35 @@
 
 This addendum records the refinement interview for Round 6 of the
 [2026-05-02 tier-2 audit cleanup plan](2026-05-02-tier-2-audit-cleanup-plan.md).
-The interview reshaped Round 6 substantially. The original framing
-("add three tools and three resources to deriva-ml-mcp") was
-challenged mid-grilling by an architectural side-question ("should
-this go in deriva-ml-mcp, or even deriva-ml?"), and the resulting
-reframing split Round 6 into a **prerequisite phase** (three
-deriva-ml methods, designed and shipped via separate spawned
-grill-with-docs tasks) and a **wrapper phase** (the original
-deriva-ml-mcp work, scoped down to thin wrappers + resources +
-tier-2 skill updates, blocked on the prerequisite phase).
+Round 6 was reshaped twice during execution:
 
-Six grilling questions resolved before the reframing; one
-high-leverage architectural question after.
+**First reshape (mid-grilling, architectural):** The original framing
+("add three tools and three resources to deriva-ml-mcp") was
+challenged by a side-question ("should this go in deriva-ml-mcp, or
+even deriva-ml?"). The resulting reframing split Round 6 into a
+**prerequisite phase** (deriva-ml methods, designed and shipped via
+separate spawned grill-with-docs tasks) and a **wrapper phase** (the
+original deriva-ml-mcp work, scoped down to thin wrappers +
+resources + tier-2 skill updates, blocked on the prerequisite phase).
+
+**Second reshape (post-`lookup_lineage`, scope reduction):** After
+`lookup_lineage` shipped (deriva-ml v1.32.0), a use-case re-examination
+of the remaining two tools surfaced that `rank_executions` had a much
+weaker motivation than `lookup_lineage`. The 3-step manual pattern it
+would replace (`list_executions(sort=True, limit=N)` →
+`list_feature_values(execution_rids=[...])` → Python sort) is only 2
+round-trips and ~5-10 lines of caller code, well within what the LLM
+handles cleanly via the existing `compare-model-runs` skill body. By
+contrast, `lookup_lineage` was replacing 5-15 round-trips through a
+recursive parent-chain walk, a real ergonomic burden. The audit had
+grouped the three tools together, but on closer examination only two
+genuinely earn their cost. **`rank_executions` was removed from
+Round 6 scope.** See the "Scope reduction" section below for the full
+rationale.
+
+Six grilling questions resolved before the first reframing; one
+high-leverage architectural question after; one scope-reduction
+decision after `lookup_lineage` shipped.
 
 ## Audit findings revisited
 
@@ -21,13 +38,15 @@ The parent plan named three missing MCP tools that close real
 workflow gaps identified in the audit:
 
 - `deriva_ml_get_lineage(rid, depth=2)` — provenance traversal in
-  one call.
+  one call. **Shipped as `lookup_lineage` in deriva-ml v1.32.0.**
 - `deriva_ml_rank_executions(workflow_rid, by_feature, top_n=10,
   order="desc")` — server-side aggregation for the top-N pattern
-  that `compare-model-runs` walks through manually.
+  that `compare-model-runs` walks through manually. **Removed from
+  scope after re-examination — see "Scope reduction" below.**
 - `deriva_ml_validate_dataset_spec(specs=[{rid, version}])` —
   round-trips against the catalog to verify each (RID, version)
-  pair refers to an existing dataset version.
+  pair refers to an existing dataset version. **Pending implementation
+  via spawned task.**
 
 Plus three corresponding read-only resources (URI-addressable
 forms that wrap the tool logic).
@@ -37,6 +56,74 @@ input RID type (Q4-A: auto-detect), `depth` parameter semantics
 (Q4-B: unbounded by default with mandatory cycle avoidance) — when
 the user surfaced the architectural side-question that reshaped
 the round.
+
+## Scope reduction: `rank_executions` removed
+
+After `lookup_lineage` shipped (deriva-ml v1.32.0, commits
+`301d0ac` → `2ef7c3a`, plus PR #72 for documentation), a
+use-case re-examination of the remaining two tools surfaced that
+`rank_executions` had a much weaker motivation than the audit
+implied. The decision was to remove it from Round 6 scope.
+
+**The motivation comparison:**
+
+| Question | `lookup_lineage` motivation | `rank_executions` motivation |
+|---|---|---|
+| What does the manual version cost? | 5-15 round-trips, complex mental walk through parent chain, easy to get wrong | 2 round-trips + 5-10 lines of Python aggregation |
+| Is the manual version error-prone? | Yes — tree walk, type-detection, recursion | No — straightforward groupby + sort |
+| Is the operation domain-specific? | Yes — lineage walks DerivaML's graph structure | Mostly — but the aggregation is generic pandas/Python |
+| Does the LLM stumble on this regularly? | Yes — every "what produced this?" was a many-step recipe | Less so — the LLM writes the inline aggregation easily |
+| Is there a clear "wrong" alternative? | Yes — manual `lookup_execution` + parent traversal misses things | Not really — the existing 3-step pattern works |
+
+**The use-case examination:** The `compare-model-runs` skill names
+five user-facing questions. They cluster into three shapes:
+
+- **Top-N from a workflow** ("which of my last N runs got the best
+  F1?", "performance regression check") — the only shape that's
+  genuinely a *rank* operation.
+- **Show-me-everything** ("show me the recent training results") —
+  not a rank; just a list. Already served by the existing
+  `list_executions(workflow_rid=..., sort=True, limit=N)` +
+  `list_feature_values(execution_rids=[...])` pair.
+- **Hand-picked comparison** ("compare accuracy across these
+  executions") — caller already has the RIDs; just needs the values,
+  not a rank. Also already served.
+
+Only the top-N shape is genuinely a rank question, and that shape is
+served by the existing 3-step pattern in well-documented form. The
+LLM follows it cleanly via the `compare-model-runs` skill body.
+
+**The cost-benefit:** adding `rank_executions` would have created a
+new public method to maintain across the deriva-ml + deriva-ml-mcp
++ tier-2-skill chain, in exchange for saving ~5 lines of caller
+code. The audit had identified a gap that's largely a documentation
+success story, not a real ergonomic burden.
+
+**Skill-side consequence:** the tier-2 `compare-model-runs` skill
+stays as-is. There is no slim opportunity for Phase 2A in Round 6b;
+the skill's existing 3-step walkthrough remains the canonical
+pattern. (If a future audit identifies real LLM stumbling on the
+top-N pattern, `rank_executions` can be revisited then; the design
+work would not be expensive.)
+
+**Round 6 final scope:**
+
+| Tool | Status |
+|---|---|
+| `lookup_lineage` | ✅ Shipped in deriva-ml v1.32.0; docs in PR #72 |
+| `rank_executions` | ❌ Removed from scope (see above) |
+| `validate_dataset_spec` | ⏳ Pending — spawned task to design + implement |
+
+Round 6b's deriva-ml-mcp wrapper work also shrinks: instead of
+three new MCP tools + three resources, it ships two tools
+(`deriva_ml_get_lineage`, `deriva_ml_validate_dataset_spec`) and
+two resources (`deriva://catalog/{h}/{c}/ml/lineage/{rid}`,
+`deriva://catalog/{h}/{c}/ml/dataset/{rid}/spec`). The
+`deriva://catalog/{h}/{c}/ml/executions?status={status}` resource
+that was originally paired with `rank_executions` is also dropped
+from scope — its motivation was to filter the execution list for
+"show me what's failed," but that filter is already supported by
+the existing `deriva_ml_list_executions(status="Failed")` parameter.
 
 ## The architectural reframing (the load-bearing decision)
 
@@ -123,9 +210,9 @@ Three tasks queued via `mcp__ccd_session__spawn_task`. Each carries:
 
 The three tasks:
 
-1. **`get_lineage`** — provenance traversal. Auto-detect RID type; unbounded walk with cycle avoidance. Most-grilled of the three before this reframing — the headline tool.
-2. **`rank_executions`** — server-side top-N-by-metric. Replaces `compare-model-runs` Phase 2A walkthrough.
-3. **`validate_dataset_spec`** — bulk pre-flight validation of `(RID, version)` pairs from Hydra-zen configs. Replaces per-RID `get_entities` loops in `write-hydra-config`.
+1. **`get_lineage`** — ✅ shipped as `lookup_lineage` in deriva-ml v1.32.0 (commits `301d0ac` → `2ef7c3a`). Documentation landed in PR #72 (commit `4fab32a`). Auto-detect RID type; unbounded walk with cycle avoidance; data-flow parents only (per ADR-0001 in deriva-ml). Most-grilled of the three; the headline tool.
+2. **`rank_executions`** — ❌ removed from scope (see "Scope reduction" above). The 3-step manual pattern in `compare-model-runs` Phase 2A is well-served by existing tools; the convenience win didn't earn the maintenance cost across three repos.
+3. **`validate_dataset_spec`** — ⏳ pending. Bulk pre-flight validation of `(RID, version)` pairs from Hydra-zen configs. Replaces per-RID `get_entities` loops in `write-hydra-config`. Spawned task to design + implement.
 
 ## Operating principles confirmed
 
@@ -141,12 +228,13 @@ The three tasks:
 
 When this round ships fully:
 
-- All three deriva-ml methods (`get_lineage`, `rank_executions`, `validate_dataset_spec`) land via the spawned tasks.
+- `lookup_lineage` is done in deriva-ml (v1.32.0); docs in PR #72 (merged).
+- `validate_dataset_spec` lands via its spawned task (next).
 - A follow-up Round 6b runs in deriva-ml-skills + deriva-ml-mcp:
-  - Add three thin `deriva_ml_*` MCP tool wrappers in deriva-ml-mcp that call the new methods.
-  - Add three corresponding resources (`deriva://catalog/{h}/{c}/ml/lineage/{rid}`, `deriva://catalog/{h}/{c}/ml/executions?status={status}`, `deriva://catalog/{h}/{c}/ml/dataset/{rid}/spec`).
+  - Add two thin `deriva_ml_*` MCP tool wrappers in deriva-ml-mcp (`deriva_ml_get_lineage`, `deriva_ml_validate_dataset_spec`).
+  - Add two corresponding resources (`deriva://catalog/{h}/{c}/ml/lineage/{rid}`, `deriva://catalog/{h}/{c}/ml/dataset/{rid}/spec`).
   - Bump deriva-ml-mcp (likely v3.2.1 → v3.3.0 since adding new tools/resources).
-  - Slim tier-2 `compare-model-runs` Phase 2A and `write-hydra-config` validation section to use the new tools.
+  - Slim tier-2 `write-hydra-config` validation section to use the new validate-spec tool. (`compare-model-runs` Phase 2A stays as-is per the scope reduction.)
   - Update the session-handoff to mark Round 6 ✅ Done.
 
 The cross-repo asks raised in Round 2 (`add_instructions`, `exclude_paths` in deriva-mcp-core) remain in flight; neither has landed. Round 6b doesn't depend on either.

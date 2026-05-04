@@ -352,6 +352,29 @@ distinction is consistent and defensible.
 
 ### Round 6 — MCP tool and resource additions
 
+> **Status update (post-execution):** Round 6 was reshaped twice
+> during refinement and execution. See the
+> [Round 6 refinement addendum](2026-05-02-tier-2-audit-cleanup-plan-round-6-refinement.md)
+> for the canonical current scope. Headline changes from this
+> original framing:
+>
+> 1. The three operations belong in the **deriva-ml Python library**
+>    first, with thin deriva-ml-mcp wrappers (per ADR-0001's
+>    inheritance-with-override rule). The MCP-only framing below is
+>    superseded.
+> 2. **`rank_executions` was removed from scope** after a use-case
+>    re-examination — the manual 3-step pattern in `compare-model-runs`
+>    Phase 2A is well-served by existing tools and didn't earn the
+>    maintenance cost of a new method across three repos. The
+>    `deriva://catalog/{h}/{c}/ml/executions?status={status}` resource
+>    that paired with it was also dropped (the existing
+>    `deriva_ml_list_executions(status=...)` parameter already covers it).
+> 3. `lookup_lineage` shipped in deriva-ml v1.32.0; documentation in
+>    PR #72 (merged). `validate_dataset_spec` is the only remaining
+>    pending item before Round 6b (the deriva-ml-mcp wrapper round).
+>
+> The original framing below is preserved for historical reference.
+
 **Scope:** add the missing tools and resources identified in the MCP audit.
 This round touches `deriva-ml-mcp` source code (not just docs/skills), so
 it's the heaviest round and warrants its own placement.
