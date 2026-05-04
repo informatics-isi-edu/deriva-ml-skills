@@ -1,8 +1,7 @@
 ---
 name: catalog-operations-workflow
-description: "ALWAYS use when performing Deriva catalog operations that modify data (dataset creation, splitting, ETL, feature loading, data import). Generate a committed Python script for full code provenance tracking instead of using interactive MCP tools."
-user-invocable: false
-disable-model-invocation: true
+description: "Use when about to perform raw catalog mutations against a deriva-ml-loaded catalog — `insert_records`, `update_record`, `delete_record`, bulk loads, ETL, or any phrase like 'bypass the lifecycle' / 'just write directly'. Enforces script-based provenance discipline: a committed Python script, not interactive MCP, so the git hash records what ran. Fires before the mutation, not after."
+user-invocable: true
 ---
 
 # Script-Based Workflow for Catalog Operations

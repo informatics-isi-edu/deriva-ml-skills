@@ -1,0 +1,35 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  drift:
+    name: cross-reference drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: deriva-ml-skills
+
+      # Sibling tier-1 repo enables the `/deriva:` HARD check.
+      - name: Check out tier-1 deriva-skills
+        uses: actions/checkout@v4
+        with:
+          repository: informatics-isi-edu/deriva-skills
+          path: deriva-skills
+
+      # Sibling MCP repo enables the `deriva_ml_*` tool-registry HARD
+      # check.
+      - name: Check out deriva-ml-mcp
+        uses: actions/checkout@v4
+        with:
+          repository: informatics-isi-edu/deriva-ml-mcp
+          path: deriva-ml-mcp
+
+      - name: Run drift detector
+        working-directory: deriva-ml-skills
+        run: python3 scripts/check_drift.py
