@@ -184,26 +184,54 @@ General principles — descriptions should be specific, quantified, purposeful, 
 
 ## Validating Configs Against the Catalog
 
-Before running experiments, validate that all RIDs and versions in config files actually exist in the target catalog.
+Before running experiments, validate that all RIDs and versions in config files actually exist in the target catalog. Use one of two MCP tools depending on what you have:
 
-### Validation Checklist
+### Iterating on `datasets.py` — `deriva_ml_validate_dataset_specs`
 
-| Config Type | What to Validate | MCP Tool / Resource |
-|---|---|---|
-| `DatasetSpecConfig(rid=..., version=...)` | RID exists, version exists | `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (or resource `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}`) |
-| Asset RID strings `["3WS6"]` | RID exists in an asset table | `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid=...)` per RID, or `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` against the candidate asset table |
-| `AssetSpecConfig(rid=...)` | RID exists | Same as asset RID strings above |
-| `workflow_type="Training"` | Workflow type term exists | `lookup_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name="Training")` |
+When you're editing `src/configs/datasets.py` and want to confirm the `(RID, version)` pairs you typed actually resolve, use the singular validator:
 
-> **RID validation pattern:** call `get_entities(...)` (or the appropriate `deriva_ml_*` getter) per candidate table and treat an empty result as "not found".
+```
+deriva_ml_validate_dataset_specs(
+    hostname="data.example.org",
+    catalog_id="1",
+    specs=[
+        {"rid": "2-B4C8", "version": "0.4.0"},
+        {"rid": "2-XYZ9", "version": "1.0.0"},
+    ],
+)
+```
 
-### Validation Workflow
+Returns per-spec results with three failure modes (`rid_not_found`, `not_a_dataset`, `version_not_found`) and helpful detail (`available_versions` populated when the version is wrong — usually a typo). Fast: ~one round-trip per spec.
 
-1. **Pick the catalog** — note the `hostname` and `catalog_id` your `deriva_ml` config group resolves to; pass both into every MCP call below
-2. **Read the config files** and extract all RIDs and versions
-3. **Validate RIDs** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` against the candidate table for each RID, or use `deriva_ml_lookup_asset(...)` for assets; an empty result means the RID is not in that table
-4. **Check dataset versions** — for each `DatasetSpecConfig`, call `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` and verify the version exists
-5. **Report mismatches** — list any RIDs that don't exist, versions that are missing, or versions that are behind current
+### Pre-flight before `deriva-ml-run` — `deriva_ml_validate_execution_configuration`
+
+When you're about to run an experiment and want to confirm the whole `ExecutionConfiguration` resolves cleanly (datasets + assets + workflow + cross-spec consistency), use the composite validator:
+
+```
+deriva_ml_validate_execution_configuration(
+    hostname="data.example.org",
+    catalog_id="1",
+    config={
+        "workflow": {"name": "training_workflow", "url": "...", "checksum": "..."},
+        "datasets": [{"rid": "2-B4C8", "version": "0.4.0"}],
+        "assets": [{"rid": "3-WXYZ"}],
+    },
+)
+```
+
+Returns per-spec results (datasets, assets, workflow) plus cross-spec issues (`duplicate_rid`, `version_conflict`, `role_conflict`).
+
+> **Why not `dry_run=True`?** Setting `dry_run=True` on an Execution does validate the config, but by actually downloading every dataset bag and materializing every asset — minutes-to-hours and several GB of bandwidth. `validate_execution_configuration` is the cheap metadata-only alternative for fast iteration. See deriva-ml ADR-0002 for the full rationale.
+
+### Workflow-type term existence
+
+For workflow-type checks (separate from the workflow row itself), use:
+
+```
+lookup_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name="Training")
+```
+
+This is a tier-1 (`/deriva:`) tool, not a deriva-ml-specific surface — it's the right tool for any vocabulary-term existence check.
 
 ### Common Issues
 
