@@ -214,7 +214,7 @@ Common tier 1 failures:
 Run a real execution against your development dataset. This creates catalog records and tests the full pipeline end-to-end.
 
 ### Pre-flight checklist
-1. Confirm all RIDs by calling `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)` for assets)
+1. Validate the full config with `deriva_ml_validate_execution_configuration(hostname=..., catalog_id=..., config={...})` — one call confirms every dataset RID, every dataset version, every asset RID, the workflow, and surfaces cross-spec issues (duplicate RIDs, version conflicts, role conflicts). Cheap metadata-only pre-flight; doesn't pay the bag-download cost that `dry_run=True` does.
 2. `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — check cache status
 3. `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — pre-fetch if needed
 4. Code committed and version bumped (`bump_version(bump_type="patch")`)
@@ -258,7 +258,7 @@ If you don't already have one, see the `dataset-lifecycle` skill for:
 
 | Step | Tool | Purpose |
 |------|------|---------|
-| 1 | `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": rid})` per candidate table (or `deriva_ml_lookup_asset(...)`) | All RIDs and versions exist |
+| 1 | `deriva_ml_validate_execution_configuration(hostname=..., catalog_id=..., config={...})` | Confirms all dataset RIDs + versions exist, all asset RIDs exist, workflow is valid, no cross-spec conflicts — single metadata-only call (cheaper than dry_run, which downloads bags) |
 | 2 | `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=...)` | Check dataset sizes and cache status |
 | 3 | `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid=...)` | Pre-fetch large datasets |
 | 4 | `uv run bump-version <type>` (or `bump_version("<type>")` MCP) | Tag the code version — see decision matrix below for `<type>` |

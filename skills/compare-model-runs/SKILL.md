@@ -216,9 +216,15 @@ Once the user runs the script and pastes the results back into the conversation,
 - `references/jsonl-asset-pattern.md` — Worked example for Pattern B with the local Python script template.
 - `rag_search("metrics", doc_type="catalog-schema")` — Discover whether a catalog has a `Metrics_File` asset type or a `Metrics` feature defined.
 
+## After finding the winner — confirm provenance
+
+Once you've identified the best-performing execution, the natural next question is "what was different about that run?" — which dataset version, which workflow git commit, which input assets. Don't reconstruct that manually from execution metadata; use `deriva_ml_get_lineage(hostname=..., catalog_id=..., rid="<execution-rid>")` to walk the full data-flow chain in one call. The response includes the producing-execution chain plus consumed datasets (with versions) and consumed assets, all back to the root.
+
+Lineage is especially useful when the metric difference between runs is suspiciously large — it's often a dataset-version drift (one run trained on v0.4.0, another on v0.5.0) or an asset swap (different pretrained checkpoint), and lineage surfaces both immediately.
+
 ## Related skills
 
 - **`execution-lifecycle`** — How executions are created and what metadata they carry. Read this first if the user is running NEW experiments rather than analyzing past ones.
 - **`create-feature`** — How to define a Feature for metrics-as-scalars. Useful if the user wants to ADD this pattern to their workflow.
 - **`work-with-assets`** — How to download asset bytes locally. Phase 2B's local-Python step is in this skill's domain.
-- **`troubleshoot-execution`** — When the recent runs returned by `list_executions` aren't in `Uploaded` state and you need to diagnose why.
+- **`troubleshoot-execution`** — When the recent runs returned by `list_executions` aren't in `Uploaded` state and you need to diagnose why. Also covers `deriva_ml_get_lineage` for tracing artifacts back to their producing executions.

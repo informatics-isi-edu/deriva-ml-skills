@@ -181,6 +181,25 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 - **Tool**: `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` to see descendants if the execution is the parent of a multirun or pipeline.
 - **Tool**: `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` to find ancestors if this is a nested step.
 
+> **Orchestration vs data-flow:** the `list_execution_children` / `list_execution_parents` calls above walk the **orchestration** graph (which Execution called which — `Execution_Execution` table). For the **data-flow** graph (what produced this output? which dataset trained the model?), use `deriva_ml_get_lineage(hostname, catalog_id, rid=...)` instead — see "Trace an artifact's provenance" below.
+
+### Trace an artifact's provenance
+
+When the question is "where did this output come from?" or "why does this prediction look wrong?", walk the data-flow chain in one call:
+
+```
+deriva_ml_get_lineage(hostname="data.example.org", catalog_id="1", rid="<asset-or-feature-or-dataset-rid>")
+```
+
+Returns a tree of producing executions back to the root: which Execution produced this artifact, which Datasets and Assets it consumed, which Executions produced those, recursively. Replaces what would otherwise be 5-15 round-trips through typed reads.
+
+Pass any artifact RID (Dataset, Asset, Feature value, or Execution); the tool auto-detects the type. Pass `depth=N` to cap the walk; default is unbounded. Cycle-safe.
+
+This is the right tool when:
+- A model prediction looks wrong and you want to confirm which training dataset version it came from.
+- A feature value disagrees with what you expected and you want to identify which annotation execution wrote it.
+- Reproducing a result requires confirming the exact (dataset RID, dataset version, workflow RID, workflow git commit) tuple that produced an asset.
+
 ### Verify Working Directory
 
 - **Tool**: Python API `exe.working_dir` returns the local filesystem path for the active execution.
