@@ -29,11 +29,15 @@ rag_search("image assets files", doc_type="catalog-schema")
 rag_search("model weights checkpoints", doc_type="catalog-schema")
 ```
 
-For the full list, call `deriva_ml_list_asset_tables(hostname="data.example.org", catalog_id="1")`.
+For the full list across all schemas, call `deriva_ml_list_asset_tables(hostname="data.example.org", catalog_id="1")`.
+
+For a schema-scoped list, read the resource `deriva://catalog/{h}/{c}/ml/assets/{schema}` (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain schema). Same-named asset tables in different schemas are disambiguated by the schema segment.
 
 ### Browsing assets in a table
 
-Call `deriva_ml_list_assets(hostname="data.example.org", catalog_id="1", asset_table="Image")` to see all assets in a specific table with their RIDs, filenames, sizes, types, and descriptions.
+For a bounded snapshot of one asset table, read `deriva://catalog/{h}/{c}/ml/assets/{schema}/{asset_table}` — returns up to the resource limit of assets in that table with `truncated` and `next_after_rid` set when the table exceeds the cap.
+
+For a paginated, filterable browse, call `deriva_ml_list_assets(hostname="data.example.org", catalog_id="1", asset_table="Image")` to see all assets in a specific table with their RIDs, filenames, sizes, types, and descriptions.
 
 To query with filters, call `query_attribute(hostname="data.example.org", catalog_id="1", schema=<schema>, table="Image", filter={"Subject": "2-A1B2"})`. (Replaces the legacy `preview_table` for filtered queries.)
 

@@ -93,7 +93,8 @@ Or read the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid
 - `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}` — Execution details and status
 - `deriva://catalog/{hostname}/{catalog_id}/ml/executions` — Browse recent executions
 - `deriva://catalog/{hostname}/{catalog_id}/ml/workflows` — Available workflows
-- `deriva://catalog/{hostname}/{catalog_id}/ml/registries` — Workflow type and dataset type vocabulary terms
+- `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/deriva-ml/Workflow_Type` — Workflow type vocabulary terms
+- `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/deriva-ml/Dataset_Type` — Dataset type vocabulary terms
 
 Prefer typed tool calls: `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_list_workflows`.
 

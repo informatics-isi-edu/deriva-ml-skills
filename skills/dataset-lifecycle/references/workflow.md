@@ -26,7 +26,7 @@ Before creating a dataset, review what already exists:
 
 - Use `rag_search("your purpose", doc_type="catalog-data")` to find existing datasets by description, type, or purpose. Fall back to `deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")` for the full structured list.
 - Use `rag_search("dataset types", doc_type="catalog-schema")` to find dataset type terms. Fall back to `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type")` for the full list.
-- Read `deriva://catalog/{h}/{c}/ml/registries` to see which tables are registered as element types.
+- Call `deriva_ml_list_dataset_element_types(hostname, catalog_id)` to see which tables are registered as element types.
 
 ### MCP Tools
 

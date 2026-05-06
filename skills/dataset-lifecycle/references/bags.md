@@ -345,5 +345,6 @@ DatasetSpecConfig(rid="28EA", version="0.4.0", exclude_tables=["Study", "Institu
 | Python API bag inspection | Cross-validate bag contents against live catalog |
 | `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
 | `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` | Preview FK paths and tables before downloading |
-| `deriva://catalog/{h}/{c}/ml/registries` | Element types and other ML registries |
+| `deriva_ml_list_dataset_element_types` | Tables registered as element types (catalog-wide or per-dataset) |
+| `deriva://catalog/{h}/{c}/ml/vocabularies/deriva-ml` | Browse the deriva-ml vocabularies (Dataset_Type, Workflow_Type, Asset_Type, Execution_Status) |
 | `deriva://storage/cache` | View cached bags |

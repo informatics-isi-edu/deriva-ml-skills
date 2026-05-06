@@ -38,6 +38,24 @@ These are the surface DerivaML adds on top of plain Deriva. Each is stored as on
 | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | `deriva_ml_create_feature`, `deriva_ml_add_feature_values` |
 | **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and uploaded by `exe.upload_execution_outputs()`. | `work-with-assets` | `deriva_ml_list_asset_tables`, `deriva_ml_lookup_asset`, `deriva_ml_update_asset` |
 
+### Core ML resources
+
+The plugin exposes a `deriva://catalog/{hostname}/{catalog_id}/ml/...` resource family for read-only browsing of the abstractions above. Singular vs plural is semantic: singular = one-by-RID, plural = a collection.
+
+| URI | Returns |
+|---|---|
+| `ml/datasets`, `ml/dataset/{rid}` | Datasets list / one dataset |
+| `ml/workflows`, `ml/workflow/{rid}` | Workflows list / one workflow |
+| `ml/executions`, `ml/execution/{rid}` | Executions list / one execution |
+| `ml/features/{table}` | Features defined on a target table |
+| `ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the four built-ins, or your domain schema) |
+| `ml/vocabularies/{schema}/{vocab_name}` | Full term list for one vocabulary (name, rid, description, synonyms, CURIE, URI) |
+| `ml/assets/{schema}` | Asset tables in one schema |
+| `ml/assets/{schema}/{asset_table}` | Snapshot of assets in one asset table |
+| `ml/asset/{rid}` | One asset by RID |
+
+For paginated access to assets, prefer the `deriva_ml_list_assets` tool. For element-type discovery (which tables can contribute dataset members), use the purpose-built `deriva_ml_list_dataset_element_types` tool.
+
 ## The rule: inheritance with override
 
 The deriva-ml plugin **extends** the deriva plugin. Everything that applies in a Deriva catalog applies in a deriva-ml catalog by default. **Override:** if a deriva-ml surface exists for an operation, prefer it over the equivalent deriva surface. This applies symmetrically on all three planes:

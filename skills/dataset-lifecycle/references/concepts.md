@@ -143,8 +143,8 @@ Registration creates the association table (`Dataset_{TableName}`) that links da
 Understanding which element types are available is an early planning step — it determines what kind of data can go into your dataset. Check what's registered before deciding what to include:
 
 ```
-# MCP — element types appear under the ML registries resource
-Read resource: deriva://catalog/{h}/{c}/ml/registries
+# MCP — purpose-built tool for element-type discovery
+deriva_ml_list_dataset_element_types(hostname, catalog_id)
 ```
 
 ```python
@@ -468,9 +468,9 @@ Element types determine which tables can contribute members. Check what's availa
 
 ```
 # MCP — catalog-wide registered element types
-Read resource: deriva://catalog/{h}/{c}/ml/registries
+deriva_ml_list_dataset_element_types(hostname="data.example.org", catalog_id="1")
 
-# Or per-dataset element types
+# Or per-dataset element types (scoped to one dataset)
 deriva_ml_list_dataset_element_types(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 ```
 
@@ -705,7 +705,7 @@ Deletion removes the dataset container and member associations, not the member r
 | Lookup by RID | `deriva_ml_get_dataset(rid)` | `ml.lookup_dataset(rid)` | Get specific dataset |
 | List members | `deriva_ml_list_dataset_members` | `dataset.list_dataset_members()` | Grouped by table; supports `version`, `recurse`, `limit` |
 | List relations (parents + children) | `deriva_ml_list_dataset_relations` | `dataset.list_dataset_relations()` | Both directions in one call; supports `recurse`, `version` |
-| Check element types | `deriva_ml_list_dataset_element_types` or `deriva://catalog/{h}/{c}/ml/registries` | `ml.list_dataset_element_types()` | Per-dataset or catalog-wide |
+| Check element types | `deriva_ml_list_dataset_element_types` | `ml.list_dataset_element_types()` | Per-dataset or catalog-wide |
 | List executions | `deriva_ml_get_dataset` (includes provenance) | — | Provenance: which runs used this dataset |
 | Validate RIDs | `get_entities(filter={"RID": "..."})` per candidate table; check for empty result | — | The legacy validate_rids tool was removed; use generic entity fetch |
 | Bag info / size estimate | `deriva_ml_bag_info` (subsumes legacy estimate_bag_size) | `dataset.estimate_bag_size()` | Preview before download |

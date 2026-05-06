@@ -22,7 +22,7 @@
     {
       "id": 4,
       "prompt": "We're starting a new ophthalmology project and need to set up dataset types. We have fundus images and OCT scans. Some are labeled by experts, some are auto-generated labels from a model, and some are unlabeled. We also have data from two different clinical sites.",
-      "expected_output": "Should apply orthogonal tagging principles. Should identify 4 dimensions: partition role (built-in), annotation status (Labeled/Unlabeled already exist), imaging modality (new: Fundus, OCT), annotation source (new: Expert_Reviewed, Auto_Generated), and data source (new: Site_A, Site_B or similar). Should check existing types first via deriva://catalog/{h}/{c}/ml/registries. Should warn against compound types like 'LabeledFundus'. Should explain the substitution test.",
+      "expected_output": "Should apply orthogonal tagging principles. Should identify 4 dimensions: partition role (built-in), annotation status (Labeled/Unlabeled already exist), imaging modality (new: Fundus, OCT), annotation source (new: Expert_Reviewed, Auto_Generated), and data source (new: Site_A, Site_B or similar). Should check existing types first via deriva://catalog/{h}/{c}/ml/vocabularies/deriva-ml/Dataset_Type. Should warn against compound types like 'LabeledFundus'. Should explain the substitution test.",
       "files": []
     },
     {

@@ -16,7 +16,7 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 Before creating a dataset, determine whether an existing one can be reused, extended, or split. The find-before-you-create discipline is carried by `/deriva:semantic-awareness` *(tier-1, deriva-skills, auto-fires)* — its synonym/abbreviation/spelling-variant search expansion applies to ML entities (Datasets) as well as generic catalog entities. The same skill covers the EAV-vs-wide-table dual extreme, which is worth knowing when designing the *element-type* tables a dataset will draw members from.
 
 1. **Search existing datasets.** `rag_search("your purpose", doc_type="catalog-data")` finds datasets by description, type, or purpose. Fall back to `deriva_ml_list_datasets(hostname, catalog_id)` for the full structured list. Use `get_table_sample_data(...)` to understand how much data is available.
-2. **Check available element types.** Read `deriva://catalog/{h}/{c}/ml/registries` to see which tables can contribute members. If the table you need isn't registered, call `deriva_ml_add_dataset_element_type(hostname, catalog_id, element_table=...)`.
+2. **Check available element types.** Call `deriva_ml_list_dataset_element_types(hostname, catalog_id)` to see which tables can contribute members. If the table you need isn't registered, call `deriva_ml_add_dataset_element_type(hostname, catalog_id, element_table=...)`.
 3. **Decide: reuse, extend, or create.**
 
 | Situation | Action |
@@ -116,7 +116,9 @@ Once a dataset is created and versioned, there are several ways to consume it.
 - `references/type-naming-strategy.md` — DerivaML-specific built-in `Dataset_Type` dimensions, composing multiple types, imaging-domain examples
 - `rag_search("...", doc_type="catalog-data")` — Discover datasets by description, type, or purpose
 - `deriva_ml_list_datasets(hostname, catalog_id)` — Full structured list of all datasets
-- `deriva://catalog/{h}/{c}/ml/registries` — Element types, dataset types, and other ML registries
+- `deriva_ml_list_dataset_element_types(hostname, catalog_id)` — Tables registered as element types (can contribute dataset members)
+- `deriva://catalog/{h}/{c}/ml/vocabularies/deriva-ml` — All deriva-ml vocabularies (Dataset_Type, Workflow_Type, Asset_Type, Execution_Status, plus any user-added ones)
+- `deriva://catalog/{h}/{c}/ml/vocabularies/deriva-ml/Dataset_Type` — Drill into Dataset_Type terms (use other vocab names similarly)
 - `deriva://docs/datasets` — Full user guide to datasets in DerivaML
 
 ## Related Skills

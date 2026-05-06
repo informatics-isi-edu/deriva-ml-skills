@@ -87,6 +87,14 @@ Asset tables also get automatically created **association tables**:
 - An **Asset_Type association** — links each asset to vocabulary terms categorizing it
 - An **Execution association** — tracks which executions created or used each asset, with a role of "Input" or "Output"
 
+### Browsing asset tables
+
+The plugin exposes schema-scoped resources for asset discovery:
+
+- `deriva://catalog/{h}/{c}/ml/assets/{schema}` — list asset tables in one schema (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain).
+- `deriva://catalog/{h}/{c}/ml/assets/{schema}/{asset_table}` — snapshot of assets in one asset table. The snapshot is bounded; large tables surface a `truncated` flag and a `next_after_rid` cursor — at that point, switch to the paginated `deriva_ml_list_assets` tool for the full traversal.
+- `deriva://catalog/{h}/{c}/ml/asset/{rid}` — one asset by RID (singular; same shape as `deriva_ml_lookup_asset`).
+
 ## Asset RIDs
 
 Every asset has a unique **RID** (Resource IDentifier) — a short, immutable string like `3-JSE4` or `2-IMG1`. RIDs are the primary way to reference assets across the system:

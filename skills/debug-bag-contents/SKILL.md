@@ -37,7 +37,7 @@ Dataset members are the explicit records that belong to a dataset. If data is mi
 
 Every table that contributes members to a dataset must be registered as a **dataset element type**. If a table is not registered, its members will be silently excluded from the bag.
 
-- **Resource**: Read `deriva://catalog/{h}/{c}/ml/registries` to see which tables are registered as element types in the catalog.
+- **Tool**: `deriva_ml_list_dataset_element_types(hostname="data.example.org", catalog_id="1")` to see which tables are registered as element types in the catalog.
 - **Tool**: `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", element_table="<table>")` to register a table as an element type if it is missing.
 - Common tables that should be registered: `Subject`, `Observation`, `Image` (or other asset tables), and any custom tables whose records appear as dataset members.
 
@@ -163,7 +163,7 @@ Use the validation tool to get a detailed comparison of expected vs. actual bag 
 
 For each registered element type, examine the FK paths that the export will follow.
 
-- **Resource**: Read `deriva://catalog/{h}/{c}/ml/registries` to see element types and the projected FK paths each will follow.
+- **Tool**: `deriva_ml_list_dataset_element_types(hostname, catalog_id)` to see element types and the projected FK paths each will follow.
 - Look for:
   - **Missing links**: Tables you expect to be reachable but are not connected by FKs.
   - **Indirect paths**: FK chains that go through intermediate tables, which may not be traversed if those intermediates are not included.
@@ -239,7 +239,7 @@ Use this checklist when data is missing from a bag:
    - If not: `deriva_ml_add_dataset_members`.
 
 2. **Is the table a registered element type?**
-   - Read `deriva://catalog/{h}/{c}/ml/registries`.
+   - `deriva_ml_list_dataset_element_types(hostname, catalog_id)`.
    - If not: `deriva_ml_add_dataset_element_type`.
 
 3. **Is there a direct FK path?**
@@ -264,7 +264,7 @@ Use this checklist when data is missing from a bag:
 
 - `deriva://docs/datasets` — Full guide to bag export traversal, FK paths, and troubleshooting. Read this for detailed examples and edge cases beyond what this skill covers.
 - `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` — Preview bag contents before downloading
-- `deriva://catalog/{h}/{c}/ml/registries` — Check which element types are registered
+- `deriva_ml_list_dataset_element_types(hostname, catalog_id)` — Check which element types are registered
 
 ## Related Tools
 
