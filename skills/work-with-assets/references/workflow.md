@@ -121,13 +121,13 @@ Call Python API `exe.working_dir` to find the local path where downloaded assets
 
 ## Creating Asset Tables
 
-> **Known gap:** the legacy `create_asset_table` shortcut is gone. Build the table by hand using the tier-1 `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK, plus the necessary association tables.
+> **Known gap:** the legacy `create_asset_table` shortcut is gone. Build the table by hand using the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK, plus the necessary association tables.
 
 See `concepts.md` → "Creating an Asset Table (Manual Recipe)" for the full step-by-step recipe. Summary:
 
-1. Call `create_table(hostname, catalog_id, schema=..., table=..., columns=[...])` with the standard hatrac columns (`URL`, `Filename`, `Length`, `MD5`, `Description`) plus any custom metadata columns. *(`create_table` is a tier-1 deriva-mcp-core tool — see `/deriva:create-table`.)*
+1. Call `create_table(hostname, catalog_id, schema=..., table=..., columns=[...])` with the standard hatrac columns (`URL`, `Filename`, `Length`, `MD5`, `Description`) plus any custom metadata columns. *(`create_table` is a `deriva-mcp-core` tool — see `/deriva:create-table`.)*
 2. Add the new table name as a term in the `Asset_Type` vocabulary: `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name="<TableName>", description=...)`.
-3. Add an `Asset_Type` foreign-key column on the new table (use the tier-1 `add_column` + `create_foreign_key` tools).
+3. Add an `Asset_Type` foreign-key column on the new table (use the deriva-skills `add_column` + `create_foreign_key` tools).
 4. Optionally add domain FK columns (e.g., `Image` → `Subject`).
 5. Apply visible-columns / table-display annotations as needed (immediate-apply — there is no `apply_annotations()` staging step in the new MCP server).
 

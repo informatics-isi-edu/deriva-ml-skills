@@ -4,9 +4,9 @@ This file provides guidance to Claude Code when working with the deriva-ml-skill
 
 ## Project Overview
 
-Claude Code plugin providing 27 tier-2 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
+Claude Code plugin providing 27 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
 
-This plugin is the **tier-2** surface — the DerivaML-specific surface. It depends on the **tier-1** [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin (the core Deriva catalog ecosystem) and the [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) MCP plugin loaded by `deriva-mcp-core`. See `../deriva-skills/docs/superpowers/plans/2026-04-27-skills-restructure.md` for the rationale and migration history.
+The plugin assumes the [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin is also loaded — the README's install procedure brings in both — and assumes a `deriva-mcp-core` server with the [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) plugin loaded is reachable. Cross-references to `/deriva:<skill>` are written as if those skills are present; `deriva_ml_*` MCP tools assume the server is up. (The plugin-level `dependencies` field that would enforce the deriva-skills assumption at install time is a planned follow-up.) See [`deriva-skills/docs/superpowers/plans/2026-04-27-skills-restructure.md`](https://github.com/informatics-isi-edu/deriva-skills/blob/main/docs/superpowers/plans/2026-04-27-skills-restructure.md) for the rationale behind the two-plugin split.
 
 ## Commands
 
@@ -30,7 +30,7 @@ claude --plugin-dir /path/to/deriva-ml-skills
 
 ```
 
-Versioning and updates are documented in `skills/troubleshoot-execution/SKILL.md` ("Versioning and updates" section). The three DerivaML components — deriva-ml, deriva-ml-mcp, the deriva-ml plugin — each have their own update path; there is no unified version-checker tool in the plugin (the previous `check-deriva-ml-versions` skill was deleted because its bash examples referenced a deleted tier-1 script, and `autoUpdate: true` for plugins / `server_status` for the server / `uv pip show` for the library all became reliable enough that wrapping them in a custom skill no longer earned its weight). The tier-1 equivalent is `skills/troubleshoot-deriva-errors/SKILL.md` for the foundation (deriva-py, deriva-mcp-core, deriva plugin); check the foundation first since the DerivaML stack depends on it.
+Versioning and updates are documented in `skills/troubleshoot-execution/SKILL.md` ("Versioning and updates" section). The three DerivaML components — deriva-ml, deriva-ml-mcp, the deriva-ml plugin — each have their own update path; there is no unified version-checker tool in the plugin (the previous `check-deriva-ml-versions` skill was deleted because its bash examples referenced a deleted script in the deriva plugin, and `autoUpdate: true` for plugins / `server_status` for the server / `uv pip show` for the library all became reliable enough that wrapping them in a custom skill no longer earned its weight). The deriva-skills equivalent is `skills/troubleshoot-deriva-errors/SKILL.md` for the foundation (deriva-py, deriva-mcp-core, deriva plugin); check the foundation first since the DerivaML stack depends on it.
 
 **Release mechanics:** `bump-version` triggers GitHub Actions, which
 bumps version in `plugin.json`, commits back to main, and creates the
@@ -45,7 +45,7 @@ meta-marketplace's `marketplace.json` is **not** auto-bumped — see
 ```
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest (name, version, description) — read by Claude Code after install
-├── skills/                   # 27 tier-2 skills, each in its own directory; the marketplace lives in the deriva-plugins repo and lists each one by path
+├── skills/                   # 27 skills, each in its own directory; auto-discovered by Claude Code from `skills/*/SKILL.md`
 │   ├── {skill-name}/
 │   │   ├── SKILL.md          # Frontmatter (YAML) + skill content (Markdown)
 │   │   ├── scripts/          # Optional Python helper scripts
@@ -59,9 +59,9 @@ meta-marketplace's `marketplace.json` is **not** auto-bumped — see
     └── release-drafter.yml   # Release notes template
 ```
 
-### Skill Organization (tier-2)
+### Skill Organization
 
-The 27 tier-2 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
+The 27 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
 
 **User commands (`/deriva-ml:<name>`)** — `user-invocable: true` or unset; the user types the command or asks a question that maps to it:
 
@@ -154,24 +154,22 @@ This step is currently manual. A future improvement (deferred for now) is a GitH
 
 ## Cross-plugin coordination
 
-The companion `deriva-skills` plugin (tier-1) is a documented dependency:
+The plugin assumes `deriva-skills` is loaded — the README's install procedure brings in both, and skill-internal cross-references to `/deriva:<skill>` are written without "if you have it installed" hedging. (This is a documentation assumption, not yet enforced at install time; the `dependencies` field in `plugin.json` that would auto-install `deriva-skills` is a planned follow-up.) Three coordination points apply:
 
-- **Steering principle (load-bearing):** when the deriva-ml plugin is loaded, the DerivaML abstractions (Dataset, Workflow, Execution, Feature, Asset_Type vocabularies) take precedence over the raw catalog primitives that `deriva-skills` documents. Use the `/deriva-ml:` skills and the deriva-ml Python API for these concepts — not the raw `insert_records` / `update_record` / `get_record` core tools. The `deriva-ml-context` always-on skill carries this principle plugin-wide; per-skill steering callouts in select tier-1 skills (`troubleshoot-deriva-errors`, `manage-vocabulary`) reinforce it for users who arrive in those skills directly.
-- **Cross-references TO tier-1 skills:** when a tier-2 skill needs a generic catalog operation (auth troubleshooting, schema introspection, generic vocab CRUD, custom domain table creation), use `/deriva:<skill-name>` references with explicit `(tier-1; deriva-skills)` annotation so users know they need the companion plugin installed.
-- **Versioning:** the `check-deriva-versions` and `check-deriva-ml-versions` skills were both deleted (tier-1 commit `b407acf`; tier-2 May 2026 restructure). Versioning content now lives in `troubleshoot-deriva-errors` (tier-1) and `troubleshoot-execution` (tier-2) as "Versioning and updates" sections. Foundation comes first; check tier-1 versions before tier-2.
-- **Release coordination:** the two plugins are independently versioned and released. A tier-1 release does NOT automatically bump tier-2; coordinate manually when a tier-1 change has tier-2 implications.
+- **Steering principle (load-bearing):** when this plugin is loaded, the DerivaML abstractions (Dataset, Workflow, Execution, Feature, Asset_Type vocabularies) take precedence over the raw catalog primitives that `deriva-skills` documents. Use the `/deriva-ml:` skills and the deriva-ml Python API for these concepts — not the raw `insert_records` / `update_record` / `get_record` core tools. The `deriva-ml-context` always-on skill carries this principle plugin-wide; per-skill steering callouts in select `deriva-skills` skills (`troubleshoot-deriva-errors`, `manage-vocabulary`) reinforce it for users who arrive in those skills directly.
+- **Cross-references to `deriva-skills` skills:** when a skill here needs a generic catalog operation (auth troubleshooting, schema introspection, generic vocab CRUD, custom domain table creation), use `/deriva:<skill-name>` references with `(deriva-skills)` as the disambiguating annotation — no `tier-1`/`tier-2` framing.
+- **Versioning:** the `check-deriva-versions` and `check-deriva-ml-versions` skills were both deleted (`deriva-skills` commit `b407acf`; this repo May 2026 restructure). Versioning content now lives in `troubleshoot-deriva-errors` (deriva-skills) and `troubleshoot-execution` (this repo) as "Versioning and updates" sections. The deriva-skills foundation comes first; check it before the DerivaML stack since the latter depends on it.
+- **Release coordination:** the two plugins are independently versioned and released. A `deriva-skills` release does NOT automatically bump this plugin; coordinate manually when a `deriva-skills` change has implications here.
 
-### One marketplace: `deriva-plugins`
+### Distribution: the `deriva-plugins` marketplace
 
-The only supported install path is the unified [`informatics-isi-edu/deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins) marketplace, which lists both `deriva` (the tier-1 companion) and `deriva-ml` (this plugin). The previous per-repo single-plugin marketplace (`informatics-isi-edu/deriva-ml-skills` with a `.claude-plugin/marketplace.json` at the repo root, `source: ./`) was removed in May 2026 — there's now exactly one place where the skill list and version pin live.
+The supported install path is the [`informatics-isi-edu/deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins) marketplace. Users `/plugin marketplace add` it once, then `/plugin install deriva` and `/plugin install deriva-ml`. The marketplace lists both plugins side-by-side; installing this one does not yet pull in `deriva-skills` automatically (planned follow-up via `dependencies`).
 
-Practical implications:
+Practical implications for this repo:
 
-- This repo no longer carries a `marketplace.json`. Only `.claude-plugin/plugin.json` lives here.
+- This repo carries only `.claude-plugin/plugin.json` — the per-plugin manifest Claude Code reads after install. There is no `marketplace.json` here; the marketplace lives in the `deriva-plugins` repo.
 - `bump-version` only rewrites `plugin.json` (and the `[tool.bumpversion] current_version`); the `pyproject.toml` block lists no marketplace entry. It does **not** touch the meta-marketplace's pin — see "Bumping the meta-marketplace" under Release Process for the manual follow-up.
 - The skill list is **auto-discovered** by Claude Code from `skills/*/SKILL.md` in the cloned repo — no enumeration is needed in either `plugin.json` or the meta-marketplace's `marketplace.json`. Add a skill by creating `skills/<name>/SKILL.md`; it loads on the next plugin update.
-
-The companion `deriva-skills` plugin (tier-1) ships its plugin manifest the same way — `plugin.json` only — and is listed alongside this plugin in the same meta-marketplace.
 
 ## Cross-Repo Sync: `deriva-ml-context` skill ↔ `deriva_ml_concepts` prompt
 
@@ -238,8 +236,8 @@ the two remaining content pairs.
 - **Eval workspace dirs would auto-discover as skills if they had a SKILL.md** — `evals/<skill>/iteration-*/` directories live under `evals/`, not `skills/`, so auto-discovery won't pick them up. But don't accidentally drop a `SKILL.md` into `skills/` for a workspace artifact, or it will load.
 - **Scripts must handle minimal PATH** — Claude Code (especially inside the Desktop app) may not source shell profiles, so `$PATH` can be incomplete. Use `_find_uv()` pattern: try `shutil.which()` first, then check well-known locations (`~/.local/bin/`, `~/.cargo/bin/`, `/opt/homebrew/bin/`). Never assume `uv` or other tools are on PATH.
 - **Skill names must be unique** — the directory name under `skills/` is the skill identifier. Renaming a directory changes the `/deriva-ml:` command.
-- **Cross-references matter** — when renaming or removing a skill, grep for its name across all other skills' `SKILL.md` and `references/*.md` files. Pay special attention to cross-references into `deriva-skills` — those land at `/deriva:<skill>` and depend on the user having the tier-1 plugin installed (which they should, but the reference text should make the dependency explicit).
-- **No tier-1 carry-over** — this repo was carved out of `deriva-skills` via a no-history-preserved import (per the migration plan). The tier-1 surface is fundamentally separate; do not attempt to merge the two repos back together.
+- **Cross-references matter** — when renaming or removing a skill, grep for its name across all other skills' `SKILL.md` and `references/*.md` files. Pay special attention to cross-references into `deriva-skills` — those land at `/deriva:<skill>` and assume the deriva-skills plugin is loaded (per the assumption stated in Cross-plugin coordination above).
+- **No `deriva-skills` carry-over** — this repo was carved out of `deriva-skills` via a no-history-preserved import (per the migration plan). The two repos' contents are fundamentally separate; do not attempt to merge them back together.
 - **`[tool.bumpversion]` config required** — `bump-version` wraps `bump-my-version` which needs `[tool.bumpversion]` in `pyproject.toml` with `tag = true` and `commit = true`. Without it, no tag or commit is created.
 - **Never use `bump-my-version` directly** — always use `uv run bump-version patch|minor|major` which is the DerivaML CLI wrapper. Using `bump-my-version bump` directly bypasses project-specific logic.
 

@@ -13,7 +13,7 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 
 ## Phase 1: Assess
 
-Before creating a dataset, determine whether an existing one can be reused, extended, or split. The find-before-you-create discipline is carried by `/deriva:semantic-awareness` *(tier-1, deriva-skills, auto-fires)* — its synonym/abbreviation/spelling-variant search expansion applies to ML entities (Datasets) as well as generic catalog entities. The same skill covers the EAV-vs-wide-table dual extreme, which is worth knowing when designing the *element-type* tables a dataset will draw members from.
+Before creating a dataset, determine whether an existing one can be reused, extended, or split. The find-before-you-create discipline is carried by `/deriva:semantic-awareness` *(deriva-skills, auto-fires)* — its synonym/abbreviation/spelling-variant search expansion applies to ML entities (Datasets) as well as generic catalog entities. The same skill covers the EAV-vs-wide-table dual extreme, which is worth knowing when designing the *element-type* tables a dataset will draw members from.
 
 1. **Search existing datasets.** `rag_search("your purpose", doc_type="catalog-data")` finds datasets by description, type, or purpose. Fall back to `deriva_ml_list_datasets(hostname, catalog_id)` for the full structured list. Use `get_table_sample_data(...)` to understand how much data is available.
 2. **Check available element types.** Call `deriva_ml_list_dataset_element_types(hostname, catalog_id)` to see which tables can contribute members. If the table you need isn't registered, call `deriva_ml_add_dataset_element_type(hostname, catalog_id, element_table=...)`.
@@ -44,7 +44,7 @@ Types describe **independent dimensions** of a dataset — orthogonal tags, not 
 
 Built-in dimensions: partition role (`Training`, `Testing`, `Validation`, `Complete`, `Split`) and annotation status (`Labeled`, `Unlabeled`). Apply at least one type — untyped datasets are hard to discover. Compose types freely across dimensions (`Training` + `Labeled` + `Fundus`); never compound them (`TrainingLabeled` is wrong).
 
-For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(tier-1, deriva-skills)*.
+For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
 
 ## Phase 3: Create
 

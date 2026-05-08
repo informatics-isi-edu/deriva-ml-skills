@@ -1,6 +1,6 @@
 ---
 name: troubleshoot-execution
-description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, or produces unexpected results. Tier-2: covers errors specific to the deriva-ml execution lifecycle (asset_file_path, upload_execution_outputs, stuck Running status, dataset version mismatch, missing features). Also covers checking and updating the three DerivaML components (deriva-ml Python lib, deriva-ml-mcp MCP server, deriva-ml-skills plugin) — version mismatches between them are a common cause of confusing errors. For generic catalog errors (auth, permissions, invalid RID, missing record), see the tier-1 troubleshoot-deriva-errors skill (which carries the equivalent versioning section for the foundation: deriva-py, deriva-mcp-core, deriva plugin). Triggers on: 'execution failed', 'execution stuck', 'asset_file_path', 'upload_execution_outputs', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml', 'upgrade derivaml packages'."
+description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, or produces unexpected results. Covers errors specific to the deriva-ml execution lifecycle (asset_file_path, upload_execution_outputs, stuck Running status, dataset version mismatch, missing features). Also covers checking and updating the three DerivaML components (deriva-ml Python lib, deriva-ml-mcp MCP server, deriva-ml-skills plugin) — version mismatches between them are a common cause of confusing errors. For generic catalog errors (auth, permissions, invalid RID, missing record), see the troubleshoot-deriva-errors skill in the deriva-skills plugin (which carries the equivalent versioning section for the foundation: deriva-py, deriva-mcp-core, deriva plugin). Triggers on: 'execution failed', 'execution stuck', 'asset_file_path', 'upload_execution_outputs', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml', 'upgrade derivaml packages'."
 user-invocable: false
 disable-model-invocation: true
 ---
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 This guide covers errors specific to the **DerivaML execution lifecycle** — the things that can only break when you're using `deriva-ml` and `deriva-ml-mcp` (Python API patterns like `ml.create_execution()`, `exe.asset_file_path()`, `exe.upload_execution_outputs()`; MCP execution-status tools; dataset versioning; feature value uploads).
 
-> **Generic catalog errors** (auth, permissions, invalid RID, missing record, vocabulary term not found, connect failures) are NOT covered here. See the **`/deriva:troubleshoot-deriva-errors`** skill *(tier-1, deriva-skills)* for those — those errors surface in any Deriva catalog operation and don't require the execution machinery to reproduce.
+> **Generic catalog errors** (auth, permissions, invalid RID, missing record, vocabulary term not found, connect failures) are NOT covered here. See the **`/deriva:troubleshoot-deriva-errors`** skill *(deriva-skills)* for those — those errors surface in any Deriva catalog operation and don't require the execution machinery to reproduce.
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly; lifecycle tools also take an explicit `execution_rid`. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
@@ -65,7 +65,7 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 - Call `deriva_ml_list_datasets(hostname, catalog_id)` to list available datasets.
 - Confirm the RID resolves to a dataset by calling `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`. If it errors / returns empty, the RID is wrong, the dataset was deleted, or it lives in a different catalog.
 - If the dataset was recently created, it should be visible immediately -- there is no propagation delay.
-- If the RID resolves to a non-dataset table, that's a generic record-not-found case — see the `/deriva:troubleshoot-deriva-errors` skill *(tier-1, deriva-skills)*.
+- If the RID resolves to a non-dataset table, that's a generic record-not-found case — see the `/deriva:troubleshoot-deriva-errors` skill *(deriva-skills)*.
 
 ---
 
@@ -141,7 +141,7 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
   - `Workflow_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`
   - `Asset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`
 - For other vocabularies (custom domain vocabs), use `add_term` with the appropriate schema and table.
-- For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the `/deriva:troubleshoot-deriva-errors` skill *(tier-1, deriva-skills)*.
+- For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the `/deriva:troubleshoot-deriva-errors` skill *(deriva-skills)*.
 
 ---
 
@@ -216,7 +216,7 @@ This is the right tool when:
 
 If an execution starts failing "out of nowhere" — especially "tool not found", "unknown parameter", or behavior that doesn't match the documentation — the cause is often a version mismatch between the three DerivaML components (the `deriva-ml` Python library, the `deriva-ml-mcp` MCP server, and the `deriva-ml` Claude Code plugin). They each have their own update path; there is no unified update command.
 
-This is the tier-2 mirror of the equivalent section in tier-1's `/deriva:troubleshoot-deriva-errors`, which covers the three foundation components (`deriva-py`, `deriva-mcp-core`, `deriva` plugin). When in doubt about which side is stale, check both — tier-2 components depend on tier-1, so foundation versions should be current first.
+This mirrors the equivalent section in `/deriva:troubleshoot-deriva-errors` (deriva-skills), which covers the three foundation components (`deriva-py`, `deriva-mcp-core`, `deriva` plugin). When in doubt about which side is stale, check both — the DerivaML components depend on the deriva-skills foundation, so foundation versions should be current first.
 
 **The short version of the fix:**
 
@@ -247,6 +247,6 @@ If errors started right after an update of one component, verify the other two a
 
 ## Related Skills
 
-- **`troubleshoot-deriva-errors`** *(tier-1, deriva-skills)* — Generic catalog errors (auth, permissions, invalid RID, missing record, vocabulary term not found, connect failures). Always check this first if the error doesn't smell execution-specific — many "execution failures" are actually catalog-state issues.
-- **`execution-lifecycle`** *(tier-2)* — The forward path: how to start, monitor, and complete executions correctly.
-- **`dataset-lifecycle`** *(tier-2)* — Dataset versioning context for the "Version Mismatch" problem.
+- **`troubleshoot-deriva-errors`** *(deriva-skills)* — Generic catalog errors (auth, permissions, invalid RID, missing record, vocabulary term not found, connect failures). Always check this first if the error doesn't smell execution-specific — many "execution failures" are actually catalog-state issues.
+- **`execution-lifecycle`** *(this plugin)* — The forward path: how to start, monitor, and complete executions correctly.
+- **`dataset-lifecycle`** *(this plugin)* — Dataset versioning context for the "Version Mismatch" problem.

@@ -152,7 +152,7 @@ ml.create_feature(
 
 Link derived files (segmentation masks, embeddings, annotation overlays) to domain objects.
 
-Asset tables are typically created via the generic `create_table` tool with the standard hatrac column shape (URL, Filename, Length, MD5, Description) plus an `Asset_Type` FK — see `/deriva:create-table` *(tier-1, deriva-skills)* for the exact recipe.
+Asset tables are typically created via the generic `create_table` tool with the standard hatrac column shape (URL, Filename, Length, MD5, Description) plus an `Asset_Type` FK — see `/deriva:create-table` *(deriva-skills)* for the exact recipe.
 
 ```python
 ml.create_asset("Segmentation_Mask", comment="Binary segmentation masks")

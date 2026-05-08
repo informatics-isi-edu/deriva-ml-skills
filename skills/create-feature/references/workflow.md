@@ -27,7 +27,7 @@ Before creating a new feature, review what already exists.
 
 ## Create a Vocabulary (if needed)
 
-If your feature needs a new set of terms, create the vocabulary first. See `/deriva:manage-vocabulary` *(tier-1, deriva-skills)* for full details.
+If your feature needs a new set of terms, create the vocabulary first. See `/deriva:manage-vocabulary` *(deriva-skills)* for full details.
 
 In brief:
 1. Call `create_vocabulary(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>", comment=...)`.
@@ -54,7 +54,7 @@ This creates the feature record and a `{FeatureName}_Feature_Value` association 
 
 **Term-based feature** (classification labels): call with `target_table`: `"Image"`, `feature_name`: `"Tumor_Classification"`, `terms`: `["Tumor_Grade"]`.
 
-**Asset-based feature** (segmentation masks): call with `target_table`: `"Image"`, `feature_name`: `"Segmentation_Mask"`, `assets`: `["Mask_Image"]`. (Asset tables are created via the generic `create_table` tool with the standard hatrac column shape — see `/deriva:create-table` *(tier-1, deriva-skills)*.)
+**Asset-based feature** (segmentation masks): call with `target_table`: `"Image"`, `feature_name`: `"Segmentation_Mask"`, `assets`: `["Mask_Image"]`. (Asset tables are created via the generic `create_table` tool with the standard hatrac column shape — see `/deriva:create-table` *(deriva-skills)*.)
 
 **Mixed feature** (labels with overlays): include both `terms` and `assets`.
 

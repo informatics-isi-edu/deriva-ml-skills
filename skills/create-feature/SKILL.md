@@ -38,7 +38,7 @@ feature = ml.lookup_feature("Image", "Diagnosis")
 ```
 
 **Before creating, ask:**
-- Does a feature with this purpose already exist? `/deriva:semantic-awareness` *(tier-1, deriva-skills, auto-fires)* carries the find-before-you-create discipline — the search applies to ML entities (Features) as well as generic catalog entities. `deriva_ml_create_feature` also warns about near-duplicates at create time.
+- Does a feature with this purpose already exist? `/deriva:semantic-awareness` *(deriva-skills, auto-fires)* carries the find-before-you-create discipline — the search applies to ML entities (Features) as well as generic catalog entities. `deriva_ml_create_feature` also warns about near-duplicates at create time.
 - Can the existing feature be extended with new vocabulary terms?
 - Is this really a feature, or should it be a column on the table? `/deriva:semantic-awareness` covers the EAV-vs-wide-table dual extreme — features map naturally to the middle ground (typed columns + FK-to-vocab), but if you find yourself reaching for one giant feature with many free-text fields, or one EAV-shaped feature whose `Value` carries every kind of label, step back and rethink.
 
@@ -72,7 +72,7 @@ For the full design guide, see `references/concepts.md` under "Designing a Featu
 
 ### Standard workflow
 
-1. **Create vocabulary + terms** (if term-based; see `/deriva:manage-vocabulary` *(tier-1, deriva-skills)* for the generic vocabulary CRUD surface):
+1. **Create vocabulary + terms** (if term-based; see `/deriva:manage-vocabulary` *(deriva-skills)* for the generic vocabulary CRUD surface):
    ```
    create_vocabulary(hostname, catalog_id, schema="<schema>", table="Diagnosis_Type", comment="...")
    add_term(hostname, catalog_id, schema="<schema>", table="Diagnosis_Type", name="Normal", description="...")
@@ -169,6 +169,6 @@ If multiple executions contributed, present only the relevant selector options b
 
 ## Related Skills
 
-- **`/deriva:manage-vocabulary`** *(tier-1, deriva-skills)* — Create and manage the controlled vocabularies that features reference.
+- **`/deriva:manage-vocabulary`** *(deriva-skills)* — Create and manage the controlled vocabularies that features reference.
 - **`/deriva-ml:dataset-lifecycle`** — Features annotate records in datasets. Feature values are included in bag exports and affect dataset versioning.
 - **`/deriva-ml:ml-data-engineering`** — Consuming feature values for ML training — restructuring, DataFrames, value selectors.

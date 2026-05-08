@@ -136,4 +136,4 @@ Auto-fires alongside this lifecycle: `maintain-experiment-notes` (captures decis
 - **`/deriva-ml:execution-lifecycle`** — sibling lifecycle skill for the run mechanics; phase 4 hands off here for the state machine and upload discipline.
 - **`/deriva-ml:model-development-workflow`** — higher-level "how to develop a model end-to-end" workflow; the experiment cycle is the inner loop within that arc.
 - **`/deriva-ml:maintain-experiment-notes`** (auto-fires) — captures the decisions made in phases 1, 4, 5, 6, 7. The lifecycle skill names *when* to make a decision; this one captures *what was decided*.
-- **`/deriva:troubleshoot-deriva-errors`** (tier-1) — first stop for catalog-state errors during any phase that touches the catalog.
+- **`/deriva:troubleshoot-deriva-errors`** (deriva-skills) — first stop for catalog-state errors during any phase that touches the catalog.

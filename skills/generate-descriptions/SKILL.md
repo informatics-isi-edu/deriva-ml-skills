@@ -1,6 +1,6 @@
 ---
 name: generate-descriptions
-description: "ALWAYS use when creating any DerivaML entity (Dataset, Workflow, Execution, Feature, Asset, Experiment, multirun) and the user hasn't provided a description. Auto-generate a meaningful description from context. For generic Deriva catalog entities (tables, columns, vocabularies, vocabulary terms), use the tier-1 generate-descriptions skill in deriva-skills."
+description: "ALWAYS use when creating any DerivaML entity (Dataset, Workflow, Execution, Feature, Asset, Experiment, multirun) and the user hasn't provided a description. Auto-generate a meaningful description from context. For generic Deriva catalog entities (tables, columns, vocabularies, vocabulary terms), use the generate-descriptions skill in deriva-skills."
 user-invocable: false
 ---
 
@@ -20,7 +20,7 @@ This skill covers descriptions for the **DerivaML domain entities** — the abst
 - **Experiments** (description parameter on the experiment config)
 - **Multiruns / sweeps** (description parameter on the multirun config)
 
-For generic catalog entities — tables, columns, vocabularies, vocabulary terms — use `/deriva:generate-descriptions` *(tier-1, deriva-skills, also auto-fires)*. The two skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
+For generic catalog entities — tables, columns, vocabularies, vocabulary terms — use `/deriva:generate-descriptions` *(deriva-skills, also auto-fires)*. The two skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
 
 ## Workflow
 

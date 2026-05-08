@@ -200,13 +200,13 @@ Provenance is recorded automatically: uploading via Python API `exe.upload_execu
 
 ## Creating an Asset Table (Manual Recipe)
 
-> **Known gap:** the legacy `create_asset_table` shortcut is gone. To create a new asset table you now use the tier-1 `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK. The recipe is mechanical but multi-step. (Filed as an upstream gap.)
+> **Known gap:** the legacy `create_asset_table` shortcut is gone. To create a new asset table you now use the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK. The recipe is mechanical but multi-step. (Filed as an upstream gap.)
 
 The "asset" shape is a regular catalog table whose columns include the standard hatrac file-tracking columns plus a foreign key to `Asset_Type` and any custom metadata columns you need.
 
 ### Step 1: Create the table with the hatrac column shape
 
-Call the tier-1 `create_table` tool (see `/deriva:create-table` for full parameter docs) with the standard hatrac columns:
+Call the deriva-skills `create_table` tool (see `/deriva:create-table` for full parameter docs) with the standard hatrac columns:
 
 ```
 create_table(hostname="data.example.org", catalog_id="1",
@@ -233,15 +233,15 @@ add_term(hostname="data.example.org", catalog_id="1",
 
 ### Step 3: Add the Asset_Type FK column on the new table
 
-Use the tier-1 `add_column` tool to add an `Asset_Type` column on the new table that foreign-keys to `deriva-ml:Asset_Type`. (See `/deriva:create-table` for the exact `add_column` and `create_foreign_key` invocations.)
+Use the deriva-skills `add_column` tool to add an `Asset_Type` column on the new table that foreign-keys to `deriva-ml:Asset_Type`. (See `/deriva:create-table` for the exact `add_column` and `create_foreign_key` invocations.)
 
 ### Step 4 (optional): Add domain FKs
 
-If your asset table should reference a domain table (e.g., `Image` → `Subject`), use the tier-1 schema tools to add a column and create a foreign key.
+If your asset table should reference a domain table (e.g., `Image` → `Subject`), use the deriva-skills schema tools to add a column and create a foreign key.
 
 ### Step 5: Configure visible columns / display annotations
 
-Apply any visible-columns / table-display annotations you want for the Chaise UI via the tier-1 annotation tools (the annotations apply immediately — there is no `apply_annotations()` staging step in the new MCP server).
+Apply any visible-columns / table-display annotations you want for the Chaise UI via the deriva-skills annotation tools (the annotations apply immediately — there is no `apply_annotations()` staging step in the new MCP server).
 
 After this recipe runs, you can register files for upload to the new table via Python API `exe.asset_file_path(asset_name="Image", file_name=..., asset_types=["Image"])`.
 

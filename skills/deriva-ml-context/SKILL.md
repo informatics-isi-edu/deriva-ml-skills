@@ -135,9 +135,9 @@ The cost of doing it right is one or two extra round-trips per operation. **Alwa
 
 Several always-on skills reinforce this workflow:
 
-- **`/deriva:semantic-awareness`** *(tier-1, deriva-skills)* — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
-- **`/deriva:generate-descriptions`** *(tier-1, deriva-skills)* — description-generation guidance for generic catalog entities (tables, columns, vocabularies, vocabulary terms).
-- **`/deriva-ml:generate-descriptions`** *(tier-2, this plugin)* — description-generation guidance for DerivaML entities (Datasets, Workflows, Executions, Features, Assets, Experiments). The tier-1 and tier-2 description skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
+- **`/deriva:semantic-awareness`** *(deriva-skills)* — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
+- **`/deriva:generate-descriptions`** *(deriva-skills)* — description-generation guidance for generic catalog entities (tables, columns, vocabularies, vocabulary terms).
+- **`/deriva-ml:generate-descriptions`** *(this plugin)* — description-generation guidance for DerivaML entities (Datasets, Workflows, Executions, Features, Assets, Experiments). The deriva-skills and this plugin's description skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
 
 This skill links them together into one workflow; the always-on skills cover each half in more depth.
 
@@ -147,7 +147,7 @@ For most operations the inheritance rule resolves the routing on its own — if 
 
 - **Version checks** — `/deriva:troubleshoot-deriva-errors` ("Versioning and updates" section) for the foundation (deriva-py, deriva-mcp-core, deriva plugin); `/deriva-ml:troubleshoot-execution` ("Versioning and updates" section) for the DerivaML layer. Check the foundation first — the DerivaML stack depends on it.
 
-Tier-1 also has two paths for Chaise display annotations — `/deriva:customize-display` (interactive MCP-tool path) and `/deriva:use-annotation-builders` (type-safe Python builder classes for production scripts). Both are tier-1; the choice is interactive-vs-script-based, not tier-based.
+The `deriva-skills` plugin has two paths for Chaise display annotations — `/deriva:customize-display` (interactive MCP-tool path) and `/deriva:use-annotation-builders` (type-safe Python builder classes for production scripts). The choice between them is interactive-vs-script-based, not domain-based.
 
 ## Pointers
 
@@ -163,7 +163,7 @@ DerivaML domain workflows (this plugin):
 - `/deriva-ml:browse-erd` — Interactive entity-relationship diagram for the catalog
 - `/deriva-ml:troubleshoot-execution` — Execution-lifecycle troubleshooting (asset paths, upload, stuck Running, version mismatch, missing feature)
 
-Generic catalog operations (tier-1; install `deriva-skills`):
+Generic catalog operations (provided by the `deriva-skills` plugin, assumed loaded):
 
 - `/deriva:deriva-context` — Plugin-wide context for the deriva plugin (the seven design pillars, stateless-model framing, plugin scope)
 - `/deriva:troubleshoot-deriva-errors` — Generic catalog troubleshooting

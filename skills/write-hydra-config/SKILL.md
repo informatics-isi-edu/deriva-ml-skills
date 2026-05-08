@@ -231,7 +231,7 @@ For workflow-type checks (separate from the workflow row itself), use:
 lookup_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name="Training")
 ```
 
-This is a tier-1 (`/deriva:`) tool, not a deriva-ml-specific surface — it's the right tool for any vocabulary-term existence check.
+This is a generic deriva-skills (`/deriva:`) tool, not a deriva-ml-specific surface — it's the right tool for any vocabulary-term existence check.
 
 ### Common Issues
 

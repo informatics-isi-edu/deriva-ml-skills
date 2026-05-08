@@ -79,6 +79,6 @@ For the full step-by-step guide with MCP tool parameters and Python API examples
 - **`execution-lifecycle`** — Full execution lifecycle including asset upload patterns
 - **`ml-data-engineering`** — Downloading and restructuring assets for ML training
 - **`dataset-lifecycle`** — Datasets organize assets into versioned collections for reproducibility
-- **`/deriva:create-table`** *(tier-1, deriva-skills)* — Generic table creation via `create_table`, used to build new asset tables
-- **`/deriva:load-data`** *(tier-1, deriva-skills)* — Row-side loading once the asset table exists; covers both ad-hoc inserts and the production `deriva-upload-cli` path with upload specs (`asset_mappings`)
-- **`/deriva:manage-vocabulary`** *(tier-1, deriva-skills)* — Generic vocabulary CRUD via `add_term`/`delete_term`, used to manage Asset_Type terms
+- **`/deriva:create-table`** *(deriva-skills)* — Generic table creation via `create_table`, used to build new asset tables
+- **`/deriva:load-data`** *(deriva-skills)* — Row-side loading once the asset table exists; covers both ad-hoc inserts and the production `deriva-upload-cli` path with upload specs (`asset_mappings`)
+- **`/deriva:manage-vocabulary`** *(deriva-skills)* — Generic vocabulary CRUD via `add_term`/`delete_term`, used to manage Asset_Type terms

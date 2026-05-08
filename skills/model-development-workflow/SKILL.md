@@ -37,8 +37,8 @@ Before any data, design the catalog structure.
 4. What asset tables store files? (images, models, masks, etc.)
 
 **Skills to use:**
-- `/deriva:create-table` *(tier-1, deriva-skills)* — domain tables with columns and foreign keys
-- `/deriva:manage-vocabulary` *(tier-1, deriva-skills)* — controlled vocabularies for categorical data
+- `/deriva:create-table` *(deriva-skills)* — domain tables with columns and foreign keys
+- `/deriva:manage-vocabulary` *(deriva-skills)* — controlled vocabularies for categorical data
 - `create-feature` *(this plugin)* — features linking annotations to domain objects
 - `work-with-assets` *(this plugin)* — asset tables for file management
 
@@ -333,9 +333,9 @@ This keeps the project-specific logic in your repository (versioned, reviewable)
 
 | Task | Skill | Plugin |
 |------|-------|--------|
-| Design tables, columns, FKs | `/deriva:create-table` | tier-1 (deriva-skills) |
-| Load row data into tables (CSV/JSON, asset uploads via deriva-upload-cli) | `/deriva:load-data` | tier-1 (deriva-skills) |
-| Create vocabularies and terms | `/deriva:manage-vocabulary` | tier-1 (deriva-skills) |
+| Design tables, columns, FKs | `/deriva:create-table` | deriva-skills |
+| Load row data into tables (CSV/JSON, asset uploads via deriva-upload-cli) | `/deriva:load-data` | deriva-skills |
+| Create vocabularies and terms | `/deriva:manage-vocabulary` | deriva-skills |
 | Create features for annotations | `create-feature` | this plugin |
 | Create/split/version datasets | `dataset-lifecycle` | this plugin |
 | Run experiments with provenance | `execution-lifecycle` | this plugin |

@@ -112,7 +112,7 @@ To **create a new custom type**, call `add_term(hostname="data.example.org", cat
 
 To **delete a custom type**, call `delete_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed")`.
 
-For more on vocabulary CRUD see `/deriva:manage-vocabulary` *(tier-1, deriva-skills)*.
+For more on vocabulary CRUD see `/deriva:manage-vocabulary` *(deriva-skills)*.
 
 ## Managing Members
 

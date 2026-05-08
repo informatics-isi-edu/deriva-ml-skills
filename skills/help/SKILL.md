@@ -15,7 +15,7 @@ When the user asks what's possible or needs orientation, present the following g
 - Install Jupyter kernels and configure notebook dependencies
 - Authenticate with Deriva/Globus
 - **Check if your DerivaML ecosystem is up to date** — versioning content lives in two troubleshooting skills:
-  - `/deriva:troubleshoot-deriva-errors` *(tier-1, deriva-skills)* — "Versioning and updates" section covers the foundation: deriva-py + deriva-mcp-core + the deriva plugin
+  - `/deriva:troubleshoot-deriva-errors` *(deriva-skills)* — "Versioning and updates" section covers the foundation: deriva-py + deriva-mcp-core + the deriva plugin
   - `/deriva-ml:troubleshoot-execution` *(this plugin)* — "Versioning and updates" section covers the DerivaML layer: deriva-ml + deriva-ml-mcp + deriva-ml-skills (this plugin)
 
   Check the foundation first; the DerivaML stack depends on it. Or just ask *"check versions"* / *"am I up to date?"*.
