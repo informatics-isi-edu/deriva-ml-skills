@@ -23,10 +23,9 @@ conventions. Repo-specific commands:
 # Load locally for development (no install needed)
 claude --plugin-dir /path/to/deriva-ml-skills
 
-# Install from marketplace (requires the tier-1 plugin first)
-/plugin marketplace add informatics-isi-edu/deriva-skills
+# Install from the unified marketplace (one marketplace, both plugins)
+/plugin marketplace add informatics-isi-edu/deriva-plugins
 /plugin install deriva
-/plugin marketplace add informatics-isi-edu/deriva-ml-skills
 /plugin install deriva-ml
 
 ```
@@ -34,17 +33,19 @@ claude --plugin-dir /path/to/deriva-ml-skills
 Versioning and updates are documented in `skills/troubleshoot-execution/SKILL.md` ("Versioning and updates" section). The three DerivaML components — deriva-ml, deriva-ml-mcp, the deriva-ml plugin — each have their own update path; there is no unified version-checker tool in the plugin (the previous `check-deriva-ml-versions` skill was deleted because its bash examples referenced a deleted tier-1 script, and `autoUpdate: true` for plugins / `server_status` for the server / `uv pip show` for the library all became reliable enough that wrapping them in a custom skill no longer earned its weight). The tier-1 equivalent is `skills/troubleshoot-deriva-errors/SKILL.md` for the foundation (deriva-py, deriva-mcp-core, deriva plugin); check the foundation first since the DerivaML stack depends on it.
 
 **Release mechanics:** `bump-version` triggers GitHub Actions, which
-bumps version in `plugin.json` + `marketplace.json`, commits back to
-main, and creates the release archive. `bump_version("patch")` via the
-MCP tool is also supported.
+bumps version in `plugin.json`, commits back to main, and creates the
+release archive. `bump_version("patch")` via the MCP tool is also
+supported. Note: the version field in the
+[`deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins)
+meta-marketplace's `marketplace.json` is **not** auto-bumped — see
+"Cross-plugin coordination" below.
 
 ## Architecture
 
 ```
 ├── .claude-plugin/
-│   ├── plugin.json           # Plugin metadata (name, version, description)
-│   └── marketplace.json      # Marketplace registration (lists all 27 tier-2 skills)
-├── skills/                   # 27 tier-2 skills, each in its own directory
+│   └── plugin.json           # Plugin manifest (name, version, description) — read by Claude Code after install
+├── skills/                   # 27 tier-2 skills, each in its own directory; the marketplace lives in the deriva-plugins repo and lists each one by path
 │   ├── {skill-name}/
 │   │   ├── SKILL.md          # Frontmatter (YAML) + skill content (Markdown)
 │   │   ├── scripts/          # Optional Python helper scripts
@@ -118,11 +119,12 @@ There is also an `evals/optimization/` directory containing a cross-skill eval s
 1. Commit changes
 2. Run `bump-version patch|minor|major` (creates tag and pushes automatically)
 3. GitHub Actions automatically:
-   - Bumps version in `plugin.json` and `marketplace.json`
+   - Bumps version in `plugin.json` (the bump-my-version config in `pyproject.toml` runs as part of `bump-version`, before the tag push)
    - Commits version bump back to main
-   - Creates `deriva-ml-skills-{VERSION}.tar.gz` (excludes `.git`, `.github`, `evals/`, `docs/superpowers`)
+   - Creates `deriva-ml-skills-{VERSION}.tar.gz` (the tar invocation packages `.claude-plugin/` and `skills/`; everything else — `.git`, `.github`, `evals/`, `docs/`, `tests/`, `pyproject.toml`, `uv.lock` — is excluded by virtue of not being passed)
    - Publishes GitHub Release with auto-generated notes
-4. Users with `autoUpdate: true` get the new version on next Claude Code restart. First-time install uses `/plugin install deriva-ml`.
+4. **Manual step:** open a PR (or push directly) against the [`deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins) meta-marketplace bumping the `deriva-ml` plugin's `version` field in `marketplace.json` to match this release. Without this step, users on `autoUpdate: true` will stay pinned to the previous version.
+5. Users with `autoUpdate: true` get the new version on next Claude Code restart once step 4 lands. First-time install uses `/plugin install deriva-ml` after `/plugin marketplace add informatics-isi-edu/deriva-plugins`.
 
 **Never create git tags manually** — always use `bump-version` from deriva-ml or the `bump_version` MCP tool.
 
@@ -134,6 +136,19 @@ The companion `deriva-skills` plugin (tier-1) is a documented dependency:
 - **Cross-references TO tier-1 skills:** when a tier-2 skill needs a generic catalog operation (auth troubleshooting, schema introspection, generic vocab CRUD, custom domain table creation), use `/deriva:<skill-name>` references with explicit `(tier-1; deriva-skills)` annotation so users know they need the companion plugin installed.
 - **Versioning:** the `check-deriva-versions` and `check-deriva-ml-versions` skills were both deleted (tier-1 commit `b407acf`; tier-2 May 2026 restructure). Versioning content now lives in `troubleshoot-deriva-errors` (tier-1) and `troubleshoot-execution` (tier-2) as "Versioning and updates" sections. Foundation comes first; check tier-1 versions before tier-2.
 - **Release coordination:** the two plugins are independently versioned and released. A tier-1 release does NOT automatically bump tier-2; coordinate manually when a tier-1 change has tier-2 implications.
+
+### One marketplace: `deriva-plugins`
+
+The only supported install path is the unified [`informatics-isi-edu/deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins) marketplace, which lists both `deriva` (the tier-1 companion) and `deriva-ml` (this plugin). The previous per-repo single-plugin marketplace (`informatics-isi-edu/deriva-ml-skills` with a `.claude-plugin/marketplace.json` at the repo root, `source: ./`) was removed in May 2026 — there's now exactly one place where the skill list and version pin live.
+
+Practical implications:
+
+- This repo no longer carries a `marketplace.json`. Only `.claude-plugin/plugin.json` lives here.
+- `bump-version` only rewrites `plugin.json` (and the `[tool.bumpversion] current_version`); the `pyproject.toml` block lists no marketplace entry.
+- After bumping, the version pin in the meta-marketplace's `marketplace.json` must be updated **by hand** — there's no automated PR yet. Skip this step and `autoUpdate` users stay pinned to the previous release.
+- The skill list is **auto-discovered** by Claude Code from `skills/*/SKILL.md` in the cloned repo — no enumeration is needed in either `plugin.json` or the meta-marketplace's `marketplace.json`. Add a skill by creating `skills/<name>/SKILL.md`; it loads on the next plugin update.
+
+The companion `deriva-skills` plugin (tier-1) ships its plugin manifest the same way — `plugin.json` only — and is listed alongside this plugin in the same meta-marketplace.
 
 ## Cross-Repo Sync: `deriva-ml-context` skill ↔ `deriva_ml_concepts` prompt
 
@@ -196,8 +211,8 @@ the two remaining content pairs.
 - **Description field is critical** — the `description` in SKILL.md frontmatter controls when Claude auto-invokes the skill. Poorly written descriptions cause false triggers or missed triggers.
 - **No build step** — skills are pure Markdown + optional scripts. Changes take effect immediately when loaded locally.
 - **Release requires tag** — the workflow only triggers on `v*.*.*` tags pushed to origin. Commits alone won't create a release.
-- **marketplace.json must list all skills** — if you add or remove a skill, update the skills array in `.claude-plugin/marketplace.json`.
-- **Eval workspace dirs are not skills** — `evals/<skill>/iteration-*/` directories contain eval outputs and must NOT be listed in marketplace.json.
+- **Skills are auto-discovered, not enumerated** — Claude Code walks `skills/*/SKILL.md` in the cloned plugin repo at install time. Neither this repo's `plugin.json` nor the meta-marketplace's `marketplace.json` lists individual skills. Adding a new skill is just `mkdir skills/<name> && touch skills/<name>/SKILL.md` (with valid frontmatter); it'll appear on the next plugin update without touching any manifest.
+- **Eval workspace dirs would auto-discover as skills if they had a SKILL.md** — `evals/<skill>/iteration-*/` directories live under `evals/`, not `skills/`, so auto-discovery won't pick them up. But don't accidentally drop a `SKILL.md` into `skills/` for a workspace artifact, or it will load.
 - **Scripts must handle minimal PATH** — Claude Code (especially inside the Desktop app) may not source shell profiles, so `$PATH` can be incomplete. Use `_find_uv()` pattern: try `shutil.which()` first, then check well-known locations (`~/.local/bin/`, `~/.cargo/bin/`, `/opt/homebrew/bin/`). Never assume `uv` or other tools are on PATH.
 - **Skill names must be unique** — the directory name under `skills/` is the skill identifier. Renaming a directory changes the `/deriva-ml:` command.
 - **Cross-references matter** — when renaming or removing a skill, grep for its name across all other skills' `SKILL.md` and `references/*.md` files. Pay special attention to cross-references into `deriva-skills` — those land at `/deriva:<skill>` and depend on the user having the tier-1 plugin installed (which they should, but the reference text should make the dependency explicit).

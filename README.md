@@ -6,19 +6,25 @@ This is the **tier-2** skills plugin — the surface specific to DerivaML. It de
 
 ## Installation
 
-You need both marketplaces and both plugins:
+Install via the unified [`deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins) marketplace:
 
 ```bash
-# Tier-1 plugin (core Deriva)
-/plugin marketplace add informatics-isi-edu/deriva-skills
-/plugin install deriva
+# Add the marketplace (one-time) — covers both deriva and deriva-ml
+/plugin marketplace add informatics-isi-edu/deriva-plugins
 
-# Tier-2 plugin (this one)
-/plugin marketplace add informatics-isi-edu/deriva-ml-skills
+# Install both plugins (deriva is a required tier-1 dependency)
+/plugin install deriva
 /plugin install deriva-ml
 ```
 
 You also need a Deriva MCP server with the `deriva-ml-mcp` plugin loaded. See the [`deriva-mcp-core`](https://github.com/informatics-isi-edu/deriva-mcp-core) deployment docs.
+
+> **Migrating from the old per-repo marketplaces?** Earlier versions were installed via `/plugin marketplace add informatics-isi-edu/deriva-skills` (tier-1) and `/plugin marketplace add informatics-isi-edu/deriva-ml-skills` (tier-2). Both single-plugin marketplaces have been retired. To migrate, first remove both old caches:
+> ```
+> /plugin marketplace remove deriva-plugins      # was the deriva-skills marketplace
+> /plugin marketplace remove deriva-ml-plugins   # was the deriva-ml-skills marketplace
+> ```
+> Note the name collision: the *new* unified marketplace is also internally named `deriva-plugins`, so the old `deriva-plugins` cache must be removed before re-adding from the new repo. Then run the three commands above.
 
 ## Updating
 

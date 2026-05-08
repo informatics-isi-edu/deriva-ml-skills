@@ -40,8 +40,3 @@ replace = 'version = "{new_version}"'
 filename = ".claude-plugin/plugin.json"
 search = '"version": "{current_version}"'
 replace = '"version": "{new_version}"'
-
-[[tool.bumpversion.files]]
-filename = ".claude-plugin/marketplace.json"
-search = '"version": "{current_version}"'
-replace = '"version": "{new_version}"'
