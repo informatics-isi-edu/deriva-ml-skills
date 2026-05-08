@@ -174,7 +174,31 @@ uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb \
     --host www.example.org --catalog 2
 ```
 
-`--config` does NOT override the `run_notebook()` config name in the notebook cell. Use positional Hydra overrides instead.
+### The `--config*` trap
+
+You cannot select a different `notebook_config(...)` from the CLI. **No
+`--config*` flag** — `--config`, `--config-name`, `--config-file` — overrides
+the config name baked into the notebook's first cell. The config name is the
+literal string the notebook passes to `run_notebook("<name>", ...)`; the CLI
+runner's Hydra surface composes groups (`assets=`, `deriva_ml=`, `datasets=`)
+on top of *that* config but cannot swap which config is being composed.
+
+```bash
+# WRONG — rejected by the CLI; the in-notebook string still wins anyway
+uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb \
+    --config-name roc_quick_8KG_localhost
+
+# RIGHT — positional overrides on the existing config
+uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb \
+    deriva_ml=localhost_1407 assets=roc_quick_8KG_localhost
+```
+
+Bundled `notebook_config("variant_name", ...)` entries are still useful, but
+they only take effect if you edit the notebook's `run_notebook(...)` call to
+reference the variant's name. Keeping the notebook's string stable and
+selecting the *target* via positional `assets=` / `deriva_ml=` overrides is
+the usual move — it lets the same notebook run against multiple
+configurations without per-environment edits to the notebook itself.
 
 ## Concrete Example: ROC Analysis Notebook
 
