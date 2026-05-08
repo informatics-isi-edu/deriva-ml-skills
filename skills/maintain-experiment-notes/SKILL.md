@@ -1,114 +1,94 @@
 ---
 name: maintain-experiment-notes
-description: "ALWAYS invoke this skill as part of completing any action where the user made a choice that a future team member would need to understand. The purpose is to capture tacit knowledge — the reasoning behind decisions that would otherwise be lost when context switches or people move on. This includes: creating or splitting datasets, creating features or vocabularies, adding vocabulary terms, running experiments or models, choosing hyperparameters, changing catalog structure (tables, columns, FKs), writing or modifying hydra-zen configs, loading data into a catalog, bumping package versions, creating or cloning catalogs, interpreting experiment results, or resolving a problem with a non-obvious fix. Invoke it in the SAME response where you perform the action — not in a later turn. If you just called deriva_ml_create_feature, deriva_ml_split_dataset, create_table, create_vocabulary, add_term, create_catalog, clone_catalog, load-cifar10, deriva-ml-run, bump-version, or made a code change that reflects a design decision, this skill applies. Even if the user did not ask you to document anything, silently append the decision and rationale to experiment-decisions.md. Do NOT invoke for routine read-only operations (queries, listing, browsing schemas) that involve no choice."
+description: "Use when an action a future team member would need to understand has just occurred — running an execution, creating or splitting a dataset, creating a feature or vocabulary, adding a vocabulary term, changing catalog structure (tables/columns/FKs), choosing hyperparameters, writing or modifying a hydra-zen config, loading data into a catalog, bumping versions, creating or cloning a catalog, or resolving a problem with a non-obvious fix. Use in the SAME response as the action, not later. Skip for routine read-only operations (queries, listing, browsing) that produce no durable artifact and require no judgment."
 user-invocable: false
 ---
 
 # Capture Experiment Design Decisions
 
-Automatically record experiment design decisions and their rationale in `experiment-decisions.md` in the project root. This file is a shared, persistent record of *why* the experiment was designed the way it was — not a session log. When a new team member checks out the repository, reading this file should give them the full context behind every significant choice.
+`experiment-decisions.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*.
 
-## What This Is NOT
+Each entry stands alone as a record of one decision or run; together, the entries let a new team member reconstruct how the project's understanding of its data and models evolved. Append silently — don't ask permission, don't announce.
 
-This is not a session log, a task list, or a changelog. It does not track who did what or when sessions started and ended. It captures *decisions and reasoning* — the kind of institutional knowledge that normally lives only in someone's head and is lost when they move on.
+## When to write
 
-## When to Write
+Write whenever a future team member — possibly a domain scientist who didn't write this code — would need the entry to understand the project's models or data. The bar is **intent**, not "alternatives were weighed." First runs against a new catalog, baseline numbers, pipeline-validation runs, and characterizations of "what does this mean" all qualify even when the choice felt obvious.
 
-Append an entry after any of these events:
+Do not write for routine read-only operations (querying, listing, browsing schemas).
 
-- **Dataset composition**: Why these members were included/excluded, why this size, why these types
-- **Split strategy**: Why this split ratio, why stratified, why patient-level vs image-level
-- **Feature selection**: Why this feature was created (or reused), what it represents, why this vocabulary
-- **Architecture/model choice**: Why this model, why these hyperparameters, what alternatives were considered
-- **Running experiments**: What was run, what the key results were, what was learned, what to try next
-- **Catalog structure changes**: Why a table was added/extended, why a column was added, why a FK was created
-- **Configuration choices**: Why this hydra-zen config, why these overrides, why this multirun setup
-- **Data loading**: Why this data source, why this subset size, any filtering or transformation choices
-- **Version bumping**: Why bumping now, what milestone or set of changes warranted a release
-- **Catalog management**: Why a new catalog was created or cloned, what it's for, why this alias
-- **Problem resolution**: What went wrong and why the chosen fix was correct (not just "fixed it")
+## What goes in an entry
 
-Do NOT write entries for routine operations that don't involve a choice — querying data, reading schemas, listing datasets. Only capture moments where an alternative existed and a direction was chosen.
+Every entry should answer:
 
-## How to Write
+1. **What was run or decided** — the action.
+2. **Hypothesis or question** the entry was meant to answer. For non-run events (feature creation, schema change, vocabulary addition, dataset construction) this is the *use case the change exists to serve* — what does this enable, what was missing before — rather than a literal hypothesis.
+3. **Reasoning** — what led to this configuration (in plain language a domain scientist can follow; the catalog has the precise numbers).
+4. **Immediate observations** *when applicable* — cheap-to-record facts that would be awkward to retrieve later. For runs: wall-clock time, the headline metric the run printed, anomalies (warning, slow epoch, retry). For schema and feature changes there usually are no observations at write-time; skip part 4 rather than padding it with status notes.
 
-Append to `experiment-decisions.md` silently — do not ask the user for permission or tell them you're updating it. This should be invisible. If the file doesn't exist, create it with the header.
+**Conclusions are optional and can be deferred.** At write-time you usually have a hypothesis and reasoning, not a settled "what this means." Don't fabricate. Conclusions show up later in whichever entry the reasoning crystallizes in — sometimes the very next run, sometimes much later, and a single prior run can spawn multiple follow-ups exploring different angles. Refer back by execution RID so a reader can navigate the chain in either direction.
 
-Each entry is a short block:
+## Conventions
+
+- **Heading level is `###`.** Each entry is a sibling of the others under the file's top-level `# Experiment Design Decisions` heading.
+- **Append new entries at the bottom of the file.** The file reads top-to-bottom as the project's history; chronology is the structure.
+- **Don't put dates in the title.** The execution RID (or other entity RID) carries its creation timestamp in the catalog. Adding a date in the entry duplicates that and rots if the entry is later edited.
+- **Title includes the durable handle in parentheses** — the navigation anchor for everything the entry refers to. Pick the RID a reader would use to find related artifacts in the catalog:
+   - Model run → **execution RID** (`### ... (execution 8KG)`); outputs, inputs, and the workflow's git hash all hang off it.
+   - Feature creation → **feature RID** (`### ... (feature 9PQ4)`); vocabulary, target table, and feature values reach back through it.
+   - Vocabulary addition (terms only, no new feature) → **vocabulary RID** (`### ... (vocabulary 9PR0)`).
+   - Dataset creation or split → **dataset RID with version** (`### ... (dataset 7KE v0.4.0)`).
+   - Schema change (table/column/FK) → **table RID** (`### ... (table 5-AB12)`).
+
+  Describing the *kinds* of supporting RIDs ("three terms were created in this vocabulary"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful for a reader scanning the entry. Do **not** enumerate every individual supporting RID (`8N4`, `8N6`, `8N8`, `9PT2`, `9PT4`, `9PT6` etc.) — they go stale, and the catalog already has them linked to the handle in the title.
+- **When alternatives were weighed**, state what was rejected and why ("chose X over Y because Z"). When the entry is characterizing intent rather than picking between alternatives, skip the rejection clause.
+- **Reference RIDs** for catalog entities; include quantitative evidence (counts, sizes) when known.
+- **Length is set by content, not lines.** Long enough to answer 1–4 above; short enough to scan in one pass. In practice ~5–12 lines.
+- Past tense — these are settled records, not plans.
+
+## Example entry
 
 ```markdown
-### <Concise decision title>
+### First end-to-end CIFAR-10 run on localhost catalog 1407 (execution 8KG)
 
-<1-3 sentences explaining what was decided and why. Include the alternatives that were considered and rejected. Reference catalog entities by RID where relevant.>
+Hypothesis: the cifar10_e2e schema, dataset 7KE, and the deriva-ml-run
+pipeline all wired together cleanly against a freshly-seeded localhost
+catalog. Ran the cifar10_quick preset (a small image classifier with
+the fewest training passes and smallest network) because the question
+was "does the plumbing work," not "does the model perform." Picked the
+labeled split as input because it was the smallest dataset with
+ground-truth labels on both partitions (80 training, 20 held-out for
+test), so a real test number was reachable even at this scale. Run
+completed in ~30s end-to-end on CPU; final held-out accuracy 20% on 20
+images, against a 10% baseline if the model were guessing one of CIFAR-10's
+ten classes uniformly — a learning signal but well within noise at this
+sample size. Outputs were linked to execution 8KG.
 ```
 
-Keep entries concise. The goal is density of reasoning, not completeness of description. Someone scanning the file should quickly understand the shape of the decisions.
+The catalog tells you the rest: configs, asset RIDs, training log contents, dataset lineage. Reach them via `deriva_ml_get_execution`, `deriva_ml_get_dataset`, `deriva_ml_lookup_asset`.
 
-## File Structure
+A non-run example, for contrast — note that there is no "observations" section because there's nothing to observe at write-time:
 
 ```markdown
-# Experiment Design Decisions
+### QC status feature added to Image table (feature 9PQ4)
 
-Accumulated rationale for experiment design choices in this project.
-Each entry captures what was decided and why.
-
----
-
-### Patient-level splitting to prevent data leakage
-
-Split dataset `2-B4C8` at the patient level (stratified by Subject RID) rather than
-random image-level splitting. Multiple images per patient would leak information
-between train and test if split at the image level. Used 80/20 ratio with seed 42.
-
-### Reused Disease_Classification feature instead of creating Diagnosis
-
-User requested a "Diagnosis" feature on Image, but Disease_Classification (RID: 2-XXXX)
-already exists with 3,200 values and 8 disease terms. Creating a separate feature
-would fragment annotations. Added "Fundus_Dystrophy" as a new term to the existing
-vocabulary instead.
-
-### Learning rate 0.001 selected from sweep
-
-Sweep over [0.0001, 0.001, 0.01, 0.1] showed 0.001 achieved best validation AUC (0.94)
-while 0.01 showed training instability after epoch 15. 0.0001 converged too slowly
-for the 50-epoch budget.
-
-### Added Enrollment_Date to Subject instead of creating Patient table
-
-User requested a Patient table with Name, Age, Gender, Enrollment_Date. Subject table
-(RID: 1-4W2G) already has Name, Age, Gender with 1,247 records and 8 incoming FKs.
-Creating a duplicate table would orphan all existing relationships. Added Enrollment_Date
-column to Subject instead.
+Created `QC_Status` on `Image` (table 5-AB12, ~3,200 rows) backed by a
+new `Image_QC_Status` vocabulary (9PR0) in the `histopath` schema, with
+three terms (pass, blurry, tissue_fold) and a confidence_score column.
+Use case: blurry slides have been silently degrading downstream model
+accuracy and there was no first-class way to mark them — the QC team
+needs a way to triage and the modeling pipeline needs a filter. Kept QC
+concerns separate from diagnostic concerns rather than extending the
+existing Image_Annotation feature with a "blurry" diagnosis term: the
+two review workflows have different reviewers, criteria, and consumers,
+so collapsing them would have entangled the queues. Three terms cover
+the failure modes the QC team currently triages on; more can be added
+later. Values not populated yet — annotator workflow is the next step.
 ```
 
-## Relationship to Other Files
+## Commit prompting
 
-- **`experiments.md`**: Describes *what* each experiment configuration does (parameters, inputs, outputs). The experiment-decisions file explains *why* those configurations exist.
-- **CLAUDE.md**: Project-level instructions for Claude. Reference experiment-decisions.md from CLAUDE.md so new sessions pick up context.
-- **Hydra configs**: Define the experiment parameters. The decisions file explains why those parameter values were chosen.
+After 3+ entries in a session — or at a natural pause — suggest committing `experiment-decisions.md` on its own with a message like "Record experiment design decisions." Don't bundle with unrelated changes; don't prompt after every entry.
 
-## Keeping the File in Git
+## File mechanics
 
-`experiment-decisions.md` **must be tracked in the git repository** — it's part of the project's permanent record. Before writing the first entry, verify it's not gitignored:
-
-1. Check that `experiment-decisions.md` is not in `.gitignore`
-2. If the file doesn't exist yet, create it and `git add experiment-decisions.md` immediately
-3. Never place it in a directory that's gitignored (e.g., `outputs/`, `.cache/`, `dist/`)
-
-The file belongs in the **project root** alongside `CLAUDE.md`, `pyproject.toml`, and other project-level files.
-
-## Commit Prompting
-
-After writing 3 or more entries in a session — or when the conversation reaches a natural pause (workflow finished, topic shift) — suggest committing:
-
-> "You've accumulated several experiment design decisions this session. Want me to commit `experiment-decisions.md` so the team has the rationale on record?"
-
-Commit just `experiment-decisions.md` with a message like "Record experiment design decisions"; don't bundle with unrelated changes. Don't prompt after every entry — wait for a batch or a natural break.
-
-## Writing Guidelines
-
-- Lead with the decision, not the process that led to it
-- Always state what was *rejected* and why — "chose X over Y because Z"
-- Reference RIDs for catalog entities; include quantitative evidence (numbers, counts, sizes) when available
-- Keep each entry 2-5 lines — scannable
-- Write in past tense — these are settled decisions, not plans
+`experiment-decisions.md` lives in the project root and must be tracked in git. See `references/file-mechanics.md` for the gitignore check and first-time-setup details.
