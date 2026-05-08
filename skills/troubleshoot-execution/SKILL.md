@@ -1,6 +1,6 @@
 ---
 name: troubleshoot-execution
-description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, or produces unexpected results. Covers errors specific to the deriva-ml execution lifecycle (asset_file_path, upload_execution_outputs, stuck Running status, dataset version mismatch, missing features). Also covers checking and updating the three DerivaML components (deriva-ml Python lib, deriva-ml-mcp MCP server, deriva-ml-skills plugin) — version mismatches between them are a common cause of confusing errors. For generic catalog errors (auth, permissions, invalid RID, missing record), see the troubleshoot-deriva-errors skill in the deriva-skills plugin (which carries the equivalent versioning section for the foundation: deriva-py, deriva-mcp-core, deriva plugin). Triggers on: 'execution failed', 'execution stuck', 'asset_file_path', 'upload_execution_outputs', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml', 'upgrade derivaml packages'."
+description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, produces unexpected results, OR when an execution failed mid-way and the user needs to recover/salvage partial results (uploads that succeeded, assets that staged, feature values that were written before the failure). Covers errors specific to the deriva-ml execution lifecycle (asset_file_path, upload_execution_outputs, stuck Running status, dataset version mismatch, missing features), the salvage decision (commit-retry vs commit-as-is vs abort vs new recovery execution), and the recovery-execution pattern (creating a new execution that claims the failed run's surviving outputs as inputs). Also covers checking and updating the three DerivaML components (deriva-ml Python lib, deriva-ml-mcp MCP server, deriva-ml-skills plugin) — version mismatches between them are a common cause of confusing errors. For generic catalog errors (auth, permissions, invalid RID, missing record), see the troubleshoot-deriva-errors skill in the deriva-skills plugin (which carries the equivalent versioning section for the foundation: deriva-py, deriva-mcp-core, deriva plugin). Triggers on: 'execution failed', 'execution stuck', 'salvage', 'recover', 'partial upload', 'training failed at upload time', 'what got uploaded', 'rerun or salvage', 'recovery execution', 'asset_file_path', 'upload_execution_outputs', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml', 'upgrade derivaml packages'."
 user-invocable: false
 disable-model-invocation: true
 ---
@@ -119,13 +119,14 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 **Cause**: The execution context was not properly closed (e.g., crash without cleanup, not using context manager).
 
-**Solution**:
-- **Best practice**: Always use the context manager (`with ml.create_execution(config) as exe:`) which automatically handles cleanup on both success and failure.
-- To fix a stuck execution manually, pick the right tool for the transition:
-  - Failure: `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<short explanation>")` — sets status to `Failed`/`Aborted`. The `reason` is recorded in the audit log and visible on the execution row.
-  - Success: `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — sets status to `Completed`. Only use this if the work actually finished.
-- **Tool**: `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to inspect the execution's current state and metadata.
-- For future runs, always use the context manager to prevent this issue.
+**Solution**: pick the right transition based on whether there's salvageable work.
+
+- **Best practice for next time**: always use the context manager (`with ml.create_execution(config) as exe:`) — it cleans up on both success and failure.
+- **First, inspect** with `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see the current state and what (if anything) staged or uploaded before the crash.
+- **Then choose**:
+  - **`deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`** — drains staged outputs and advances `Running → Stopped → Pending_Upload → Uploaded`. **Use this when there is salvageable work.** Commit accepts Running, Stopped, and Pending_Upload states; if the run did some real work before crashing (uploaded some assets, staged some feature values), commit makes those visible. Pass `retry_failed=True` to retry rows/assets that previously errored mid-upload. Even partial successes are usually worth committing.
+  - **`deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<short explanation>")`** — transitions to `Aborted` and **destroys staged outputs**. Use this only when the staged work is bad (wrong inputs, corrupted state, code bug whose outputs you don't want in the catalog). The `reason` is recorded in the audit log.
+- **If commit succeeds but you also want to keep going** (more inputs to process, more outputs to write), see "Salvage a Failed Execution" below — committing puts the execution into a terminal state, so further work goes into a new execution.
 
 ---
 
@@ -145,26 +146,164 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 ---
 
-## Problem: "I Need to Resume an Aborted Execution"
+## Salvage a Failed Execution
 
-**Symptom**: An execution failed or was aborted. You want to pick up from where it left off.
+**Symptom**: A long-running execution failed mid-way. You need to figure out what survived (uploads that succeeded, assets that staged, feature values that wrote) and decide whether to recover the survivors or start over.
 
-**Cause**: This is a known gap, not an error — the legacy `restore_execution` tool has **no equivalent** in the new MCP surface.
+**Trigger phrases**: "training ran 4 hours and failed at upload time, what made it?", "execution failed, can I salvage anything?", "rerun or recover?", "the run crashed mid-feature-write."
 
-**Solution (workaround):**
+The salvage flow has three steps, in order: **diagnose**, **decide**, **execute**.
 
-1. **Inspect the prior execution.** Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to retrieve the workflow RID, dataset RIDs, asset RIDs, and description from the original execution.
-2. **Decide whether to retry.** If the failure was transient (network, timeout) re-running with the same config makes sense. If it was a code or config bug, fix it first.
-3. **Create a fresh execution.** Call `deriva_ml_create_execution(hostname, catalog_id, ...)` with the same workflow, dataset_rids, and asset_rids. This creates a new execution record with a new RID — the prior aborted execution remains in its terminal state for provenance.
-4. **Continue the lifecycle as normal.** `deriva_ml_start_execution` → do the work → `deriva_ml_commit_execution`.
+### Step 1: Diagnose — what is the execution's current state?
 
-**Note:** This means the new execution's RID is different from the old one. If you need to relate them, capture both RIDs in your experiment notes (see the `maintain-experiment-notes` skill) — the catalog itself does not link aborted executions to their re-run replacements.
+```
+deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")
+```
+
+Look at the `status` field. The seven legal states and what each one means for salvage:
+
+| Status | Terminal? | What happened | What you can do |
+|--------|:--:|---------------|------------------|
+| `Created` | No | Execution was registered but `start_execution` was never called. No work happened. | Start it (`deriva_ml_start_execution`) and run normally, OR abort if no longer needed. Nothing to salvage. |
+| `Running` | No | The execution started and the process either is still running, crashed, or never closed cleanly. | If the process is dead, see "Execution Stuck in Running" above. Either commit (salvage staged work) or abort (destroy it). |
+| `Stopped` | No | The execution finished its work but `commit_execution` was not called. Outputs are staged but invisible. | Commit to make staged outputs visible. **This is the most common salvageable state.** |
+| `Pending_Upload` | No | Commit drained the catalog row writes but the asset-file uploads are queued or partially failed. | Commit again with `retry_failed=True` — that's its job — to re-attempt the file uploads. |
+| `Uploaded` | Yes | Terminal success. Already finalized. | If you wrote new outputs after `Uploaded` was reached, calling commit again cycles `Uploaded → Pending_Upload → Uploaded` for the new entries (additive-upload entry point). Otherwise nothing to do. |
+| `Failed` | **Yes** | An exception was caught during the run; the state machine moved the execution to terminal-failure. **Anything that uploaded before the failure is already in the catalog. Anything still staged at the moment of failure stays staged but cannot be drained — `commit_execution` rejects `Failed` executions.** | Cannot recover this execution's staged work. Inspect what made it via `pending_summary()` (see below) and `deriva_ml_get_execution`, then start a new recovery execution (Branches C/D below). |
+| `Aborted` | Yes | Explicit `abort_execution` call. Staged outputs were destroyed at abort time. | Cannot be salvaged. The aborted execution row stays in the catalog as a provenance record but its staged work is gone. Start a new execution. |
+
+The salvageable states are `Created`, `Running`, `Stopped`, `Pending_Upload`, `Uploaded` — the five that `commit_execution` accepts. **`Failed` and `Aborted` are terminal failures: anything that uploaded before is preserved in the catalog, but anything still staged is unrecoverable from the failed execution itself. Recovery from those states means a new execution.**
+
+To understand what specifically staged or failed before the crash, use the Python API on the resumed execution:
+
+```python
+from deriva_ml import DerivaML
+ml = DerivaML(hostname=..., catalog_id=...)
+exe = ml.resume_execution(execution_rid="<rid>")
+summary = exe.pending_summary()
+print(summary.render())
+```
+
+`pending_summary()` returns a per-table breakdown: how many rows are staged, how many uploaded, how many failed, plus the failure messages for the failed ones. This is the authoritative read of "what's salvageable." (There's no MCP-tool wrapper for `pending_summary` yet — it's Python-only.)
+
+### Step 2: Decide — commit, abort, or recovery execution?
+
+Four branches, depending on whether the staged work is salvageable and whether you need follow-on work. Each has different meanings for the catalog and your provenance trail:
+
+**Branch A — Commit-retry (execution is in `Stopped`, `Running`, or `Pending_Upload`; failure was transient).** If the staged work is correct and the failure cause was network/timeout/transient I/O, **commit with retry**:
+
+```
+deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<rid>", retry_failed=True)
+```
+
+This drains the staged work and re-attempts any rows or assets that previously errored. The execution transitions to `Uploaded`. The provenance trail is the most natural — same execution, same workflow, same input lineage; the only "evidence" of the failure is the catalog audit log and the time gap between start and commit.
+
+Use this when:
+- Execution status is `Stopped`, `Running`, or `Pending_Upload` (NOT `Failed` — that's terminal; commit will reject).
+- Failure cause was something the system can recover from on retry (network blip, server overload, file lock).
+- The staged outputs are what you want — you wouldn't re-run the model with different inputs.
+- You're not changing code or config.
+
+**Branch B — Commit-as-is, then continue work in a new execution.** If the staged work is partially useful (e.g., 80 of 100 inference outputs were generated and you want them in the catalog) and you're done with this execution but need more work after, **commit what's there**:
+
+```
+deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<rid>", retry_failed=False)
+```
+
+Then create a new execution for the remaining work — see Branch C or D for the recovery-execution pattern. Note both RIDs in `experiment-decisions.md` so the relationship is recoverable later (the catalog does not auto-link executions to their recovery successors; that lineage lives in your notes).
+
+Use this when:
+- Execution is in `Stopped` / `Pending_Upload` (a salvageable state).
+- The salvageable work is real and you want it in the catalog.
+- The remaining work needs different code, config, or inputs.
+
+**Branch C — Recovery execution (failed run's outputs are bad, but its inputs are still good).** If the execution is in `Failed` or `Aborted`, OR if the staged outputs are wrong (model bug, wrong hyperparameters, corrupted training data), the failed execution itself can't be drained — but the **inputs** it consumed are still valid. The pattern: leave the bad execution as-is (or abort if it's still non-terminal), then **create a new execution that consumes the same inputs**:
+
+```
+# 1. If the bad execution is still non-terminal (Stopped, Running, Pending_Upload),
+#    abort it to discard its staged outputs. Skip if it's already Failed or Aborted —
+#    those terminal states have already finalized themselves.
+deriva_ml_abort_execution(hostname=..., catalog_id=..., execution_rid="<bad-rid>",
+                          reason="bug in <component>; recovery in execution <new-rid>")
+
+# 2. Create a recovery execution with the same inputs
+recovery = deriva_ml_create_execution(
+    hostname=..., catalog_id=...,
+    workflow_rid="<same-workflow-rid>",
+    dataset_rids=["<dataset-rid>@<version>"],   # same datasets, pinned versions
+    asset_rids=["<asset-rid-1>", "<asset-rid-2>"],  # same input assets
+    description="Recovery for failed <bad-rid>: <root cause>",
+)
+new_rid = recovery["execution_rid"]
+
+# 3. Run normally
+deriva_ml_start_execution(hostname=..., catalog_id=..., execution_rid=new_rid)
+# ... do the work ...
+deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=new_rid)
+```
+
+Capture the relationship in `experiment-decisions.md`:
+
+```
+## Recovery: <new-rid> replaces failed <bad-rid>
+
+- **Failed**: <bad-rid> (<short root cause>)
+- **Recovery**: <new-rid> with same workflow, same dataset versions, same input assets
+- **Why abort vs retry**: <reason>
+```
+
+The `maintain-experiment-notes` skill auto-fires when you do this and will append the entry. The link is your responsibility — `deriva_ml_get_lineage` walks data-flow parents (what produced what) but does not know "execution X is the recovery for execution Y."
+
+**Branch D — Recovery execution that claims the failed run's surviving outputs.** A subtler case: the failed run *did* produce some valid assets (e.g., it generated 80 prediction files before crashing on file 81), and you want to **re-use those 80 in a follow-on execution rather than re-generating them**.
+
+The pattern depends on the failed run's state:
+
+- If the failed run is in `Stopped` / `Pending_Upload` (non-terminal), commit it first so the surviving outputs become visible (Branch A pattern), then proceed.
+- If the failed run is in `Failed` (terminal), only assets that uploaded *before* the failure are in the catalog. Anything still staged at the moment of failure is lost. Identify what made it via `pending_summary()` and `deriva_ml_get_execution`, then proceed.
+- If the failed run is in `Aborted`, no outputs survived — you cannot use Branch D, fall back to Branch C.
+
+```
+# 1. (only if non-terminal) commit so the survivors become visible
+deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<bad-rid>")
+
+# 2. Find what survived (works regardless of terminal state)
+exe_summary = deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<bad-rid>")
+# Inspect its assets via the asset-execution association — see "Trace an artifact's provenance" below.
+# Or in Python: ml.resume_execution(rid).pending_summary() shows what staged vs uploaded vs failed.
+
+# 3. Create a recovery execution that consumes the survivors as inputs
+recovery = deriva_ml_create_execution(
+    hostname=..., catalog_id=...,
+    workflow_rid="<follow-on-workflow>",
+    asset_rids=["<surviving-asset-1>", "<surviving-asset-2>", ...],
+    description="Recovery: continues from <bad-rid>'s surviving outputs",
+)
+```
+
+This preserves both runs in the lineage chain — `deriva_ml_get_lineage` on the recovery execution's outputs will show the failed execution as a producing-execution ancestor for the surviving assets it re-used.
+
+Use this when:
+- Re-running the failed work would be expensive (long compute time, scarce compute, large data).
+- The survivors are validatable (you can confirm asset 1-80 are correct) and only the failure portion needs a redo.
+
+### Step 3: Execute — and document the choice
+
+Whichever branch you pick, two follow-ups apply:
+
+1. **Capture the decision in `experiment-decisions.md`.** Even the routine "transient failure → commit-retry" case is worth a one-line note ("Run X failed at upload due to network blip; retry succeeded"). For Branches B/C/D the relationship between the failed execution and the recovery execution lives only in your notes.
+2. **Verify the result.** Call `deriva_ml_get_execution` on the failed execution to confirm its terminal state — `Uploaded` if you committed it (Branches A/B), `Aborted` if you discarded it (Branch C with the abort step), or unchanged `Failed` / `Aborted` if you left it as-is. Then call `deriva_ml_get_execution` on the recovery execution (Branches B/C/D) and confirm it's progressing normally. Use `deriva_ml_get_lineage` on a recovery output to confirm the provenance chain looks right.
+
+**What you should NOT do:**
+
+- Don't `update_record` the execution's `Status` column directly. The state machine is enforced by the lifecycle tools; bypassing it leaves the execution in an inconsistent state (the underlying upload-outputs side effect doesn't run).
+- Don't try to "undo" an abort. Once `Aborted`, the staged outputs are gone — the failed execution is now a permanent provenance row. Recovery means a new execution.
+- Don't reuse the failed execution's RID anywhere downstream as if it succeeded. If you commit-as-is (Branch B), only the rows that actually uploaded count as outputs of that execution.
 
 ---
 
 ## Reference Resources
 
-- `references/execution-lifecycle.md` — Full execution lifecycle reference: workflow creation, execution configuration, upload tuning (timeouts, chunk sizes, retries), source code detection, nested executions, the re-run-after-abort workaround, and dry run debugging. Read this for the complete execution workflow and parameter details.
+- `references/execution-lifecycle.md` — Full execution lifecycle reference: workflow creation, execution configuration, upload tuning (timeouts, chunk sizes, retries), source code detection, nested executions, the recovery-execution pattern, and dry run debugging. Read this for the complete execution workflow and parameter details.
 - `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` — Inspect execution state, status, and metadata
 - `deriva://storage/execution-dirs` — Check execution working directories
 
