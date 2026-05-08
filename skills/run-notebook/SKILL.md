@@ -8,9 +8,7 @@ disable-model-invocation: true
 
 DerivaML notebooks use hydra-zen configuration (not papermill parameters) and a single `run_notebook()` call that handles connection, execution context, config resolution, and dataset/asset downloading automatically. When run via the CLI runner, the executed notebook with all outputs is stored in the catalog as an execution asset.
 
-> Every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
-
-Notebook configs supply the catalog target through the `deriva_ml` config group, and `run_notebook()` accepts `host` / `catalog_id` parameters to override that resolved target at runtime.
+Notebook configs supply the catalog target through the `deriva_ml` config group. To target a different host/catalog at run time, override that group via a positional Hydra argument (`deriva_ml=<name>`) — see "Targeting a different host or catalog" below for the full pattern.
 
 ## The Development Cycle
 
@@ -160,7 +158,7 @@ fig.savefig(plot_path)
 ### Step 3: Run
 
 ```bash
-# Show available configs and overrides
+# List the available named configs and override groups for this notebook
 uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb --info
 
 # Run with defaults
@@ -169,12 +167,81 @@ uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb
 # Override assets or datasets (positional Hydra overrides, NOT --config)
 uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb assets=different_assets
 
-# Override host/catalog
-uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb \
-    --host www.example.org --catalog 2
+# Target a different host/catalog by selecting a different deriva_ml config group
+uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb deriva_ml=localhost_1407
 ```
 
-`--config` does NOT override the `run_notebook()` config name in the notebook cell. Use positional Hydra overrides instead.
+**Always start with `--info`.** It prints the registered named configs and the
+options for each Hydra group (`assets=`, `datasets=`, `deriva_ml=`, plus any
+custom groups the project has added). Reading the `--info` output is faster
+and more reliable than guessing override values from filenames; an agent that
+guesses a name that isn't registered gets a Hydra error rather than the
+expected behavior.
+
+### The `--config*` trap
+
+You cannot select a different `notebook_config(...)` from the CLI. **No
+`--config*` flag** — `--config`, `--config-name`, `--config-file` — overrides
+the config name baked into the notebook's first cell. The config name is the
+literal string the notebook passes to `run_notebook("<name>", ...)`; the CLI
+runner's Hydra surface composes groups (`assets=`, `deriva_ml=`, `datasets=`)
+on top of *that* config but cannot swap which config is being composed.
+
+```bash
+# WRONG — rejected by the CLI; the in-notebook string still wins anyway
+uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb \
+    --config-name roc_quick_8KG_localhost
+
+# RIGHT — positional overrides on the existing config
+uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb \
+    deriva_ml=localhost_1407 assets=roc_quick_8KG_localhost
+```
+
+Bundled `notebook_config("variant_name", ...)` entries are still useful, but
+they only take effect if you edit the notebook's `run_notebook(...)` call to
+reference the variant's name. Keeping the notebook's string stable and
+selecting the *target* via positional `assets=` / `deriva_ml=` overrides is
+the usual move — it lets the same notebook run against multiple
+configurations without per-environment edits to the notebook itself.
+
+### Targeting a different host or catalog
+
+The CLI's `--host` and `--catalog` flags **do not redirect the notebook's
+catalog connection.** They are passed to papermill as parameters; the
+in-notebook `run_notebook("<name>", ...)` Python function does not accept
+`host`/`catalog_id` kwargs and so does not read them. Setting them at the
+CLI is silently ineffective for the connection — the notebook will still
+connect to whichever catalog the resolved `deriva_ml` config group points
+at.
+
+To target a different host or catalog:
+
+1. **Register a `DerivaMLConfig` for the target** in `src/configs/dev/`
+   (or wherever your project organizes per-environment configs):
+
+   ```python
+   from hydra_zen import store
+   from deriva_ml import DerivaMLConfig
+
+   store(group="deriva_ml")(
+       DerivaMLConfig,
+       name="localhost_1407",
+       hostname="localhost",
+       catalog_id=1407,
+   )
+   ```
+
+2. **Select it via a positional Hydra override:**
+
+   ```bash
+   uv run deriva-ml-run-notebook notebooks/<name>.ipynb \
+       deriva_ml=localhost_1407
+   ```
+
+This pattern lets you maintain a small library of named connections (one
+per environment) and pick the target at run time without editing the
+notebook. The `deriva_ml=` group is the canonical override; CLI flags
+named after host or catalog are not.
 
 ## Concrete Example: ROC Analysis Notebook
 
@@ -247,11 +314,6 @@ uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb assets=roc_lr_sweep
 3. **Test with dry run** — `uv run deriva-ml-run-notebook notebooks/<name>.ipynb dry_run=true`
 4. **Use `asset_file_path()` for all output files** — this registers them for upload
 5. **Config name must match** — the string in `run_notebook("<name>")` must match a `notebook_config("<name>")` call
-
-## MCP Tools
-
-- `inspect_notebook(notebook_path)` — view notebook structure and tags without running
-- `run_notebook(notebook_path, config_name, dry_run, host, catalog_id)` — execute notebook with parameters and return execution RID. The `config_name` selects the named config defined with `notebook_config()`. Use `host`/`catalog_id` to set the catalog target for that run.
 
 ## Pre-Production Checklist
 
