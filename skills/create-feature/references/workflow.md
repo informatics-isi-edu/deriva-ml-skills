@@ -137,11 +137,32 @@ Only one of `selector`, `workflow`, or `execution` may be specified. See `concep
 
 ### Fallback: Filtered queries on the feature value table
 
-When you need to filter by specific column values (e.g., "all images with Grade III"), use `query_attribute` on the feature value table directly:
+When you need to filter feature values by specific column values (e.g., "all images with Grade III"), query the feature value table directly with `get_entities` for whole-row reads, or `query_attribute` for column projection / FK joins:
 
-Call `query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Tumor_Classification_Feature_Value", filter={"Tumor_Grade": "Grade III"})`. Use `filter` to narrow results (e.g., `{"Image": "2-IMG1"}` for a specific image).
+```python
+# Whole-row read filtered by feature column
+get_entities(
+    hostname="data.example.org", catalog_id="1",
+    schema="<schema>", table="Tumor_Classification_Feature_Value",
+    filters={"Tumor_Grade": "Grade III"},
+)
 
-This is the only case where `query_attribute` is appropriate for feature values — the dedicated tool above doesn't support arbitrary column filters.
+# Or scope to a specific image
+get_entities(
+    hostname="data.example.org", catalog_id="1",
+    schema="<schema>", table="Tumor_Classification_Feature_Value",
+    filters={"Image": "2-IMG1"},
+)
+
+# Project specific columns or join — use query_attribute with path syntax
+query_attribute(
+    hostname="data.example.org", catalog_id="1",
+    path="<schema>:Tumor_Classification_Feature_Value/Tumor_Grade=Grade%20III",
+    attributes=["RID", "Image", "Tumor_Grade", "Confidence"],
+)
+```
+
+This is the case where reaching past the dedicated feature-value tool is appropriate — that tool doesn't support arbitrary column filters.
 
 ## Managing Features
 

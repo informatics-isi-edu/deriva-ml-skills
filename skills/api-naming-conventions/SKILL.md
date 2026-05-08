@@ -77,7 +77,7 @@ Returns data in a specific format or with transformation applied.
 |--------|-------------|
 | `query_attribute` (MCP, core) | Filtered query against any table |
 | `get_table_sample_data` (MCP, core) | Get sample rows from a table |
-| `get_entities` (MCP, core) | Get one or more records by filter (e.g., `filter={"RID": "..."}`) |
+| `get_entities` (MCP, core) | Get one or more records by filter (e.g., `filters={"RID": "..."}`) |
 | `deriva_ml_get_dataset` (MCP) | Get a dataset by RID |
 | `deriva_ml_get_dataset_spec` (MCP) | Get dataset specification |
 | `deriva_ml_get_workflow` (MCP) | Get a workflow by RID |

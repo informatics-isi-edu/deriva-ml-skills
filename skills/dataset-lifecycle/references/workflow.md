@@ -118,7 +118,7 @@ For more on vocabulary CRUD see `/deriva:manage-vocabulary` *(deriva-skills)*.
 
 To **list current members**, call `deriva_ml_list_dataset_members` with `hostname`, `catalog_id`, and `dataset_rid`.
 
-To **validate RIDs** before adding (catches invalid RIDs early), call `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<table>", filter={"RID": "<rid>"})` per candidate RID and check whether the result is non-empty. The legacy single-shot `validate_rids` tool was removed.
+To **validate RIDs** before adding (catches invalid RIDs early), call `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<table>", filters={"RID": "<rid>"})` per candidate RID and check whether the result is non-empty. The legacy single-shot `validate_rids` tool was removed.
 
 To **add more members**, call `deriva_ml_add_dataset_members` with:
 - `hostname`, `catalog_id`
@@ -465,6 +465,6 @@ deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="
 # Python API: bag inspection for integrity checks
 ```
 
-For individual records, use `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Image", filter={"RID": "2-IMG1"})`.
+For individual records, use `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Image", filters={"RID": "2-IMG1"})`.
 
 Alternatively, browse in the Chaise web UI — use `cite(hostname=..., catalog_id=..., rid="...")` to generate a URL.

@@ -128,10 +128,11 @@ When you need fine-grained control or just one table:
 images_df = bag.get_table_as_dataframe("Image")
 subjects = list(bag.get_table_as_dict("Subject"))
 
-# From the catalog directly — filtered query
-query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>",
-                table="Image", attributes=["RID", "Filename", "Subject"],
-                filter={"Subject": "2-SUB1"})
+# From the catalog directly — column-projected, filtered query.
+# query_attribute uses ERMrest path-expression syntax: filter is part of the path.
+query_attribute(hostname="data.example.org", catalog_id="1",
+                path="<schema>:Image/Subject=2-SUB1",
+                attributes=["RID", "Filename", "Subject"])
 ```
 
 ## Step 3: Work with Features and Labels

@@ -196,7 +196,7 @@ Confirm `cache_status` is `cached_materialized`.
 
 The recommended pre-flight sequence:
 
-1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filter={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result.
+1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filters={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result.
 2. **Check cache** — `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=..., version=...)` — see what's already cached
 3. **Pre-fetch** — `deriva_ml_cache_dataset(...)` — download anything that's `not_cached`
 4. **Verify** — `deriva_ml_bag_info(...)` — confirm `cached_materialized`

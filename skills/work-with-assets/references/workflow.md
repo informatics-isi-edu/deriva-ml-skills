@@ -39,7 +39,7 @@ For a bounded snapshot of one asset table, read `deriva://catalog/{h}/{c}/ml/ass
 
 For a paginated, filterable browse, call `deriva_ml_list_assets(hostname="data.example.org", catalog_id="1", asset_table="Image")` to see all assets in a specific table with their RIDs, filenames, sizes, types, and descriptions.
 
-To query with filters, call `query_attribute(hostname="data.example.org", catalog_id="1", schema=<schema>, table="Image", filter={"Subject": "2-A1B2"})`. (Replaces the legacy `preview_table` for filtered queries.)
+To query with filters, call `get_entities(hostname="data.example.org", catalog_id="1", schema=<schema>, table="Image", filters={"Subject": "2-A1B2"})` for whole rows, or `query_attribute(hostname="data.example.org", catalog_id="1", path="<schema>:Image/Subject=2-A1B2", attributes=["RID", "Filename"])` if you only need specific columns. (Both replace the legacy `preview_table`.)
 
 For an unfiltered sample, call `get_table_sample_data(hostname="data.example.org", catalog_id="1", schema=<schema>, table="Image")`.
 
@@ -47,7 +47,7 @@ For an unfiltered sample, call `get_table_sample_data(hostname="data.example.org
 
 Call `deriva_ml_lookup_asset(hostname="data.example.org", catalog_id="1", asset_rid="2-IMG1")` to get full details including filename, size, MD5, types, description, and provenance (which execution created it).
 
-For the raw catalog row with all custom metadata columns, call `get_entities(hostname="data.example.org", catalog_id="1", schema=<schema>, table=<asset_table>, filter={"RID": "2-IMG1"})`. (Replaces the legacy `get_record`.)
+For the raw catalog row with all custom metadata columns, call `get_entities(hostname="data.example.org", catalog_id="1", schema=<schema>, table=<asset_table>, filters={"RID": "2-IMG1"})`. (Replaces the legacy `get_record`.)
 
 ## Finding Assets by Type and Execution
 
@@ -66,7 +66,7 @@ Call `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema=
 Every execution automatically generates metadata files in the `Execution_Metadata` table (see `concepts.md` for the four metadata types). To find metadata for a specific execution:
 
 - Call `deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="<rid>")` — returns the execution including its metadata files (Deriva_Config, Hydra_Config, Execution_Config, Runtime_Env)
-- Call `query_attribute(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Execution_Metadata", filter={"Execution": "<execution_rid>"})` — query the metadata table directly with filters
+- Call `get_entities(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Execution_Metadata", filters={"Execution": "<execution_rid>"})` — query the metadata table directly with filters (whole-row read; use `query_attribute` with a `path` expression if you only want specific columns)
 
 ### Finding execution output assets
 
@@ -82,15 +82,15 @@ To answer "where did this asset come from?":
 2. Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` — get full execution details including inputs, configuration, and other outputs.
 
 To answer "what used this asset?":
-- The legacy `list_asset_executions(asset_rid, asset_role="Input")` was removed. Use `deriva_ml_find_workflow_executions(hostname, catalog_id, workflow_rid=...)` and filter the results, or query the asset's Execution association table directly via `query_attribute` on `<AssetTable>_Execution` with `filter={"<AssetTable>": asset_rid, "Asset_Role": "Input"}`.
+- The legacy `list_asset_executions(asset_rid, asset_role="Input")` was removed. Use `deriva_ml_find_workflow_executions(hostname, catalog_id, workflow_rid=...)` and filter the results, or query the asset's Execution association table directly via `query_attribute` on `<AssetTable>_Execution` with `filters={"<AssetTable>": asset_rid, "Asset_Role": "Input"}`.
 
 ## Inspecting an Asset
 
 To inspect an asset's properties:
 
 1. Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` — returns filename, size, MD5, types, description, and producer execution info.
-2. To see the raw catalog record with all columns (including custom metadata), call `get_entities(hostname, catalog_id, schema, table, filter={"RID": asset_rid})`.
-3. To see which executions used the asset, query the asset's `<AssetTable>_Execution` association table via `query_attribute(...)` with `filter={"<AssetTable>": asset_rid, "Asset_Role": "Input"}` (or `"Output"`).
+2. To see the raw catalog record with all columns (including custom metadata), call `get_entities(hostname, catalog_id, schema, table, filters={"RID": asset_rid})`.
+3. To see which executions used the asset, query the asset's `<AssetTable>_Execution` association table via `get_entities(hostname, catalog_id, schema=<asset_schema>, table="<AssetTable>_Execution", filters={"<AssetTable>": asset_rid, "Asset_Role": "Input"})` (or `"Output"`).
 
 ## Downloading Assets
 
@@ -125,9 +125,9 @@ Call Python API `exe.working_dir` to find the local path where downloaded assets
 
 See `concepts.md` → "Creating an Asset Table (Manual Recipe)" for the full step-by-step recipe. Summary:
 
-1. Call `create_table(hostname, catalog_id, schema=..., table=..., columns=[...])` with the standard hatrac columns (`URL`, `Filename`, `Length`, `MD5`, `Description`) plus any custom metadata columns. *(`create_table` is a `deriva-mcp-core` tool — see `/deriva:create-table`.)*
+1. Call `create_table(hostname, catalog_id, schema=..., table_name=..., columns=[...])` with the standard hatrac columns (`URL`, `Filename`, `Length`, `MD5`, `Description`) plus any custom metadata columns. *(`create_table` is a `deriva-mcp-core` tool — see `/deriva:create-table`.)*
 2. Add the new table name as a term in the `Asset_Type` vocabulary: `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name="<TableName>", description=...)`.
-3. Add an `Asset_Type` foreign-key column on the new table (use the deriva-skills `add_column` + `create_foreign_key` tools).
+3. Declare an `Asset_Type` foreign-key column on the new table — there is no standalone `create_foreign_key` MCP tool, so include the FK in `create_table`'s `foreign_keys=[...]` list at step 1, OR (if the table already exists) use `add_column` and then declare the FK via the schema-management surface. See `/deriva:create-table` for the FK definition shape.
 4. Optionally add domain FK columns (e.g., `Image` → `Subject`).
 5. Apply visible-columns / table-display annotations as needed (immediate-apply — there is no `apply_annotations()` staging step in the new MCP server).
 
@@ -246,7 +246,7 @@ Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` — returns the p
 
 There is no single dedicated tool. Two options:
 1. `deriva_ml_find_workflow_executions(hostname, catalog_id, workflow_rid=...)` — broad query by workflow.
-2. `query_attribute(hostname, catalog_id, schema=<asset_schema>, table="<AssetTable>_Execution", filter={"<AssetTable>": asset_rid, "Asset_Role": "Input"})` — direct query on the association table.
+2. `get_entities(hostname, catalog_id, schema=<asset_schema>, table="<AssetTable>_Execution", filters={"<AssetTable>": asset_rid, "Asset_Role": "Input"})` — direct whole-row query on the association table. Use `query_attribute` with a `path` expression if you only want projected columns or want to traverse FKs in one call.
 
 ### Trace from execution to assets
 

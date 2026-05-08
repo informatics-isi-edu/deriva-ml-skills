@@ -469,7 +469,7 @@ These metadata files are uploaded automatically during `upload_execution_outputs
 
 **Querying metadata:**
 - Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` and inspect its metadata field for the auto-created files.
-- Use `query_attribute(hostname, catalog_id, schema="deriva-ml", table="Execution_Metadata", filter={"Execution": execution_rid})` to query metadata records directly.
+- Use `get_entities(hostname, catalog_id, schema="deriva-ml", table="Execution_Metadata", filters={"Execution": execution_rid})` to query metadata records directly (whole-row read).
 
 ## Dry Run Mode
 
@@ -501,7 +501,7 @@ When you need to re-run work after a failure or abort:
 
 ### Finding execution RIDs to inspect
 
-- **From the catalog**: Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` if you know the RID, or `query_attribute(hostname, catalog_id, schema="deriva-ml", table="Execution", filter=...)` to search by workflow, status, or description.
+- **From the catalog**: Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` if you know the RID, or `get_entities(hostname, catalog_id, schema="deriva-ml", table="Execution", filters=...)` to search by workflow, status, or description (or `query_attribute` with a `path` expression for column projection / FK joins).
 - **From local storage**: Read `deriva://storage/execution-dirs` to see execution working directories that still exist locally. Each entry includes the execution RID, a label, size, and modification time.
 - **From provenance**: Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` to find which execution produced an asset, or `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)` and inspect its `executions` field to find executions that used it.
 - **From the web UI**: Browse executions in Chaise and copy the RID from the record page.

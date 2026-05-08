@@ -211,7 +211,7 @@ Call the deriva-skills `create_table` tool (see `/deriva:create-table` for full 
 ```
 create_table(hostname="data.example.org", catalog_id="1",
     schema="<your-domain-schema>",
-    table="Image",
+    table_name="Image",
     columns=[
         {"name": "URL",         "type": "text", "nullok": false, "comment": "Object store URL (set on upload)"},
         {"name": "Filename",    "type": "text", "nullok": false, "comment": "Original filename"},
@@ -233,7 +233,7 @@ add_term(hostname="data.example.org", catalog_id="1",
 
 ### Step 3: Add the Asset_Type FK column on the new table
 
-Use the deriva-skills `add_column` tool to add an `Asset_Type` column on the new table that foreign-keys to `deriva-ml:Asset_Type`. (See `/deriva:create-table` for the exact `add_column` and `create_foreign_key` invocations.)
+The simplest path is to declare the FK as part of `create_table` at step 1 — `foreign_keys=[{"column": "Asset_Type", "referenced_schema": "deriva-ml", "referenced_table": "Asset_Type"}]`. If you've already created the table without the FK, use `add_column` (deriva-skills) to add the column, then declare the FK via the schema-management surface — there is no standalone `create_foreign_key` MCP tool. See `/deriva:create-table` for the exact `foreign_keys=` shape.
 
 ### Step 4 (optional): Add domain FKs
 

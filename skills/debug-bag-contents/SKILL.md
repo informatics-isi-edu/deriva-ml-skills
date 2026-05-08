@@ -226,7 +226,7 @@ Add records from intermediate tables as direct dataset members rather than relyi
 
 **Fix**:
 - Check the FK columns on the related records. Ensure they contain the correct RID values pointing to the dataset member records.
-- **Tool**: `query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<table>", filter={...})` to verify FK column values.
+- **Tool**: `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<table>", filters={...})` to verify FK column values (or `query_attribute` with a `path` expression if you only want specific columns / FK joins).
 
 ---
 

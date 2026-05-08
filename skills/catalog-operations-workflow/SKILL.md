@@ -1,6 +1,6 @@
 ---
 name: catalog-operations-workflow
-description: "Use when about to perform raw catalog mutations against a deriva-ml-loaded catalog — `insert_records`, `update_record`, `delete_record`, bulk loads, ETL, or any phrase like 'bypass the lifecycle' / 'just write directly'. Enforces script-based provenance discipline: a committed Python script, not interactive MCP, so the git hash records what ran. Fires before the mutation, not after."
+description: "Use when about to perform raw catalog mutations against a deriva-ml-loaded catalog — `insert_entities`, `update_entities`, `delete_entities`, bulk loads, ETL, or any phrase like 'bypass the lifecycle' / 'just write directly'. Enforces script-based provenance discipline: a committed Python script, not interactive MCP, so the git hash records what ran. Fires before the mutation, not after."
 user-invocable: true
 ---
 

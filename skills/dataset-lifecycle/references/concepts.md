@@ -55,8 +55,9 @@ Read resource: deriva://catalog/{h}/{c}/ml/datasets
 # Get details about a specific dataset
 deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")
 
-# Query datasets with filters (when you need specific column filters)
-query_attribute(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset", filter={"Description": "..."})
+# Query datasets with filters — for whole-row fetches use get_entities;
+# use query_attribute when you need column projection or path syntax (comparison ops, joins).
+get_entities(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset", filters={"Description": "..."})
 ```
 
 **Python API:**
@@ -546,8 +547,8 @@ deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", inclu
 # Denormalize with dataset-scoped info + row data
 deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Subject"], dataset_rid="1-ABC4", limit=50)
 
-# Query individual tables
-query_attribute(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Image", filter={"Subject": "2-SUB1"})
+# Query individual tables (whole rows from one table by FK -> use get_entities)
+get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Image", filters={"Subject": "2-SUB1"})
 ```
 
 ### Download as a BDBag
@@ -707,7 +708,7 @@ Deletion removes the dataset container and member associations, not the member r
 | List relations (parents + children) | `deriva_ml_list_dataset_relations` | `dataset.list_dataset_relations()` | Both directions in one call; supports `recurse`, `version` |
 | Check element types | `deriva_ml_list_dataset_element_types` | `ml.list_dataset_element_types()` | Per-dataset or catalog-wide |
 | List executions | `deriva_ml_get_dataset` (includes provenance) | — | Provenance: which runs used this dataset |
-| Validate RIDs | `get_entities(filter={"RID": "..."})` per candidate table; check for empty result | — | The legacy validate_rids tool was removed; use generic entity fetch |
+| Validate RIDs | `get_entities(filters={"RID": "..."})` per candidate table; check for empty result | — | The legacy validate_rids tool was removed; use generic entity fetch |
 | Bag info / size estimate | `deriva_ml_bag_info` (subsumes legacy estimate_bag_size) | `dataset.estimate_bag_size()` | Preview before download |
 | Get version spec | `deriva_ml_get_dataset_spec` | — | Generate `DatasetSpecConfig` string |
 | Cite | `cite` | `ml.cite(rid)` | Permanent shareable URL |
