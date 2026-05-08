@@ -75,7 +75,7 @@ Versioning is essential for reproducible experiments. Every version is a frozen 
 ### Rules
 
 1. **Always use explicit versions for real experiments.** `DatasetSpecConfig(rid="28EA", version="0.4.0")` — never omit the version or use "current" except for debugging.
-2. **Increment after catalog changes.** Adding features, fixing labels, adding assets — none of these are visible in existing versions until you call `deriva_ml_increment_dataset_version`.
+2. **Increment after dataset-visible changes.** Adding members, attaching features to dataset members, fixing labels — none of these are visible in existing versions until you call `deriva_ml_increment_dataset_version`. **Execution-output assets** (model weights, prediction CSVs, training logs, plots) do NOT trigger a bump: they are linked to the producing execution, not to the dataset's members, so future consumers reach them through the execution RID rather than through a new dataset version.
 3. **Always provide a version description.** Explain what changed, why, and the impact.
 4. **Update configs immediately, commit before running.** The git hash in the execution record must match the config state.
 
