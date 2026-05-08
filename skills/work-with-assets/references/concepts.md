@@ -213,11 +213,11 @@ create_table(hostname="data.example.org", catalog_id="1",
     schema="<your-domain-schema>",
     table="Image",
     columns=[
-        {"name": "URL",         "type": {"typename": "text"}, "nullok": False, "comment": "Object store URL (set on upload)"},
-        {"name": "Filename",    "type": {"typename": "text"}, "nullok": False, "comment": "Original filename"},
-        {"name": "Length",      "type": {"typename": "int8"}, "nullok": True,  "comment": "File size in bytes"},
-        {"name": "MD5",         "type": {"typename": "text"}, "nullok": True,  "comment": "MD5 checksum"},
-        {"name": "Description", "type": {"typename": "text"}, "nullok": True,  "comment": "Human-readable description"},
+        {"name": "URL",         "type": "text", "nullok": false, "comment": "Object store URL (set on upload)"},
+        {"name": "Filename",    "type": "text", "nullok": false, "comment": "Original filename"},
+        {"name": "Length",      "type": "int8", "nullok": true,  "comment": "File size in bytes"},
+        {"name": "MD5",         "type": "text", "nullok": true,  "comment": "MD5 checksum"},
+        {"name": "Description", "type": "text", "nullok": true,  "comment": "Human-readable description"},
         # ... add custom metadata columns here (e.g., Width, Height, Format) ...
     ])
 ```

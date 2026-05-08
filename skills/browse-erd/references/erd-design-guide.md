@@ -38,9 +38,13 @@ Data-focused, clinical precision. Inspired by the Chaise UI's clean, functional 
 
 ## Chaise URL Patterns
 
+These are the URL patterns the ERD browser uses to open the Chaise web UI in a new tab from an ERD node — they target the Chaise client specifically and are appropriate when the goal is "open this in Chaise":
+
 - Recordset: `https://{host}/chaise/recordset/#{catalog_id}/{schema}:{table}`
 - Record: `https://{host}/chaise/record/#{catalog_id}/{schema}:{table}/RID={rid}`
 - Recordedit: `https://{host}/chaise/recordedit/#{catalog_id}/{schema}:{table}`
+
+> **Note — UI navigation vs. stored RID links.** These `/chaise/...` URLs are for *UI navigation* (one app launching another). For RID links *stored inside the catalog* (descriptions, annotations, anywhere catalog content references another row), use the UI-agnostic `/id/` resolver — `/id/<catalog>/<rid>` — instead. See the `deriva-context` skill in the deriva-skills plugin for the canonical convention. The `/id/` form survives UI changes; the `/chaise/...` form ties the link to one specific UI.
 
 ## Future Enhancements
 
