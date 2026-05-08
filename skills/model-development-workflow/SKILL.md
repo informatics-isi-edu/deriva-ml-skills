@@ -288,8 +288,22 @@ uv run deriva-ml-run +multirun=lr_sweep
 ### After production run
 1. Verify all child executions completed (for multiruns)
 2. Check output assets exist and have expected sizes
-3. Record results in experiment notes (`maintain-experiment-notes` skill)
-4. Consider bumping the dataset version if you'll modify data next
+3. Record the **execution RID** and a one-line characterization of what the
+   run was for in `experiment-decisions.md` (via the `maintain-experiment-notes`
+   skill). The execution RID is the durable anchor — assets, features, status,
+   inputs, and the workflow's git commit hash all hang off it. Do not
+   enumerate asset RIDs in the notes; they go stale and the catalog already
+   has them linked to the execution.
+4. **If the execution attached features to the dataset's members** (e.g.,
+   ground-truth labels, curated annotations, derived attributes that future
+   consumers should see), call `deriva_ml_increment_dataset_version` on the
+   affected dataset. See the `dataset-lifecycle` skill, Phase 4.
+
+   Do NOT bump for runs whose outputs are **assets only** (model weights,
+   training logs, prediction CSVs, plots). Execution-output assets are
+   linked to the execution, not to the dataset's members; future consumers
+   reach them through the execution RID, so the dataset doesn't need a new
+   version.
 
 
 ## Phase 7: Iterate
