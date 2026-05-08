@@ -123,10 +123,34 @@ There is also an `evals/optimization/` directory containing a cross-skill eval s
    - Commits version bump back to main
    - Creates `deriva-ml-skills-{VERSION}.tar.gz` (the tar invocation packages `.claude-plugin/` and `skills/`; everything else — `.git`, `.github`, `evals/`, `docs/`, `tests/`, `pyproject.toml`, `uv.lock` — is excluded by virtue of not being passed)
    - Publishes GitHub Release with auto-generated notes
-4. **Manual step:** open a PR (or push directly) against the [`deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins) meta-marketplace bumping the `deriva-ml` plugin's `version` field in `marketplace.json` to match this release. Without this step, users on `autoUpdate: true` will stay pinned to the previous version.
-5. Users with `autoUpdate: true` get the new version on next Claude Code restart once step 4 lands. First-time install uses `/plugin install deriva-ml` after `/plugin marketplace add informatics-isi-edu/deriva-plugins`.
+4. **Manual step — bump the meta-marketplace.** See "Bumping the meta-marketplace" below. Without this step, users on `autoUpdate: true` will stay pinned to the previous version.
+
+After step 4 lands, users with `autoUpdate: true` pick up the new version on next Claude Code restart. First-time install uses `/plugin install deriva-ml` after `/plugin marketplace add informatics-isi-edu/deriva-plugins`.
 
 **Never create git tags manually** — always use `bump-version` from deriva-ml or the `bump_version` MCP tool.
+
+### Bumping the meta-marketplace
+
+The [`deriva-plugins`](https://github.com/informatics-isi-edu/deriva-plugins) meta-marketplace pins each plugin to a specific version (`version` field per plugin entry in its `marketplace.json`). That pin is **not** updated by this repo's release workflow — `autoUpdate` users on the meta-marketplace will not see a new release until the pin is bumped. After every `bump-version` here:
+
+```bash
+# In a checkout of informatics-isi-edu/deriva-plugins:
+cd /path/to/deriva-plugins
+git pull
+
+# Bump the deriva-ml entry (replace 1.3.2 with the new version)
+jq '(.plugins[] | select(.name == "deriva-ml") | .version) = "1.3.2"' \
+  .claude-plugin/marketplace.json > /tmp/m.json && \
+  mv /tmp/m.json .claude-plugin/marketplace.json
+
+git add .claude-plugin/marketplace.json
+git commit -m "Bump deriva-ml to 1.3.2"
+git push
+```
+
+Sanity-check the diff before pushing — `jq` rewrites the whole file, so the diff should be exactly one line changed.
+
+This step is currently manual. A future improvement (deferred for now) is a GitHub Actions workflow on this repo that fires on `v*.*.*` tag push and opens a PR against `deriva-plugins` with the version bump. Until that lands, treat the manual step as part of the release.
 
 ## Cross-plugin coordination
 
@@ -144,8 +168,7 @@ The only supported install path is the unified [`informatics-isi-edu/deriva-plug
 Practical implications:
 
 - This repo no longer carries a `marketplace.json`. Only `.claude-plugin/plugin.json` lives here.
-- `bump-version` only rewrites `plugin.json` (and the `[tool.bumpversion] current_version`); the `pyproject.toml` block lists no marketplace entry.
-- After bumping, the version pin in the meta-marketplace's `marketplace.json` must be updated **by hand** — there's no automated PR yet. Skip this step and `autoUpdate` users stay pinned to the previous release.
+- `bump-version` only rewrites `plugin.json` (and the `[tool.bumpversion] current_version`); the `pyproject.toml` block lists no marketplace entry. It does **not** touch the meta-marketplace's pin — see "Bumping the meta-marketplace" under Release Process for the manual follow-up.
 - The skill list is **auto-discovered** by Claude Code from `skills/*/SKILL.md` in the cloned repo — no enumeration is needed in either `plugin.json` or the meta-marketplace's `marketplace.json`. Add a skill by creating `skills/<name>/SKILL.md`; it loads on the next plugin update.
 
 The companion `deriva-skills` plugin (tier-1) ships its plugin manifest the same way — `plugin.json` only — and is listed alongside this plugin in the same meta-marketplace.
