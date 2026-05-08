@@ -13,7 +13,7 @@
 - [Tuning Uploads for Large Files](#tuning-uploads-for-large-files)
 - [Status Updates](#status-updates)
 - [Automatic Source Code Detection](#automatic-source-code-detection)
-- [Re-Running After an Aborted Execution](#re-running-after-an-aborted-execution)
+- [Recovering from a Failed Execution](#recovering-from-a-failed-execution)
 - [Nested Executions](#nested-executions)
 - [Creating Output Datasets](#creating-output-datasets)
 - [Dry Run Debugging](#dry-run-debugging)
@@ -362,34 +362,15 @@ export DERIVA_ML_WORKFLOW_URL="https://github.com/org/repo/blob/main/pipeline.py
 export DERIVA_ML_WORKFLOW_CHECKSUM="abc123def456"
 ```
 
-## Re-Running After an Aborted Execution
+## Recovering from a Failed Execution
 
-> **Known gap:** the legacy `restore_execution` MCP tool has **no equivalent** in the new MCP surface. The Python `ml.restore_execution(...)` helper is also gone. The replacement pattern is to inspect the prior execution and create a fresh one from the same configuration.
+For the full recovery decision tree (commit-retry vs commit-as-is vs abort-and-recover vs claim-survivors-as-inputs), see the **"Salvage a Failed Execution"** section in this skill's `SKILL.md`. Quick orientation:
 
-### Workaround (MCP tools)
+- An execution in `Failed`, `Stopped`, or `Pending_Upload` is salvageable — `deriva_ml_commit_execution` (optionally with `retry_failed=True`) drains the staged work and makes it visible.
+- An execution in `Aborted` is not salvageable — abort destroys staged outputs at abort time.
+- A "recovery execution" is a new execution that consumes the failed run's inputs (Branch C) or its surviving outputs (Branch D); use the `asset_rids=` parameter on `deriva_ml_create_execution` to claim existing asset RIDs as inputs.
 
-```
-# 1. Inspect the prior execution to capture workflow + inputs
-deriva_ml_get_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="1-XYZ")
-
-# 2. Create a fresh execution with the same config (new RID)
-# workflow_rid comes from the prior execution's Workflow field (captured in step 1)
-deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_rid="<workflow_rid>",
-    description="Re-run after transient network failure (prior: 1-XYZ)",
-    dataset_rids=[...],
-    asset_rids=[...])
-
-# 3. Continue the lifecycle as normal
-deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="<NEW_RID>")
-# ... do work via Python API ...
-deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="<NEW_RID>")
-```
-
-The prior execution stays in its terminal state for provenance. If you need to relate the two, capture both RIDs in your experiment notes — the catalog itself does not link aborted executions to their re-run replacements. (Filed as an upstream gap.)
+The one piece that does NOT live in this guide: the failed execution's row stays in the catalog as a permanent provenance record, but the catalog does not auto-link it to its recovery successor. That linkage is your responsibility — capture both RIDs in `experiment-decisions.md` (the `maintain-experiment-notes` skill auto-fires when you do this).
 
 ## Nested Executions
 
@@ -477,9 +458,9 @@ Use the Python API: `exe.working_dir` returns the local filesystem path for the 
 | `deriva://storage/execution-dirs` | Local execution working directories |
 | Python API `exe.working_dir` | Local filesystem path for the execution |
 | `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` | Update an execution's description after the fact (description-only; status transitions go through start/commit/abort) |
-| `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` | Mark execution as Completed (success path) |
-| `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` | Mark execution as Failed/Aborted (failure path) |
+| `deriva_ml_commit_execution(hostname, catalog_id, execution_rid, retry_failed=False)` | Drain staged outputs (Running/Stopped/Failed/Pending_Upload → Uploaded). `retry_failed=True` re-attempts previously-failed rows. Also the salvage entry point — see "Recovering from a Failed Execution" |
+| `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason=...)` | Cancel an execution; **destroys staged outputs**. Use only when staged work is bad |
 | `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` | Walk down a nested-execution tree |
 | `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` | Walk up a nested-execution tree |
-| (gap) | Resuming a previous execution: legacy `restore_execution` was removed; use the workaround documented above |
+| Python API `exe.pending_summary()` | Per-table breakdown of staged / failed / uploaded counts for a resumed execution. The authoritative diagnostic for "what survived the crash". No MCP wrapper yet — Python-only |
 | Python API `exe.upload_execution_outputs()` | Upload registered files to catalog |
