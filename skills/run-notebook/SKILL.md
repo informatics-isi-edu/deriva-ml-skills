@@ -204,6 +204,61 @@ selecting the *target* via positional `assets=` / `deriva_ml=` overrides is
 the usual move — it lets the same notebook run against multiple
 configurations without per-environment edits to the notebook itself.
 
+### Custom scalar fields don't ride along on group overrides
+
+A `notebook_config(...)` entry can bundle two kinds of things:
+
+- **Group selections** in `defaults={}` — `assets=...`, `datasets=...`,
+  `deriva_ml=...`, plus any custom Hydra group your project defines.
+- **Custom scalar fields** on the `config_class` dataclass — e.g.
+  `confidence_threshold: float = 0.0`, `show_per_class: bool = True`.
+
+**Positional overrides on the CLI swap groups, not scalar fields.** If you
+keep the notebook hardcoded to `run_notebook("roc_analysis")` and then run
+with `assets=roc_lr_sweep`, you get the `roc_lr_sweep` *asset group*
+composed onto `roc_analysis` — but you do NOT inherit any custom-field
+values that a sibling `notebook_config("roc_high_confidence", ...)` may
+have set on its dataclass. The sibling entry is a separate top-level
+config the notebook never names; its custom fields are dead code from the
+CLI's perspective.
+
+The failure mode is silent: the run completes with whichever scalar value
+was explicitly passed (or the dataclass default if none was), no error.
+
+Two patterns that work:
+
+1. **Pass the scalar as its own positional override on every invocation:**
+
+   ```bash
+   uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb \
+       assets=roc_lr_sweep confidence_threshold=0.8
+   ```
+
+2. **Factor the field into its own Hydra group** so a single positional
+   override carries it, and bundle the group selection in your
+   `notebook_config(...)` defaults:
+
+   ```python
+   # src/configs/confidence.py
+   from hydra_zen import store
+   confidence_store = store(group="confidence")
+   confidence_store({"threshold": 0.0}, name="default")
+   confidence_store({"threshold": 0.8}, name="high")
+
+   # Then in your notebook_config:
+   notebook_config(
+       "roc_analysis",
+       config_class=ROCAnalysisConfig,
+       defaults={"assets": "roc_quick_vs_extended", "confidence": "default"},
+   )
+   ```
+
+   Now `confidence=high` on the CLI works the same way `assets=` does.
+
+Pattern 2 is the right move when the scalar varies often and the CLI users
+shouldn't have to remember the magic value; pattern 1 is fine for one-off
+runs.
+
 ### Targeting a different host or catalog
 
 The CLI's `--host` and `--catalog` flags **do not redirect the notebook's
