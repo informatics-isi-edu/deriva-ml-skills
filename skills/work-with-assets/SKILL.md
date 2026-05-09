@@ -30,12 +30,11 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
    rag_search("image assets", doc_type="catalog-schema")
    rag_search("model weights files", doc_type="catalog-schema")
    ```
-2. `deriva_ml_list_asset_tables(hostname, catalog_id)` — full list of asset tables across all schemas.
-3. **Browse asset tables in one schema** — read `deriva://catalog/{h}/{c}/ml/assets/{schema}` for a schema-scoped list of asset tables (e.g., `ml/assets/deriva-ml`, `ml/assets/myproject`).
-4. **Snapshot the contents of one asset table** — read `deriva://catalog/{h}/{c}/ml/assets/{schema}/{asset_table}` for a bounded snapshot of assets in one table (capped at the resource limit; for paginated/filtered access, use the tool below).
-5. `deriva_ml_list_assets(hostname, catalog_id, ...)` — paginated, filterable browse across asset tables (use this when the snapshot resource hits its cap or when you need filters).
-6. `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` — inspect a specific asset (metadata, types, producer execution).
-7. `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` — find auto-generated metadata files and output assets for an execution.
+2. **Browse asset tables in one schema** — read `deriva://catalog/{h}/{c}/ml/assets/{schema}` for a schema-scoped list of asset tables (e.g., `ml/assets/deriva-ml`, `ml/assets/myproject`). To survey across schemas, list the schemas with `list_schemas` (deriva-mcp-core) and read this resource per schema; there is no single all-schemas asset-table tool.
+3. **Snapshot the contents of one asset table** — read `deriva://catalog/{h}/{c}/ml/assets/{schema}/{asset_table}` for a bounded snapshot of assets in one table (capped at the resource limit; for paginated/filtered access, use the tool below).
+4. `deriva_ml_list_assets(hostname, catalog_id, ...)` — paginated, filterable browse across asset tables (use this when the snapshot resource hits its cap or when you need filters).
+5. `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` — inspect a specific asset (metadata, types, producer execution).
+6. `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` — find auto-generated metadata files and output assets for an execution.
 
 ### Downloading assets
 
@@ -68,7 +67,7 @@ For the full step-by-step guide with MCP tool parameters and Python API examples
 - `references/workflow.md` — Step-by-step MCP and Python API workflows, finding assets by type and execution.
 - `references/restructure-guide.md` — Restructuring assets for ML: group_by options, value selectors, file transformers, ML framework patterns, upload tuning.
 - `rag_search("file assets in DerivaML", doc_type="user-guide")` — Search the user guide for file asset documentation.
-- Use `deriva_ml_list_asset_tables(hostname, catalog_id)`, `deriva_ml_list_assets(hostname, catalog_id, ...)`, and `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` for the typed asset reads.
+- Use `deriva_ml_list_assets(hostname, catalog_id, ...)` and `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` for the typed asset reads.
 - `deriva://catalog/{h}/{c}/ml/assets/{schema}` — schema-scoped list of asset tables.
 - `deriva://catalog/{h}/{c}/ml/assets/{schema}/{asset_table}` — snapshot of assets in one asset table (bounded; complements the paginated `deriva_ml_list_assets` tool).
 - `deriva://catalog/{h}/{c}/ml/asset/{rid}` — one asset by RID.
