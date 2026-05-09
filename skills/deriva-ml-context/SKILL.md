@@ -26,9 +26,28 @@ The DerivaML stack:
 
 All `deriva_ml_*` tools take `hostname=` and `catalog_id=` arguments explicitly — see `/deriva:deriva-context` for the stateless-model framing that applies to the whole stack.
 
+## Read-side questions: fetch the resource first
+
+For **read-side questions about an existing entity** — "show me X by RID," "what's in Y," "what did Z produce / consume," "what's the current version of W" — fetch the matching `deriva://catalog/{hostname}/{catalog_id}/ml/...` resource *before* reaching for `deriva_ml_*` tools or generic catalog CRUD (`get_entities`, `query_attribute`, `list_foreign_keys`). The resource family is purpose-built for these lookups: a single fetch returns the entity's summary plus its associated children (a dataset's members and version, an execution's inputs/outputs/metadata, a workflow's executions, etc.) in a stable bundled shape, while the equivalent tool path typically takes 2–7 round trips of fetch + filter + join.
+
+| URI | Returns |
+|---|---|
+| `ml/datasets`, `ml/dataset/{rid}` | Datasets list / one dataset (summary, type, current version, members) |
+| `ml/workflows`, `ml/workflow/{rid}` | Workflows list / one workflow |
+| `ml/executions`, `ml/execution/{rid}` | Executions list / one execution (summary + inputs + outputs split into `assets` and `metadata` + experiment) |
+| `ml/lineage/{rid}` | Provenance chain for any artifact (Dataset, Asset, Feature value, Execution) |
+| `ml/features/{table}` | Features defined on a target table |
+| `ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the four built-ins, or your domain schema) |
+| `ml/vocabularies/{schema}/{vocab_name}` | Full term list for one vocabulary (name, rid, description, synonyms, CURIE, URI) |
+| `ml/assets/{schema}` | Asset tables in one schema |
+| `ml/assets/{schema}/{asset_table}` | Snapshot of assets in one asset table |
+| `ml/asset/{rid}` | One asset by RID |
+
+The URI is constructable from the catalog hostname + ID + entity RID — no tool search needed. Reach for tools when the resource doesn't cover the question (paginated browsing of large asset tables → `deriva_ml_list_assets`; element-type discovery → `deriva_ml_list_dataset_element_types`; mutations and complex queries → the appropriate `deriva_ml_*` tool).
+
 ## The five core abstractions
 
-These are the surface DerivaML adds on top of plain Deriva. Each is stored as one or more Deriva tables underneath, but **treat them as DerivaML domain objects, not as raw tables**.
+These are the surface DerivaML adds on top of plain Deriva. Each is stored as one or more Deriva tables underneath, but **treat them as DerivaML domain objects, not as raw tables**. The "Key MCP tools" column lists the tools used for *write-side* and complex operations; for read-side lookup-by-RID, see the resource table above.
 
 | Abstraction | What it represents | Primary skill | Key MCP tools |
 |---|---|---|---|
@@ -37,24 +56,6 @@ These are the surface DerivaML adds on top of plain Deriva. Each is stored as on
 | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. Executions have a status (`Execution_Status_Type`), inputs / outputs links, and an active context manager that stages files in a working directory. | `execution-lifecycle` | `deriva_ml_create_execution`, `deriva_ml_start_execution`, `deriva_ml_commit_execution`, `deriva_ml_abort_execution`, `deriva_ml_update_execution`, `deriva_ml_get_lineage` (provenance traversal — "how did this come to exist?") |
 | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | `deriva_ml_create_feature`, `deriva_ml_add_feature_values` |
 | **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and uploaded by `exe.upload_execution_outputs()`. | `work-with-assets` | `deriva_ml_list_asset_tables`, `deriva_ml_lookup_asset`, `deriva_ml_update_asset` |
-
-### Core ML resources
-
-The plugin exposes a `deriva://catalog/{hostname}/{catalog_id}/ml/...` resource family for read-only browsing of the abstractions above. Singular vs plural is semantic: singular = one-by-RID, plural = a collection.
-
-| URI | Returns |
-|---|---|
-| `ml/datasets`, `ml/dataset/{rid}` | Datasets list / one dataset |
-| `ml/workflows`, `ml/workflow/{rid}` | Workflows list / one workflow |
-| `ml/executions`, `ml/execution/{rid}` | Executions list / one execution |
-| `ml/features/{table}` | Features defined on a target table |
-| `ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the four built-ins, or your domain schema) |
-| `ml/vocabularies/{schema}/{vocab_name}` | Full term list for one vocabulary (name, rid, description, synonyms, CURIE, URI) |
-| `ml/assets/{schema}` | Asset tables in one schema |
-| `ml/assets/{schema}/{asset_table}` | Snapshot of assets in one asset table |
-| `ml/asset/{rid}` | One asset by RID |
-
-For paginated access to assets, prefer the `deriva_ml_list_assets` tool. For element-type discovery (which tables can contribute dataset members), use the purpose-built `deriva_ml_list_dataset_element_types` tool.
 
 ## The rule: inheritance with override
 
