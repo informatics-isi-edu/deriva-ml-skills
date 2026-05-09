@@ -59,7 +59,6 @@ Returns all items of a type within a given context.
 | `deriva_ml_list_executions` (MCP) | All executions |
 | `deriva_ml_list_features` (MCP) | All features |
 | `deriva_ml_list_assets` (MCP) | All assets of a type |
-| `deriva_ml_list_asset_tables` (MCP) | All asset tables in the catalog |
 | `deriva_ml_list_dataset_members` (MCP) | All members of a dataset |
 | `deriva_ml_list_dataset_relations` (MCP) | All parent and child datasets of a dataset |
 | `deriva_ml_list_dataset_element_types` (MCP) | All element types of a dataset |

@@ -29,9 +29,7 @@ rag_search("image assets files", doc_type="catalog-schema")
 rag_search("model weights checkpoints", doc_type="catalog-schema")
 ```
 
-For the full list across all schemas, call `deriva_ml_list_asset_tables(hostname="data.example.org", catalog_id="1")`.
-
-For a schema-scoped list, read the resource `deriva://catalog/{h}/{c}/ml/assets/{schema}` (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain schema). Same-named asset tables in different schemas are disambiguated by the schema segment.
+For a schema-scoped list, read the resource `deriva://catalog/{h}/{c}/ml/assets/{schema}` (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain schema). Same-named asset tables in different schemas are disambiguated by the schema segment. To survey across schemas, enumerate the schemas with `list_schemas` (deriva-mcp-core) and read this resource per schema — there is no single all-schemas asset-table tool or resource.
 
 ### Browsing assets in a table
 
@@ -256,7 +254,7 @@ Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see an ex
 
 End-to-end MCP workflow: find assets, inspect one, check its provenance. Substitute your hostname (e.g. `"data.example.org"`) and catalog ID (e.g. `"1"`).
 
-**Step 1:** Call `deriva_ml_list_asset_tables(hostname="data.example.org", catalog_id="1")` to find what asset tables exist.
+**Step 1:** Read `deriva://catalog/data.example.org/1/ml/assets/{schema}` (your domain schema, or `deriva-ml` for the built-ins) to find what asset tables exist in that schema.
 
 **Step 2:** Call `deriva_ml_list_assets(hostname="data.example.org", catalog_id="1", asset_table="Image")` to browse images.
 
