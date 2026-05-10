@@ -70,16 +70,21 @@ Create explicit split datasets (Training, Validation, Testing) and store them as
 
 ## Phase 4: Version
 
-Versioning is essential for reproducible experiments. Every version is a frozen snapshot of the catalog state at the time it was created.
+Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md) (deriva-ml 1.34+):
+
+- **Released** versions like `0.4.0` — frozen snapshots, citable, reproducible. Snapshot-pinned in cite URLs.
+- **Dev** versions like `0.4.0.post1.dev3` — mutable working state between releases. The PEP 440 dev-release suffix marks "drift after the last release"; dev rows have no snapshot, so cite URLs resolve to the live catalog state.
 
 ### Rules
 
-1. **Always use explicit versions for real experiments.** `DatasetSpecConfig(rid="28EA", version="0.4.0")` — never omit the version or use "current" except for debugging.
-2. **Increment after dataset-visible changes.** Adding members, attaching features to dataset members, fixing labels — none of these are visible in existing versions until you call `deriva_ml_increment_dataset_version`. **Execution-output assets** (model weights, prediction CSVs, training logs, plots) do NOT trigger a bump: they are linked to the producing execution, not to the dataset's members, so future consumers reach them through the execution RID rather than through a new dataset version.
-3. **Always provide a version description.** Explain what changed, why, and the impact.
-4. **Update configs immediately, commit before running.** The git hash in the execution record must match the config state.
+1. **Always use explicit released versions in experiment configs.** `DatasetSpecConfig(rid="28EA", version="0.4.0")` — never a dev label, never "current". Dev labels are mutable; consuming a dev label as if it were a snapshot would silently break reproducibility.
+2. **Mutations land on dev, not release.** `deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, and the dataset-type mutation tools flip the dataset to a dev version (creating `.dev1` if none exists, advancing `.devN` if a dev row is already present). The returned `new_version` is a dev label.
+3. **Release is the only operation that produces a released version.** Call `deriva_ml_release(hostname, catalog_id, dataset_rid, bump=...)` to promote a dev period to a release. The `bump` argument selects which release segment to advance (`major` / `minor` / `patch`). Errors if the dataset has no dev row to promote.
+4. **Execution-output assets do NOT flip the dataset.** Model weights, prediction CSVs, training logs, plots — these are linked to the producing execution, not to the dataset's members. Future consumers reach them through the execution RID, not through a new dataset version. The dev-flip rule applies only to mutations of dataset *contents* (members + features attached to members).
+5. **Always provide a description.** For mutation tools, the `description` is recorded on the dev row and **replaced** on each subsequent mutation (not appended). For `deriva_ml_release`, the `description` becomes the release notes — replaces the dev row's accumulated description, not appended.
+6. **Update configs immediately after a release, commit before running.** The git hash in the execution record must match the config state.
 
-### Semantic versioning
+### PEP 440 version segments
 
 | Component | When | Examples |
 |-----------|------|----------|
@@ -87,9 +92,32 @@ Versioning is essential for reproducible experiments. Every version is a frozen 
 | **Minor** | New data or features | Members added, new annotations, split created |
 | **Patch** | Bug fixes, corrections | Fixed mislabeled records, metadata typos |
 
+### Typical lifecycle
+
+```
+0.1.0 (release)               <- create_dataset
+  ↓ add_dataset_members
+0.1.0.post1.dev1 (dev)
+  ↓ add_dataset_members
+0.1.0.post1.dev2 (dev)
+  ↓ release(bump="minor", description="...")
+0.2.0 (release)               <- citable, reproducible
+```
+
+### Drift detection (deriva-ml Python API)
+
+The Python API exposes three methods for inspecting catalog drift since the last release:
+
+- `dataset.is_dirty()` — fast bool predicate.
+- `dataset.release_diff()` — per-table change counts.
+- `dataset.compare_versions(v_a, v_b)` — per-table change counts between two versions.
+
+These don't appear on the MCP tool surface; reach for them from notebook code or scripts.
+
 ### Pre-experiment checklist
 
-- [ ] Version explicitly specified (not "current")
+- [ ] Version is a released label (no `.devN` suffix)
+- [ ] Version explicitly specified in config (not omitted, not "current")
 - [ ] Config updated with correct version
 - [ ] Config committed to git
 

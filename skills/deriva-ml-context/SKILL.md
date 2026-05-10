@@ -32,9 +32,9 @@ For **read-side questions about an existing entity** — "show me X by RID," "wh
 
 | URI | Returns |
 |---|---|
-| `ml/datasets`, `ml/dataset/{rid}` | Datasets list / one dataset (summary, type, current version, members) |
+| `ml/datasets`, `ml/dataset/{rid}` | Datasets list / one dataset (summary, type, current version, `cite_url`, members) |
 | `ml/workflows`, `ml/workflow/{rid}` | Workflows list / one workflow |
-| `ml/executions`, `ml/execution/{rid}` | Executions list / one execution (summary + inputs + outputs split into `assets` and `metadata` + experiment) |
+| `ml/executions`, `ml/execution/{rid}` | Executions list / one execution (summary + inputs + outputs split into `assets` and `metadata` + experiment; per-row `cite_url`) |
 | `ml/lineage/{rid}` | Provenance chain for any artifact (Dataset, Asset, Feature value, Execution) |
 | `ml/features/{table}` | Features defined on a target table |
 | `ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the four built-ins, or your domain schema) |
@@ -45,13 +45,25 @@ For **read-side questions about an existing entity** — "show me X by RID," "wh
 
 The URI is constructable from the catalog hostname + ID + entity RID — no tool search needed. Reach for tools when the resource doesn't cover the question (paginated browsing of large asset tables → `deriva_ml_list_assets`; element-type discovery → `deriva_ml_list_dataset_element_types`; mutations and complex queries → the appropriate `deriva_ml_*` tool).
 
+### Render RIDs as links to `cite_url`
+
+When presenting RIDs from a bundle resource to the user, render them as Markdown links to the row's `cite_url` field rather than as bare strings. The bundle resources carry per-row `cite_url` on `DatasetDetail`, `ExecutionInputDatasetRef`, and `ExecutionAssetRef`. The URL form is the `/id/`-resolver (`https://{host}/id/{cat}/{rid}[@snaptime]`):
+
+- For **datasets** at a released version, `cite_url` is snapshot-pinned (`...@{snaptime}`) — clicking it lands on the dataset state at that release.
+- For **datasets** at a dev version (PEP 440 `is_devrelease`, e.g. `0.4.0.post1.dev3` per ADR-0003), `cite_url` has no snaptime — clicking it lands on the live catalog state.
+- For **assets / executions / workflows / features**, `cite_url` is always the live form (no snaptime) — those entities are not versioned the way datasets are.
+
+Example: a one-row asset summary should render as `[8N4](https://localhost/id/1407/8N4) cifar10_cnn_weights.pt`, not as `8N4 cifar10_cnn_weights.pt`. Bare RIDs in human-facing tables are a missed-handoff — the reader cannot follow back to the catalog without copy-pasting and reconstructing a URL by hand.
+
+When `cite_url` is `None` on a row (best-effort failure or a thinly-built ref), fall back to displaying the bare RID — but flag the gap rather than fabricating a URL.
+
 ## The five core abstractions
 
 These are the surface DerivaML adds on top of plain Deriva. Each is stored as one or more Deriva tables underneath, but **treat them as DerivaML domain objects, not as raw tables**. The "Key MCP tools" column lists the tools used for *write-side* and complex operations; for read-side lookup-by-RID, see the resource table above.
 
 | Abstraction | What it represents | Primary skill | Key MCP tools |
 |---|---|---|---|
-| **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets have a type (`Dataset_Type` vocab), an element-type spec, a version history, and can be downloaded as bags. | `dataset-lifecycle` | `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_increment_dataset_version`, `deriva_ml_cache_dataset`, `deriva_ml_validate_dataset_specs` (pre-flight), `deriva_ml_validate_execution_configuration` (full pre-flight) |
+| **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets carry a type (`Dataset_Type` vocab), an element-type spec, a two-state PEP 440 version (released or dev, per ADR-0003), and can be downloaded as bags. | `dataset-lifecycle` | `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_release` (dev → released), `deriva_ml_cache_dataset`, `deriva_ml_validate_dataset_specs` (pre-flight), `deriva_ml_validate_execution_configuration` (full pre-flight) |
 | **Workflow** | A versioned reference to the code (URL + git commit hash) that knows how to do a thing. A Workflow is content-addressed: same URL + same commit = same Workflow row. Workflows are typed (`Workflow_Type` vocab). | `new-model` (authoring) / `configure-experiment` (wiring) | `deriva_ml_create_workflow`, `deriva_ml_find_workflow_by_url` |
 | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. Executions have a status (`Execution_Status_Type`), inputs / outputs links, and an active context manager that stages files in a working directory. | `execution-lifecycle` | `deriva_ml_create_execution`, `deriva_ml_start_execution`, `deriva_ml_commit_execution`, `deriva_ml_abort_execution`, `deriva_ml_update_execution`, `deriva_ml_get_lineage` (provenance traversal — "how did this come to exist?") |
 | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | `deriva_ml_create_feature`, `deriva_ml_add_feature_values` |
@@ -72,7 +84,7 @@ The five abstractions above are where the override mostly lands. Going around th
 - **Business logic** — e.g., `deriva_ml_add_dataset_members` validates RIDs against the dataset's element-type spec; raw inserts will let you add wrong-table rows that break the dataset on materialization.
 - **FK validation across the Dataset / Workflow / Execution graph** — DerivaML enforces invariants (every Execution links to a Workflow, every output Dataset links to its producing Execution); raw inserts can create dangling references.
 - **Provenance tracking** — each mutation links back to the active Execution; raw inserts have no Execution context.
-- **Version management** — Datasets are versioned; `deriva_ml_increment_dataset_version` creates a new snapshot. Raw inserts skip the version bump, leaving consumers pointed at stale data.
+- **Version management** — Datasets carry a two-state PEP 440 version (released / dev) per ADR-0003. The mutation tools (`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, dataset-type changes) flip the dataset to a dev label; `deriva_ml_release` promotes a dev period to a released version. Raw inserts skip the version flip entirely, leaving consumers pointed at stale data.
 - **RAG re-indexing** — the `deriva_ml_*` tools fire surgical re-index hooks so freshly mutated rows are searchable on the next `rag_search`. Raw inserts do not.
 - **Audit emission** — every `deriva_ml_*` mutation emits an audit event with the operation name, hostname, catalog, and result; raw inserts use the generic core audit which lacks DerivaML-specific context.
 

@@ -218,8 +218,8 @@ Add records from intermediate tables as direct dataset members rather than relyi
 **Problem**: The bag reflects an older version of the dataset, missing recently added members.
 
 **Fix**:
-- **Tool**: `deriva_ml_increment_dataset_version(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", description="...")` to create a new version that captures current membership.
-- Re-export the bag after incrementing.
+- **Tool (ADR-0003 dev/release model)**: any membership change since the last release will have flipped `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", bump="minor", description="...")` to promote the dev period to a new released version that captures current membership.
+- Re-export the bag after releasing — `download_dataset_bag` does not yet accept dev labels (tracked at deriva-ml#89), so the release step is required before the download.
 
 ### Records exist but FK not established
 **Problem**: Related records exist in the catalog but are not linked via FK to the member records.
@@ -250,7 +250,7 @@ Use this checklist when data is missing from a bag:
    - Python API bag inspection -- look at missing RIDs per table.
 
 5. **Is the version current?**
-   - `deriva_ml_increment_dataset_version` if members were recently changed.
+   - If `current_version` is a dev label (`<release>.post1.devN`) — members or features changed since the last release. Call `deriva_ml_release(...)` to mint a new release that captures the current state, then re-download.
 
 6. **Is the download timing out?**
    - First try increasing the timeout: `timeout=[10, 1800]` (30 min read timeout).
@@ -275,7 +275,7 @@ Use this checklist when data is missing from a bag:
 | `deriva_ml_delete_dataset_members` | Remove records from a dataset |
 | `deriva_ml_add_dataset_element_type` | Register a table as dataset element type |
 | Python API bag inspection | Validate bag contents against expectations |
-| `deriva_ml_increment_dataset_version` | Bump dataset version after changes |
+| `deriva_ml_release` | Promote a dev period to a released version (per ADR-0003 — replaces the old increment_dataset_version) |
 | `deriva_ml_get_dataset_spec` | View dataset specification |
 | `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest before downloading |
 | Python API `dataset.download_dataset_bag(version)` | Download the dataset bag (supports `exclude_tables` and `timeout`) |

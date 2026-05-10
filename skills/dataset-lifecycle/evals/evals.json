@@ -10,7 +10,7 @@
     {
       "id": 2,
       "prompt": "I added 200 new fundus images to the catalog yesterday and also fixed labels on about 30 images that were mislabeled. My training config still references dataset 28EA version 0.3.0. What do I need to do before running my next experiment?",
-      "expected_output": "Should explain that existing versions are frozen snapshots. Must deriva_ml_increment_dataset_version on 28EA with a description covering both changes. Then update the DatasetSpecConfig in the config file to the new version. Then commit the config before running. Should reference the pre-experiment checklist. Should NOT suggest using 'current' version.",
+      "expected_output": "Should explain the ADR-0003 dev/release model: released versions (like 0.3.0) are frozen snapshots; member additions auto-flip the dataset to a dev label (0.3.0.post1.devN), but feature/label drift is not auto-detected and requires dataset.mark_dev() from the Python API. Must call deriva_ml_release on 28EA (with description covering both changes) to mint a new released version. Then update the DatasetSpecConfig in the config file to the new released version. Then commit the config before running. Should reference the pre-experiment checklist. Should NOT suggest using 'current' version, and should NOT pin configs to a dev label.",
       "files": []
     },
     {

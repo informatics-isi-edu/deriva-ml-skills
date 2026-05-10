@@ -231,11 +231,18 @@ To **list members across nested datasets**, call `deriva_ml_list_dataset_members
 
 To create parent-child relationships manually (without `deriva_ml_split_dataset`), use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members of the parent's `Dataset` element type. See `concepts.md` for background on nested dataset hierarchies.
 
-## Versioning
+## Versioning (ADR-0003 dev/release model)
 
-`deriva_ml_add_dataset_members` and `deriva_ml_split_dataset` auto-increment the minor version. Manual incrementation is only needed for other changes (removing members, changing element types, data cleanup).
+Per ADR-0003 (deriva-ml 1.34+), datasets are at one of two version states at any moment:
 
-To **manually increment**, call `deriva_ml_increment_dataset_version` with `hostname`, `catalog_id`, `dataset_rid`. Optionally specify `component` (`"major"`, `"minor"`, or `"patch"`) and `description` (e.g., `"Corrected mislabeled records"`).
+- **Released** (`0.4.0`) — frozen snapshot, citable, reproducible.
+- **Dev** (`0.4.0.post1.dev3`) — mutable working state. PEP 440 dev-release suffix marks "drift since the last release"; cite URLs resolve to the live catalog.
+
+`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, and `deriva_ml_split_dataset` flip the dataset to a dev label (creating `.dev1` if no dev row exists, advancing `.devN` if one is already present). The returned `new_version` is a dev label.
+
+To mint a **released** version (citable, reproducible), call `deriva_ml_release` with `hostname`, `catalog_id`, `dataset_rid`. Optionally specify `bump` (`"major"`, `"minor"`, or `"patch"`; default `"minor"`), `description` (release notes), and `execution_rid` (optional execution to attribute the release to).
+
+The release tool errors if the dataset has no dev row to promote — every release must come from a real working state. To mint a release with no actual change (e.g., to attach release notes), use the Python API's `dataset.mark_dev(description)` first to declare a dev period, then `deriva_ml_release` to promote it.
 
 See the versioning section of `references/concepts.md` for full rules and the pre-experiment checklist.
 
