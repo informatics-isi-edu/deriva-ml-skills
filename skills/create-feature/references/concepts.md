@@ -523,7 +523,7 @@ This is how the `stratify_by_column` parameter in `deriva_ml_split_dataset` refe
 
 ### Dataset versioning impact
 
-Adding feature values to records in a dataset does NOT automatically update existing dataset versions. Existing versions are frozen snapshots. After adding or modifying feature values, call `deriva_ml_increment_dataset_version` to create a new version that includes the changes.
+Adding feature values to records in a dataset does NOT automatically update existing released versions. Released versions are frozen snapshots. Per ADR-0003, feature drift is also not auto-detected by the dataset-mutation tools (which would flip the dataset to dev) — feature mutations leave `current_version` unchanged. To record feature drift, use the Python API: call `dataset.mark_dev(description)` to declare a dev period (which flips `current_version` to a `<release>.post1.devN` label), then `deriva_ml_release(bump, description)` to promote the dev period to a new released version that captures the new feature values.
 
 ## Exploring and Navigating Features
 

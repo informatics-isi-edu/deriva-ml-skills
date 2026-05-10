@@ -154,7 +154,7 @@ If multiple executions contributed, present only the relevant selector options b
 
 - **In dataset bags** — feature values for dataset members are automatically included in BDBag exports
 - **In `deriva_ml_denormalize_dataset`** — include feature tables to see labels alongside data. Column names: `{FeatureTableName}_{ColumnName}`
-- **Dataset versioning** — adding feature values does NOT update existing versions. Call `deriva_ml_increment_dataset_version` after adding features to make them visible in new versions
+- **Dataset versioning** — adding feature values to dataset members does NOT automatically flip the dataset to a dev version. Per ADR-0003, only the dataset-mutation tools (`add_dataset_members`, `delete_dataset_members`, dataset-type changes) auto-flip to dev; feature drift is invisible to that detection. To record feature drift, call `dataset.mark_dev(description)` from the Python API to declare a dev period, then `deriva_ml_release(...)` to mint a release that captures the new feature values
 - **In `deriva_ml_split_dataset`** — the `stratify_by_column` parameter references feature columns in denormalized format
 
 ## Reference Resources

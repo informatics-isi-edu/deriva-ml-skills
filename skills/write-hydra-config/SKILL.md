@@ -39,11 +39,11 @@ After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_split
 ## Key Rules by Config Group
 
 ### Datasets
-- `version` is **required** — always a semver string like `"0.9.0"`, not an integer
+- `version` is **required** — always a **released** PEP 440 string like `"0.9.0"`, not an integer, not a dev label (no `.devN` suffix). Dev labels are mutable; pinning a config to one defeats reproducibility.
 - Use `with_description()` for non-default configs
 - Default configs use plain lists (no `with_description`) for merge compatibility
-- Find the current version via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid="<rid>")` or read the `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}` MCP resource
-- If data has changed since the version was created, call `deriva_ml_increment_dataset_version(hostname=..., catalog_id=..., dataset_rid=..., ...)` first
+- Find the current released version via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid="<rid>")` or read the `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}` MCP resource
+- If `current_version` comes back as a dev label (`<release>.post1.devN`), the dataset is mid-mutation. Call `deriva_ml_release(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")` to promote the dev period to a released version, then pin the config to the new release.
 
 ### Assets
 - Plain RID strings for simple references: `["3WS6", "3X20"]`
@@ -238,13 +238,14 @@ This is a generic deriva-skills (`/deriva:`) tool, not a deriva-ml-specific surf
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Dataset not found: RID=...` | RID doesn't exist in target catalog | Verify RID against correct catalog (dev vs prod) |
-| `Version X not found` | Version never created | Use CLI `git describe --tags` to find latest, or `deriva_ml_increment_dataset_version(hostname=..., catalog_id=..., dataset_rid=..., ...)` |
-| Stale version | Data changed since version was created | Call `deriva_ml_increment_dataset_version(...)`, then update config |
+| `Version X not found` | Version never created (released) | Find the latest released version via `deriva_ml_get_dataset`. If you need to mint a release from a dev period, call `deriva_ml_release(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")`. |
+| Stale version | Data changed since release was created | Mutate further if needed (lands on dev), then call `deriva_ml_release(...)` to mint a new release and update the config. |
+| Dev label in `current_version` | The dataset is mid-mutation; no release captures the current state | Call `deriva_ml_release(...)` to promote the dev period to a release. Configs must pin to released labels, not dev. |
 | Wrong catalog | Config RIDs are from a different catalog | Check `deriva_ml` config group — are you pointing at the right host/catalog? |
 
 ### Proactive Validation
 
-After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_split_dataset`, `deriva_ml_increment_dataset_version`, etc.), proactively:
+After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_split_dataset`, `deriva_ml_release`, etc.), proactively:
 
 1. Note the new RID, version, and description
 2. Check if existing config files reference the affected entity

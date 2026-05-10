@@ -112,18 +112,21 @@ add_term(
 )
 ```
 
-### Pin the version
+### Pin to a released version
+
+After populating the development subset (which will have flipped `current_version` to a dev label per ADR-0003), call `deriva_ml_release` to mint a citable release that configs can pin to:
 
 ```
-deriva_ml_increment_dataset_version(
+deriva_ml_release(
     hostname="data.example.org",
     catalog_id="1",
     dataset_rid="<dev_dataset>",
+    bump="minor",
     description="Initial development subset with balanced class representation",
 )
 ```
 
-Use `deriva_ml_get_dataset_spec(hostname="data.example.org", catalog_id="1", dataset_rid="<dev_dataset>")` to get the `DatasetSpecConfig` for your config files.
+Use `deriva_ml_get_dataset_spec(hostname="data.example.org", catalog_id="1", dataset_rid="<dev_dataset>")` to get the `DatasetSpecConfig` for your config files. Always pin configs to a released label (no `.devN` suffix) — dev labels are mutable.
 
 
 ## Phase 3: Validate Features and Labels
@@ -296,8 +299,12 @@ uv run deriva-ml-run +multirun=lr_sweep
    has them linked to the execution.
 4. **If the execution attached features to the dataset's members** (e.g.,
    ground-truth labels, curated annotations, derived attributes that future
-   consumers should see), call `deriva_ml_increment_dataset_version` on the
-   affected dataset. See the `dataset-lifecycle` skill, Phase 4.
+   consumers should see), record the drift and mint a release. Per
+   ADR-0003, feature drift is not auto-detected by the dataset-mutation
+   tools — call `dataset.mark_dev(description)` from the Python API to
+   declare a dev period (which flips `current_version` to a `.devN`
+   label), then `deriva_ml_release(...)` to mint a release that captures
+   the new feature values. See the `dataset-lifecycle` skill, Phase 4.
 
    Do NOT bump for runs whose outputs are **assets only** (model weights,
    training logs, prediction CSVs, plots). Execution-output assets are

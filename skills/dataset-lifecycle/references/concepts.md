@@ -263,38 +263,61 @@ Split (parent, type: "Split")
 
 For the full parameter reference, MCP tool examples, and Python API, see `workflow.md`.
 
-## Dataset Versioning
+## Dataset Versioning (ADR-0003 dev/release model)
 
-Every dataset has a version number using semantic versioning (`major.minor.patch`):
+Per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md) (deriva-ml 1.34+), datasets carry a **two-state PEP 440 version** at any moment:
 
-| Component | When to increment | Examples |
+- **Released** (`0.4.0`) — frozen catalog snapshot, citable, reproducible. Created by `deriva_ml_release`.
+- **Dev** (`0.4.0.post1.dev3`) — mutable working state between releases. The PEP 440 dev-release suffix marks "drift since the last release"; dev rows have no snapshot, so cite URLs resolve to the live catalog.
+
+PEP 440 release segments (the X.Y.Z portion):
+
+| Segment | Bump when | Examples |
 |-----------|-------------------|----------|
 | **Major** (X.0.0) | Breaking changes, schema modifications | Table columns added/removed, restructured tables |
 | **Minor** (0.X.0) | New data, new features, non-breaking additions | Members added, new feature annotations, split created |
 | **Patch** (0.0.X) | Bug fixes, metadata corrections | Fixed mislabeled records, corrected metadata, typo fixes |
 
-DerivaML assigns version `0.1.0` when a dataset is created. The tools `deriva_ml_add_dataset_members` and `deriva_ml_split_dataset` auto-increment the minor version. For other changes, call `deriva_ml_increment_dataset_version` manually.
+DerivaML assigns version `0.1.0` (released) when a dataset is created. After that, mutations flip to dev, and `deriva_ml_release` is the only operation that mints a new released version.
 
-### Versions are snapshots
+### Released versions are snapshots; dev versions follow live state
 
-Each version is tied to a catalog snapshot timestamp. When you download a specific version, you get the exact data that existed when that version was created — not the current state. This is the foundation of reproducibility: the same dataset RID + version always produces the same data.
+Each **released** version is tied to a catalog snapshot timestamp. When you download a specific released version, you get the exact data that existed when that version was created — not the current state. This is the foundation of reproducibility: the same dataset RID + released version always produces the same data.
 
-**If you've modified data since the last version** (added features, updated records, corrected labels), those changes are NOT included in existing versions. Call `deriva_ml_increment_dataset_version` to create a new version that captures the current state.
+**Dev versions have no snapshot.** They resolve to whatever the catalog has right now. Two reads of the same dev label at different times may differ if the catalog drifted between them. Dev labels are notational, not citational.
 
-### When to increment
+**If you've modified data since the last release** (added features, updated records, corrected labels via the dataset API), those changes are NOT included in any released version — they live on the dev row. Call `deriva_ml_release` to promote the dev period to a new released version that captures the current state.
 
-Any change that affects a dataset's contents requires a version increment before the changes become visible in downloads:
+### Mutations land on dev
 
-- Adding new features or feature values to records in the dataset
-- Fixing or correcting labels
-- Adding new images, assets, or records to the catalog
-- Modifying asset metadata
-- Adding or removing dataset members (auto-incremented by the tools)
-- Changing vocabulary terms used by features
+The "every mutation lands on dev" rule:
 
-### Version descriptions
+| Operation | Effect on `current_version` |
+|---|---|
+| `deriva_ml_add_dataset_members` | Flip to `<last_release>.post1.dev1` (or advance `.devN` if dev row exists) |
+| `deriva_ml_delete_dataset_members` | Flip to dev (advance `.devN`) |
+| `deriva_ml_split_dataset` | Flip to dev (advance `.devN`) |
+| Adding a feature value (via `deriva_ml_add_feature_values` or Python API) | Drift is **not** auto-detected; if you want to record it, call `dataset.mark_dev(description)` from the Python API |
+| `deriva_ml_release(bump, description)` | Promote dev row to released `<bumped>.<from>.<last_release>` |
 
-Always provide a description when incrementing. Good descriptions explain what changed, why, and the impact:
+**Things that do NOT flip the dataset to dev:**
+
+- Execution-output assets (model weights, prediction CSVs, training logs, plots) — linked to the producing execution, not to dataset members.
+- Reads (`deriva_ml_get_dataset`, `deriva_ml_list_dataset_members`, `deriva_ml_bag_info`, `deriva_ml_cache_dataset`).
+
+### Drift detection (Python API only)
+
+deriva-ml exposes three drift-detection methods on `Dataset`:
+
+- `dataset.is_dirty() -> bool` — fast predicate.
+- `dataset.release_diff() -> dict[str, int]` — per-table change counts since the last release.
+- `dataset.compare_versions(v_a, v_b) -> dict[str, int]` — per-table counts between any two endpoints.
+
+These don't appear on the MCP tool surface; reach for them from notebook code or scripts.
+
+### Release descriptions
+
+Always provide a description when calling `deriva_ml_release`. Good release notes explain what changed, why, and the impact:
 
 - "Added severity grading feature (mild/moderate/severe) to all 12,450 images. Required for new stratified training pipeline"
 - "Fixed 47 mislabeled pneumonia images identified in audit review. Retraining recommended for any model trained on v1.1.0"
@@ -694,7 +717,7 @@ Deletion removes the dataset container and member associations, not the member r
 | Remove members | `deriva_ml_delete_dataset_members` | `dataset.delete_dataset_members()` | |
 | Split | `deriva_ml_split_dataset` | `split_dataset(ml, rid, ...)` | Auto-increments version |
 | Nest datasets | `deriva_ml_add_dataset_members(parent, members={"Dataset": [child_rid]})` | `parent.add_dataset_members()` | Children are members of element-type Dataset |
-| Increment version | `deriva_ml_increment_dataset_version` | `dataset.increment_dataset_version()` | Always provide description |
+| Release a dev period | `deriva_ml_release` | `dataset.release(bump, description)` | Promotes dev → released; errors if no dev row |
 | Update description | `deriva_ml_update_dataset(rid, description=...)` | — | Subsumes legacy set_dataset_description |
 | Delete | `deriva_ml_delete_dataset` | `ml.delete_dataset()` | Soft delete, optional recurse |
 

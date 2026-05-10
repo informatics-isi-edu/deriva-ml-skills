@@ -192,4 +192,7 @@ def {{FUNCTION_NAME}}(
     print(f"  Description: {output_description}")
     print(f"  Types: {output_types}")
     print(f"  Members: {len(rids)}")
+    # current_version may be a dev label (per ADR-0003) if member-add
+    # operations flipped the dataset to dev. Run dataset.release(...)
+    # afterward to mint a citable released version.
     print(f"  Version: {new_dataset.current_version}")

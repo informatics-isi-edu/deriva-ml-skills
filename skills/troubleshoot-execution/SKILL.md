@@ -77,8 +77,8 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 **Solution**:
 - Check the dataset's version history with `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`.
-- Use `deriva_ml_increment_dataset_version(hostname, catalog_id, dataset_rid, ...)` after making changes to a dataset to create a new version snapshot.
-- When referencing datasets in workflows, consider pinning to a specific version.
+- Per ADR-0003 (deriva-ml 1.34+), dataset mutations flip `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release(hostname, catalog_id, dataset_rid, bump="minor", description="...")` to promote the dev period to a released version that experiments can pin to.
+- When referencing datasets in workflow configs, **always pin to a released version** (no `.devN` suffix) — dev labels are mutable and break reproducibility.
 - Use `deriva_ml_get_dataset_spec(hostname, catalog_id, dataset_rid)` to see the current dataset specification and version.
 
 ---
