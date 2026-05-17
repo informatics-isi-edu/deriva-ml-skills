@@ -130,6 +130,134 @@ Adding values requires knowing what columns a feature has, which are required, a
 | One execution per label | Works but clutters provenance | Batch labels from same source into one execution |
 | Passing boolean as string `"true"`/`"false"` | Pydantic validation error | Pass as native bool: `true` / `false` (no quotes) |
 | Forgetting `deriva_ml_commit_execution` | Execution stays "running" | Always commit (or `deriva_ml_abort_execution` on failure) after adding values |
+| CSV ingest without capturing the source file | Provenance traces to Execution but not to *what data* | Upload the CSV as an Execution input asset (see the worked example below) |
+
+### Worked example: bulk-populate feature values from a CSV
+
+The most common production pattern: a domain expert hands you a CSV of ground-truth values (image RIDs + diagnosis labels, sample IDs + quality scores, etc.) and you load them into a Feature. Walk this end-to-end so the resulting feature values are fully reproducible.
+
+The pattern in three pieces — **capture the source, validate, ingest** — all inside a single committed script run via `deriva-ml-run` (or as a standalone script under `src/scripts/`):
+
+```python
+# src/scripts/ingest_image_quality.py
+"""Load Image_Quality feature values from a ground-truth CSV.
+
+The CSV is captured as an input asset on the execution, so anyone
+walking the provenance chain (`deriva_ml_get_lineage(rid=<feature_value_rid>)`)
+sees Execution → Workflow (this script's git commit) → input Asset (the CSV).
+"""
+from pathlib import Path
+import argparse
+import pandas as pd
+from deriva_ml import DerivaML, ExecutionConfiguration
+
+def main(hostname: str, catalog_id: str, csv_path: Path) -> int:
+    ml = DerivaML(hostname=hostname, catalog_id=catalog_id, check_auth=True)
+
+    # 1. Validate the CSV up front — fail loudly before any catalog mutation.
+    df = pd.read_csv(csv_path)
+    required_cols = {"Image_RID", "Quality_Score"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(f"CSV missing required columns: {missing}")
+
+    # Validate that referenced RIDs exist. For 100s of rows this is cheap;
+    # for 100k rows, batch the existence check.
+    existing_rids = {a.asset_rid for a in ml.list_assets("Image")}
+    unknown = set(df["Image_RID"]) - existing_rids
+    if unknown:
+        raise ValueError(f"CSV references {len(unknown)} unknown Image RIDs: "
+                         f"{sorted(unknown)[:5]}{'...' if len(unknown) > 5 else ''}")
+
+    # 2. Create a Workflow for this script and an Execution that consumes the CSV.
+    #    The workflow's source-code URL + git commit is captured by deriva-ml from
+    #    the script's git context. The CSV is captured as an input asset so the
+    #    full source-of-truth chain survives.
+    workflow = ml.create_workflow(
+        name="Image Quality Ingest",
+        workflow_type="Data_Load",   # add this term to Workflow_Type if missing
+        description=f"Load Image_Quality feature values from {csv_path.name}",
+    )
+    config = ExecutionConfiguration(workflow=workflow)
+
+    # 3. Build feature records, then write them inside the Execution context.
+    ImageQuality = ml.feature_record_class("Image", "Image_Quality")
+    records = [
+        ImageQuality(Image=row["Image_RID"], Quality_Score=row["Quality_Score"])
+        for _, row in df.iterrows()
+    ]
+
+    with ml.create_execution(config) as exe:
+        # Stage the source CSV as an input asset so it's captured in lineage.
+        exe.asset_file_path(
+            asset_name="Execution_Asset",
+            file_name=csv_path.name,
+            asset_types=["Source_CSV"],   # add this term to Asset_Type if missing
+        )
+        # The asset_file_path call returned the target path; copy the CSV there
+        # (or use copy_file=True / rename_file= if your file is elsewhere).
+        # See /deriva-ml:work-with-assets for the full asset-staging recipe.
+
+        exe.add_features(records)
+        print(f"Added {len(records)} Image_Quality values "
+              f"in execution {exe.execution_rid}")
+
+    # Upload after the context exits — this is where assets and feature values
+    # become visible. See /deriva-ml:execution-lifecycle for the lifecycle rules.
+    exe.upload_execution_outputs(clean_folder=True)
+    return 0
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--hostname", required=True)
+    p.add_argument("--catalog-id", required=True)
+    p.add_argument("--csv", type=Path, required=True)
+    a = p.parse_args()
+    raise SystemExit(main(a.hostname, a.catalog_id, a.csv))
+```
+
+**Run it after committing:**
+
+```bash
+git add src/scripts/ingest_image_quality.py && git commit -m "feat: image-quality ingest script"
+uv run python src/scripts/ingest_image_quality.py \
+    --hostname data.example.org --catalog-id 1 --csv ./labels/quality_2026Q2.csv
+```
+
+The git commit is mandatory — `ml.create_workflow(...)` raises `DerivaMLDirtyWorkflowError` if the working tree is dirty. Without the commit, the workflow's source-code URL has nothing reproducible to point at. `--allow-dirty` is only for local debugging iterations where you accept degraded provenance; never for the run that produces values that anyone will reference later.
+
+**What you get afterward:** every feature value links to the execution, the execution links to the workflow (this script at this git commit), and the workflow's execution has the CSV as a captured input asset. `deriva_ml_get_lineage(rid=<any feature value RID>)` walks the full chain back to the CSV. If a year from now someone asks "what data produced these labels?", the answer is in the catalog, not in someone's downloads folder.
+
+#### Quick alternative for ad-hoc loads: the MCP tool path
+
+`deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid, entries=[...])` writes values directly. Like the Python API, **it requires an `execution_rid`** — there is no way to bypass execution-level provenance. The execution lifecycle is auto-driven when the execution is in `Created` state (no separate `deriva_ml_commit_execution` needed); for executions already in `Running`, you control the lifecycle yourself and **must** call `deriva_ml_commit_execution` afterwards or the values stay staged and invisible.
+
+```
+# Quick MCP pattern for an ad-hoc handful of values
+deriva_ml_create_workflow(hostname, catalog_id,
+    name="Interactive Image_Quality Test", workflow_type="Data_Load",
+    description="Smoke test for Image_Quality feature; not for production")
+# (capture workflow_rid from result)
+
+deriva_ml_create_execution(hostname, catalog_id, workflow_rid="<wf_rid>")
+# (capture execution_rid from result; state is "Created")
+
+deriva_ml_add_feature_values(hostname, catalog_id,
+    table="Image", feature_name="Image_Quality",
+    execution_rid="<exe_rid>",
+    entries=[
+        {"Image": "1-AAAA", "Quality_Score": 0.85},
+        {"Image": "1-BBBB", "Quality_Score": 0.62},
+    ])
+# Auto-driven from Created: the tool opens with execution.execute(), writes,
+# and auto-commits on exit. No separate deriva_ml_commit_execution needed.
+```
+
+**Use the MCP path only when reproducibility doesn't matter.** Values get an Execution and a Workflow — provenance is structurally enforced by the tool signature — but the Workflow's source-code URL is just whatever you wrote in `name`/`description`. There's no committed script, no input asset, no reproducible re-run. That's the right trade-off for smoke-testing a new feature definition, correcting a handful of bad values, or other genuinely throwaway loads. For anything that goes into production or that anyone will cite, use the script path above.
+
+#### If the script crashes mid-ingest
+
+The Execution is recoverable. See `/deriva-ml:troubleshoot-execution` "Salvage a Failed Execution" — the four-branch decision tree (commit-retry, commit-as-is, abort + recovery execution, or recovery execution that claims the survivors as inputs) applies directly. The CSV asset stays captured even if some feature values failed to upload.
 
 ## Phase 5: Query and Explore Feature Values
 
