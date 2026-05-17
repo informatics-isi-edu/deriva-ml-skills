@@ -159,4 +159,4 @@ Once a dataset is created and versioned, there are several ways to consume it.
 - **`/deriva-ml:configure-experiment`** — Setting up Hydra-zen configs that reference datasets
 - **`/deriva-ml:execution-lifecycle`** — Running experiments that consume datasets with provenance tracking
 - **`/deriva-ml:catalog-operations-workflow`** — Writing Python scripts for batch dataset operations with code provenance
-- **`/deriva-ml:setup-ml-catalog`** — If you don't have a populated catalog yet: creating one from scratch (with a phased loader) or by cloning a slice from a source catalog. The handoff into this skill
+- **`/deriva-ml:setup-ml-catalog`** — If you don't have a populated catalog yet: creating one from scratch (with a phased loader) or by cloning a slice from a source catalog. The handoff into this skill.
