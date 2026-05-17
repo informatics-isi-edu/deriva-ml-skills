@@ -25,9 +25,14 @@ Features have overhead (separate table, execution requirement, provenance). Use 
 rag_search("diagnosis label classification", doc_type="catalog-schema")
 ```
 
-Then use the typed tools for full structured details:
+Then use the typed tools for full structured details. For "all features on a target table" snapshots, prefer the resource read; for feature values (which can be large, paginated, or selector-driven), use the tool:
+
 ```
-deriva_ml_list_features(hostname, catalog_id)                                                    # All features (structured JSON)
+# Snapshot all features defined on the Image table (one round trip)
+ReadMcpResourceTool(server="<name>", uri="deriva://catalog/{h}/{c}/ml/features/Image")
+
+# Or paginated equivalents — use the tool when you need to drill or filter:
+deriva_ml_list_features(hostname, catalog_id)                                                    # All features (paginated)
 deriva_ml_get_feature(hostname, catalog_id, target_table="Image", feature_name="Diagnosis")       # Specific feature details
 deriva_ml_list_feature_values(hostname, catalog_id, target_table="Image", feature_name="Diagnosis", selector="newest")  # Existing values
 ```
@@ -163,9 +168,10 @@ If multiple executions contributed, present only the relevant selector options b
 - `references/workflow.md` — Step-by-step MCP and Python API examples for create / add-values / query
 - `references/feature-selectors.md` — Complete guide to writing and using feature selectors
 - `deriva://docs/features` — Full user guide to features in DerivaML
-- `deriva_ml_list_features(hostname, catalog_id)` — Browse all existing features (target tables, types, columns)
+- `deriva://catalog/{h}/{c}/ml/features/{table}` — Snapshot of features defined on a target table (one round trip; preferred for "what features exist on X?")
+- `deriva_ml_list_features(hostname, catalog_id)` — Paginated browse across all target tables (use when you need to filter or drill beyond the per-table snapshot)
 - `deriva_ml_get_feature(hostname, catalog_id, target_table, feature_name)` — Feature details and column schema
-- `deriva_ml_list_feature_values(hostname, catalog_id, target_table, feature_name, selector=...)` — Feature values with selectors and per-execution / per-workflow filtering
+- `deriva_ml_list_feature_values(hostname, catalog_id, target_table, feature_name, selector=...)` — Feature values with selectors and per-execution / per-workflow filtering (no resource equivalent; values are too large/selector-driven for a snapshot)
 
 ## Related Skills
 
