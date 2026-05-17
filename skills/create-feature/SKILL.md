@@ -18,6 +18,8 @@ Before creating a feature, determine whether one is needed and whether it alread
 
 Features have overhead (separate table, execution requirement, provenance). Use a feature when you need provenance, multivalued support, or controlled vocabulary terms. Use a column when the value is intrinsic to the record and immutable. See `references/concepts.md` under "When to Use a Feature vs a Column" for the full decision guide.
 
+> **Already decided wrong?** If an existing target table has a column that should really be a feature (or vice versa), that's a non-additive schema change — use `/deriva:evolve-schema` *(deriva-skills)* for the migration runbook (backfill, FK rewire, drop the old column under a snaptime). Don't try to "convert" in place by silently adding both shapes; pick one and migrate.
+
 ### Search existing features
 
 **Start with `rag_search`** to discover features by concept, not just name:
@@ -176,5 +178,6 @@ If multiple executions contributed, present only the relevant selector options b
 ## Related Skills
 
 - **`/deriva:manage-vocabulary`** *(deriva-skills)* — Create and manage the controlled vocabularies that features reference.
+- **`/deriva:evolve-schema`** *(deriva-skills)* — When the target table's shape needs to change (split, merge, retype, drop columns), feature values referencing those columns ride along — see the migration runbook for the snapshot + backfill + dangling-FK patterns.
 - **`/deriva-ml:dataset-lifecycle`** — Features annotate records in datasets. Feature values are included in bag exports and affect dataset versioning.
 - **`/deriva-ml:ml-data-engineering`** — Consuming feature values for ML training — restructuring, DataFrames, value selectors.
