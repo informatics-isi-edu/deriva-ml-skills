@@ -67,6 +67,8 @@ Use this path when metrics are scalar columns on a Feature.
 
 ### Step 1: Find the recent N executions of the workflow
 
+The tool is right here because the query is filtered (by workflow + status) and you want pagination control. For a quick "what executions exist?" snapshot without filters, prefer `ReadMcpResourceTool(server="<name>", uri="deriva://catalog/{h}/{c}/ml/executions")` — one round trip, no preflight.
+
 ```
 deriva_ml_list_executions(
     hostname="data.example.org",

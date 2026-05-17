@@ -15,7 +15,7 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 
 Before creating a dataset, determine whether an existing one can be reused, extended, or split. The find-before-you-create discipline is carried by `/deriva:semantic-awareness` *(deriva-skills, auto-fires)* — its synonym/abbreviation/spelling-variant search expansion applies to ML entities (Datasets) as well as generic catalog entities. The same skill covers the EAV-vs-wide-table dual extreme, which is worth knowing when designing the *element-type* tables a dataset will draw members from.
 
-1. **Search existing datasets.** `rag_search("your purpose", doc_type="catalog-data")` finds datasets by description, type, or purpose. Fall back to `deriva_ml_list_datasets(hostname, catalog_id)` for the full structured list. Use `get_table_sample_data(...)` to understand how much data is available.
+1. **Search existing datasets.** `rag_search("your purpose", doc_type="catalog-data")` finds datasets by description, type, or purpose. For a bounded snapshot of all datasets, read `deriva://catalog/{h}/{c}/ml/datasets` (one round trip, includes summary + type + current version + `cite_url` + members per dataset); for paginated browsing or filtered queries beyond the snapshot cap, use `deriva_ml_list_datasets(hostname, catalog_id)` instead. Use `get_table_sample_data(...)` to understand how much data is available.
 2. **Check available element types.** Call `deriva_ml_list_dataset_element_types(hostname, catalog_id)` to see which tables can contribute members. If the table you need isn't registered, call `deriva_ml_add_dataset_element_type(hostname, catalog_id, element_table=...)`.
 3. **Decide: reuse, extend, or create.**
 
@@ -143,7 +143,9 @@ Once a dataset is created and versioned, there are several ways to consume it.
 - `references/bags.md` — BDBag contents, FK traversal, materialization, caching, timeouts
 - `references/type-naming-strategy.md` — DerivaML-specific built-in `Dataset_Type` dimensions, composing multiple types, imaging-domain examples
 - `rag_search("...", doc_type="catalog-data")` — Discover datasets by description, type, or purpose
-- `deriva_ml_list_datasets(hostname, catalog_id)` — Full structured list of all datasets
+- `deriva://catalog/{h}/{c}/ml/datasets` — Bounded snapshot of all datasets (one round trip; includes summary, type, current version, `cite_url`, members per dataset). Preferred for "show me what datasets exist."
+- `deriva_ml_list_datasets(hostname, catalog_id)` — Paginated list for filtered queries or when the snapshot cap is exceeded.
+- `deriva://catalog/{h}/{c}/ml/dataset/{rid}` — One dataset by RID with members and version in a single read (preferred over `deriva_ml_get_dataset` for inspection).
 - `deriva_ml_list_dataset_element_types(hostname, catalog_id)` — Tables registered as element types (can contribute dataset members)
 - `deriva://catalog/{h}/{c}/ml/vocabularies/deriva-ml` — All deriva-ml vocabularies (Dataset_Type, Workflow_Type, Asset_Type, Execution_Status, plus any user-added ones)
 - `deriva://catalog/{h}/{c}/ml/vocabularies/deriva-ml/Dataset_Type` — Drill into Dataset_Type terms (use other vocab names similarly)
@@ -157,4 +159,4 @@ Once a dataset is created and versioned, there are several ways to consume it.
 - **`/deriva-ml:configure-experiment`** — Setting up Hydra-zen configs that reference datasets
 - **`/deriva-ml:execution-lifecycle`** — Running experiments that consume datasets with provenance tracking
 - **`/deriva-ml:catalog-operations-workflow`** — Writing Python scripts for batch dataset operations with code provenance
-- **`/deriva-ml:setup-ml-catalog`** — If you don't have a populated catalog yet: creating one from scratch (with a phased loader) or by cloning a slice from a source catalog. The handoff into this skill
+- **`/deriva-ml:setup-ml-catalog`** — If you don't have a populated catalog yet: creating one from scratch (with a phased loader) or by cloning a slice from a source catalog. The handoff into this skill.
