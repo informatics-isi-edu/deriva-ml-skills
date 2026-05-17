@@ -94,6 +94,32 @@ Deriva's seven design pillars (see `/deriva:deriva-context`) are about **data de
 
 The provenance graph is **walkable in one tool call**: `deriva_ml_get_lineage(rid=...)` traces any artifact (Dataset, Asset, Feature value, Execution) back through its producing-execution chain to the root. That's how you answer "how did this come to exist?" without manually walking 5-15 typed-read calls. Conversely, when you're about to run an experiment and want to confirm the config is valid before paying the bag-download cost of `dry_run=True`, use `deriva_ml_validate_execution_configuration(config=...)` — the cheap metadata-only pre-flight gate.
 
+## Python API method naming: `find_*` vs `list_*`
+
+The Python `DerivaML` API uses two prefixes for accessor methods, and **they mean different things**. Use the right one for what you want to do.
+
+- **`find_*`** — search the catalog for entities of a kind, optionally filtered. The argument (if any) is a *filter*, not a scope.
+  - Examples: `ml.find_features()`, `ml.find_features(table)`, `ml.find_datasets()`, `ml.find_workflows()`, `ml.find_executions()`, `ml.find_experiments()`, `ml.find_assets()`, `ml.find_incomplete_executions()`.
+- **`list_*`** — enumerate things scoped to a specific parent entity. The first argument **is the scope** (and is typically required).
+  - Examples: `ml.list_assets(asset_table)`, `dataset.list_dataset_members(...)`, `dataset.list_dataset_children(...)`, `ml.list_workflow_executions(workflow)`, `ml.list_vocabulary_terms(table)`, `asset.list_executions(...)`.
+
+So:
+
+| What you want | The right call |
+|---|---|
+| "All features anywhere in the catalog" | `ml.find_features()` |
+| "All features on table T" | `ml.find_features(T)` — `T` is a filter, not a scope |
+| "All datasets" | `ml.find_datasets()` |
+| "All members of dataset D" | `dataset.list_dataset_members()` — D is the scope (it's `self`) |
+| "All executions of workflow W" | `ml.list_workflow_executions(W)` — W is the scope |
+| "All assets of table T" | `ml.list_assets(T)` — T is the scope |
+
+**There is no `ml.list_features()`.** Features aren't scoped to a parent entity in the way dataset members are scoped to a dataset, so there's no place for a scope-less `list_*` flavor. Use `find_features()` for the catalog-wide enumeration.
+
+Both kinds return iterables of typed records (Pydantic models or DerivaML domain objects), not raw rows. Convert with `list(...)` if you need a concrete list. `feature_values()` is the same shape but named without the `find`/`list` prefix because it returns *values of one feature*, not an enumeration of feature definitions.
+
+When you hit `AttributeError: 'DerivaML' object has no attribute 'list_features'. Did you mean: 'find_features'?` — that's the muscle-memory failure mode. The convention is intentional; the search is `find_features()`.
+
 ## Built-in DerivaML vocabularies
 
 DerivaML ships four built-in vocabularies. Extend them via the generic `add_term` tool, passing `schema="deriva-ml"` and the appropriate `table=`:
