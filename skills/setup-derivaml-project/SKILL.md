@@ -10,6 +10,8 @@ This skill covers the **bootstrap moment** — the one-time setup of a fresh Der
 
 Don't develop inside the DerivaML library itself. Every DerivaML project gets its own Git repository.
 
+> **Setting up the *catalog* the project will work against?** That's a separate concern — see `/deriva-ml:setup-ml-catalog` for creating a fresh DerivaML catalog from scratch (with a phased loader script) or cloning a slice of an existing source catalog into a new destination. The two skills are independent; do them in either order. This skill sets up the *code*; that one sets up the *catalog*.
+
 ## Step 1: Initialize the repository
 
 ```bash
