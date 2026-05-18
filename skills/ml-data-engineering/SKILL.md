@@ -14,33 +14,19 @@ For creating, populating, splitting, versioning, or browsing datasets, see the `
 
 ## Step 1: Download the Dataset
 
-### Preview before downloading
+> **Where the four-step recipe lives.** The full download recipe (preview → validate version → download → validate bag), the dev-version pitfall, and the option matrix (`materialize`, `timeout`, `exclude_tables`, `use_minid`, `DatasetSpecConfig`) belong with the dataset abstraction itself — see `/deriva-ml:dataset-lifecycle` Phase 5 → "Download workflow". For the BDBag format mechanics underneath (manifest, checksums, materialization, the `bdbag` CLI, `DerivaDownload` / `DerivaExport` Python classes), see `/deriva:download-bag` *(deriva-skills)*. This skill picks up from "you have a downloaded bag" — Step 2 onward.
 
-```
-deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="2-XXXX", version="1.0.0")
-```
-
-Returns row counts, asset sizes per table, and a manifest preview so you know what to expect. (This subsumes the legacy `estimate_bag_size` tool.)
-
-### Download as BDBag
+The condensed version, for in-context reference:
 
 ```python
-# Python API -- standalone download (no execution required)
-bag = dataset.download_dataset_bag(version="1.0.0")
+# Preview row counts and asset sizes before committing to a download
+deriva_ml_bag_info(hostname="data.example.org", catalog_id="1",
+                   dataset_rid="2-XXXX", version="1.0.0")
 
-# Python API -- within an execution context (records provenance)
+# Then download — standalone, or inside an execution for provenance
+bag = dataset.download_dataset_bag(version="1.0.0")
 bag = exe.download_dataset_bag(DatasetSpec(rid="2-XXXX", version="1.0.0"))
 ```
-
-For slow downloads, increase the timeout or exclude tables:
-```python
-bag = dataset.download_dataset_bag(version="1.0.0", timeout=[10, 1800])
-bag = dataset.download_dataset_bag(version="1.0.0", exclude_tables=["Study"])
-```
-
-Use `materialize=False` to skip downloading actual asset files (only metadata).
-
-For details on bag contents, FK traversal, and caching, see the `dataset-lifecycle` skill's `bags.md` reference.
 
 ## Step 2: Choose Your Extraction Approach
 

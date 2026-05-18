@@ -1,11 +1,12 @@
-# Dataset Bags (BDBags)
+# Dataset Bags (BDBags) — DerivaML reference
 
 > **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
+> **Generic BDBag mechanics live in `/deriva:download-bag`** *(deriva-skills)* — what a bag *is* (BagIt + fetch.txt + manifests), the two export paths (`DerivaExport`, `DerivaDownload` / `deriva-download-cli`), authoring an export spec by hand, the `bdbag` CLI (validate, resolve-fetch, materialize, archive), three-tier caching, the typed exception hierarchy, and the export-annotation route. **This reference covers only what's DerivaML-specific** — how `Dataset` entities wrap the generic mechanics with version pinning, member-driven spec generation, and the `DatasetBag` SQLite-backed API.
+
 ## Table of Contents
 
-- [What is a Bag?](#what-is-a-bag)
-- [What a Bag Contains](#what-a-bag-contains)
+- [What a Dataset Bag Contains](#what-a-dataset-bag-contains)
 - [How Bag Contents Are Determined](#how-bag-contents-are-determined)
 - [Versioning and Reproducibility](#versioning-and-reproducibility)
 - [Materialization](#materialization)
@@ -20,26 +21,22 @@
 
 ---
 
-## What is a Bag?
+## What a Dataset Bag Contains
 
-A **BDBag** (Big Data Bag) is a self-describing, portable archive of a specific dataset version. It packages everything needed to reproduce a dataset offline: member records, related data, asset files, feature values, and vocabulary terms — all checksummed for integrity.
-
-Bags are the standard way to get data out of a DerivaML catalog for ML training, analysis, or sharing. When you call Python API `dataset.download_dataset_bag(version)`, the result is a bag.
+A dataset bag is a BDBag (see `/deriva:download-bag` for the format) whose contents are driven by a DerivaML `Dataset` entity at a specific version. `dataset.download_dataset_bag(version)` generates the export spec automatically from the dataset's members + element types + element-type-reachable FK paths; you don't author the spec by hand.
 
 The downloaded bag is backed by a **SQLite database** — all queries against a `DatasetBag` use SQL under the hood. The `DatasetBag` class mirrors the live `Dataset` API, so code can work uniformly with both live catalog data and downloaded snapshots.
 
-## What a Bag Contains
+### Dataset-specific contents
 
-A bag for a specific dataset version includes:
+On top of the generic BDBag shape (`bag-info.txt`, `manifest-md5.txt`, `data/records/...`, `data/assets/...`, `schema.json` — see `/deriva:download-bag`), a dataset bag carries:
 
-1. **Member records** — All records from registered element types that belong to the dataset (e.g., Image, Subject rows), stored as CSV files per table and loaded into SQLite.
+1. **Member records** — All records from registered element types that belong to the dataset (e.g., Image, Subject rows), stored as CSV files per table and loaded into the bag's SQLite database.
 2. **Related records** — Data from tables reachable via foreign key paths from member records (see [How Bag Contents Are Determined](#how-bag-contents-are-determined)).
 3. **Nested datasets** — Child datasets are included recursively with all their members. Navigate with `bag.list_dataset_children()`.
 4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `bag.fetch_table_features()`.
 5. **Vocabulary terms** — Controlled vocabulary terms referenced by included records, exported separately.
 6. **Asset files** — Binary files (images, model weights, etc.) referenced by member records, fetched when `materialize=True`.
-7. **Checksums** — Every file has a cryptographic checksum for integrity verification.
-8. **Schema snapshot** — `schema.json` describing the catalog structure at export time.
 
 ## How Bag Contents Are Determined
 
@@ -90,14 +87,11 @@ Each bag is tied to a **catalog snapshot** — the exact catalog state at the ti
 
 ## Materialization
 
-- **`materialize=True`** (default): The bag fetches all referenced asset files from the object store. Creates a fully self-contained archive.
-- **`materialize=False`**: The bag contains only metadata and remote file references. Smaller download, but requires network access to use the assets later.
-
-Use `materialize=False` when you only need the tabular data (record metadata, feature values) and not the actual files. Also useful for validation (Python API bag inspection uses `materialize=False` to check contents quickly).
+The `materialize=True` default fetches all referenced asset files into the bag (self-contained); `materialize=False` keeps the bag manifest-only and defers asset fetching. See `/deriva:download-bag` "Materialization" for the full mechanics (including `bdbag --resolve-fetch` to materialize selectively after the fact). DerivaML-specific note: `bag.validate()` uses `materialize=False` under the hood, so validating a bag's contents against the live catalog is cheap even for large bags.
 
 ## Caching
 
-Bags are cached locally by checksum. When you download the same dataset version again, the cached bag is reused without re-downloading. The cache key is `{dataset_rid}_{checksum}`.
+The generic three-tier cache (local / MINID / generation) is described in `/deriva:download-bag` "Caching". DerivaML extends the cache key to **`{dataset_rid}_{checksum}`** so that two different datasets with coincidentally-identical spec hashes don't collide. The `{rid}@{version}` cache hit is what makes `dataset.download_dataset_bag(version="1.0.0")` deterministic — the same (rid, version) pair always lands in the same cache slot.
 
 The cache location can be configured via the `cache_dir` argument when creating a DerivaML instance. Read the `deriva://storage/cache` resource to see cached bags, and use Python API `ml.clear_cache()` to remove all cached data.
 
