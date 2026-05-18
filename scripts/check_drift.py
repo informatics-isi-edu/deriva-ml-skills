@@ -8,9 +8,15 @@ Three checks against the skills tree:
 2. ``/deriva:<name>`` references resolve to a tier-1 skill in
    ``../deriva-skills/skills/<name>/``. (SOFT — warn-only when the
    tier-1 repo is unavailable; HARD when it is.)
-3. ``deriva_ml_<name>`` mentions correspond to a tool registered in
-   ``../deriva-ml-mcp``'s tool registry. (SOFT — warn-only when the
-   mcp repo is unavailable; HARD when it is.)
+3. ``deriva_ml_<name>`` mentions correspond to a **tool or prompt**
+   registered in ``../deriva-ml-mcp``. Both ``@ctx.tool(...)`` and
+   ``@ctx.prompt(...)`` count as valid registrations — they share the
+   ``deriva_ml_*`` naming convention and are equally addressable by
+   clients (tools via direct invocation, prompts via the
+   ``/mcp__deriva-ml__<name>`` slash command). Skills legitimately
+   reference both surfaces, so the detector must recognize both to
+   avoid false positives. (SOFT — warn-only when the mcp repo is
+   unavailable; HARD when it is.)
 
 Usage::
 
@@ -30,7 +36,6 @@ Example:
 
 from __future__ import annotations
 
-import json
 import re
 import sys
 from pathlib import Path
@@ -84,24 +89,45 @@ def check_tier1(text: str) -> tuple[set[str], list[str], bool]:
 
 
 def check_tools(text: str) -> tuple[set[str], list[str], bool]:
-    """Check `deriva_ml_<name>` mentions match registered MCP tools."""
+    """Check `deriva_ml_<name>` mentions match a registered MCP tool or prompt.
+
+    The mcp server exposes two client-addressable surfaces — tools
+    (``@ctx.tool``) and prompts (``@ctx.prompt``) — that share the
+    ``deriva_ml_*`` naming convention. Skill bodies legitimately
+    reference both kinds (e.g., ``deriva_ml_concepts`` and
+    ``deriva_ml_getting_started`` are prompts, not tools, but they
+    appear in ``using-deriva-mcp`` and elsewhere). Treating prompt
+    references as "missing tools" was a false-positive source on main
+    after PRs #17 and #18 — this function unions both registries to
+    avoid that.
+    """
     mentions = set(TOOL_RE.findall(text)) - TOOL_NAME_EXCLUDES
-    plugin_json = MCP_REPO / ".claude-plugin" / "plugin.json"
-    # Tool registry lives in the source — search for @mcp.tool decorated
-    # function names. Fall back to a static list file if present.
     src_dir = MCP_REPO / "src" / "deriva_ml_mcp"
     if not src_dir.is_dir():
         return mentions, [], False
     registered: set[str] = set()
-    # Tools are registered with `@ctx.tool(...)` followed by an
-    # `async def deriva_ml_<name>(...)` (or plain `def`). Match the
-    # decorator + (async )? def form so we count exactly the
-    # decorated entrypoints, not internal helpers named `deriva_ml_*`.
-    decorator_re = re.compile(
+    # Tools: `@ctx.tool(...)` immediately followed by an
+    # `(async )?def deriva_ml_<name>(...)`. The single-line lookahead
+    # is correct — `@ctx.tool` decorators are written compactly with
+    # no blank line between decorator and `def`.
+    tool_re = re.compile(
         r"@ctx\.tool\b[^\n]*\n\s*(?:async\s+)?def\s+(deriva_ml_[a-z0-9_]+)"
     )
+    # Prompts: `@ctx.prompt(...)` may span multiple lines (the prompt
+    # name string + a multi-line description kwarg are common), so the
+    # decorator's closing `)` may be on its own line. Match the
+    # decorator non-greedily up to the first line that begins with
+    # `def deriva_ml_<name>`. `re.DOTALL` lets `.` cross lines; the
+    # `?` keeps the match minimal so adjacent decorators don't bleed
+    # into one match.
+    prompt_re = re.compile(
+        r"@ctx\.prompt\b.*?\n\s*(?:async\s+)?def\s+(deriva_ml_[a-z0-9_]+)",
+        re.DOTALL,
+    )
     for py in src_dir.rglob("*.py"):
-        registered.update(decorator_re.findall(py.read_text(encoding="utf-8")))
+        src = py.read_text(encoding="utf-8")
+        registered.update(tool_re.findall(src))
+        registered.update(prompt_re.findall(src))
     stale = sorted(f"deriva_ml_{m}" for m in mentions if f"deriva_ml_{m}" not in registered)
     return mentions, [f"{n} → not registered in deriva-ml-mcp" for n in stale], True
 
