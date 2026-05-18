@@ -132,8 +132,56 @@ Once a dataset is created and versioned, there are several ways to consume it.
 - **Browse in Chaise** — `cite(hostname, catalog_id, rid="1-ABC4")` for a permanent snapshot URL; add `current=true` for the live URL.
 - **Reference in experiment configs** — `DatasetSpecConfig(rid="28EA", version="0.4.0")` in a Hydra-zen config. Use `deriva_ml_get_dataset_spec` to generate the correct string. See `/deriva-ml:configure-experiment` and `/deriva-ml:write-hydra-config` for how dataset configs integrate.
 - **Explore and browse contents (no browser)** — 7-step MCP workflow from overview → members → schema shape → actual data → features → hierarchy → provenance. See `references/workflow.md` → "Explore and browse dataset contents".
-- **Download as BDBag** — `deriva_ml_bag_info(...)` for size/manifest preview; Python API `dataset.download_dataset_bag(rid, version)` to actually download. For slow downloads, increase timeout or `exclude_tables=[...]`. See `references/bags.md` for FK-traversal mechanics, materialization, caching.
+- **Download as BDBag** — see "Download workflow" below for the worked recipe; `references/bags.md` for DerivaML-specific behavior (version pinning, cache key, `DatasetBag` API). For the generic BDBag format and the underlying export mechanics (what a bag *is*, the `bdbag` CLI, materialization, `DerivaDownload` / `DerivaExport` Python classes), `/deriva:download-bag` *(deriva-skills)*.
 - **Restructure for ML frameworks** — after downloading, `bag.restructure_assets(output_dir, asset_table, group_by=[...])` organizes files for PyTorch ImageFolder or similar. See `/deriva-ml:ml-data-engineering` for the full restructuring patterns.
+
+### Download workflow
+
+The dataset-aware download path wraps the generic BDBag export (see `/deriva:download-bag` *(deriva-skills)* for the underlying mechanics) with three things that matter to ML reproducibility: **version pinning, member-driven spec generation, and a `{rid}@{version}` cache key**. The result is that the same `(rid, version)` pair always produces the same bytes, indefinitely.
+
+The full recipe — preview, validate version, download, handle errors — in four steps:
+
+```python
+# Step 1: Preview before downloading. Cheap; no bytes transferred.
+deriva_ml_bag_info(
+    hostname="data.example.org", catalog_id="1",
+    dataset_rid="2-XXXX", version="1.0.0",
+)
+# Returns per-table row counts + per-table asset sizes + manifest preview.
+# Use this to: confirm the right tables are included, estimate disk and time,
+# decide whether to use exclude_tables or increase timeout.
+
+# Step 2: Validate version. Reject dev versions up front.
+ds = ml.find_dataset("2-XXXX")          # or ds = dataset for an in-scope object
+v = ds.find_version("1.0.0")             # raises if version doesn't exist
+assert not v.is_dev, (
+    f"Version {v} is a dev label — bags cannot pin to a dev label "
+    f"(no snapshot to pin). Release first with deriva_ml_release()."
+)
+
+# Step 3: Download. Cached the first time; cache hits after.
+bag = ds.download_dataset_bag(version="1.0.0")
+# In an execution: exe.download_dataset_bag(DatasetSpec(rid="2-XXXX", version="1.0.0"))
+
+# Step 4: Validate (optional but cheap insurance for important runs).
+# Cross-checks the bag against the live catalog for the version's snapshot.
+report = bag.validate()
+assert all(t.status == "PASS" for t in report.tables), report
+```
+
+**Common patterns:**
+
+| Goal | Override |
+|---|---|
+| Metadata only — skip asset bytes | `materialize=False` |
+| Slow download / deep FK chain | `timeout=[10, 1800]` (30 min read timeout) |
+| Prune an expensive FK branch | `exclude_tables=["Institution", "Study"]` |
+| Share via persistent identifier | `use_minid=True` (requires `s3_bucket` configured on the catalog) |
+| Embed in Hydra-zen experiment config | `DatasetSpecConfig(rid="28EA", version="0.4.0", timeout=[10, 1800], exclude_tables=["Study"])` |
+
+**The dev-version pitfall.** If your code mutates a dataset (added members, new feature values) and then immediately tries `download_dataset_bag(current_version)`, you'll hit `ValidationError` — the dataset will have flipped to a dev label (`x.y.z.post1.devN`) on the mutation, and dev labels have no snapshot to pin to. The fix is to call `deriva_ml_release(...)` between the mutation and the download to mint a new release that captures the post-mutation state, then download that. See "Versioning and Reproducibility" in `references/bags.md` for the full version-state diagram. Tracked at [deriva-ml#89](https://github.com/informatics-isi-edu/deriva-ml/issues/89).
+
+For what to do with the bag after it lands — restructure for PyTorch, build training DataFrames, denormalize across FK paths, handle multi-annotator features — see `/deriva-ml:ml-data-engineering`. For BDBag-format mechanics (manifest, checksums, fetch.txt materialization, `bdbag` CLI), see `/deriva:download-bag` *(deriva-skills)*.
 
 ## Reference Resources
 
