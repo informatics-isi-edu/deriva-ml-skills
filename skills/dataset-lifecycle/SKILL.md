@@ -92,6 +92,8 @@ Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com
 | **Minor** | New data or features | Members added, new annotations, split created |
 | **Patch** | Bug fixes, corrections | Fixed mislabeled records, metadata typos |
 
+> **Schema change underneath an existing dataset?** A major bump signals that consumer code must change too — column renamed, table split, FK retargeted. The migration itself (snapshot, backfill, drop the old shape) belongs in `/deriva:evolve-schema` *(deriva-skills)*; this skill governs what to do *to the dataset* afterward (cut a major release that pins the post-migration schema so downstream experiments don't silently break across the boundary).
+
 ### Typical lifecycle
 
 ```
@@ -160,3 +162,4 @@ Once a dataset is created and versioned, there are several ways to consume it.
 - **`/deriva-ml:execution-lifecycle`** — Running experiments that consume datasets with provenance tracking
 - **`/deriva-ml:catalog-operations-workflow`** — Writing Python scripts for batch dataset operations with code provenance
 - **`/deriva-ml:setup-ml-catalog`** — If you don't have a populated catalog yet: creating one from scratch (with a phased loader) or by cloning a slice from a source catalog. The handoff into this skill.
+- **`/deriva:evolve-schema`** *(deriva-skills)* — When a catalog schema change (split / merge / FK move / retype) lands beneath an existing dataset. The schema migration runs there; cutting the dataset's major release to pin the post-migration shape happens here.
