@@ -79,6 +79,7 @@ These are skills that **Claude loads on its own** when the situation calls for t
 | `execution-lifecycle` | When the user is running experiments — guides through the state machine and upload discipline |
 | `experiment-lifecycle` | When the user is designing or running an experiment cycle — names the seven phases and the cross-step disciplines |
 | `create-feature` | When the user is creating or working with features — guides through the assess/design/create phases and the feature-vs-column decision |
+| `run-notebook` | When the user is creating, developing, or running a DerivaML Jupyter notebook — guides through the three-stage development cycle and `run_notebook()` provenance machinery (also slash-typable) |
 | `maintain-experiment-notes` | After significant decisions in any phase — captures rationale to experiment-decisions.md |
 | `generate-descriptions` | When creating any DerivaML entity without a user-supplied description |
 

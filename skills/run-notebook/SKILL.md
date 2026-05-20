@@ -1,7 +1,6 @@
 ---
 name: run-notebook
 description: "ALWAYS use this skill when creating, developing, or running DerivaML Jupyter notebooks with execution tracking. Triggers on: 'create notebook', 'new notebook', 'add notebook', 'scaffold notebook', 'run notebook', 'jupyter', 'notebook structure', 'deriva-ml-run-notebook', 'notebook with provenance', 'notebook_config', 'run_notebook', 'notebook development', 'notebook workflow'."
-disable-model-invocation: true
 ---
 
 # Create and Run a DerivaML Notebook
