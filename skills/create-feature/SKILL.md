@@ -79,11 +79,12 @@ For the full design guide, see `references/concepts.md` under "Designing a Featu
 
 ### Standard workflow
 
-1. **Create vocabulary + terms** (if term-based; see `/deriva:manage-vocabulary` *(deriva-skills)* for the generic vocabulary CRUD surface):
+1. **Create vocabulary + terms** (if term-based). On any catalog that has the deriva-ml schema installed (the case for every catalog this skill targets), prefer the ML-aware `deriva_ml_create_vocabulary` over the generic `create_vocabulary` from deriva-mcp-core. Both produce a table of the same physical shape, but the ML version automatically scopes the curie prefix to the deriva-ml project name (so terms get stable `{project}:{RID}` identifiers), defaults to the domain schema, and refreshes the catalog navbar so the new vocab shows up in Chaise immediately:
    ```
-   create_vocabulary(hostname, catalog_id, schema="<schema>", table="Diagnosis_Type", comment="...")
+   deriva_ml_create_vocabulary(hostname, catalog_id, vocab_name="Diagnosis_Type", comment="...")
    add_term(hostname, catalog_id, schema="<schema>", table="Diagnosis_Type", name="Normal", description="...")
    ```
+   The generic `create_vocabulary` from deriva-mcp-core remains the right call for non-deriva-ml catalogs; see `/deriva:manage-vocabulary` *(deriva-skills)* for that surface. `add_term` (from deriva-mcp-core) populates terms after creation for both paths — there is no ML-specific add_term variant.
 
 2. **Create the feature**:
    ```
@@ -174,6 +175,7 @@ If multiple executions contributed, present only the relevant selector options b
 - `deriva_ml_list_features(hostname, catalog_id)` — Paginated browse across all target tables (use when you need to filter or drill beyond the per-table snapshot)
 - `deriva_ml_get_feature(hostname, catalog_id, target_table, feature_name)` — Feature details and column schema
 - `deriva_ml_list_feature_values(hostname, catalog_id, target_table, feature_name, selector=...)` — Feature values with selectors and per-execution / per-workflow filtering (no resource equivalent; values are too large/selector-driven for a snapshot)
+- `deriva_ml_create_vocabulary(hostname, catalog_id, vocab_name, comment="", schema=None, update_navbar=True)` — ML-aware vocabulary creation; prefer over `create_vocabulary` from deriva-mcp-core for any deriva-ml catalog. Picks up the deriva-ml project name as the curie prefix and the domain schema as the default placement.
 
 ## Related Skills
 
