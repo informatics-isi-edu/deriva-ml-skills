@@ -21,6 +21,9 @@ ReadMcpResourceTool(server="<server-name>", uri="deriva://deriva-ml/getting-star
 
 Replace `<server-name>` with whatever the user's MCP server is registered as — commonly `deriva`, sometimes `dev-localhost`, sometimes something project-specific. If `ListMcpResourcesTool({server: "<name>"})` returns successfully, that's the right name.
 
+> **`ListMcpResourcesTool` only enumerates concrete URIs, not templates.**
+> Claude Code's `ListMcpResourcesTool` calls MCP's `resources/list` endpoint, which by protocol returns only resources with concrete URIs (no `{param}` placeholders). The deriva MCP server registers ~15 resource templates whose URIs *do* have placeholders (`deriva://catalog/{hostname}/{catalog_id}/ml/datasets`, etc.) — those are served via the separate `resources/templates/list` endpoint, which Claude Code does **not** surface. If `ListMcpResourcesTool` returns only 2–3 entries (the static orientation resources), that is the gap — **don't conclude that nothing else is available.** The full template inventory is in the "Reference" section at the end of this skill and inside the `deriva://deriva-ml/getting-started` resource. Read either to know what URIs you can `ReadMcpResourceTool` against.
+
 - `deriva://deriva-ml/concepts` — the five core abstractions (Dataset, Workflow, Execution, Feature, Asset), the provenance principle, the vocabulary-extension pattern. Read **first** if you don't already have a DerivaML mental model.
 - `deriva://deriva-ml/getting-started` — the `(hostname, catalog_id)` rule (mandatory on every call), the pagination contract (preflight → page → advance), the resource-vs-tool decision, error envelope conventions, the discovery-via-resources orientation.
 
@@ -71,10 +74,60 @@ The upstream MCP server's prompts and resources are the **canonical source of tr
 
 ## Reference
 
+### Orientation resources (concrete URIs, enumerated by `ListMcpResourcesTool`)
+
 - `deriva://deriva-ml/concepts` — same content as the `deriva_ml_concepts` MCP prompt; resource form for resource-walking clients
 - `deriva://deriva-ml/getting-started` — same content as the `deriva_ml_getting_started` MCP prompt; resource form for resource-walking clients
+- `deriva://server/status` — server health / version info
+
+### Catalog-scoped resource templates (NOT enumerated by `ListMcpResourcesTool` — read directly with `ReadMcpResourceTool`)
+
+Substitute concrete values into the `{...}` placeholders before reading.
+The `{hostname}` is the deriva server (e.g. `localhost`, `dev.eye-ai.org`),
+`{catalog_id}` is the numeric catalog id (or alias / `id@snaptime`).
+For an authoritative description of each resource's payload shape, see
+the matching docstring in `deriva-ml-mcp/src/deriva_ml_mcp/resources/ml.py`.
+
+**Datasets**
+
+| URI | Returns |
+|---|---|
+| `deriva://catalog/{hostname}/{catalog_id}/ml/datasets` | all datasets (paginated) |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}` | single dataset summary + version history |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}/spec` | dataset specification (element types, etc.) |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}/bag-preview` | bag-download preview without materializing |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}/members` | dataset members (paginated) |
+
+**Workflows & Executions**
+
+| URI | Returns |
+|---|---|
+| `deriva://catalog/{hostname}/{catalog_id}/ml/workflows` | all workflows (paginated) |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/workflow/{workflow_rid}` | single workflow (source URL, checksum, type) |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/executions` | all executions (paginated) |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{execution_rid}` | execution detail (inputs, outputs, durations, experiment) |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/lineage/{rid}` | full provenance walk from any Dataset / Execution / Asset RID |
+
+**Features, Assets, Vocabularies**
+
+| URI | Returns |
+|---|---|
+| `deriva://catalog/{hostname}/{catalog_id}/ml/features/{table_name}` | features defined on `{table_name}` |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/asset/{asset_rid}` | single asset metadata + download URL |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/assets/{schema}` | all assets in a schema |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/assets/{schema}/{asset_table}` | assets in one specific asset table |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/{schema}` | all vocabulary tables in a schema |
+| `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/{schema}/{vocab_name}` | all terms in one vocabulary |
+
+These templates are the read-side of the resource-vs-tool decision documented in `/deriva-ml:deriva-ml-context` — when a question is "what is the current state of X," prefer the resource over the equivalent list / get tool. Resources are cached, page-free, and produce no audit-log entries.
+
+### deriva-mcp-core slash-command guides (read once per conversation, before first use of each tool group)
+
 - `/mcp__<server-name>__query_guide` — ERMrest query guide (path expressions, joins, aliases, pagination)
 - `/mcp__<server-name>__entity_guide` — entity CRUD conventions, preflight count rule, display rules
 - `/mcp__<server-name>__annotation_guide` — Chaise display annotation operations
 - `/mcp__<server-name>__catalog_guide` — catalog-level operations (create, clone, schema introspection)
-- `ListMcpResourcesTool({server: "<name>"})` — confirm the server name and see what resources are available
+
+### Discovery helpers
+
+- `ListMcpResourcesTool({server: "<name>"})` — confirm the server name and list **concrete** resources. **Does not list templates** — see the warning in the cold-start section above.
