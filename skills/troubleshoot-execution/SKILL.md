@@ -13,6 +13,25 @@ This guide covers errors specific to the **DerivaML execution lifecycle** — th
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly; lifecycle tools also take an explicit `execution_rid`. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
+## Symptom → Section
+
+Jump straight to the right section if you already know what's wrong:
+
+| Symptom | Section |
+|---------|---------|
+| `exe.asset_file_path()` or other `exe.*` call errors about "no active execution" | "No Active Execution" |
+| Execution finished but asset files don't appear in the catalog | "Files Not Uploaded" |
+| `deriva_ml_get_dataset(rid)` errors / returns empty for a dataset RID you expected to exist | "Dataset Not Found" |
+| Bag contents or `denormalize_dataset` output doesn't match what you expected | "Version Mismatch" |
+| `deriva_ml_add_feature_values` or feature-related calls error about a missing feature | "Feature Not Found" |
+| `exe.upload_execution_outputs()` hangs or times out | "Upload Timeout" |
+| Execution status shows `Running` but the process has crashed or ended | "Execution Stuck in Running" |
+| Error mentions a missing `Workflow_Type`, `Dataset_Type`, or `Asset_Type` term | "ML Vocabulary Term Not Found" |
+| Training ran for hours, failed partway, and you need to recover survivors | "Salvage a Failed Execution" |
+| "Tool not found" / "unknown parameter" / docs and behavior disagree | "Versioning and updates" |
+
+If your situation isn't in the table, read top to bottom — the sections are short.
+
 ---
 
 ## Problem: "No Active Execution"
@@ -338,6 +357,48 @@ This is the right tool when:
 - A model prediction looks wrong and you want to confirm which training dataset version it came from.
 - A feature value disagrees with what you expected and you want to identify which annotation execution wrote it.
 - Reproducing a result requires confirming the exact (dataset RID, dataset version, workflow RID, workflow git commit) tuple that produced an asset.
+
+#### Worked example: from a prediction asset back to the workflow's git commit
+
+A common ML-developer question: "I want to reproduce this prediction. What dataset version was used, and what code (git commit) produced it?" The lineage tool gets you most of the way there, but the **workflow's URL and git checksum are not in the lineage payload** — `WorkflowSummary` in the response only carries `rid` and `name`. To get the URL + commit hash you need a second call. The full two-step pattern:
+
+```
+# Step 1 — walk the lineage from the asset
+deriva_ml_get_lineage(hostname="data.example.org", catalog_id="1", rid="2-PRED1")
+```
+
+The response shape is `{"root": {...}, "lineage": {...}, "executions_visited": N, "walked_complete": true, ...}`. The `lineage` field is a tree of `LineageNode`s. Each node has:
+
+- `execution.rid`, `execution.description`, `execution.status`
+- `execution.workflow.rid`, `execution.workflow.name` — but NOT URL or checksum
+- `consumed_datasets` — list of `{rid, description, version}`
+- `consumed_assets` — list of `{rid, filename, asset_table}`
+- `parents` — recursively, the producing executions of consumed datasets and assets
+
+So the lineage tells you "asset `2-PRED1` was produced by execution `2-EXE1`, which consumed dataset `1-ABCD` at version `1.2.0` and was driven by workflow `2-WF01` named 'ResNet50 Training'." But not the git URL or commit.
+
+```
+# Step 2 — fetch the workflow record(s) named in the lineage
+ReadMcpResourceTool(server="<name>", uri="deriva://catalog/data.example.org/1/ml/workflow/2-WF01")
+```
+
+The workflow resource returns the full record including `URL` (the source-code URL, typically a GitHub blob URL pinned to a commit, e.g. `https://github.com/org/repo/blob/abc123/train.py`) and `Checksum` (the git commit hash). The URL is the reproducible-code reference; the checksum is the integrity check.
+
+**End-to-end summary table you can render for the user** (after both calls):
+
+| Field | Source |
+|-------|--------|
+| Prediction asset RID | The starting RID you passed |
+| Producing execution | `lineage.execution.rid` (immediate producer in the tree) |
+| Training dataset | `lineage.consumed_datasets[0].rid` |
+| Training dataset version | `lineage.consumed_datasets[0].version` |
+| Workflow | `lineage.execution.workflow.rid` + `.name` |
+| Code URL | workflow resource → `URL` field |
+| Code git commit | workflow resource → `Checksum` field |
+
+If the prediction depends on an upstream chain (the training execution itself consumed a dataset produced by a preprocessing execution, etc.), the same fields apply at each `parents` level of the tree.
+
+**For per-row feature-value provenance** (e.g. "which execution wrote *this specific* `Image_Quality` value?"), pass the feature value's RID — every feature value has an RID and the tool walks it the same way. See `/deriva-ml:create-feature` for how feature values get their producing-execution link in the first place.
 
 ### Verify Working Directory
 

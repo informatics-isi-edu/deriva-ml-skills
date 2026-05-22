@@ -15,7 +15,7 @@ For background on the execution hierarchy, statuses, workflows, nested execution
 
 DerivaML enforces that all code is committed before running catalog-mutating operations. If uncommitted changes are detected, `deriva-ml-run` and `deriva-ml-run-notebook` raise `DerivaMLDirtyWorkflowError` and refuse to proceed.
 
-- **`--allow-dirty`** overrides the check for debugging iterations, but the resulting execution has **degraded provenance** — the git hash in the execution record may not match the code that actually ran.
+- **`--allow-dirty`** overrides the check, but the resulting execution has **degraded provenance** — the git hash in the execution record may not match the code that actually ran. Acceptable scope: **rapid local iteration during development** (you're tweaking a script and want a few smoke runs before committing). Never acceptable for: any execution whose RID will be cited downstream, any execution that produces dataset versions or feature values that anyone else will consume, any production training run. The rule of thumb: if anyone else will ever ask "what code produced this?", commit first; if you'd throw the execution away in an hour, `--allow-dirty` is fine.
 - This applies to all `deriva-ml-run` and `deriva-ml-run-notebook` invocations.
 - Simple one-off MCP tool operations (adding a vocabulary term, updating a description) are not affected.
 
