@@ -1,6 +1,6 @@
 ---
 name: dataset-lifecycle
-description: "Use this skill for ALL DerivaML dataset operations — creating, populating, splitting, versioning, browsing, and downloading datasets. Covers: creating datasets and adding members, train/test/validation splits (stratified, labeled, dry run), dataset version management after catalog changes, choosing and designing dataset types (orthogonal tagging), exploring and browsing dataset contents by element type using deriva_ml_denormalize_dataset, navigating parent/child hierarchies, downloading BDBags (timeouts, exclude_tables, deriva_ml_bag_info), restructuring assets for ML frameworks, and referencing datasets in experiment configs via DatasetSpecConfig. Also covers preparing datasets specifically for model training — stratified splits by label distribution, setting up training/validation/testing partitions, and creating explicit split datasets in the catalog rather than computing on the fly. Triggers on: 'create a dataset', 'split dataset', 'stratify', 'train test split', 'prepare data for model', 'dataset version', 'what is in this dataset', 'browse dataset', 'wide table', 'flat table', 'denormalize', 'dataset types', 'element types', 'BDBag download', 'DatasetSpecConfig', 'add members', 'list members', 'dataset children', 'training data setup', 'curated subset', 'filter dataset', 'subset by class', 'select by value', 'create labeled dataset', 'filter by feature', 'subset with labels', 'has feature', 'images with labels', 'records that have', 'build dataset from'. Do NOT use for: creating features/labels (use create-feature), creating tables (use create-table), running experiments (use execution-lifecycle), uploading assets (use work-with-assets), or managing vocabularies (use manage-vocabulary)."
+description: "Use this skill for ALL DerivaML dataset operations — creating, populating, splitting, versioning, browsing, downloading datasets, AND wiring the resulting RIDs into src/configs/datasets.py. Covers: creating datasets and adding members, train/test/validation splits (stratified, labeled, dry run), dataset version management after catalog changes, choosing and designing dataset types (orthogonal tagging), exploring and browsing dataset contents by element type using deriva_ml_denormalize_dataset, navigating parent/child hierarchies, downloading BDBags (timeouts, exclude_tables, deriva_ml_bag_info), restructuring assets for ML frameworks, and referencing datasets in experiment configs via DatasetSpecConfig. After any operation that produces a RID + version the user may want to consume downstream (create, release, split, curated-subset generation), proactively offer to add the result to src/configs/datasets.py — this skill owns the offer because this skill produced the RID. Also covers preparing datasets specifically for model training — stratified splits by label distribution, setting up training/validation/testing partitions, and creating explicit split datasets in the catalog rather than computing on the fly. Triggers on: 'create a dataset', 'split dataset', 'stratify', 'train test split', 'prepare data for model', 'dataset version', 'what is in this dataset', 'browse dataset', 'wide table', 'flat table', 'denormalize', 'dataset types', 'element types', 'BDBag download', 'DatasetSpecConfig', 'add members', 'list members', 'dataset children', 'training data setup', 'curated subset', 'filter dataset', 'subset by class', 'select by value', 'create labeled dataset', 'filter by feature', 'subset with labels', 'has feature', 'images with labels', 'records that have', 'build dataset from', 'update datasets config', 'update datasets.py', 'add RID to config', 'wire dataset into config'. Do NOT use for: creating features/labels (use create-feature), creating tables (use create-table), running experiments (use execution-lifecycle), uploading assets (use work-with-assets), or managing vocabularies (use manage-vocabulary)."
 ---
 
 # Dataset Lifecycle
@@ -69,6 +69,29 @@ For description templates and quality guidelines, see `/deriva-ml:generate-descr
 
 Create explicit split datasets (Training, Validation, Testing) and store them as children of the source dataset in the catalog. Don't compute splits on the fly each time you run an experiment — different random seeds produce different splits, breaking reproducibility, and there's no record of which records went into which split. The `references/workflow.md` "Why render splits explicitly" section walks through the pattern and the failure modes.
 
+### Proactively offer to update `src/configs/datasets.py`
+
+Whenever this skill produces a RID + version the user may want to consume downstream — after creating a dataset, after running a split (one or more children), after promoting a dev row to a release, after a curated-subset generation — **offer to write the result into `src/configs/datasets.py`** as a `DatasetSpecConfig(rid=..., version=...)` entry. Don't wait for the user to ask.
+
+The offer is one prompt, in line with the "user decides per finding" decision-rights pattern. Sample wording:
+
+> *"The new split produced Training RID `2-TRN1` @ `0.1.0`, Testing RID `2-TST1` @ `0.1.0`. Want me to add them to `src/configs/datasets.py`?"*
+
+If they say yes:
+
+- Use `deriva_ml_get_dataset_spec(hostname, catalog_id, dataset_rid, version)` to produce the canonical `DatasetSpecConfig(...)` string for each RID — it's the only call that's guaranteed to format the version segment correctly (PEP 440 release-only, no dev labels).
+- Wrap the new entry under the existing `datasets_store(...)` registration in the file. Mirror the surrounding entries' shape (description string via `with_description(...)` if the file uses it).
+- Commit the change with a message like `chore(configs): add labeled-split dataset RIDs from <date> run` — committed config + committed code is what reproducibility depends on.
+
+If they say no, **say so plainly** so future invocations know not to re-offer the same RIDs in the same session (the config file isn't a side effect of the skill — the user has owned the decision).
+
+Hand-offs:
+
+- For the *format* of `DatasetSpecConfig` entries, the `datasets` config group structure, or registering per-environment overrides, see `/deriva-ml:write-hydra-config` *(auto-loaded when editing configs)*.
+- For *wiring* the new dataset into an experiment config, see `/deriva-ml:configure-experiment`.
+
+The two related skills carry the broader config-file mechanics; **this skill owns the offer** because this skill is what produced the RID in the first place.
+
 ## Phase 4: Version
 
 Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md) (deriva-ml 1.34+):
@@ -83,7 +106,7 @@ Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com
 3. **Release is the only operation that produces a released version.** Call `deriva_ml_release(hostname, catalog_id, dataset_rid, bump=...)` to promote a dev period to a release. The `bump` argument selects which release segment to advance (`major` / `minor` / `patch`). Errors if the dataset has no dev row to promote.
 4. **Execution-output assets do NOT flip the dataset.** Model weights, prediction CSVs, training logs, plots — these are linked to the producing execution, not to the dataset's members. Future consumers reach them through the execution RID, not through a new dataset version. The dev-flip rule applies only to mutations of dataset *contents* (members + features attached to members).
 5. **Always provide a description.** For mutation tools, the `description` is recorded on the dev row and **replaced** on each subsequent mutation (not appended). For `deriva_ml_release`, the `description` becomes the release notes — replaces the dev row's accumulated description, not appended.
-6. **Update configs immediately after a release, commit before running.** The git hash in the execution record must match the config state.
+6. **Update configs immediately after a release, commit before running.** Specifically `src/configs/datasets.py` — find the `DatasetSpecConfig` entry whose `rid` matches the dataset you just released and bump its `version` to the new release label, then `git commit src/configs/datasets.py -m "chore(configs): bump <name> to <new_version>"`. Proactively offer to do this for the user as soon as `deriva_ml_release` returns the new version (see "Proactively offer to update `src/configs/datasets.py`" in Phase 3). The git hash in the execution record must match the config state — running an experiment whose config still pins the prior release means the execution row says "run X" but the dataset bytes loaded are version X+1's.
 
 ### PEP 440 version segments
 
@@ -121,8 +144,8 @@ These don't appear on the MCP tool surface; reach for them from notebook code or
 
 - [ ] Version is a released label (no `.devN` suffix)
 - [ ] Version explicitly specified in config (not omitted, not "current")
-- [ ] Config updated with correct version
-- [ ] Config committed to git
+- [ ] `src/configs/datasets.py` `DatasetSpecConfig(...)` entries reflect the new RID + released version (use `deriva_ml_get_dataset_spec` to generate the line)
+- [ ] `src/configs/datasets.py` committed to git on the branch the run will use
 
 For the full versioning rules, common mistakes, and version history API, see `references/concepts.md` under "Dataset Versioning."
 
@@ -131,7 +154,7 @@ For the full versioning rules, common mistakes, and version history API, see `re
 Once a dataset is created and versioned, there are several ways to consume it.
 
 - **Browse in Chaise** — `cite(hostname, catalog_id, rid="1-ABC4")` for a permanent snapshot URL; add `current=true` for the live URL.
-- **Reference in experiment configs** — `DatasetSpecConfig(rid="28EA", version="0.4.0")` in a Hydra-zen config. Use `deriva_ml_get_dataset_spec` to generate the correct string. See `/deriva-ml:configure-experiment` and `/deriva-ml:write-hydra-config` for how dataset configs integrate.
+- **Reference in experiment configs** — `DatasetSpecConfig(rid="28EA", version="0.4.0")` in a Hydra-zen config. Use `deriva_ml_get_dataset_spec` to generate the correct string. If the user has just created, split, or released a dataset in this session, proactively offer to add the new RID + version to `src/configs/datasets.py` (see Phase 3 → "Proactively offer to update `src/configs/datasets.py`"). For how dataset configs integrate into the broader experiment configuration surface, see `/deriva-ml:configure-experiment` and `/deriva-ml:write-hydra-config`.
 - **Explore and browse contents (no browser)** — 7-step MCP workflow from overview → members → schema shape → actual data → features → hierarchy → provenance. See `references/workflow.md` → "Explore and browse dataset contents".
 - **Download as BDBag** — see "Download workflow" below for the worked recipe; `references/bags.md` for DerivaML-specific behavior (version pinning, cache key, `DatasetBag` API). For the generic BDBag format and the underlying export mechanics (what a bag *is*, the `bdbag` CLI, materialization, `DerivaDownload` / `DerivaExport` Python classes), `/deriva:download-bag` *(deriva-skills)*.
 - **Restructure for ML frameworks** — after downloading, `bag.restructure_assets(output_dir, asset_table, group_by=[...])` organizes files for PyTorch ImageFolder or similar. See `/deriva-ml:ml-data-engineering` for the full restructuring patterns.
