@@ -254,7 +254,7 @@ Only after tiers 1 and 2 succeed, scale to the full dataset.
 
 If you don't already have one, see the `dataset-lifecycle` skill for:
 - Creating and populating the full dataset
-- Splitting into train/val/test with `deriva_ml_split_dataset(hostname=..., catalog_id=..., dataset_rid=..., ...)`
+- Splitting into train/val/test via a script that calls the Python API `split_dataset(ml, source_rid, exe, ...)`
 - Stratifying by label distribution
 
 ### Pre-production checklist

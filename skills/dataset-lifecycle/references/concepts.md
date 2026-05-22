@@ -74,7 +74,7 @@ dataset = ml.lookup_dataset("1-ABC4")
 **Before creating, ask:**
 - Does a dataset with this data already exist? Check descriptions and member counts.
 - Can an existing dataset be extended with `deriva_ml_add_dataset_members`?
-- Can an existing dataset be split differently with `deriva_ml_split_dataset`?
+- Can an existing dataset be split differently via a script that calls `split_dataset(ml, source_rid, exe, ...)`?
 - Is the needed data a subset of an existing "Complete" dataset?
 
 ## Dataset Types
@@ -91,7 +91,7 @@ These types are available by default in every DerivaML catalog:
 | Testing | Data for model evaluation |
 | Validation | Data for hyperparameter tuning |
 | Complete | Full dataset before splitting |
-| Split | Parent container created by `deriva_ml_split_dataset` |
+| Split | Parent container created by `split_dataset` |
 | Labeled | Data with ground truth feature annotations |
 | Unlabeled | Data without feature annotations |
 
@@ -122,9 +122,9 @@ Or in Python: `ml.add_term(MLVocab.dataset_type, ...)`. Before creating, check e
 
 For DerivaML-specific guidance on `Dataset_Type` (built-in dimensions, composing types on a Dataset, worked examples), see `type-naming-strategy.md`. For the **generic vocabulary design principles** that this guidance builds on (orthogonal tagging, dimension identification, naming conventions, anti-patterns, the substitution test, semantic checking) — applicable to all four DerivaML vocabularies and any custom domain vocabulary — see the deriva-skills `manage-vocabulary` skill in `deriva-skills` at `skills/manage-vocabulary/references/term-naming-strategy.md`.
 
-### How `deriva_ml_split_dataset` assigns types
+### How `split_dataset` assigns types
 
-`deriva_ml_split_dataset` automatically assigns types to the datasets it creates:
+The Python API `split_dataset(ml, source_rid, exe, ...)` automatically assigns types to the datasets it creates:
 
 - **Parent dataset** gets type `Split`
 - **Training partition** gets `Training` + any additional `training_types`
@@ -191,7 +191,7 @@ Before creating a dataset, decide its structure. The right choice depends on how
 | Situation | Structure | How |
 |-----------|-----------|-----|
 | Building a new collection from scratch | Standalone dataset | `deriva_ml_create_dataset` |
-| Need train/test/val partitions from existing data | Split children | `deriva_ml_split_dataset` from a parent |
+| Need train/test/val partitions from existing data | Split children | Script that opens an execution and calls `split_dataset(ml, source_rid, exe, ...)` |
 | Curating a focused subset for a specific experiment | New standalone dataset | `deriva_ml_create_dataset` + `deriva_ml_add_dataset_members` with selected RIDs |
 | Grouping related datasets together | Manual nesting | `deriva_ml_create_dataset` + `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` |
 | Creating a versioned snapshot for reproducibility | Any structure | Create, populate, then pin version in config |
@@ -202,7 +202,7 @@ Datasets can contain other datasets as children, forming hierarchies. The most c
 
 ```
 Complete Dataset (type: Complete, Labeled)
-└── Split (type: Split — created by deriva_ml_split_dataset)
+└── Split (type: Split — created by split_dataset)
     ├── Training (type: Training, Labeled — 70%)
     ├── Validation (type: Validation, Labeled — 10%)
     └── Testing (type: Testing, Labeled — 20%)
@@ -210,7 +210,7 @@ Complete Dataset (type: Complete, Labeled)
 
 Child datasets are independent — they have their own RIDs, versions, and types. The parent-child relationship is purely organizational. Child datasets automatically inherit their parent's element types.
 
-`deriva_ml_split_dataset` creates nested datasets automatically. You can also nest manually — children are members of the parent's `Dataset` element type:
+`split_dataset` creates nested datasets automatically. You can also nest manually — children are members of the parent's `Dataset` element type:
 
 ```
 # MCP — add a child dataset by adding it as a member of the Dataset element type
@@ -228,7 +228,7 @@ parent_dataset.add_dataset_members(
 
 ## Splitting Datasets
 
-`deriva_ml_split_dataset` partitions a dataset into training, testing, and optionally validation subsets. It follows scikit-learn conventions (`test_size`, `train_size`, `val_size`, `shuffle`, `seed`) and creates a proper dataset hierarchy with full provenance tracking.
+`split_dataset` partitions a dataset into training, testing, and optionally validation subsets. It follows scikit-learn conventions (`test_size`, `train_size`, `val_size`, `shuffle`, `seed`) and creates a proper dataset hierarchy with full provenance tracking.
 
 ### Two-way split (default)
 
@@ -296,7 +296,7 @@ The "every mutation lands on dev" rule:
 |---|---|
 | `deriva_ml_add_dataset_members` | Flip to `<last_release>.post1.dev1` (or advance `.devN` if dev row exists) |
 | `deriva_ml_delete_dataset_members` | Flip to dev (advance `.devN`) |
-| `deriva_ml_split_dataset` | Flip to dev (advance `.devN`) |
+| `split_dataset` | Flip to dev (advance `.devN`) |
 | Adding a feature value (via `deriva_ml_add_feature_values` or Python API) | Drift is **not** auto-detected; if you want to record it, call `dataset.mark_dev(description)` from the Python API |
 | `deriva_ml_release(bump, description)` | Promote dev row to released `<bumped>.<from>.<last_release>` |
 
@@ -465,7 +465,7 @@ members_v1 = dataset.list_dataset_members(version="1.0.0")
 
 ### Navigating hierarchies
 
-Datasets form parent-child hierarchies. The most common is the split hierarchy created by `deriva_ml_split_dataset`, but you can nest manually too.
+Datasets form parent-child hierarchies. The most common is the split hierarchy created by `split_dataset`, but you can nest manually too.
 
 **Listing children and parents in one call:**
 ```
@@ -715,7 +715,7 @@ Deletion removes the dataset container and member associations, not the member r
 | Register element type | `deriva_ml_add_dataset_element_type` | `ml.add_dataset_element_type()` | Catalog-level, idempotent |
 | Add members | `deriva_ml_add_dataset_members` | `dataset.add_dataset_members()` | Auto-increments version |
 | Remove members | `deriva_ml_delete_dataset_members` | `dataset.delete_dataset_members()` | |
-| Split | `deriva_ml_split_dataset` | `split_dataset(ml, rid, ...)` | Auto-increments version |
+| Split | *(script only)* | `split_dataset(ml, source_rid, exe, ...)` | Run from a script that opens an execution; auto-increments version |
 | Nest datasets | `deriva_ml_add_dataset_members(parent, members={"Dataset": [child_rid]})` | `parent.add_dataset_members()` | Children are members of element-type Dataset |
 | Release a dev period | `deriva_ml_release` | `dataset.release(bump, description)` | Promotes dev → released; errors if no dev row |
 | Update description | `deriva_ml_update_dataset(rid, description=...)` | — | Subsumes legacy set_dataset_description |

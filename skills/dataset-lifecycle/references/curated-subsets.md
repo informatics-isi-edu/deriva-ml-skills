@@ -91,11 +91,11 @@ After approval: `uv run deriva-ml-run +experiment=<name>`
 
 Use the `maintain-experiment-notes` skill to record what was created, the filter criteria, why those criteria were chosen, and the resulting dataset RID.
 
-## How this relates to deriva_ml_split_dataset
+## How this relates to `split_dataset`
 
 Splitting and curated subsets are both "given a source dataset, produce child datasets" — but they differ:
 
-- **`deriva_ml_split_dataset`** partitions ALL members into non-overlapping train/test/val sets
+- **`split_dataset(ml, source_rid, exe, ...)`** (Python API, called from a script) partitions ALL members into non-overlapping train/test/val sets
 - **Curated subsets** SELECT members by data values — some members may be excluded entirely
 
 Both produce datasets with full provenance tracking. Bags downloaded with `materialize=False` are cached by checksum, so multiple subset scripts from the same source don't re-download data.

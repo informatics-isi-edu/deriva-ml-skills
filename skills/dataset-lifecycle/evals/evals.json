@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I have about 12,000 labeled chest X-ray images in my catalog and I need to set up a training pipeline. I need a complete dataset with all the images, then split it 70/15/15 for train/val/test with stratified sampling on the diagnosis label. The feature table is Image_Diagnosis and the label column is Diagnosis_Image. Make sure the splits have ground truth labels marked.",
-      "expected_output": "Should follow the full lifecycle: connect to catalog, check existing datasets first, register Image as element type, create a Complete+Labeled dataset, add all image members, then deriva_ml_split_dataset with val_size=0.15, test_size=0.15, stratify_by_column='Image_Diagnosis_Diagnosis_Image', include_tables=['Image','Image_Diagnosis'], and *_types=['Labeled'] for all partitions. Should use dry_run=true first. Should wrap in an execution.",
+      "expected_output": "Should follow the full lifecycle: connect to catalog, check existing datasets first, register Image as element type, create a Complete+Labeled dataset, add all image members, then write a script (in src/scripts/) that opens an execution and calls the Python API split_dataset(ml, source_rid, exe, val_size=0.15, test_size=0.15, stratify_by_column='Image_Diagnosis_Diagnosis_Image', include_tables=['Image','Image_Diagnosis'], *_types=['Labeled']) for all partitions. Should use dry_run=True first. Should wrap in an execution. Splits go through scripts so the script's git commit carries honest provenance.",
       "files": []
     },
     {

@@ -438,12 +438,20 @@ Shows row counts and asset sizes per table (the legacy `estimate_bag_size` is su
 
 ### Preview split
 
-```
-deriva_ml_split_dataset(hostname="data.example.org", catalog_id="1",
-    dataset_rid="2-XXXX", test_size=0.2, dry_run=true)
+Splits run from a script using the Python API. Pass `dry_run=True` to preview partition sizes without creating datasets:
+
+```python
+from deriva_ml.dataset.split import split_dataset
+
+# Inside a script that has already opened ``exe``:
+result = split_dataset(
+    ml, "2-XXXX", exe,
+    test_size=0.2, dry_run=True,
+)
+print(result.training.count, result.testing.count)
 ```
 
-Shows partition sizes without creating datasets.
+The `dataset-lifecycle` skill carries the full splitting recipe.
 
 ### Inspect working directory
 

@@ -17,7 +17,7 @@ This skill is the authoritative reference for the Python API used in DerivaML hy
 - Fixing or updating existing config entries
 - Validating that config RIDs and versions exist in the catalog
 
-After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_split_dataset`, `deriva_ml_create_workflow`, etc.), proactively offer to update the relevant config file using these patterns.
+After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_create_workflow`, or running a splitting script that calls `split_dataset(ml, source_rid, exe, ...)` from the Python API, etc.), proactively offer to update the relevant config file using these patterns.
 
 ## Reference File
 
@@ -245,7 +245,7 @@ This is a generic deriva-skills (`/deriva:`) tool, not a deriva-ml-specific surf
 
 ### Proactive Validation
 
-After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_split_dataset`, `deriva_ml_release`, etc.), proactively:
+After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_release`, running a splitting script that calls `split_dataset(ml, source_rid, exe, ...)` from the Python API, etc.), proactively:
 
 1. Note the new RID, version, and description
 2. Check if existing config files reference the affected entity

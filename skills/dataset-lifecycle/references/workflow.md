@@ -132,53 +132,34 @@ To **remove members**, call `deriva_ml_delete_dataset_members` with `hostname`, 
 
 ## Splitting Datasets
 
-`deriva_ml_split_dataset` creates nested child datasets from a parent. It follows the same conventions as scikit-learn's [`train_test_split`](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html) — parameters like `test_size`, `train_size`, `shuffle`, `seed`, and stratification work the same way. It auto-increments the dataset version. Always use `dry_run=true` first to preview the split plan.
+Splits go through the same script-based pattern as bootstrap and curated-subset operations (`catalog-operations-workflow` skill): write a script in `src/scripts/` that opens an execution and calls the Python API. The script's git commit becomes the workflow's url and checksum, so the resulting dataset hierarchy carries honest, reproducible provenance.
 
-### Basic usage
+The Python API is `deriva_ml.dataset.split.split_dataset(ml, source_rid, exe, ...)`. It follows the same conventions as scikit-learn's [`train_test_split`](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html) — parameters like `test_size`, `train_size`, `shuffle`, `seed`, and stratification work the same way. It auto-increments the dataset version. Always use `dry_run=True` first to preview the split plan.
 
-To **preview a split** without modifying the catalog, call `deriva_ml_split_dataset` with `hostname`, `catalog_id`, `dataset_rid`, `test_size`, `seed`, and `dry_run`: `true`.
+### The script pattern
 
-To **create a two-way split** (e.g., 80% Training / 20% Testing), call `deriva_ml_split_dataset` with:
-- `hostname`: `"data.example.org"`, `catalog_id`: `"1"`
-- `dataset_rid`: the dataset's RID
-- `test_size`: `0.2`
-- `seed`: `42`
+Start from the **Base Script Template** in the `catalog-operations-workflow` skill (`references/script-patterns.md`) — same CLI args (`--hostname`, `--catalog-id`, `--dry-run`), same connect/configure/run shape, same "no CLI entry point in `pyproject.toml`" rule. Drop the script into `src/scripts/<your_split>.py`. The script body adds these steps on top of the Base Template:
 
-To **create a three-way split**, also include `val_size` (e.g., `0.1` for 10% Validation).
+1. **Connect.** `ml = DerivaML(hostname=args.hostname, catalog_id=args.catalog_id)`.
+2. **Ensure vocabulary terms.** Make sure `Workflow_Type` has `"Dataset_Split"` (or whatever your project uses): `ml.add_term("Workflow_Type", "Dataset_Split", description=...)` — idempotent, safe to re-run.
+3. **Register a workflow.** `ml.create_workflow(name="…", workflow_type="Dataset_Split", description="…")`. URL and checksum are filled in automatically from the script's git context.
+4. **Open an execution.** `with ml.create_execution(ExecutionConfiguration(workflow=workflow, description="…")) as exe:` — the splits happen inside.
+5. **Call `split_dataset(ml, source_rid, exe, ...)`** for each split. Reuse the same `exe` across related splits so the lineage stays coherent.
+6. **Commit.** `exe.upload_execution_outputs(clean_folder=True)` after the `with` block.
+
+Run with `uv run python src/scripts/<your_split>.py --hostname … --catalog-id … --dry-run` first, inspect the printed plan, then re-run without `--dry-run` to commit.
+
+`split_dataset` requires the open Execution as a positional argument — the produced Split / Training / Testing / Validation datasets all attribute to it. The `_cifar10_datasets.py` script in `deriva-ml-model-template` is a worked example of this pattern applied end-to-end.
+
+If your split *also* needs to filter members by data values (e.g., "split only the labeled images, stratified by class"), see `references/curated-subsets.md` and `scripts/generate_subset_template.py` — that template handles the filter-then-split case directly.
 
 ### Stratified and labeled splits
 
-To maintain class distribution, add `stratify_by_column` with the denormalized column name. Use `deriva_ml_denormalize_dataset(hostname=..., catalog_id=..., include_tables=[...])` (no dataset RID needed) to discover the exact column names, or derive them from the table schema.
+To maintain class distribution, pass `stratify_by_column=` (a dot-notation column name like `Image_Classification.Image_Class`) and `include_tables=[...]` listing the tables that need to be joined for the denormalization. Use the `denormalize_dataset` MCP tool (read-only) to discover the exact column names before writing the script.
 
-**Finding the stratify column name:**
+To label partitions with ground truth metadata (needed for evaluation, ROC curves, etc.), pass `training_types=["Labeled"]`, `testing_types=["Labeled"]`, and/or `validation_types=["Labeled"]`.
 
-1. Use `rag_search("feature table columns", doc_type="catalog-schema")` to find the feature table name and its columns, or call `deriva_ml_list_features(hostname="data.example.org", catalog_id="1")` for the full structured output
-2. Construct the denormalized column name as `{FeatureTableName}_{ColumnName}`
-
-For example, if the feature table is `Execution_Image_Image_Classification` and the column is `Image_Class`, the stratify column is `Execution_Image_Image_Classification_Image_Class`.
-
-### Denormalized column naming convention
-
-When `deriva_ml_denormalize_dataset` or `deriva_ml_split_dataset` flattens tables into a wide DataFrame, columns are prefixed with their source table name using underscores: `{TableName}_{ColumnName}`.
-
-**Simple columns** (from domain tables):
-- `Image` table, `Filename` column becomes `Image_Filename`
-- `Subject` table, `Age` column becomes `Subject_Age`
-- `Subject` table, `RID` column becomes `Subject_RID`
-
-**Feature columns** (from feature/annotation tables):
-- `Image_Classification` table, `Image_Class` column becomes `Image_Classification_Image_Class`
-- `Image_Classification` table, `Confidence` column becomes `Image_Classification_Confidence`
-- `Diagnosis_Feature` table, `Diagnosis_Type` column becomes `Diagnosis_Feature_Diagnosis_Type`
-
-**Key rules:**
-- The prefix is always the **table name** as it appears in the schema, not a shortened alias
-- Feature tables often have long names (e.g., `Execution_Image_Image_Classification`) — the full name is used as the prefix
-- Use `deriva_ml_denormalize_dataset(include_tables=[...])` to see the actual column names if unsure — no dataset RID needed, returns column headers and size estimates without fetching data
-
-`include_tables` is required when using stratification — use the feature table name from the schema.
-
-**Handling missing values in the stratify column:** Not all members may have a value for the stratify column (e.g., unlabeled images in a labeled feature table). Use `stratify_missing` to control this:
+**Handling missing values in the stratify column:** Not all members may have a value for the stratify column (e.g., unlabeled images in a labeled feature table). Use `stratify_missing=` to control this:
 
 | Policy | Behavior |
 |--------|----------|
@@ -186,42 +167,36 @@ When `deriva_ml_denormalize_dataset` or `deriva_ml_split_dataset` flattens table
 | `"drop"` | Exclude rows with missing values — only labeled rows are split |
 | `"include"` | Treat nulls as a distinct class — missing-value rows are distributed proportionally |
 
-To label partitions with ground truth metadata (needed for evaluation, ROC curves, etc.), add `training_types`, `testing_types`, and/or `validation_types` (e.g., `["Labeled"]`).
+### Denormalized column naming convention
 
-**Example:** A stratified, labeled three-way split would use:
-- `hostname`: `"data.example.org"`, `catalog_id`: `"1"`
-- `dataset_rid`: the dataset's RID
-- `test_size`: `0.2`, `val_size`: `0.1`, `seed`: `42`
-- `stratify_by_column`: `"Image_Classification_Image_Class"`
-- `include_tables`: `["Image", "Image_Classification"]`
-- `stratify_missing`: `"drop"` (if some images lack labels)
-- `training_types`: `["Labeled"]`, `testing_types`: `["Labeled"]`, `validation_types`: `["Labeled"]`
+When `deriva_ml_denormalize_dataset` (or `split_dataset`'s internal stratification) flattens tables into a wide DataFrame, columns are prefixed with their source table name using underscores: `{TableName}_{ColumnName}`. Feature tables often have long names (e.g., `Execution_Image_Image_Classification`) — the full name is used as the prefix. Use `deriva_ml_denormalize_dataset(include_tables=[...])` to see the actual column names if unsure — no dataset RID needed, returns column headers and size estimates without fetching data.
 
-### Parameter reference
+### Parameter reference (Python API)
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `hostname` | `str` | *(required)* | Catalog hostname |
-| `catalog_id` | `str` | *(required)* | Catalog ID |
-| `dataset_rid` | `str` | *(required)* | RID of the dataset to split |
-| `test_size` | `float` | `0.2` | Fraction for testing (0-1) |
-| `train_size` | `float \| None` | `None` | Fraction for training. Default: complement of test + val |
-| `val_size` | `float \| None` | `None` | Fraction for validation. When set, creates 3-way split |
+| `ml` | `DerivaML` | *(required)* | Connected DerivaML instance |
+| `source_dataset_rid` | `str` | *(required)* | RID of the dataset to split |
+| `execution` | `Execution` | *(required, positional)* | A live Execution the script has opened |
+| `test_size` | `float \| int` | `0.2` | Fraction or absolute count for testing |
+| `train_size` | `float \| int \| None` | `None` | Fraction or count for training. Default: complement of test + val |
+| `val_size` | `float \| int \| None` | `None` | Fraction or count for validation. When set, creates 3-way split |
 | `seed` | `int` | `42` | Random seed for reproducibility |
 | `shuffle` | `bool` | `True` | Shuffle before splitting |
 | `stratify_by_column` | `str \| None` | `None` | Denormalized column name for stratified split |
 | `stratify_missing` | `str` | `"error"` | Policy for nulls in stratify column: `"error"`, `"drop"`, `"include"` |
 | `element_table` | `str \| None` | `None` | Table to split. Auto-detected if dataset has one element type |
 | `include_tables` | `list[str] \| None` | `None` | Tables for denormalization. Required with `stratify_by_column` |
+| `selection_fn` | callable \| `None` | `None` | Custom selection callable (not crossable through MCP — Python only) |
 | `training_types` | `list[str] \| None` | `None` | Additional types for training set (e.g., `["Labeled"]`) |
 | `testing_types` | `list[str] \| None` | `None` | Additional types for testing set |
 | `validation_types` | `list[str] \| None` | `None` | Additional types for validation set |
 | `split_description` | `str` | `""` | Description for the parent Split dataset |
-| `dry_run` | `bool` | `False` | Preview without modifying catalog |
+| `dry_run` | `bool` | `False` | Preview without modifying catalog (returns `SplitResult` with `(dry run)` RIDs) |
 
 ### Navigating split results
 
-`deriva_ml_split_dataset` creates a parent "Split" dataset with child datasets for each partition.
+`split_dataset` creates a parent "Split" dataset with child datasets for each partition, and returns a `SplitResult` whose `.split`, `.training`, `.testing`, and `.validation` (optional) each carry a `.rid` and `.version`.
 
 To **list relations** of a dataset (both children and parents in one call), call `deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")`. Add `recurse=true` to include all descendants/ancestors, or `version` to list relations at a specific version.
 
@@ -229,7 +204,7 @@ To **list relations** of a dataset (both children and parents in one call), call
 
 To **list members across nested datasets**, call `deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", recurse=true)` (optionally with `limit`).
 
-To create parent-child relationships manually (without `deriva_ml_split_dataset`), use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members of the parent's `Dataset` element type. See `concepts.md` for background on nested dataset hierarchies.
+To create parent-child relationships manually (e.g., grouping pre-existing datasets without running a split), use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members of the parent's `Dataset` element type. See `concepts.md` for background on nested dataset hierarchies.
 
 ## Versioning (ADR-0003 dev/release model)
 
@@ -238,7 +213,7 @@ Per ADR-0003 (deriva-ml 1.34+), datasets are at one of two version states at any
 - **Released** (`0.4.0`) — frozen snapshot, citable, reproducible.
 - **Dev** (`0.4.0.post1.dev3`) — mutable working state. PEP 440 dev-release suffix marks "drift since the last release"; cite URLs resolve to the live catalog.
 
-`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, and `deriva_ml_split_dataset` flip the dataset to a dev label (creating `.dev1` if no dev row exists, advancing `.devN` if one is already present). The returned `new_version` is a dev label.
+`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, and the Python `split_dataset` API all flip the affected dataset to a dev label (creating `.dev1` if no dev row exists, advancing `.devN` if one is already present). The returned `new_version` is a dev label.
 
 To mint a **released** version (citable, reproducible), call `deriva_ml_release` with `hostname`, `catalog_id`, `dataset_rid`. Optionally specify `bump` (`"major"`, `"minor"`, or `"patch"`; default `"minor"`), `description` (release notes), and `execution_rid` (optional execution to attribute the release to).
 
@@ -274,6 +249,10 @@ from deriva_ml.dataset.split import split_dataset
 
 ml = DerivaML(hostname, catalog_id)
 
+# Register the workflow that identifies *this script* as the agent that
+# decided to do the split. split_dataset never invents workflow
+# provenance on the caller's behalf; it runs inside whatever execution
+# the caller opens.
 workflow = ml.create_workflow(
     name="Image Dataset Curation",
     workflow_type="Data Management",
@@ -302,9 +281,9 @@ with ml.create_execution(config) as exe:
         description="Initial population of labeled tumor images"
     )
 
-    # 4. Preview the split
+    # 4. Preview the split (pass the caller's execution).
     result = split_dataset(
-        ml, dataset.dataset_rid,
+        ml, dataset.dataset_rid, exe,
         test_size=0.15, val_size=0.15,
         stratify_by_column="Image_Classification_Image_Class",
         stratify_missing="drop",  # exclude unlabeled images
@@ -314,9 +293,11 @@ with ml.create_execution(config) as exe:
     print(f"Plan: {result.training.count} train, "
           f"{result.validation.count} val, {result.testing.count} test")
 
-    # 5. Execute the split
+    # 5. Execute the split inside the same execution -- the produced
+    # Split / Training / Validation / Testing datasets all attribute
+    # to ``exe``, and through it to the workflow above.
     result = split_dataset(
-        ml, dataset.dataset_rid,
+        ml, dataset.dataset_rid, exe,
         test_size=0.15, val_size=0.15,
         stratify_by_column="Image_Classification_Image_Class",
         stratify_missing="drop",
@@ -328,7 +309,7 @@ with ml.create_execution(config) as exe:
     )
     print(f"Training: {result.training.rid}, Testing: {result.testing.rid}")
 
-# Execution is automatically committed and outputs uploaded on context exit
+exe.upload_execution_outputs(clean_folder=True)
 ```
 
 ## Bootstrap dataset (no source dataset)
@@ -354,9 +335,18 @@ Use this when creating the **first dataset** from records already in the catalog
 
 3. **Test with `--dry-run`**, commit, then run for real.
 
-4. **Split** (optional — use `dry_run=true` to preview first):
-   ```
-   deriva_ml_split_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="...", test_size=0.2, seed=42, dry_run=true)
+4. **Split** (optional — use `dry_run=True` to preview first). Splits are part of the same script (or a sibling script in `src/scripts/`) — they share the workflow / execution context that carries the script's git provenance. Reuse the `exe` already open in step (5) of the script template:
+   ```python
+   from deriva_ml.dataset.split import split_dataset
+
+   with ml.create_execution(config) as exe:
+       # ... create the source dataset, add members ...
+       result = split_dataset(
+           ml, source_dataset_rid, exe,
+           test_size=0.2, seed=42, dry_run=True,  # preview first
+       )
+       # Inspect `result`, then re-run with dry_run=False to commit.
+   exe.upload_execution_outputs(clean_folder=True)
    ```
 
 ## MCP-tool-only path (trivial cases)
@@ -395,7 +385,7 @@ For large member lists, always pass members as a `{table: [rids]}` dict (the typ
 The recommended pattern:
 
 1. Create the source dataset with all data
-2. `deriva_ml_split_dataset` to create explicit Training/Validation/Testing children
+2. Run a script that calls `split_dataset(ml, source_rid, exe, ...)` to create explicit Training/Validation/Testing children
 3. Reference the split datasets by RID + version in experiment configs (`DatasetSpecConfig`)
 4. All team members use the same splits — results are comparable
 

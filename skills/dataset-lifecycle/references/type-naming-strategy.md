@@ -79,9 +79,9 @@ Types: [Testing, Augmented]           → "an augmented testing set"
 
 If the type list doesn't read as coherent, that's a signal something is wrong — either the dataset is under-tagged (a relevant dimension is missing) or one of the types is encoding a hierarchy (the `TrainingLabeled` anti-pattern surfacing as a single tag that *sounds* coherent but should have been two independent tags).
 
-### Let `deriva_ml_split_dataset` handle partition types automatically
+### Let `split_dataset` handle partition types automatically
 
-`deriva_ml_split_dataset` assigns `Training`, `Testing`, `Validation`, and `Split` to the children it creates — you don't apply those tags manually. Pass *additional* types via the `*_types` parameters:
+The Python API `split_dataset(ml, source_rid, exe, ...)` assigns `Training`, `Testing`, `Validation`, and `Split` to the children it creates — you don't apply those tags manually. Pass *additional* types via the `*_types` parameters:
 
 - `training_types=["Labeled"]` → tag the training child with `Labeled` on top of the auto-assigned `Training`
 - `testing_types=["Unlabeled"]` → tag the testing child with `Unlabeled`

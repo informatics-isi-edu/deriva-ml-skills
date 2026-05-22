@@ -72,7 +72,7 @@ Returns `columns`, `join_path`, `tables` (with `row_count`, `is_asset`, `asset_b
 Call `deriva_ml_denormalize_dataset` with just `include_tables` (no dataset RID, no limit) to preview the schema shape without fetching any data. This is fast and helps you:
 - See what columns a denormalization would produce
 - Verify FK paths resolve correctly before running expensive queries
-- Find the correct column name for `stratify_by_column` in `deriva_ml_split_dataset`
+- Find the correct column name for `stratify_by_column` in `split_dataset` (Python API)
 - Debug ambiguous FK path errors without waiting for data
 - Estimate total data size before committing to a download
 

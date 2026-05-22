@@ -23,7 +23,7 @@ Before creating a dataset, determine whether an existing one can be reused, exte
 |-----------|--------|
 | Existing dataset covers your need | Reuse it — reference its RID + version in config |
 | Existing dataset needs more members | `deriva_ml_add_dataset_members` to extend it |
-| Need a different split of existing data | `deriva_ml_split_dataset` from the existing dataset |
+| Need a different split of existing data | Write a script that calls the Python API `split_dataset(ml, source_rid, exe, ...)` — see `references/workflow.md` § "Splitting Datasets" |
 | Need a focused subset for an experiment | Create a new dataset (curated subset — see below) |
 | Building from scratch | Bootstrap a new dataset from raw table data |
 
@@ -34,7 +34,7 @@ Before creating a dataset, determine whether an existing one can be reused, exte
 | Pattern | When to use | How |
 |---------|-------------|-----|
 | Standalone | Building a new collection from scratch | `deriva_ml_create_dataset` |
-| Split children | Need train/test/val partitions | `deriva_ml_split_dataset` from a parent |
+| Split children | Need train/test/val partitions | Script that opens an execution and calls `split_dataset(ml, source_rid, exe, ...)`. See `references/workflow.md` § "Splitting Datasets" |
 | Curated subset | Focused set filtered by data values | Generate from template — see `references/curated-subsets.md` |
 | Manual nesting | Grouping related datasets together | `deriva_ml_create_dataset` + `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` |
 
@@ -56,6 +56,7 @@ Choose the script path based on whether a source dataset already exists:
 |-----------|------|---------------|
 | **No source dataset** — first dataset from raw table data (bootstrap) | Standalone script via `catalog-operations-workflow` patterns | `references/workflow.md` → "Bootstrap dataset (no source dataset)" |
 | **Source dataset exists** — filtering, subsetting, or selecting from existing | Subset template via `scripts/generate_subset_template.py` | `references/curated-subsets.md` |
+| **Source dataset exists** — partition into train/val/test | Script (Base Template from `catalog-operations-workflow` + `split_dataset` Python API) | `references/workflow.md` → "Splitting Datasets" |
 | **Trivial case** — empty dataset or 2-3 known RIDs | MCP-tool path | `references/workflow.md` → "MCP-tool-only path (trivial cases)" |
 
 ### Description guidance

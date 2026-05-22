@@ -519,7 +519,7 @@ deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", inclu
 # Produces columns like: Image_RID, Image_Filename, Image_Classification_Image_Class
 ```
 
-This is how the `stratify_by_column` parameter in `deriva_ml_split_dataset` references feature columns.
+This is how the `stratify_by_column` parameter in the Python `split_dataset(ml, source_rid, exe, ...)` API references feature columns.
 
 ### Dataset versioning impact
 
