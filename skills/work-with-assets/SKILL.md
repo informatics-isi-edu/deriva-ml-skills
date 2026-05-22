@@ -1,6 +1,6 @@
 ---
 name: work-with-assets
-description: "ALWAYS use this skill when working with file assets in DerivaML — discovering, downloading, uploading, inspecting, or managing images, model weights, CSVs, or any file-based catalog records. Triggers on: 'download asset', 'upload files', 'asset table', 'find images', 'model weights', 'what created this file', 'asset provenance', 'asset types', 'create asset table'."
+description: "ALWAYS use this skill when working with file assets in DerivaML — discovering, downloading, uploading, inspecting, or managing images, model weights, CSVs, or any file-based catalog records, AND wiring resulting asset RIDs into src/configs/assets.py. After any operation that produces a new asset RID an experiment may consume downstream (creating an asset table, uploading a file inside an execution, registering an asset type that gates a future config), proactively offer to add an AssetSpecConfig entry — this skill owns the offer because this skill produced the RID. Triggers on: 'download asset', 'upload files', 'asset table', 'find images', 'model weights', 'what created this file', 'asset provenance', 'asset types', 'create asset table', 'update assets config', 'update assets.py', 'add asset RID to config', 'wire asset into config'."
 disable-model-invocation: true
 ---
 
@@ -60,6 +60,36 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 2. **Tag / untag an asset with a type:** `update_entities(hostname, catalog_id, schema, table, entities=[{"RID": asset_rid, "Asset_Type": <term>}])` to set the value, or pass `null` to clear it. See `references/workflow.md` for the full recipe.
 
 For the full step-by-step guide with MCP tool parameters and Python API examples, see `references/workflow.md`.
+
+### Proactively offer to update `src/configs/assets.py`
+
+Whenever this skill produces an asset RID a downstream experiment may consume — after creating a new asset table the agent expects to point an experiment at, after uploading an asset inside an execution, after registering a new role-tagged asset — **offer to write the result into `src/configs/assets.py`** as an `AssetSpecConfig(rid=..., ...)` entry. Don't wait for the user to ask.
+
+The offer fires in this skill's scope (asset *creation* / *registration*); the execution-lifecycle skill carries the *parallel* offer for output assets produced at the *end of a run* (where a single execution can dump N output files at once). They're disjoint:
+
+| Scope | Offer fires when | Who owns |
+|---|---|---|
+| Asset table creation, ad-hoc upload, asset-type wiring | a single new asset RID becomes visible (one at a time, intentional) | `work-with-assets` (this skill) |
+| Execution finishes and uploads N output files | bulk upload of output files at run completion | `execution-lifecycle` |
+
+Sample wording for this skill's offer:
+
+> *"The new model-weights asset is at RID `3-WTS1`. Want me to add it to `src/configs/assets.py` so the inference experiment can pin it?"*
+
+If they say yes:
+
+- The `AssetSpecConfig` shape lives in `deriva_ml.asset.aux_classes` — see the `/deriva-ml:write-hydra-config` skill's "Config Class Parameter Reference" for the exact fields. Minimum is `rid=...`; add a description via `with_description(...)` if the file uses it.
+- Wrap the new entry under the existing `assets_store(...)` registration in the file. Mirror the surrounding entries' shape.
+- Commit the change as `chore(configs): add <name> asset (RID <rid>)` — committed config + committed code is what reproducibility depends on.
+
+If they say no, **say so plainly** so future invocations in the same session don't re-offer the same RID (the config file isn't a side effect of the skill — the user has owned the decision).
+
+Hand-offs:
+
+- For the *format* of `AssetSpecConfig` entries or registering per-environment overrides, see `/deriva-ml:write-hydra-config`.
+- For *wiring* the new asset into an experiment config (e.g., as `input_assets=[...]`), see `/deriva-ml:configure-experiment`.
+
+The two related skills carry the broader config-file mechanics; **this skill owns the offer** because this skill is what produced the RID.
 
 ## Reference Resources
 

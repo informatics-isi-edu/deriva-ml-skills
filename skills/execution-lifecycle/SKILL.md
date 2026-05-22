@@ -1,6 +1,6 @@
 ---
 name: execution-lifecycle
-description: "ALWAYS use this skill when running ML experiments, creating executions, managing workflow provenance, pre-flight validation, or configuring experiment runs in DerivaML. Covers the full execution lifecycle: pre-flight checks (validate RIDs, check cache, cache data), creating and running executions via MCP tools or Python API, managing inputs/outputs with provenance, uploading results, nested executions, dry runs, and the deriva-ml-run CLI. Triggers on: 'run experiment', 'create execution', 'execution lifecycle', 'upload outputs', 'pre-flight', 'dry run', 'validate before running', 'cache dataset', 'workflow provenance', 'deriva-ml-run', 'multirun', 'sweep', 'check git before running', 'nested execution', 'track my work'."
+description: "ALWAYS use this skill when running ML experiments, creating executions, managing workflow provenance, pre-flight validation, or configuring experiment runs in DerivaML. Covers the full execution lifecycle: pre-flight checks (validate RIDs, check cache, cache data), creating and running executions via MCP tools or Python API, managing inputs/outputs with provenance, uploading results, nested executions, dry runs, and the deriva-ml-run CLI. After an execution completes and uploads its output assets (model weights, prediction CSVs, plots, etc.), proactively offer to wire the resulting asset RIDs into src/configs/assets.py so downstream experiments can pin them — this skill owns the bulk-output offer (the per-asset scope lives in work-with-assets). Triggers on: 'run experiment', 'create execution', 'execution lifecycle', 'upload outputs', 'pre-flight', 'dry run', 'validate before running', 'cache dataset', 'workflow provenance', 'deriva-ml-run', 'multirun', 'sweep', 'check git before running', 'nested execution', 'track my work', 'wire outputs into config', 'add output assets to assets.py'."
 ---
 
 # Execution Lifecycle in DerivaML
@@ -73,6 +73,36 @@ deriva_ml_get_execution(hostname, catalog_id, execution_rid="<rid>")
 ```
 
 Or read the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}`, or `cite(hostname, catalog_id, rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Completed`, correct inputs linked, output assets attached, git hash matches.
+
+### Proactively offer to wire output assets into `src/configs/assets.py`
+
+A completed execution typically produces one or more **output assets** (model weights, prediction CSVs, ROC plots, etc.) that downstream experiments will consume. The execution's `deriva_ml_get_execution` response lists them with their fresh RIDs. **Offer to wire those RIDs into `src/configs/assets.py`** so the next experiment in the pipeline can pin them. Don't wait for the user to ask.
+
+The scope is distinct from `work-with-assets`'s offer:
+
+| Scope | When the offer fires | Who owns |
+|---|---|---|
+| Bulk output of a completed run (N assets at once) | `exe.upload_execution_outputs()` finishes; `deriva_ml_get_execution` lists the new asset RIDs | `execution-lifecycle` (this skill) |
+| Single-asset creation / registration / upload (one at a time, intentional) | a single new asset RID becomes visible | `work-with-assets` |
+
+Sample wording (multi-asset case is the common one for executions):
+
+> *"The run produced 3 output assets:*
+> *- `3-WTS1` — model_weights.pt*
+> *- `3-CSV1` — prediction_probabilities.csv*
+> *- `3-PNG1` — confusion_matrix.png*
+> *Want me to add them to `src/configs/assets.py`? I can group them as a single config entry (e.g., `cifar10_quick_outputs`) or as separate entries — your call."*
+
+If they say yes:
+
+- Use `deriva_ml_get_execution(...)` (or its resource form) to confirm the assets are committed and to read each asset's metadata (file name, MD5, size) before writing the config entry.
+- Group decision is the user's call — for a single training run that produces weights + predictions + a plot, a single config entry referencing all three is idiomatic. For an unrelated set of uploads, separate entries make more sense.
+- The `AssetSpecConfig` shape lives in `deriva_ml.asset.aux_classes`; see `/deriva-ml:write-hydra-config` for the field reference.
+- Commit as `chore(configs): add outputs from execution <rid>` — the execution RID in the commit message is the cross-reference back to provenance.
+
+If they say no, **say so plainly** so future invocations in the same session don't re-offer the same RIDs. The config file isn't a side effect — the user has owned the decision.
+
+Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/deriva-ml:configure-experiment` for wiring the assets into a downstream experiment config.
 
 ## Critical Rules
 
