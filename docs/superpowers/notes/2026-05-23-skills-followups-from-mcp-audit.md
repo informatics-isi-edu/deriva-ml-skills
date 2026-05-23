@@ -5,7 +5,7 @@ recorded at
 [`../../../deriva-ml-mcp/docs/audit-2026-05-23.md`](../../../../deriva-ml-mcp/docs/audit-2026-05-23.md).
 The audit surfaced eight skill-side gaps the MCP plugin cannot fix
 on its own (this repo owns the skill text), plus one architectural
-shift in the MCP plugin (`v4.0.0`) whose user-facing consequences
+shift in the MCP plugin (`v0.5.0`) whose user-facing consequences
 have to land here.
 
 When picking this up: **always test against the latest `deriva-ml`**
@@ -17,9 +17,9 @@ Several findings depend on tools/parameters that landed in recent
 
 ---
 
-## The v4.0.0 architectural shift
+## The v0.5.0 architectural shift
 
-`deriva-ml-mcp` v4.0.0 removed all execution-mutating tools from the
+`deriva-ml-mcp` v0.5.0 removed all execution-mutating tools from the
 MCP surface:
 
 - `deriva_ml_create_execution`
@@ -48,7 +48,7 @@ and the three execution resources (`/ml/executions`,
 `/ml/execution/{rid}`, `/ml/lineage/{rid}`). The skill-side work is
 to teach the local-Python pattern for the mutation half.
 
-### Skills that need updates for v4.0.0
+### Skills that need updates for v0.5.0
 
 | Skill | What needs to change |
 |---|---|
@@ -74,7 +74,7 @@ when they need to author an execution.
 
 ## Eight skill gaps surfaced by the audit (Lens B)
 
-These pre-date v4.0.0 and remain open. Each is a single-skill fix
+These pre-date v0.5.0 and remain open. Each is a single-skill fix
 unless noted. Sorted by severity / leverage.
 
 | # | Skill | Gap | Action |
@@ -86,7 +86,7 @@ unless noted. Sorted by severity / leverage.
 | 5 | All skills with "read the orientation first" prose | Reference MCP prompts (clients skip them) or inline summaries. The static cold-start resources `deriva://deriva-ml/getting-started` and `deriva://deriva-ml/concepts` are fetched by resource-walking clients; only `using-deriva-mcp` references them. | First-line "fetch this resource" pointer in `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle`, etc. The prompt name stays as the fallback channel. |
 | 6 | `model-development-workflow`, `troubleshoot-execution` | Don't surface the `execution_rids=` filter on `deriva_ml_list_feature_values` — the one-round-trip pattern for "feature X across these N executions." `compare-model-runs` and `experiment-lifecycle` use it correctly. | Cross-reference `compare-model-runs`'s worked example from the other two skills' relevant sections. |
 | 7 | `manage-storage`, `dataset-lifecycle`, `execution-lifecycle` | Route every "preview before download" through the `deriva_ml_bag_info` tool; don't reference the snapshot-form `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` resource. Only `debug-bag-contents` mentions it. | Add the resource as the lead "preview-the-current-version" path; keep the tool for the version-pinned / exclude-tables case. |
-| 8 | `using-deriva-mcp` | This skill was the audit's good model — references new tools, new resources, the cold-start statics. As the v4.0.0 changes land, this skill should also pick up the "execution lifecycle = local Python" framing as a top-level concept. | Add an "execution lifecycle" section pointing at the deriva-ml repo's `user-guide/executions.md` doc. |
+| 8 | `using-deriva-mcp` | This skill was the audit's good model — references new tools, new resources, the cold-start statics. As the v0.5.0 changes land, this skill should also pick up the "execution lifecycle = local Python" framing as a top-level concept. | Add an "execution lifecycle" section pointing at the deriva-ml repo's `user-guide/executions.md` doc. |
 
 ---
 
@@ -104,7 +104,7 @@ unless noted. Sorted by severity / leverage.
 2. **Rebuild the dockerized MCP server** if testing against
    dev-localhost — the rebuild script is at
    `deriva-ml-mcp/scripts/rebuild-deriva-docker-mcp.sh`. Pulls
-   the latest `deriva-ml-mcp@main` (which is v4.0.0+) and the
+   the latest `deriva-ml-mcp@main` (which is v0.5.0+) and the
    latest `deriva-ml@main`.
 
 3. **The `manage-storage` cache_dataset hallucination (#1)** is the
@@ -125,16 +125,16 @@ unless noted. Sorted by severity / leverage.
 
 ---
 
-## Addendum — v5.0.0 (same day)
+## Addendum — v0.5.0 (same day)
 
-After the original note above was filed, the plugin shipped v5.0.0
+After the original note above was filed, the plugin shipped v0.5.0
 which **also retired `deriva_ml_cache_dataset`** per the
 [T2.5 design discussion](../../../../deriva-ml-mcp/docs/superpowers/notes/2026-05-23-cache-denormalize-deprecation-design.md).
 The plugin's analysis: the wire-level tool materialized a bag to
 the MCP server's local disk, where the bytes were inaccessible to
 remote callers; the `bag_directory` field in the response was a
 useless server-side path. By the same stateless-rule principle that
-removed the execution-mutating tools in v4.0.0, the cache tool is
+removed the execution-mutating tools in v0.5.0, the cache tool is
 gone too.
 
 `deriva_ml_denormalize_dataset` was **kept** because its OUTPUT is
@@ -142,7 +142,7 @@ bounded inline rows (the kind of stateless data MCP exists to
 serve). It uses cache_dataset internally as an implementation
 detail, but the caller never sees the server-side cache.
 
-### Additional skill updates required (v5.0.0 propagation)
+### Additional skill updates required (v0.5.0 propagation)
 
 Stack on top of the eight gaps already listed above:
 
@@ -151,15 +151,15 @@ Stack on top of the eight gaps already listed above:
 | 9 | `manage-storage` | Currently teaches `deriva_ml_cache_dataset(...)` as the bag-warming primitive. That tool is gone. | Rewrite the bag-warming section around `ml.cache_dataset(spec)` in user-local Python -- same pattern as `work-with-assets` (skill generates Python the user runs). Note that the **MCP server cannot warm a bag for the user** -- it has no shared filesystem. |
 | 10 | `dataset-lifecycle` | Any "now cache the bag with `deriva_ml_cache_dataset`" steps in the dataset-readiness flow are stale. | Same fix as #9. Bag-preview resource still serves the "size before download" use case; the download itself moves to local Python. |
 | 11 | `debug-bag-contents` | The skill's "Reference Resources" section pointed at `cache_dataset`-warming as a precursor to inspection (#7 in the original list flagged that the bag-preview resource was missing). The bag-preview resource is now the primary inspection path; `cache_dataset` no longer exists on the wire. | Rewrite the precursor section: inspection via the bag-preview resource; download via user-local `ml.cache_dataset(spec)`. |
-| 12 | `using-deriva-mcp` | Should grow a one-paragraph note on the v5.0.0 "bag materialization is local Python" rule alongside the existing "execution lifecycle is local Python" content (gap #8 above). | Pair with that work. |
-| 13 | All skills | Wire-surface tool count is now 43 (was 52 pre-v4.0.0, 44 between v4.0.0 and v5.0.0). Anything that names a specific count is stale. | Search for "44 tools" / "45 tools" in skill text and update. |
+| 12 | `using-deriva-mcp` | Should grow a one-paragraph note on the v0.5.0 "bag materialization is local Python" rule alongside the existing "execution lifecycle is local Python" content (gap #8 above). | Pair with that work. |
+| 13 | All skills | Wire-surface tool count is now 43 (was 52 pre-v0.5.0, 44 between v0.5.0 and v0.5.0). Anything that names a specific count is stale. | Search for "44 tools" / "45 tools" in skill text and update. |
 
-### What's NOT changed by v5.0.0
+### What's NOT changed by v0.5.0
 
 - `denormalize_dataset` stays. Any skill text pointing at it still works.
 - The `bag-preview` resource stays. The skill-side gap (#7 in the
   original list) about three skills not referencing it still needs
-  the original fix; v5.0.0 reinforces the case for the fix because
+  the original fix; v0.5.0 reinforces the case for the fix because
   the bag-preview resource is now the only MCP-side bag-inspection
   path.
 - The `bag_info` tool stays.
@@ -168,10 +168,10 @@ Stack on top of the eight gaps already listed above:
 
 ### Cross-reference
 
-The v5.0.0 cut is documented at:
+The v0.5.0 cut is documented at:
 
 - `../../../../deriva-ml-mcp/docs/audit-2026-05-23.md` § "Status"
-  (the status block at the top now records v5.0.0 + Option B)
+  (the status block at the top now records v0.5.0 + Option B)
 - `../../../../deriva-ml-mcp/docs/superpowers/notes/2026-05-23-cache-denormalize-deprecation-design.md`
   (the full design rationale)
-- deriva-ml-mcp commit `1ff47b7` + tag `v5.0.0`
+- deriva-ml-mcp commit `1ff47b7` + tag `v0.5.0`
