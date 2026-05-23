@@ -27,6 +27,36 @@ notes (`2026-05-23-skills-followups-from-mcp-audit.md` and its
 addendum) covered ~half of this surface; this assessment adds the
 deriva-ml-side breaking changes the MCP-only audit didn't see.
 
+**Update 2026-05-18 (verification pass).** Every finding below has
+been ground-truthed against current source (deriva-ml + deriva-ml-mcp
+HEAD) and re-grepped against the actual skill files. Specific
+corrections logged in [§8 Verification log](#section-8--verification-log).
+Two findings from the first agent pass were wrong and have been
+struck (one false-alarm `increment_dataset_version` reference; one
+mis-identified `ExecutionRecord` rename — the class **kept its name**
+and was disambiguated by introducing a separate `ExecutionSnapshot`).
+Five findings were under-counted and the assessment now reflects the
+true per-file numbers (notably `manage-storage` has 6 `cache_dataset`
+references, not the 1 the first pass found; `execution-lifecycle/
+references/concepts.md` has 40 removed-tool references in a single
+file).
+
+**Refined PR-2 strategy (per user direction).** The replacement for
+removed MCP execution-mutating tools is **not** "write Python inline
+in the skill body" — it's **"use the skill's bundled `scripts/`
+templates."** Reproducibility requires that the workflow URL +
+checksum reference *committed code*, which means: skills should ship
+committable script templates under `skills/<name>/scripts/`, and the
+skill body should instruct the LLM to copy a template into
+`src/scripts/<task>.py` in the user's project, edit the parameters,
+commit, then run via `deriva-ml-run`. The proper-workflow + Execution
+context manager rides along automatically because the template
+encodes them. See [§4.4 The bundled-script-template pattern](#44-the-bundled-script-template-pattern--user-directed) for
+details. **This changes the shape of PR-2 substantially** — it's now
+"propagate `catalog-operations-workflow`'s script-template approach
+to the skills that don't yet have one" rather than "rewrite skill
+prose to teach context-manager Python from scratch."
+
 ---
 
 ## Method
@@ -70,17 +100,28 @@ in the user's git checkout; staging is per-process SQLite; asset
 bytes are local). MCP can't participate. The wire surface is now
 **41 tools + 3 prompts** (was 52+).
 
-| Removed tool | Skills still referencing | Replacement pattern |
-|---|---|---|
-| `deriva_ml_create_execution` | 15 files | `with ml.create_execution(...) as exe:` (local Python) |
-| `deriva_ml_start_execution` | 12 files | implicit in `__enter__` |
-| `deriva_ml_commit_execution` | 12 files | `exe.upload_outputs()` after the `with` block |
-| `deriva_ml_abort_execution` | 12 files | `exe.abort()` |
-| `deriva_ml_update_execution` | 6 files | `exe.update_status(target, error=...)` |
-| `deriva_ml_add_feature_values` | 10 files | `exe.add_features(records)` |
-| `deriva_ml_create_execution_dataset` | 3 files | through `create_execution(datasets=[...])` |
-| `deriva_ml_add_nested_execution` | 4 files | parent context wraps child `with ml.create_execution(...)` |
-| `deriva_ml_cache_dataset` | 7 files | `ml.cache_dataset(spec)` (local Python) |
+All 9 tools were confirmed absent from
+`deriva-ml-mcp/src/deriva_ml_mcp/` during verification. Per-file
+mention counts (totals across .md files only):
+
+| Removed tool | Total skill-file mentions | Replacement pattern |
+|---|---:|---|
+| `deriva_ml_create_execution` | **39** across 15 files | bundled script template using `with ml.create_execution(...) as exe:` (see §4.4) |
+| `deriva_ml_start_execution` | **28** across 12 files | implicit in `__enter__` |
+| `deriva_ml_commit_execution` | **35** across 12 files | `exe.upload_outputs()` after the `with` block |
+| `deriva_ml_abort_execution` | **23** across 12 files | `exe.abort()` |
+| `deriva_ml_update_execution` | **15** across 6 files | `exe.update_status(target, error=...)` |
+| `deriva_ml_add_feature_values` | **19** across 10 files | `exe.add_features(records)` |
+| `deriva_ml_create_execution_dataset` | **3** across 3 files | through `create_execution(datasets=[...])` |
+| `deriva_ml_add_nested_execution` | **5** across 4 files | parent context wraps child `with ml.create_execution(...)` |
+| `deriva_ml_cache_dataset` | **17** across 7 files | bundled script template using `ml.cache_dataset(spec)` (see §4.4) |
+
+**Worst-affected files** (>10 stale mentions each):
+
+- `execution-lifecycle/references/concepts.md` — **40 mentions** across 7 removed tools (9 `create_execution` + 8 `start_execution` + 8 `commit_execution` + 5 `abort_execution` + 3 `update_execution` + 1 `add_feature_values` + 1 `add_nested_execution` + 5 `cache_dataset`)
+- `execution-lifecycle/references/workflow.md` — **29 mentions** across 8 tools
+- `troubleshoot-execution/SKILL.md` — **15 mentions** across 4 tools
+- `manage-storage/SKILL.md` — **9 mentions** total: 6× `deriva_ml_cache_dataset` at lines 21, 166, 174, 182, 201, 220, and 3× `deriva_ml_create_execution` at lines 23, 148, 203. The prior audit (B4) flagged only line 182; verification widens the scope substantially. Line 182 is the additional hallucination of `asset_rid=` (still wrong even were the tool present).
 
 Read-side execution tools **stay** (`list_executions`, `get_execution`,
 `find_workflow_executions`, `list_execution_children`,
@@ -156,19 +197,27 @@ download is `Execution.download_asset(...)`.
 
 ### 1.4 `cache_features()` is now private
 
-The `dataset-lifecycle` skill body (line 217), its
-`references/curated-subsets.md` (lines 103, 110, 127), and its two
-helper scripts (`scripts/subset_filters.py:41`,
-`scripts/generate_subset_template.py:41, 136`) all call
-`ml.cache_features(...)` directly. The method was renamed
-`_cache_features` (private; v1.37 migration table). Public callers
-should use:
+The method was renamed `_cache_features` (private) in v1.37
+migration. Public callers should use `ml.feature_values(...)` (or
+`deriva_ml_list_feature_values` MCP tool with the new
+`execution_rids=` / `materialize_limit=` kwargs from §3.1).
+
+Verified call sites (8 mentions across 4 files):
+
+- `dataset-lifecycle/SKILL.md:217`
+- `dataset-lifecycle/references/curated-subsets.md:103, 105, 110, 127`
+- `dataset-lifecycle/scripts/generate_subset_template.py:41, 136`
+  (user-facing copy-paste template — worst-class P0)
+- `generate-scripts/SKILL.md:13, 24, 46, 152` (this skill GENERATES
+  scripts — the templates it produces would themselves use the
+  private API)
+- `create-feature/SKILL.md:273` (single pointer reference)
 
 ```python
 # Was:
 ml.cache_features("Image", "Diagnosis")
-# Is:
-ml.feature_values("Image", "Diagnosis")   # online
+# Is (Python):
+ml.feature_values("Image", "Diagnosis")
 # Or via MCP for inspection:
 deriva_ml_list_feature_values(hostname, catalog_id, target_table="Image",
                               feature_name="Diagnosis",
@@ -176,36 +225,45 @@ deriva_ml_list_feature_values(hostname, catalog_id, target_table="Image",
                               materialize_limit=10000)   # new kwarg
 ```
 
-The scripts in particular are user-facing copy-paste templates;
-shipping a script that calls a now-private API is the worst kind of
-P0.
+The two **scripts** (template files + the `generate-scripts` skill
+that emits more like them) are user-facing copy-paste; shipping
+templates that call a now-private API guarantees broken downstream
+projects.
 
 ### 1.5 `upload_execution_outputs(...)` is legacy
 
-Phase 1 introduced `exe.upload_outputs(...)` as the canonical name.
-The old `exe.upload_execution_outputs(...)` is retained for backward
-compat (see CHANGELOG Phase 1 §Removed table — only "still present;
-superseded" for this one), but every example skill should use the
-new name. Still cited:
+Verification confirms **both methods still exist** on the `Execution`
+class (`upload_execution_outputs` at execution.py:1468,
+`upload_outputs` at execution.py:2307). Phase 1 introduced
+`upload_outputs` as the canonical name; the legacy `upload_execution_outputs`
+is retained for backward compat (CHANGELOG Phase 1 §Removed table:
+"still present; superseded"). So this is **P1, not P0** — examples
+still execute, they just use the old name.
 
-- `manage-storage/SKILL.md` (2 refs)
-- `new-model/references/runner-interface.md` (2)
-- `dataset-lifecycle/references/workflow.md` (4)
-- `catalog-operations-workflow/references/script-patterns.md` (5)
+Counts (re-verified):
+
 - `troubleshoot-execution/SKILL.md` (7) + `references/execution-lifecycle.md` (9)
+- `catalog-operations-workflow/references/script-patterns.md` (5)
+- `dataset-lifecycle/references/workflow.md` (4)
+- `new-model/references/runner-interface.md` (2)
+- `manage-storage/SKILL.md` (2)
 - `run-notebook/{SKILL.md,references/workflow.md}` (2 + 2)
 - `generate-scripts/SKILL.md` (1)
 - `create-feature/references/workflow.md` (1)
 
-**Recommendation:** P1 (works, but every skill body should standardize
-on `upload_outputs`); ideally part of the v0.5.0 sweep so each file
-gets one coordinated edit.
+**Recommendation:** Land as part of the v0.5.0 sweep so each affected
+file gets one coordinated edit (script templates, MCP-tool
+replacements, and method-name standardization all in one pass).
 
-### 1.6 `increment_dataset_version` straggler
+### 1.6 ~~`increment_dataset_version` straggler~~ — VERIFICATION: FALSE ALARM
 
-`debug-bag-contents/SKILL.md` still references `deriva_ml_increment_dataset_version`
-(removed; replaced by `deriva_ml_release` per migration §1.34).
-Single-line fix.
+The first audit agent reported a straggler reference to
+`deriva_ml_increment_dataset_version` in `debug-bag-contents/SKILL.md`.
+Verification: the only mention is a single line of historical context
+(line 278: `\`deriva_ml_release\` | Promote a dev period to a released
+version (per ADR-0003 — replaces the old increment_dataset_version)`).
+The skill correctly uses `deriva_ml_release` everywhere else and
+documents the rename as historical context. No fix needed.
 
 ---
 
@@ -213,21 +271,33 @@ Single-line fix.
 
 ### 2.1 `deriva_ml_create_vocabulary` is the right tool on deriva-ml catalogs
 
-The prior audit (B2) flagged this; only `create-feature` knows the
-ML-aware tool exists. Others (`api-naming-conventions/SKILL.md`,
-`create-feature/references/{concepts,workflow}.md`) still point at
-the generic `create_vocabulary` from `deriva-mcp-core`, which doesn't
-apply curie-prefix scoping or trigger the navbar refresh on a
-deriva-ml-loaded catalog.
+Verification refined this finding. `create-feature` already correctly
+steers at `deriva_ml_create_vocabulary` (SKILL.md:82-87, workflow.md:32,
+35, 183; the SKILL.md:306 entry in the tool-reference table is also
+correct). The remaining stale references in
+`create-feature/references/{concepts,workflow}.md` to
+`ml.create_vocabulary(...)` are **Python API calls** (legitimate) and
+not the generic MCP tool — false-positive from the first agent pass.
 
-**Recommendation:** Add a one-line steering note to
-`deriva-ml-context/SKILL.md` (always-on, plugin-wide reach):
+The **only** stale steering site is one row of one reference table:
+`api-naming-conventions/SKILL.md:100`:
+
+```
+| `create_vocabulary` (MCP, core) | Create new vocabulary |
+```
+
+Replace with `deriva_ml_create_vocabulary` and note that it scopes
+the curie prefix.
+
+**Stronger fix that prevents future drift:** Add a one-line steering
+note to `deriva-ml-context/SKILL.md` (always-on, plugin-wide reach):
 
 > On a deriva-ml-loaded catalog, prefer `deriva_ml_create_vocabulary`
 > over the generic `create_vocabulary` — it applies the
 > `deriva-ml`-scoped curie prefix and refreshes the navbar.
 
-Then the in-skill steering becomes a sentence each, not a section.
+Then the in-skill steering is implicit; future skills that touch
+vocabulary creation inherit the discipline.
 
 ### 2.2 The `write-hydra-config` "planned" claims
 
@@ -295,11 +365,30 @@ is now a legal direct transition from Running.
 
 Worth a callout in `troubleshoot-execution/SKILL.md` salvage section.
 
-### 2.6 `ExecutionRecord` → `ExecutionSnapshot` rename
+### 2.6 ~~`ExecutionRecord` → `ExecutionSnapshot` rename~~ — VERIFICATION: WRONG; SOFTENED TO P3 POLISH
 
-`execution-lifecycle/references/concepts.md` still references the old
-class name (`ExecutionRecord` in two places where it now means the
-local-cached snapshot type). Three-line fix.
+The first audit agent claimed `ExecutionRecord` had been renamed
+`ExecutionSnapshot` and that `execution-lifecycle/references/concepts.md`
+was stale. **This is wrong.** What actually happened in the H3
+disambiguation (per CHANGELOG):
+
+- The original **catalog-backed** `ExecutionRecord` (live, mutable,
+  ERMrest) **kept its name** — still exists at
+  `deriva_ml/execution/execution_record.py:53`.
+- A **separate** frozen value-object class (was internally
+  `_ExecutionRecordV2`) was renamed to `ExecutionSnapshot`
+  (SQLite-backed, frozen Pydantic model) and lives at
+  `deriva_ml/execution/execution_snapshot.py:48`.
+- The two coexist with different semantics. `ml.list_executions(...)`
+  and `ml.find_incomplete_executions()` return `ExecutionSnapshot`;
+  `asset.list_executions()` and similar return `ExecutionRecord`.
+
+The skill's four references to `ExecutionRecord` in
+`execution-lifecycle/references/concepts.md` (lines 73, 83, 298, 373)
+are **all describing the live catalog-backed type** and remain
+correct. The skill does **not** mention `ExecutionSnapshot`, which
+is a missing-capability gap (P3 polish — worth a one-paragraph note
+distinguishing the two classes, but no error today).
 
 ---
 
@@ -458,6 +547,64 @@ skill text should use these terms consistently across
 discussed in the context of split stratification), and
 `compare-model-runs` (where labels are pulled for evaluation).
 
+### 4.4 The bundled-script-template pattern — user-directed
+
+**Provenance is the reason MCP execution-mutating tools were removed
+in v0.5.0.** A real workflow record carries a URL + checksum that
+identifies the code that ran. MCP-driven Python written in a model
+turn is by definition uncommitted — there is no URL, the checksum
+is meaningless, and the execution has provenance metadata that lies
+about reproducibility.
+
+The replacement pattern that **does** preserve provenance is:
+
+1. **Skill bundles a runnable template** under
+   `skills/<name>/scripts/<task>.py`. The template encodes the
+   `with ml.create_execution(config, workflow=workflow, dry_run=...)
+   as execution:` context manager, the right `ExecutionConfiguration`
+   shape, the `execution.upload_outputs()` (post-`with`) call, and
+   typed argparse parameters (`--hostname`, `--catalog-id`,
+   `--workflow-type`, `--dry-run`, etc.).
+2. **The skill body instructs the LLM** to:
+   - Copy the template to `src/scripts/<task>.py` in the user's
+     project.
+   - Edit only the parameters the user names — vocab terms, asset
+     RIDs, feature definitions, etc.
+   - Commit the edited script. The workflow URL + checksum now
+     resolve.
+   - Run via `deriva-ml-run src/scripts/<task>.py --dry-run` first,
+     then for real.
+3. **MCP tools remain** for the observation half (reading the
+   resulting execution / dataset / workflow records, listing
+   children, walking lineage). MCP is the *observation surface*;
+   committed scripts are the *authorship surface*.
+
+**This pattern already exists** in `catalog-operations-workflow/
+references/script-patterns.md` for a half-dozen common operations
+(dataset creation, dataset splitting, feature creation +
+population, ETL load). The PR-2 work is **not** "rewrite skill prose
+to teach Python from scratch" — it's:
+
+| For each skill in PR-2's 15-file scope | Action |
+|---|---|
+| **`execution-lifecycle`** | Bundle 3-4 templates (basic execution, nested execution, salvage, crash-recovery) under `skills/execution-lifecycle/scripts/`. Skill body becomes "use template X for task Y, edit these 3 params, commit + run." |
+| **`troubleshoot-execution`** | Bundle a salvage-runner template. Skill body keeps its diagnostic Q&A but routes mutating recovery actions to the template. |
+| **`create-feature`** | Bundle `populate_feature_values.py` (already exists informally in `references/workflow.md` — promote to `scripts/`). |
+| **`work-with-assets`** | Bundle `upload_asset.py`, `download_asset.py` templates (pattern already exists in the `work-with-assets` skill in `deriva-skills`). |
+| **`manage-storage`** | Bundle `warm_cache.py` (replaces the lost `deriva_ml_cache_dataset` MCP tool with a committed script). |
+| **`model-development-workflow`** | Should reference templates from the other skills, not re-bundle. |
+| **`dataset-lifecycle`** | Already has `scripts/`; extend with templates that match the v0.5.0-removed dataset-creation flow. |
+
+**Net architecture**: ~10 new template files across ~6 skills + the
+skill-body rewrites that route the LLM to them. Reproducible by
+construction because the template *is* the workflow's source of truth.
+
+**Cross-reference**: `generate-scripts/SKILL.md` already exists with
+the meta-pattern ("here's how to generate well-formed deriva-ml
+scripts"). The work in PR-2 is the inverse — instead of asking the
+LLM to generate a fresh script each time, *ship* the canonical
+template and have the LLM edit + commit + run it.
+
 ---
 
 ## Section 5 — Recommended PR plan
@@ -476,24 +623,43 @@ A staged set of PRs, in landing order:
 
 Estimated effort: 3-4 hours. Net: zero broken example code.
 
-### PR-2: P0 — v0.5.0 MCP-removal sweep
+### PR-2: P0 — v0.5.0 MCP-removal sweep (template-based, per §4.4)
 
-- §1.1 across 15 skill files. Per file:
-  - Replace each removed-tool reference with the Python-API
-    equivalent.
-  - Add the `with ml.create_execution(...) as exe:` canonical
-    pattern as the worked example.
-  - Keep MCP read tools (`list_executions`, `get_execution`,
-    `find_workflow_executions`, `get_lineage`) on the observation
-    side.
-- §1.5 standardize on `exe.upload_outputs(...)` (one coordinated edit
-  per file).
-- §4.1 the canonical "MCP-reads-local-Python-writes" paragraph in
-  `deriva-ml-context`.
+**Two sub-PRs** (PR-2a + PR-2b) so the template authoring lands
+before the skill-body rewrites that route to them. Splitting also
+keeps each PR honestly reviewable.
 
-Estimated effort: 6-8 hours (15 files × careful edit). Net: the
-plugin's central lifecycle pattern matches the upstream's central
-lifecycle pattern.
+**PR-2a — Bundled templates (3-4 hours)**:
+
+- Author `skills/execution-lifecycle/scripts/{basic_execution,
+  nested_execution, salvage_execution, crash_recovery}.py` —
+  4 canonical templates following the `catalog-operations-workflow/
+  references/script-patterns.md` shape.
+- Author `skills/create-feature/scripts/populate_feature_values.py` —
+  promote the `references/workflow.md` example to a runnable file.
+- Author `skills/manage-storage/scripts/warm_cache.py` — replaces
+  the removed `deriva_ml_cache_dataset` MCP path.
+- Author `skills/troubleshoot-execution/scripts/salvage_runner.py` —
+  the salvage-flow template the skill currently inlines.
+- Each script: typed argparse, `--dry-run` mandatory, full
+  `with ml.create_execution(config, workflow=workflow,
+  dry_run=args.dry_run) as execution:` shape, `execution.upload_outputs()`
+  post-`with`, module docstring explaining the use case.
+
+**PR-2b — Skill-body sweep (5-6 hours)**:
+
+- §1.1 across 15 files. Per file: replace each removed-tool reference
+  with "copy `<template-path>`, edit `<params>`, commit, run".
+  Add a "Bundled templates" subsection at the top of each affected
+  skill pointing at the PR-2a scripts.
+- §1.5 standardize on `exe.upload_outputs(...)` in the same coordinated
+  per-file edit.
+- §4.1 the canonical "MCP-reads-templates-for-writes" paragraph in
+  `deriva-ml-context/SKILL.md`.
+
+Total PR-2 effort: 8-10 hours (slight increase over original estimate
+to cover template authoring; pays back in lower drift cost forever
+after — templates are unit-testable, skill prose isn't).
 
 ### PR-3: P1 — stale-but-works fixes
 
@@ -599,3 +765,75 @@ These are real but outside this assessment's scope:
 
 Land PR-1 + PR-2 first. Everything else can wait without surfacing
 errors to users.
+
+---
+
+## Section 8 — Verification log
+
+Every claim above was ground-truthed against current source after
+the first agent pass. Recorded here so the next reader knows which
+findings were re-confirmed and which were corrected.
+
+### Verified true (no change)
+
+| Finding | What was checked | How |
+|---|---|---|
+| §1.1 v0.5.0 9-tool removal | All 9 absent from `deriva-ml-mcp/src/deriva_ml_mcp/` | `grep "def deriva_ml_<tool>"` returns no hits for each |
+| §1.1 stale-mention counts per skill | Re-grep'd, totals adjusted upward | Per-tool, per-file grep loop |
+| §1.2 restructure_assets rename | `targets`, `target_transform`, `missing` are the current kwargs; `group_by` + `value_selector` removed | AST inspection of `src/deriva_ml/dataset/dataset_bag.py:1445` |
+| §1.3 cache_dataset hallucination | `manage-storage:182` confirmed; tool now accepts only `dataset: DatasetSpec` | Read line 182; read `cache_dataset` signature at `core/mixins/dataset.py:552` |
+| §1.4 cache_features privacy | Method is `_cache_features` (private) at `core/base.py:929`; public replacement is `feature_values` at `core/mixins/feature.py:378` | grep + read |
+| §2.2 write-hydra-config "planned" | Both tools registered in deriva-ml-mcp; skill still labels them "planned" at 4 sites (lines 3, 19, 377, 389, 430). Internal inconsistency: line 488 actually uses `validate_config_file` | grep + read |
+| §2.3 framework adapters | `as_torch_dataset` at `dataset_bag.py:1090`; `as_tf_dataset` at `dataset_bag.py:1264` | grep |
+| §2.4 metrics_file | Method at `execution.py:1679` | grep |
+| §3.1 feature_values kwargs | `(self, table, feature_name, selector, materialize_limit, execution_rids)` confirmed via AST | AST inspection |
+| §3.2 workflow_type filter | `deriva_ml_list_executions(..., workflow_type, ...)` confirmed in tool source | Read tool definition |
+| §3.3 find_*(sort=) | All three of `find_executions`, `find_datasets`, `find_workflows` accept `sort=` | AST inspection |
+| §3.5 bag-preview resource | `@ctx.resource("deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}/bag-preview")` at `resources/ml.py:449` | grep |
+| §3.6 cold-start resources | `deriva://deriva-ml/getting-started` at `resources/ml.py:344`; `deriva://deriva-ml/concepts` at `resources/ml.py:357` | grep |
+| §3.7 schema pin/diff | All 4 methods exist in `core/base.py` (604, 657, 668, 684) | grep |
+| §3.8 ConnectionMode + CatalogStub | `core/connection_mode.py:14`; `core/catalog_stub.py:27`; `DerivaMLReadOnlyError` exported | grep |
+| §3.9 Asset_Role auto-tags | `core/enums.py:93, 179, 180` — `Asset_Role`, `Input_File`, `Output_File` all present | grep |
+| "No-findings" claims | Confirmed no skill references any of: prefetch_dataset, add_page, user_list, globus_login, retrieve_rid, AssetRIDConfig, asset_types == filter | grep loop |
+
+### Corrected from first agent pass
+
+| Finding | Original claim | Verified reality | Resolution |
+|---|---|---|---|
+| §1.6 `increment_dataset_version` in `debug-bag-contents` | "Single-line fix" | Only one mention, and it's historical context next to the correct `deriva_ml_release` reference (line 278). The skill is correct. | Struck §1.6; noted as FALSE ALARM |
+| §2.1 vocab steering — stale in multiple files | `create-feature/references/{concepts,workflow}.md` cited as stale | Those files contain `ml.create_vocabulary(...)` which is the **Python API** (legitimate), not the MCP tool. Only stale steering site is `api-naming-conventions/SKILL.md:100` (a row of a reference table) | Narrowed §2.1 to a single one-line fix |
+| §2.6 `ExecutionRecord` → `ExecutionSnapshot` rename | "Three-line fix in concepts.md" | The two classes **coexist** with different semantics. `ExecutionRecord` (live, catalog-backed) kept its name; `ExecutionSnapshot` is a separate new class for the SQLite-backed frozen-value-object role. The four `ExecutionRecord` references in `execution-lifecycle/references/concepts.md` are all describing the live type and remain correct. | Struck §2.6's break-claim; downgraded to P3 polish opportunity to document the two classes' distinction |
+| §1.4 cache_features scope | Two helper scripts + `dataset-lifecycle/SKILL.md` line | Actually 8 mentions across 4 files including `generate-scripts/SKILL.md` (which itself generates more scripts that would use the private API — compounding risk). Widened scope. | Expanded the §1.4 file list |
+| §1.5 upload_execution_outputs status | Implied to be a clean rename | Both methods coexist on the `Execution` class; legacy is retained for back-compat. Examples still execute. | Re-graded from possibly-P0 to firmly-P1 |
+| §1.1 per-file count for `manage-storage` | "1 cache_dataset reference (line 182)" | Actually 6 cache_dataset references (lines 21, 166, 174, 182, 201, 220) + 3 create_execution references (lines 23, 148, 203) | Restated; widened scope to "section rewrite", not "line fix" |
+
+### Methodology
+
+- **Source-level verification.** For every removed-tool claim, I ran
+  `grep -rn "def $tool"` in `deriva-ml-mcp/src/`. For every renamed/
+  new method, I either AST-inspected the function signature or
+  grep'd the class definition.
+- **Skill-level verification.** For every claim of staleness in a
+  skill file, I either ran `grep -n` on that file or read the lines
+  directly with the Read tool. No claim about a specific file:line
+  in the doc is unconfirmed.
+- **Cross-checked the agent's "no findings" assertions** by grep'ing
+  each of: prefetch_dataset, add_page, user_list, globus_login,
+  retrieve_rid, AssetRIDConfig, `asset_types ==` patterns,
+  `ExecutionStatus.<lowercase>` patterns. All confirmed clean.
+
+### What this verification did NOT do
+
+- Did not run any skill end-to-end against a live catalog. The
+  staleness analysis is static.
+- Did not exhaustively cross-check every paragraph of every skill
+  against every method in deriva-ml — only the changes named in the
+  migration guide + CHANGELOG.
+- Did not check whether the skill text describes correct behavior at
+  every named API; only whether the named APIs exist + have the
+  documented signature.
+
+A future verification pass should add at least one end-to-end test
+("instruct LLM to perform task X using only this skill; observe
+where it gets stuck") — but that's better scoped as a `/skill-creator`
+benchmark run after PR-2 lands.
