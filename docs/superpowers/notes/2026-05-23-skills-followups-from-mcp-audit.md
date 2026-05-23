@@ -122,3 +122,56 @@ unless noted. Sorted by severity / leverage.
 5. **The audit doc itself** lives at
    `deriva-ml-mcp/docs/audit-2026-05-23.md`. Read it for the
    rationale; this note is the action list extracted from it.
+
+---
+
+## Addendum — v5.0.0 (same day)
+
+After the original note above was filed, the plugin shipped v5.0.0
+which **also retired `deriva_ml_cache_dataset`** per the
+[T2.5 design discussion](../../../../deriva-ml-mcp/docs/superpowers/notes/2026-05-23-cache-denormalize-deprecation-design.md).
+The plugin's analysis: the wire-level tool materialized a bag to
+the MCP server's local disk, where the bytes were inaccessible to
+remote callers; the `bag_directory` field in the response was a
+useless server-side path. By the same stateless-rule principle that
+removed the execution-mutating tools in v4.0.0, the cache tool is
+gone too.
+
+`deriva_ml_denormalize_dataset` was **kept** because its OUTPUT is
+bounded inline rows (the kind of stateless data MCP exists to
+serve). It uses cache_dataset internally as an implementation
+detail, but the caller never sees the server-side cache.
+
+### Additional skill updates required (v5.0.0 propagation)
+
+Stack on top of the eight gaps already listed above:
+
+| # | Skill | What changed | Action |
+|---|-------|--------------|--------|
+| 9 | `manage-storage` | Currently teaches `deriva_ml_cache_dataset(...)` as the bag-warming primitive. That tool is gone. | Rewrite the bag-warming section around `ml.cache_dataset(spec)` in user-local Python -- same pattern as `work-with-assets` (skill generates Python the user runs). Note that the **MCP server cannot warm a bag for the user** -- it has no shared filesystem. |
+| 10 | `dataset-lifecycle` | Any "now cache the bag with `deriva_ml_cache_dataset`" steps in the dataset-readiness flow are stale. | Same fix as #9. Bag-preview resource still serves the "size before download" use case; the download itself moves to local Python. |
+| 11 | `debug-bag-contents` | The skill's "Reference Resources" section pointed at `cache_dataset`-warming as a precursor to inspection (#7 in the original list flagged that the bag-preview resource was missing). The bag-preview resource is now the primary inspection path; `cache_dataset` no longer exists on the wire. | Rewrite the precursor section: inspection via the bag-preview resource; download via user-local `ml.cache_dataset(spec)`. |
+| 12 | `using-deriva-mcp` | Should grow a one-paragraph note on the v5.0.0 "bag materialization is local Python" rule alongside the existing "execution lifecycle is local Python" content (gap #8 above). | Pair with that work. |
+| 13 | All skills | Wire-surface tool count is now 43 (was 52 pre-v4.0.0, 44 between v4.0.0 and v5.0.0). Anything that names a specific count is stale. | Search for "44 tools" / "45 tools" in skill text and update. |
+
+### What's NOT changed by v5.0.0
+
+- `denormalize_dataset` stays. Any skill text pointing at it still works.
+- The `bag-preview` resource stays. The skill-side gap (#7 in the
+  original list) about three skills not referencing it still needs
+  the original fix; v5.0.0 reinforces the case for the fix because
+  the bag-preview resource is now the only MCP-side bag-inspection
+  path.
+- The `bag_info` tool stays.
+- All execution read tools, all dataset/workflow/feature read tools,
+  and the asset read+update tools stay.
+
+### Cross-reference
+
+The v5.0.0 cut is documented at:
+
+- `../../../../deriva-ml-mcp/docs/audit-2026-05-23.md` § "Status"
+  (the status block at the top now records v5.0.0 + Option B)
+- `../../../../deriva-ml-mcp/docs/superpowers/notes/2026-05-23-cache-denormalize-deprecation-design.md`
+  (the full design rationale)
+- deriva-ml-mcp commit `1ff47b7` + tag `v5.0.0`
