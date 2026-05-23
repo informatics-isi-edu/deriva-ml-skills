@@ -81,10 +81,12 @@ for `@ctx.tool` and `@ctx.prompt` decorators on `deriva_ml_*` names.
 | `deriva_ml_concepts` | prompts.py:1000 |
 | `deriva_ml_getting_started` | prompts.py:1011 |
 
-### A.4 Tools that DO NOT EXIST — never reference these
+### A.4 Names that are NOT MCP tools — never reference
 
-The following names appear in older skill text but are NOT registered
-in current `deriva-ml-mcp`. Skills must not name any of them:
+Skills must not name any of these. Authorship of executions, feature
+values, and bag caching belongs in **bundled script templates** under
+`skills/<name>/scripts/` that use the Python API from §B. See §E.1
+for the canonical script-template shape.
 
 - `deriva_ml_create_execution`
 - `deriva_ml_start_execution`
@@ -98,10 +100,6 @@ in current `deriva-ml-mcp`. Skills must not name any of them:
 - `deriva_ml_split_dataset`
 - `deriva_ml_increment_dataset_version`
 - `deriva_ml_resume_execution`
-
-The replacement pattern for any of these is **a runnable script
-template** under `skills/<name>/scripts/` that uses the Python API
-from §B. See §C for the canonical script-template shape.
 
 ---
 
@@ -275,8 +273,7 @@ Always use as `with ml.create_execution(...) as exe:`. Public methods:
 - `table_path(table) -> Path`
 
 **Upload (post-`with`):**
-- `upload_outputs(retry_failed=False) -> UploadReport`  *(canonical name)*
-- `upload_execution_outputs(clean_folder=None, progress_callback=None) -> dict[str, list[AssetFilePath]]`  *(retained for back-compat; prefer `upload_outputs`)*
+- `upload_outputs(retry_failed=False) -> UploadReport`
 - `pending_summary() -> PendingSummary`
 
 ### B.10 `ExecutionRecord` (live catalog-backed)
@@ -372,21 +369,28 @@ Returned by `dataset.download_dataset_bag(...)` and `exe.download_dataset_bag(..
 - `as_tf_dataset(element_type, sample_loader=None, transform=None, targets=None, target_transform=None, missing='unknown', output_signature=None) -> tf.data.Dataset`
 - `restructure_assets(output_dir, asset_table=None, targets=None, target_transform=None, missing='unknown', use_symlinks=True, type_selector=None, type_to_dir_map=None, enforce_vocabulary=True, file_transformer=None) -> dict[Path, Path]`
 
-### B.14 Methods that DO NOT EXIST — never reference these
+### B.14 Names that are NOT public API — never reference
 
-These names appear in older skill text but are NOT in the current
-public Python API. Skills must not name any of them:
+Skills must not name any of these. The right-hand column gives the
+canonical replacement to use instead.
 
-- `ml.prefetch_dataset(...)` — use `ml.cache_dataset(spec)`
-- `ml.list_foreign_keys(...)` — no replacement; the operation had no callers
-- `ml.add_page(...)`, `ml.user_list(...)`, `ml.globus_login(...)` — removed
-- `ml.cache_features(...)` — use `ml.feature_values(...)`
-- `ml.increment_dataset_version(...)` — use `dataset.release(bump=..., description=..., execution=...)`
-- `ml.retrieve_rid(...)` — use `ml.resolve_rid(...)`
-- `ml.add_workflow(...)` — use `ml.create_workflow(...)`
-- `ml.start_upload(...)`, `ml.domain_path(...)`, `ml.table_path(...)` — private now
-- `AssetRIDConfig` — never existed; the real classes are `AssetSpec` (runtime Pydantic) and `AssetSpecConfig` (hydra-zen)
-- `Status.<lowercase>` — replaced by `ExecutionStatus.<TitleCase>` (see §D.1)
+| Name | Replacement |
+|---|---|
+| `prefetch_dataset` | `ml.cache_dataset(spec)` |
+| `list_foreign_keys` | none — use the catalog model directly |
+| `add_page` | none |
+| `user_list` | none |
+| `globus_login` | none |
+| `cache_features` | `ml.feature_values(...)` |
+| `increment_dataset_version` | `dataset.release(bump=..., description=..., execution=...)` |
+| `retrieve_rid` | `ml.resolve_rid(...)` |
+| `add_workflow` | `ml.create_workflow(...)` |
+| `start_upload` | private; no public replacement |
+| `domain_path` | private; no public replacement |
+| `table_path` | private; no public replacement |
+| `AssetRIDConfig` | `AssetSpec` (runtime Pydantic) / `AssetSpecConfig` (hydra-zen) |
+| `Status` enum | `ExecutionStatus` (see §D.1) |
+| `upload_execution_outputs` | `exe.upload_outputs(retry_failed=False)` |
 
 ---
 

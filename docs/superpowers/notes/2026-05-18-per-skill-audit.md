@@ -6,37 +6,39 @@ rule sets, not LLM judgment.
 
 ## Finding kinds
 
-- **REMOVED-TOOL** — references an MCP tool name in registry §A.4 (does not exist)
-- **REMOVED-PY** — references a Python method name in registry §B.14 (private or never-existed)
+- **REMOVED-TOOL** — references an MCP tool name in registry §A.4 (not a public MCP tool)
+- **REMOVED-PY** — references a Python method name in registry §B.14 (not public API). Includes `upload_execution_outputs` — skills use `upload_outputs` only.
 - **SIG_DRIFT** — invokes a current method with kwargs that no longer match the registry signature
-- **LEGACY-UPLOAD** — uses `upload_execution_outputs` (retained but superseded by `upload_outputs` per registry §B.9)
 - **LOWER-STATUS** — uses lowercase `ExecutionStatus` value (registry §D.1 specifies title-case only)
 - **OLD-STATUS-ENUM** — references the removed `Status.<lowercase>` enum (gone; use `ExecutionStatus.<TitleCase>`)
-- **HIST-PROSE** — historical framing ("was X, is now Y", "(formerly…)", "(replaces the old…)", "planned" for shipped tools, etc.)
+- **HIST-PROSE** — historical framing ("was X, is now Y", "(formerly…)", "(replaces the old…)", "planned" for shipped tools, "legacy", "retained for", "superseded", etc.)
+
+All finding kinds are equal-priority. The skills' job is to describe the
+current API, no history.
 
 ## Summary
 
 - **Skills with findings:** 19 of 29
-- **Total findings:** 375
+- **Total findings:** 374
 
 ### Per-skill finding counts (sorted by total)
 
 | Skill | Total | Breakdown |
 |---|---:|---|
-| `execution-lifecycle` | 105 | HIST-PROSE=12, LEGACY-UPLOAD=19, REMOVED-TOOL=74 |
-| `troubleshoot-execution` | 53 | HIST-PROSE=7, LEGACY-UPLOAD=16, OLD-STATUS-ENUM=2, REMOVED-TOOL=28 |
-| `dataset-lifecycle` | 43 | HIST-PROSE=18, LEGACY-UPLOAD=4, REMOVED-PY=7, REMOVED-TOOL=9, SIG_DRIFT=5 |
-| `work-with-assets` | 39 | HIST-PROSE=15, LEGACY-UPLOAD=11, REMOVED-TOOL=8, SIG_DRIFT=5 |
+| `execution-lifecycle` | 105 | HIST-PROSE=12, REMOVED-PY=19, REMOVED-TOOL=74 |
+| `troubleshoot-execution` | 52 | HIST-PROSE=7, OLD-STATUS-ENUM=2, REMOVED-PY=15, REMOVED-TOOL=28 |
+| `dataset-lifecycle` | 43 | HIST-PROSE=18, REMOVED-PY=11, REMOVED-TOOL=9, SIG_DRIFT=5 |
+| `work-with-assets` | 39 | HIST-PROSE=15, REMOVED-PY=11, REMOVED-TOOL=8, SIG_DRIFT=5 |
 | `ml-data-engineering` | 30 | HIST-PROSE=1, SIG_DRIFT=29 |
-| `create-feature` | 29 | LEGACY-UPLOAD=2, REMOVED-PY=1, REMOVED-TOOL=24, SIG_DRIFT=2 |
-| `manage-storage` | 14 | HIST-PROSE=2, LEGACY-UPLOAD=2, REMOVED-TOOL=9, SIG_DRIFT=1 |
-| `deriva-ml-context` | 13 | LEGACY-UPLOAD=1, REMOVED-TOOL=12 |
+| `create-feature` | 29 | REMOVED-PY=3, REMOVED-TOOL=24, SIG_DRIFT=2 |
+| `manage-storage` | 14 | HIST-PROSE=2, REMOVED-PY=2, REMOVED-TOOL=9, SIG_DRIFT=1 |
+| `deriva-ml-context` | 13 | REMOVED-PY=1, REMOVED-TOOL=12 |
 | `api-naming-conventions` | 10 | HIST-PROSE=3, REMOVED-TOOL=7 |
 | `model-development-workflow` | 9 | HIST-PROSE=2, REMOVED-TOOL=7 |
-| `new-model` | 6 | LEGACY-UPLOAD=2, SIG_DRIFT=4 |
-| `run-notebook` | 6 | HIST-PROSE=1, LEGACY-UPLOAD=4, REMOVED-TOOL=1 |
-| `catalog-operations-workflow` | 5 | LEGACY-UPLOAD=5 |
-| `generate-scripts` | 5 | LEGACY-UPLOAD=1, REMOVED-PY=4 |
+| `new-model` | 6 | REMOVED-PY=2, SIG_DRIFT=4 |
+| `run-notebook` | 6 | HIST-PROSE=1, REMOVED-PY=4, REMOVED-TOOL=1 |
+| `catalog-operations-workflow` | 5 | REMOVED-PY=5 |
+| `generate-scripts` | 5 | REMOVED-PY=5 |
 | `write-hydra-config` | 4 | HIST-PROSE=4 |
 | `compare-model-runs` | 1 | REMOVED-TOOL=1 |
 | `configure-experiment` | 1 | HIST-PROSE=1 |
@@ -85,15 +87,15 @@ rule sets, not LLM judgment.
 
 ### `catalog-operations-workflow`
 
-- `catalog-operations-workflow/references/script-patterns.md:104` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `catalog-operations-workflow/references/script-patterns.md:104` **REMOVED-PY** — `upload_execution_outputs`
   > execution.upload_execution_outputs()
-- `catalog-operations-workflow/references/script-patterns.md:119` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `catalog-operations-workflow/references/script-patterns.md:119` **REMOVED-PY** — `upload_execution_outputs`
   > - `execution.upload_execution_outputs()` is called **after** the `with` block — the execution object remains valid for u
-- `catalog-operations-workflow/references/script-patterns.md:157` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `catalog-operations-workflow/references/script-patterns.md:157` **REMOVED-PY** — `upload_execution_outputs`
   > execution.upload_execution_outputs()
-- `catalog-operations-workflow/references/script-patterns.md:209` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `catalog-operations-workflow/references/script-patterns.md:209` **REMOVED-PY** — `upload_execution_outputs`
   > execution.upload_execution_outputs()
-- `catalog-operations-workflow/references/script-patterns.md:228` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `catalog-operations-workflow/references/script-patterns.md:228` **REMOVED-PY** — `upload_execution_outputs`
   > execution.upload_execution_outputs()
 
 ### `compare-model-runs`
@@ -116,11 +118,11 @@ rule sets, not LLM judgment.
   > | Forgetting `deriva_ml_commit_execution` | Execution stays "running" | Always commit (or `deriva_ml_abort_execution` on
 - `create-feature/SKILL.md:132` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | Forgetting `deriva_ml_commit_execution` | Execution stays "running" | Always commit (or `deriva_ml_abort_execution` on
-- `create-feature/SKILL.md:207` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `create-feature/SKILL.md:207` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(clean_folder=True)
-- `create-feature/SKILL.md:233` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
-  > `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid, entries=[...])` writes values di
 - `create-feature/SKILL.md:233` **REMOVED-TOOL** — `deriva_ml_commit_execution`
+  > `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid, entries=[...])` writes values di
+- `create-feature/SKILL.md:233` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid, entries=[...])` writes values di
 - `create-feature/SKILL.md:242` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > deriva_ml_create_execution(hostname, catalog_id, workflow_rid="<wf_rid>")
@@ -146,13 +148,13 @@ rule sets, not LLM judgment.
   > Then call `deriva_ml_start_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)`.
 - `create-feature/references/workflow.md:81` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > **Step 2:** Add values using `deriva_ml_add_feature_values` (one tool — singular vs multi-column shape was unified):
-- `create-feature/references/workflow.md:89` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
-  > **Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. 
 - `create-feature/references/workflow.md:89` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > **Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. 
 - `create-feature/references/workflow.md:89` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > **Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. 
-- `create-feature/references/workflow.md:89` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `create-feature/references/workflow.md:89` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
+  > **Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. 
+- `create-feature/references/workflow.md:89` **REMOVED-PY** — `upload_execution_outputs`
   > **Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. 
 - `create-feature/references/workflow.md:91` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > > `deriva_ml_add_feature_values` (plural) handles both single and multi-column feature values. Pass a single-element lis
@@ -162,9 +164,9 @@ rule sets, not LLM judgment.
   > Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")`.
 - `create-feature/references/workflow.md:203` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > Call `deriva_ml_add_feature_values(hostname="data.example.org", catalog_id="1", table="Image", feature_name="Cell_Classi
-- `create-feature/references/workflow.md:205` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
-  > Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")` to final
 - `create-feature/references/workflow.md:205` **REMOVED-TOOL** — `deriva_ml_commit_execution`
+  > Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")` to final
+- `create-feature/references/workflow.md:205` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")` to final
 
 ### `dataset-lifecycle`
@@ -223,7 +225,7 @@ rule sets, not LLM judgment.
   > Call `deriva_ml_commit_execution` with the execution RID. (No need to call Python API `exe.upload_execution_outputs()` —
 - `dataset-lifecycle/references/workflow.md:77` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > Call `deriva_ml_commit_execution` with the execution RID. (No need to call Python API `exe.upload_execution_outputs()` —
-- `dataset-lifecycle/references/workflow.md:77` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `dataset-lifecycle/references/workflow.md:77` **REMOVED-PY** — `upload_execution_outputs`
   > Call `deriva_ml_commit_execution` with the execution RID. (No need to call Python API `exe.upload_execution_outputs()` —
 - `dataset-lifecycle/references/workflow.md:109` **HIST-PROSE** — `legacy-marker`
   > To **remove a type**, call `update_entities` on the dataset's type-association table and remove the row that links the d
@@ -231,7 +233,7 @@ rule sets, not LLM judgment.
   > To **create a new custom type**, call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="
 - `dataset-lifecycle/references/workflow.md:121` **HIST-PROSE** — `legacy-marker`
   > To **validate RIDs** before adding (catches invalid RIDs early), call `get_entities(hostname="data.example.org", catalog
-- `dataset-lifecycle/references/workflow.md:148` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `dataset-lifecycle/references/workflow.md:148` **REMOVED-PY** — `upload_execution_outputs`
   > 6. **Commit.** `exe.upload_execution_outputs(clean_folder=True)` after the `with` block.
 - `dataset-lifecycle/references/workflow.md:203` **HIST-PROSE** — `legacy-marker`
   > > Note: the legacy split between `list_dataset_children` and `list_dataset_parents` is gone — `deriva_ml_list_dataset_re
@@ -239,9 +241,9 @@ rule sets, not LLM judgment.
   > To **preview** what a bag will contain (size + manifest), call `deriva_ml_bag_info(hostname="data.example.org", catalog_
 - `dataset-lifecycle/references/workflow.md:234` **HIST-PROSE** — `legacy-marker`
   > To find **which executions produced or used an asset**, call `deriva_ml_lookup_asset(hostname="data.example.org", catalo
-- `dataset-lifecycle/references/workflow.md:312` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `dataset-lifecycle/references/workflow.md:312` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(clean_folder=True)
-- `dataset-lifecycle/references/workflow.md:349` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `dataset-lifecycle/references/workflow.md:349` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(clean_folder=True)
 - `dataset-lifecycle/references/workflow.md:359` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description="..."
@@ -269,11 +271,11 @@ rule sets, not LLM judgment.
   > - **`deriva_ml_*` MCP tools** — e.g., `deriva_ml_create_dataset`, `deriva_ml_start_execution`, `deriva_ml_add_feature_va
 - `deriva-ml-context/SKILL.md:72` **REMOVED-TOOL** — `deriva_ml_cache_dataset`
   > | **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets carry a type (`D
-- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_start_execution`
-  > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
 - `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
 - `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_update_execution`
+  > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
+- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
 - `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
@@ -281,11 +283,11 @@ rule sets, not LLM judgment.
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
 - `deriva-ml-context/SKILL.md:75` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by
-- `deriva-ml-context/SKILL.md:76` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `deriva-ml-context/SKILL.md:76` **REMOVED-PY** — `upload_execution_outputs`
   > | **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its produc
-- `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_start_execution`
-  > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
 - `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_abort_execution`
+  > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
+- `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
 - `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
@@ -294,21 +296,21 @@ rule sets, not LLM judgment.
 
 - `execution-lifecycle/SKILL.md:37` **REMOVED-TOOL** — `deriva_ml_cache_dataset`
   > 4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — `deriva_ml_cac
-- `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_start_execution`
-  > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
 - `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_abort_execution`
+  > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
+- `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
 - `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
 - `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
-- `execution-lifecycle/SKILL.md:59` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/SKILL.md:59` **REMOVED-PY** — `upload_execution_outputs`
   > **I/O goes through the Python API**, not MCP tools: `exe.download_dataset_bag()`, `exe.asset_file_path()`, `exe.upload_e
-- `execution-lifecycle/SKILL.md:85` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/SKILL.md:85` **REMOVED-PY** — `upload_execution_outputs`
   > | Bulk output of a completed run (N assets at once) | `exe.upload_execution_outputs()` finishes; `deriva_ml_get_executio
 - `execution-lifecycle/SKILL.md:111` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > 3. **Every execution needs a workflow** — find with `deriva_ml_find_workflow_by_url` or let `deriva_ml_create_execution`
-- `execution-lifecycle/SKILL.md:112` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/SKILL.md:112` **REMOVED-PY** — `upload_execution_outputs`
   > 4. **Upload AFTER the with block** — `exe.upload_execution_outputs()` goes after `with`, not inside
 - `execution-lifecycle/references/concepts.md:39` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > - **In MCP tools**: Pass `execution_rid` to `deriva_ml_get_execution`, `deriva_ml_list_execution_children`, `deriva_ml_l
@@ -324,9 +326,9 @@ rule sets, not LLM judgment.
   > - `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` — failure marking
 - `execution-lifecycle/references/concepts.md:120` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > - `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` — update the execution's descr
-- `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_start_execution`
-  > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
 - `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_abort_execution`
+  > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
+- `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
 - `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
@@ -350,25 +352,25 @@ rule sets, not LLM judgment.
   > deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
 - `execution-lifecycle/references/concepts.md:264` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
-- `execution-lifecycle/references/concepts.md:266` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/concepts.md:266` **REMOVED-PY** — `upload_execution_outputs`
   > # Then upload outputs via the Python API: exe.upload_execution_outputs()
 - `execution-lifecycle/references/concepts.md:269` **REMOVED-TOOL** — `deriva_ml_add_nested_execution`
   > deriva_ml_add_nested_execution(hostname="data.example.org", catalog_id="1",
-- `execution-lifecycle/references/concepts.md:344` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/concepts.md:344` **REMOVED-PY** — `upload_execution_outputs`
   > After the execution's work is complete, call Python API `exe.upload_execution_outputs()` to upload all registered files 
-- `execution-lifecycle/references/concepts.md:351` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/concepts.md:351` **REMOVED-PY** — `upload_execution_outputs`
   > Until Python API `exe.upload_execution_outputs()` is called, output files exist only locally. This is a deliberate desig
-- `execution-lifecycle/references/concepts.md:355` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/concepts.md:355` **REMOVED-PY** — `upload_execution_outputs`
   > An execution can also produce **feature values** — structured annotations on catalog records (e.g., per-image classifica
 - `execution-lifecycle/references/concepts.md:357` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > - In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_
-- `execution-lifecycle/references/concepts.md:358` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/concepts.md:358` **REMOVED-PY** — `upload_execution_outputs`
   > - In Python, call `execution.add_features(records)`. This writes JSONL files to disk in the execution's `feature/` direc
-- `execution-lifecycle/references/concepts.md:390` **REMOVED-TOOL** — `deriva_ml_start_execution`
-  > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
 - `execution-lifecycle/references/concepts.md:390` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
 - `execution-lifecycle/references/concepts.md:390` **REMOVED-TOOL** — `deriva_ml_update_execution`
+  > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
+- `execution-lifecycle/references/concepts.md:390` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
 - `execution-lifecycle/references/concepts.md:390` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
@@ -376,15 +378,15 @@ rule sets, not LLM judgment.
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
 - `execution-lifecycle/references/concepts.md:413` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > When using MCP tools, `deriva_ml_create_execution(hostname, catalog_id, ...)` accepts `workflow_name`, `workflow_type`, 
-- `execution-lifecycle/references/concepts.md:432` **REMOVED-TOOL** — `deriva_ml_start_execution`
-  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/concepts.md:432` **REMOVED-TOOL** — `deriva_ml_abort_execution`
+  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
+- `execution-lifecycle/references/concepts.md:432` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/concepts.md:432` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
-- `execution-lifecycle/references/concepts.md:434` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/concepts.md:434` **REMOVED-PY** — `upload_execution_outputs`
   > - Call `upload_execution_outputs()` **after** exiting the `with` block, not inside it
-- `execution-lifecycle/references/concepts.md:466` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/concepts.md:466` **REMOVED-PY** — `upload_execution_outputs`
   > These metadata files are uploaded automatically during `upload_execution_outputs()`. You do not need to register them ma
 - `execution-lifecycle/references/concepts.md:484` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > In MCP tools, pass `dry_run`: `true` to `deriva_ml_create_execution`. In Python, pass `dry_run=True` to the runner or se
@@ -426,7 +428,7 @@ rule sets, not LLM judgment.
   > | `deriva_ml_update_execution` | Arbitrary status / message updates (replaces legacy `update_execution_status`) |
 - `execution-lifecycle/references/workflow.md:38` **HIST-PROSE** — `legacy-marker`
   > | `deriva_ml_update_execution` | Arbitrary status / message updates (replaces legacy `update_execution_status`) |
-- `execution-lifecycle/references/workflow.md:42` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:42` **REMOVED-PY** — `upload_execution_outputs`
   > | Python API `exe.upload_execution_outputs()` | Upload all registered files to catalog |
 - `execution-lifecycle/references/workflow.md:44` **REMOVED-TOOL** — `deriva_ml_add_nested_execution`
   > | `deriva_ml_add_nested_execution` | Link parent-child executions |
@@ -444,29 +446,29 @@ rule sets, not LLM judgment.
   > On failure: call `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<explanation>")`. The reason te
 - `execution-lifecycle/references/workflow.md:125` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > For mid-run progress recording, use the Python API's `metrics_file` (write JSON-lines to a metrics file as the run progr
-- `execution-lifecycle/references/workflow.md:129` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:129` **REMOVED-PY** — `upload_execution_outputs`
   > Call Python API `exe.upload_execution_outputs()` to upload all registered files to the catalog. Optionally set `clean_fo
-- `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_start_execution`
-  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_abort_execution`
+  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
+- `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
-- `execution-lifecycle/references/workflow.md:180` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:180` **REMOVED-PY** — `upload_execution_outputs`
   > - Call `upload_execution_outputs()` **after** exiting the `with` block, not inside it.
 - `execution-lifecycle/references/workflow.md:238` **HIST-PROSE** — `legacy-marker`
   > **Note:** The target asset table must already exist in the catalog before you can register files for upload to it. The b
-- `execution-lifecycle/references/workflow.md:255` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:255` **REMOVED-PY** — `upload_execution_outputs`
   > Call Python API `exe.upload_execution_outputs()` with `clean_folder` (optional, default `true`) to upload all staged fil
-- `execution-lifecycle/references/workflow.md:263` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:263` **REMOVED-PY** — `upload_execution_outputs`
   > An execution can also record **feature values** (e.g., per-image predictions, classification labels). Like output files,
 - `execution-lifecycle/references/workflow.md:265` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_ri
-- `execution-lifecycle/references/workflow.md:265` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:265` **REMOVED-PY** — `upload_execution_outputs`
   > In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_ri
 - `execution-lifecycle/references/workflow.md:265` **HIST-PROSE** — `legacy-marker`
   > In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_ri
-- `execution-lifecycle/references/workflow.md:280` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:280` **REMOVED-PY** — `upload_execution_outputs`
   > Both files are uploaded during `upload_execution_outputs()` after the notebook finishes.
 - `execution-lifecycle/references/workflow.md:325` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > The legacy `update_execution_status` and `set_execution_description` tools were folded into `deriva_ml_update_execution`
@@ -498,9 +500,9 @@ rule sets, not LLM judgment.
   > **Step 9:** Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`. (On 
 - `execution-lifecycle/references/workflow.md:406` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > **Step 9:** Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`. (On 
-- `execution-lifecycle/references/workflow.md:408` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:408` **REMOVED-PY** — `upload_execution_outputs`
   > **Step 10:** Call Python API `exe.upload_execution_outputs()`.
-- `execution-lifecycle/references/workflow.md:455` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `execution-lifecycle/references/workflow.md:455` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs()
 
 ### `generate-descriptions`
@@ -516,7 +518,7 @@ rule sets, not LLM judgment.
   > - DO use the working data cache (`ml.cache_table()`, `ml.cache_features()`, etc.)
 - `generate-scripts/SKILL.md:46` **REMOVED-PY** — `cache_features`
   > labels = ml.cache_features("Image", "Classification")
-- `generate-scripts/SKILL.md:113` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `generate-scripts/SKILL.md:113` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs()
 - `generate-scripts/SKILL.md:152` **REMOVED-PY** — `cache_features`
   > features = ml.cache_features("Image", "Classification")
@@ -529,9 +531,9 @@ rule sets, not LLM judgment.
   > | `execution_{RID}/` | Execution working directories — staged output files, logs | `deriva_ml_create_execution` |
 - `manage-storage/SKILL.md:83` **HIST-PROSE** — `legacy-marker`
   > (Note: `deriva_ml_bag_info` subsumes both the legacy `bag_info` and `estimate_bag_size` — it works whether or not the ba
-- `manage-storage/SKILL.md:113` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `manage-storage/SKILL.md:113` **REMOVED-PY** — `upload_execution_outputs`
   > - Execution directories where `exe.upload_execution_outputs()` (Python API) was never called — those outputs are **only*
-- `manage-storage/SKILL.md:124` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `manage-storage/SKILL.md:124` **REMOVED-PY** — `upload_execution_outputs`
   > Execution working directories may contain outputs that were never uploaded — from interrupted runs, crashes, or forgotte
 - `manage-storage/SKILL.md:148` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > > **Resuming an aborted execution:** there is no MCP tool that resumes an aborted execution. **Workaround:** inspect the
@@ -644,51 +646,49 @@ rule sets, not LLM judgment.
   > group_by=["Image_Classification"],
 - `new-model/references/runner-interface.md:147` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
   > group_by=["Image_Classification"],
-- `new-model/references/runner-interface.md:207` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `new-model/references/runner-interface.md:207` **REMOVED-PY** — `upload_execution_outputs`
   > **Upload happens automatically** after the model function returns and the execution context manager exits. You never cal
-- `new-model/references/runner-interface.md:228` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `new-model/references/runner-interface.md:228` **REMOVED-PY** — `upload_execution_outputs`
   > `add_features()` automatically sets the Execution field on each record. Like output files, feature values are staged loc
 - `new-model/references/runner-interface.md:283` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
   > group_by=["Image_Classification"],
 
 ### `run-notebook`
 
-- `run-notebook/SKILL.md:145` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `run-notebook/SKILL.md:145` **REMOVED-PY** — `upload_execution_outputs`
   > execution.upload_execution_outputs()
-- `run-notebook/SKILL.md:376` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `run-notebook/SKILL.md:376` **REMOVED-PY** — `upload_execution_outputs`
   > - [ ] `upload_execution_outputs()` in final cell
-- `run-notebook/references/workflow.md:145` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `run-notebook/references/workflow.md:145` **REMOVED-PY** — `upload_execution_outputs`
   > 7. **Upload** — calls `upload_execution_outputs()` which uploads:
 - `run-notebook/references/workflow.md:262` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > | Execution status stuck at "Running" | Notebook crashed without clean exit | Call `deriva_ml_abort_execution(hostname=.
 - `run-notebook/references/workflow.md:262` **HIST-PROSE** — `legacy-marker`
   > | Execution status stuck at "Running" | Notebook crashed without clean exit | Call `deriva_ml_abort_execution(hostname=.
-- `run-notebook/references/workflow.md:266` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `run-notebook/references/workflow.md:266` **REMOVED-PY** — `upload_execution_outputs`
   > | Files not appearing in catalog | `upload_execution_outputs()` not called or not in final cell | Add it as the last cod
 
 ### `troubleshoot-execution`
 
-- `troubleshoot-execution/SKILL.md:3` **LEGACY-UPLOAD** — `upload_execution_outputs`
-  > description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, produces unexpected results, OR when an ex
-- `troubleshoot-execution/SKILL.md:10` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/SKILL.md:10` **REMOVED-PY** — `upload_execution_outputs`
   > This guide covers errors specific to the **DerivaML execution lifecycle** — the things that can only break when you're u
 - `troubleshoot-execution/SKILL.md:26` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > | `deriva_ml_add_feature_values` or feature-related calls error about a missing feature | "Feature Not Found" |
-- `troubleshoot-execution/SKILL.md:27` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/SKILL.md:27` **REMOVED-PY** — `upload_execution_outputs`
   > | `exe.upload_execution_outputs()` hangs or times out | "Upload Timeout" |
-- `troubleshoot-execution/SKILL.md:39` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/SKILL.md:39` **REMOVED-PY** — `upload_execution_outputs`
   > **Symptom**: Tools that require an execution context (Python API `exe.asset_file_path()`, `exe.upload_execution_outputs(
 - `troubleshoot-execution/SKILL.md:51` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > - With MCP tools, ensure you called `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` before attempting e
 - `troubleshoot-execution/SKILL.md:51` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > - With MCP tools, ensure you called `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` before attempting e
-- `troubleshoot-execution/SKILL.md:60` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/SKILL.md:60` **REMOVED-PY** — `upload_execution_outputs`
   > **Cause**: Python API `exe.upload_execution_outputs()` was not called, or files were written to the wrong path.
 - `troubleshoot-execution/SKILL.md:63` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > 1. Call `upload_execution_outputs()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it 
-- `troubleshoot-execution/SKILL.md:63` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/SKILL.md:63` **REMOVED-PY** — `upload_execution_outputs`
   > 1. Call `upload_execution_outputs()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it 
-- `troubleshoot-execution/SKILL.md:122` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/SKILL.md:122` **REMOVED-PY** — `upload_execution_outputs`
   > **Symptom**: Python API `exe.upload_execution_outputs()` hangs or times out.
 - `troubleshoot-execution/SKILL.md:146` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > - **`deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`** — drains staged outputs and advances `Running → 
@@ -718,19 +718,19 @@ rule sets, not LLM judgment.
   > deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
 - `troubleshoot-execution/references/execution-lifecycle.md:117` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
-- `troubleshoot-execution/references/execution-lifecycle.md:158` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:158` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs()
-- `troubleshoot-execution/references/execution-lifecycle.md:168` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:168` **REMOVED-PY** — `upload_execution_outputs`
   > `upload_execution_outputs()` is called **outside** the context manager because:
-- `troubleshoot-execution/references/execution-lifecycle.md:227` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:227` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs()
-- `troubleshoot-execution/references/execution-lifecycle.md:256` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:256` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(timeout=(1800, 1800))
-- `troubleshoot-execution/references/execution-lifecycle.md:259` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:259` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(chunk_size=25 * 1024 * 1024)
-- `troubleshoot-execution/references/execution-lifecycle.md:262` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:262` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(max_retries=5, retry_delay=10.0)
-- `troubleshoot-execution/references/execution-lifecycle.md:265` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:265` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(
 - `troubleshoot-execution/references/execution-lifecycle.md:287` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > Report progress during long-running workflows. The legacy `update_execution_status` was folded into `deriva_ml_update_ex
@@ -760,7 +760,7 @@ rule sets, not LLM judgment.
   > Executions can be nested for complex workflows. The legacy `list_nested_executions` was split into two directional tools
 - `troubleshoot-execution/references/execution-lifecycle.md:382` **REMOVED-TOOL** — `deriva_ml_add_nested_execution`
   > deriva_ml_add_nested_execution(hostname="data.example.org", catalog_id="1",
-- `troubleshoot-execution/references/execution-lifecycle.md:412` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:412` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs()
 - `troubleshoot-execution/references/execution-lifecycle.md:418` **REMOVED-TOOL** — `deriva_ml_create_execution_dataset`
   > deriva_ml_create_execution_dataset(hostname="data.example.org", catalog_id="1",
@@ -772,18 +772,18 @@ rule sets, not LLM judgment.
   > | `deriva_ml_commit_execution(hostname, catalog_id, execution_rid, retry_failed=False)` | Drain staged outputs (Running/
 - `troubleshoot-execution/references/execution-lifecycle.md:470` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > | `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason=...)` | Cancel an execution; **destroys staged 
-- `troubleshoot-execution/references/execution-lifecycle.md:474` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `troubleshoot-execution/references/execution-lifecycle.md:474` **REMOVED-PY** — `upload_execution_outputs`
   > | Python API `exe.upload_execution_outputs()` | Upload registered files to catalog |
 
 ### `work-with-assets`
 
-- `work-with-assets/SKILL.md:20` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/SKILL.md:20` **REMOVED-PY** — `upload_execution_outputs`
   > 2. **Upload within an execution** — assets must be registered with Python API `exe.asset_file_path()` and uploaded with 
 - `work-with-assets/SKILL.md:52` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > 1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_
 - `work-with-assets/SKILL.md:52` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > 1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_
-- `work-with-assets/SKILL.md:54` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/SKILL.md:54` **REMOVED-PY** — `upload_execution_outputs`
   > 3. Python API `exe.upload_execution_outputs()` — upload all registered files to the object store and catalog.
 - `work-with-assets/SKILL.md:55` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > 4. `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — finalize on success (use `deriva_ml_abort_executi
@@ -795,15 +795,15 @@ rule sets, not LLM judgment.
   > - **`/deriva:manage-vocabulary`** *(deriva-skills)* — Generic vocabulary CRUD via `add_term`/`delete_term`, used to mana
 - `work-with-assets/references/concepts.md:127` **HIST-PROSE** — `legacy-marker`
   > The legacy `add_asset_type` shortcut was removed. When you create a new asset table by hand (see [Creating an Asset Tabl
-- `work-with-assets/references/concepts.md:148` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/concepts.md:148` **REMOVED-PY** — `upload_execution_outputs`
   > 3. **Upload all at once** — call `upload_execution_outputs()` after the execution completes. This:
-- `work-with-assets/references/concepts.md:199` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/concepts.md:199` **REMOVED-PY** — `upload_execution_outputs`
   > Provenance is recorded automatically: uploading via Python API `exe.upload_execution_outputs()` records "Output" links, 
 - `work-with-assets/references/concepts.md:203` **HIST-PROSE** — `legacy-marker`
   > > **Known gap:** the legacy `create_asset_table` shortcut is gone. To create a new asset table you now use the deriva-sk
-- `work-with-assets/references/concepts.md:274` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/concepts.md:274` **REMOVED-PY** — `upload_execution_outputs`
   > **Execution_Asset** stores user output files — the artifacts your code explicitly produces. These are the files you regi
-- `work-with-assets/references/concepts.md:287` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/concepts.md:287` **REMOVED-PY** — `upload_execution_outputs`
   > These are uploaded automatically — you do not need to call `exe.asset_file_path()` or `exe.upload_execution_outputs()` f
 - `work-with-assets/references/restructure-guide.md:35` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
   > group_by=["Diagnosis"],
@@ -815,11 +815,11 @@ rule sets, not LLM judgment.
   > group_by=["Diagnosis"],
 - `work-with-assets/references/restructure-guide.md:143` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
   > group_by=["Diagnosis"],
-- `work-with-assets/references/restructure-guide.md:152` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/restructure-guide.md:152` **REMOVED-PY** — `upload_execution_outputs`
   > When uploading large assets, the default timeouts may not suffice. See the `troubleshoot-execution` skill's execution li
-- `work-with-assets/references/restructure-guide.md:158` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/restructure-guide.md:158` **REMOVED-PY** — `upload_execution_outputs`
   > exe.upload_execution_outputs(
-- `work-with-assets/references/restructure-guide.md:174` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/restructure-guide.md:174` **REMOVED-PY** — `upload_execution_outputs`
   > | Python API `exe.upload_execution_outputs()` | Upload staged files to catalog |
 - `work-with-assets/references/restructure-guide.md:175` **HIST-PROSE** — `legacy-marker`
   > | (gap) Creating an asset table | Legacy `create_asset_table` was removed; use the manual `create_table` recipe — see `c
@@ -837,7 +837,7 @@ rule sets, not LLM judgment.
   > Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description
 - `work-with-assets/references/workflow.md:140` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description
-- `work-with-assets/references/workflow.md:163` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/workflow.md:163` **REMOVED-PY** — `upload_execution_outputs`
   > Call Python API `exe.upload_execution_outputs()` with `clean_folder` (optional, default `true`) to remove the local stag
 - `work-with-assets/references/workflow.md:169` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > On success: call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` to finaliz
@@ -845,7 +845,7 @@ rule sets, not LLM judgment.
   > On failure: call `deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` instead. (T
 - `work-with-assets/references/workflow.md:171` **HIST-PROSE** — `legacy-marker`
   > On failure: call `deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` instead. (T
-- `work-with-assets/references/workflow.md:202` **LEGACY-UPLOAD** — `upload_execution_outputs`
+- `work-with-assets/references/workflow.md:202` **REMOVED-PY** — `upload_execution_outputs`
   > # Or call: exe.upload_execution_outputs()
 - `work-with-assets/references/workflow.md:209` **HIST-PROSE** — `legacy-marker`
   > Call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Asset_Type", name=..., descriptio
