@@ -10,7 +10,7 @@ When MCP tools return truncated results (`query_attribute`, `get_table_sample_da
 
 > **RAG-first:** Before generating a script, use `rag_search()` to discover relevant catalog entities (tables, features, datasets, vocabulary terms) so the generated script references the correct names, RIDs, and column types.
 
-> **Note:** This skill generates Python scripts that use the DerivaML Python API directly, not MCP tools. Methods like `ml.cache_table()`, `ml.working_data`, `dataset.cache_denormalized()`, `ml.cache_features()`, `ml.denormalize_info()`, `dataset.denormalize_info()`, `ml.create_workflow()`, `ml.create_execution()`, and `execution.asset_file_path()` are all Python API methods available in scripts and notebooks, not MCP tools.
+> **Note:** This skill generates Python scripts that use the DerivaML Python API directly, not MCP tools. Methods like `ml.cache_table()`, `dataset.cache_denormalized()`, `ml.feature_values()`, `dataset.feature_values()`, `ml.create_workflow()`, `ml.create_execution()`, and `execution.asset_file_path()` are all Python API methods available in scripts and notebooks, not MCP tools.
 
 ## Two Categories of Scripts
 
@@ -21,7 +21,7 @@ When MCP tools return truncated results (`query_attribute`, `get_table_sample_da
 **Rules:**
 - Do NOT commit to repo — these are throwaway
 - Do NOT create executions — no provenance needed
-- DO use the working data cache (`ml.cache_table()`, `ml.cache_features()`, etc.)
+- DO use the table cache (`ml.cache_table()`) and feature reads (`ml.feature_values()`)
 - DO print summary output so Claude can read the results
 - Save to a temporary file or run inline
 
@@ -43,7 +43,8 @@ wide = dataset.cache_denormalized(["Image", "Image_Diagnosis"], version="1.0.0")
 print(wide["Image_Diagnosis.Diagnosis_Image"].value_counts())
 
 # Or fetch features
-labels = ml.cache_features("Image", "Classification")
+records = ml.feature_values("Image", "Classification")
+labels = pd.DataFrame.from_records(r.model_dump() for r in records)
 print(f"Labeled images: {len(labels)}")
 print(labels["Diagnosis_Type"].value_counts())
 ```
@@ -147,22 +148,25 @@ All scripts should use the working data cache for bulk reads:
 ```python
 ml = DerivaML.from_context()
 
-# These are idempotent — fetch once, cache in SQLite, reuse on subsequent calls
+# cache_table is idempotent — fetch once, cache in SQLite, reuse on subsequent calls
 subjects = ml.cache_table("Subject")
-features = ml.cache_features("Image", "Classification")
+
+# feature_values reads from the catalog each call; materialize as a DataFrame
+# at the top of the script and reuse the DataFrame across filter iterations.
+import pandas as pd
+records = ml.feature_values("Image", "Classification")
+features = pd.DataFrame.from_records(r.model_dump() for r in records)
+
 wide = ml.lookup_dataset("28CT").cache_denormalized(["Image", "Diagnosis"])
 
-# Check what's cached
-print(ml.working_data.list_tables())
+# Query cached table data with pandas (no catalog contact for the second filter)
+old_subjects = subjects[subjects["Age"] > 60]
 
-# Query cached data with SQL (no catalog contact)
-old_subjects = ml.working_data.query("SELECT * FROM Subject WHERE Age > 60")
-
-# Force re-fetch if data changed
+# Force re-fetch if data changed in the catalog
 subjects = ml.cache_table("Subject", force=True)
 
-# Clear cache when done
-ml.working_data.clear()
+# Clear the local table + bag cache when done
+ml.clear_cache()
 ```
 
 ## Connection Context

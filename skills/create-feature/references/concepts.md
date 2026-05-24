@@ -436,10 +436,10 @@ features = ml.fetch_table_features(
     selector=select_highest_confidence,
 )
 
-# Same selector works with bag restructuring
+# Same selector works as a per-feature selector in restructure_assets
 bag.restructure_assets(
     asset_table="Image", output_dir="./ml_data",
-    group_by=["Diagnosis"], value_selector=select_highest_confidence,
+    targets={"Diagnosis": select_highest_confidence},
 )
 ```
 

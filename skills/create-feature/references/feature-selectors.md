@@ -63,12 +63,12 @@ features = ml.fetch_table_features("Image",
     selector=FeatureRecord.select_majority_vote("Diagnosis_Type"))
 ```
 
-**With bag restructuring** — same selectors work:
+**With bag restructuring** — same selectors work as per-feature selectors in the `targets` dict:
 
 ```python
 bag.restructure_assets(
-    output_dir="./data", group_by=["Diagnosis"],
-    value_selector=FeatureRecord.select_newest,
+    output_dir="./data",
+    targets={"Diagnosis": FeatureRecord.select_newest},
 )
 ```
 
@@ -142,8 +142,9 @@ features = ml.fetch_table_features("Image",
     selector=select_highest_confidence)
 
 bag.restructure_assets(
-    output_dir="./data", group_by=["Diagnosis"],
-    value_selector=select_highest_confidence)
+    output_dir="./data",
+    targets={"Diagnosis": select_highest_confidence},
+)
 ```
 
 **MCP tool** — custom selectors can't be passed as strings. Write a Python script that uses the deriva-ml API, commit it for provenance, and run it.

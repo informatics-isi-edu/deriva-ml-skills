@@ -47,7 +47,7 @@ def my_model(
         dataset.restructure_assets(
             asset_table="Image",
             output_dir=execution.working_dir / "data",
-            group_by=["My_Feature"],
+            targets=["My_Feature"],
         )
 
     # ... training logic ...

@@ -158,7 +158,7 @@ Once a dataset is created and versioned, there are several ways to consume it.
 - **Reference in experiment configs** — `DatasetSpecConfig(rid="28EA", version="0.4.0")` in a Hydra-zen config. Use `deriva_ml_get_dataset_spec` to generate the correct string. If the user has just created, split, or released a dataset in this session, proactively offer to add the new RID + version to `src/configs/datasets.py` (see Phase 3 → "Proactively offer to update `src/configs/datasets.py`"). For how dataset configs integrate into the broader experiment configuration surface, see `/deriva-ml:configure-experiment` and `/deriva-ml:write-hydra-config`.
 - **Explore and browse contents (no browser)** — 7-step MCP workflow from overview → members → schema shape → actual data → features → hierarchy → provenance. See `references/workflow.md` → "Explore and browse dataset contents".
 - **Download as BDBag** — see "Download workflow" below for the worked recipe; `references/bags.md` for DerivaML-specific behavior (version pinning, cache key, `DatasetBag` API). For the generic BDBag format and the underlying export mechanics (what a bag *is*, the `bdbag` CLI, materialization, `DerivaDownload` / `DerivaExport` Python classes), `/deriva:download-bag` *(deriva-skills)*.
-- **Restructure for ML frameworks** — after downloading, `bag.restructure_assets(output_dir, asset_table, group_by=[...])` organizes files for PyTorch ImageFolder or similar. See `/deriva-ml:ml-data-engineering` for the full restructuring patterns.
+- **Restructure for ML frameworks** — after downloading, `bag.restructure_assets(output_dir, asset_table, targets=[...])` organizes files for PyTorch ImageFolder or similar. See `/deriva-ml:ml-data-engineering` for the full restructuring patterns.
 
 ### Download workflow
 
@@ -214,7 +214,7 @@ For what to do with the bag after it lands — restructure for PyTorch, build tr
 - `scripts/generate_subset_template.py` — Template for generated dataset scripts. Fill in placeholders per use case.
 - `references/concepts.md` — Full background: what datasets are, types, element types, versioning, navigation, consumption, bag downloads
 - `references/workflow.md` — Bootstrap procedure, MCP-tool-only path, explicit-splits pattern, 7-step explore/browse depth, every step-by-step example
-- `references/curated-subsets.md` — Phase 3b workflow: filter types, scaffolding, the 8-step subset workflow, `cache_features()` pattern
+- `references/curated-subsets.md` — Phase 3b workflow: filter types, scaffolding, the 8-step subset workflow, catalog-query path using `feature_values()` for label-based filters
 - `references/bags.md` — BDBag contents, FK traversal, materialization, caching, timeouts
 - `references/type-naming-strategy.md` — DerivaML-specific built-in `Dataset_Type` dimensions, composing multiple types, imaging-domain examples
 - `rag_search("...", doc_type="catalog-data")` — Discover datasets by description, type, or purpose

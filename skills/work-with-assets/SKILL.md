@@ -95,7 +95,7 @@ The two related skills carry the broader config-file mechanics; **this skill own
 
 - `references/concepts.md` — What assets are, asset tables, RIDs, types, object storage, caching, provenance, execution metadata vs execution assets, notebook output assets, and the manual recipe for creating an asset table.
 - `references/workflow.md` — Step-by-step MCP and Python API workflows, finding assets by type and execution.
-- `references/restructure-guide.md` — Restructuring assets for ML: group_by options, value selectors, file transformers, ML framework patterns, upload tuning.
+- `references/restructure-guide.md` — Restructuring assets for ML: `targets` and `target_transform` shapes, per-feature selectors, file transformers, ML framework patterns, upload tuning.
 - `rag_search("file assets in DerivaML", doc_type="user-guide")` — Search the user guide for file asset documentation.
 - Use `deriva_ml_list_assets(hostname, catalog_id, ...)` and `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` for the typed asset reads.
 - `deriva://catalog/{h}/{c}/ml/assets/{schema}` — schema-scoped list of asset tables.

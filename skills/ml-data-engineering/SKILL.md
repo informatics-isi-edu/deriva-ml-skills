@@ -38,7 +38,7 @@ Best when you need files organized into directories (image classification, objec
 # Python API — after downloading
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"]
+    targets=["Diagnosis"],
 )
 ```
 
@@ -55,7 +55,7 @@ Creates:
       img004.png
 ```
 
-For the full restructuring guide — `group_by` options, value selectors, file transformers, directory layout control, and ML framework integration — see `references/restructure-guide.md`.
+For the full restructuring guide — `targets` and `target_transform` shapes, per-feature selectors, file transformers, directory layout control, and ML framework integration — see `references/restructure-guide.md`.
 
 ### Option B: Build a flat DataFrame
 
@@ -172,7 +172,7 @@ from torchvision import transforms
 bag = dataset.download_dataset_bag(version="1.0.0")
 bag.restructure_assets(
     output_dir="./data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
     type_to_dir_map={"Training": "train", "Testing": "test"},
 )
 
@@ -209,7 +209,7 @@ import tensorflow as tf
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
 )
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -222,14 +222,21 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
 ### Multi-label with file conversion
 
 ```python
+from deriva_ml.feature import FeatureRecord
+
 bag.restructure_assets(
     output_dir="./data",
-    group_by=["Primary_Diagnosis", "Severity"],  # nested dirs
-    value_selector=FeatureRecord.select_latest,
+    # Per-feature selector dict — picks the latest annotation for each feature.
+    targets={
+        "Primary_Diagnosis": FeatureRecord.select_latest,
+        "Severity": FeatureRecord.select_latest,
+    },
     file_transformer=dicom_to_png,
     use_symlinks=False,
 )
 ```
+
+The `targets=` dict form lets you attach a different selector per feature; the list form (`targets=["Primary_Diagnosis", "Severity"]`) takes the most-recent annotation for each feature.
 
 ## DatasetBag API Reference
 
@@ -259,12 +266,12 @@ bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
 bag.denormalize_as_dict(include_tables=["Image", "Subject"])
 
 # Restructuring
-bag.restructure_assets(output_dir="./data", group_by=["Diagnosis"])
+bag.restructure_assets(output_dir="./data", targets=["Diagnosis"])
 ```
 
 ## Reference Resources
 
-- `references/restructure-guide.md` — Full guide: group_by options, value selectors, file transformers, ML framework integration, directory layout control
+- `references/restructure-guide.md` — Full guide: `targets` and `target_transform` shapes, per-feature selectors, file transformers, ML framework integration, directory layout control
 - `deriva://docs/datasets` — Full user guide to datasets and BDBags
 - `deriva_ml_list_features(hostname, catalog_id)` — Available features for building training labels
 

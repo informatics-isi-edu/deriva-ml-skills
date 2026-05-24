@@ -652,7 +652,7 @@ After downloading, organize files into the directory structure expected by ML fr
 bag.restructure_assets(
     asset_table="Image",
     output_dir=Path("./ml_data"),
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
 )
 ```
 

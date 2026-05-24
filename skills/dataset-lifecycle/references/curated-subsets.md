@@ -100,31 +100,33 @@ Splitting and curated subsets are both "given a source dataset, produce child da
 
 Both produce datasets with full provenance tracking. Bags downloaded with `materialize=False` are cached by checksum, so multiple subset scripts from the same source don't re-download data.
 
-## Caching feature values with `cache_features()`
+## Reading feature values with `feature_values()`
 
-When filtering by a single feature (e.g., "images with label X"), downloading a full bag just to read labels is overkill. The subset template supports a **catalog-query path** that uses `cache_features()` to fetch feature values directly from the catalog into SQLite-backed working data:
+When filtering by a single feature (e.g., "images with label X"), downloading a full bag just to read labels is overkill. The subset template supports a **catalog-query path** that uses `ml.feature_values()` to fetch feature values directly from the catalog:
 
 ```python
+import pandas as pd
 from deriva_ml.feature import FeatureRecord
 
-feature_df = ml.cache_features(
+records = ml.feature_values(
     "Image",                           # element table
     "Image_Classification",            # feature name
     selector=FeatureRecord.select_newest,
 )
+# Materialize as a DataFrame if your filter logic prefers tabular access:
+feature_df = pd.DataFrame.from_records(r.model_dump() for r in records)
 ```
+
+`feature_values()` returns an iterable of `FeatureRecord` objects. If your filter only needs a few columns, iterate directly; if you want pandas joins / boolean indexing, materialize into a DataFrame as shown above. For large feature sets, pass `materialize_limit=...` to cap how many records are pulled into memory before the call raises `DerivaMLMaterializeLimitExceeded`.
 
 ### When to use each path
 
 | Situation | Path | Set `feature_name` in config? |
 |-----------|------|:-----------------------------:|
-| Filtering by a single feature column | Catalog-query | Yes |
+| Filtering by a single feature column | Catalog-query (`feature_values()`) | Yes |
 | Need columns from multiple joined tables | Bag | No |
-| Iterating on filter criteria interactively | Catalog-query | Yes |
+| Iterating on filter criteria interactively | Catalog-query (`feature_values()`) | Yes |
 
-### Caching behavior
+### Re-running across iterations
 
-- The first call to `cache_features()` fetches from the catalog and stores locally. Subsequent calls within the same script return the cached data instantly.
-- The cache persists across multiple filter iterations, making it efficient to experiment with different filter thresholds or value lists without re-querying.
-- Use `force=True` if feature values may have changed since the last cache (e.g., new labels were added between runs).
-- **Cache key limitation:** The cache key is `features_{table}_{feature}` and does NOT include the selector. Always use the same selector for a given table/feature pair within a session. Use `force=True` if you need to switch selectors.
+Each `feature_values()` call hits the catalog. For interactive filter iteration, materialize the DataFrame once at the top of the script and reuse it across subsequent filter steps within the same session. To re-fetch after a feature value update, just call `feature_values()` again — there is no separate cache to invalidate.

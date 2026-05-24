@@ -1,46 +1,46 @@
-# Per-skill audit — 2026-05-24 refresh (PR-2c clean-start prose sweep)
+# Per-skill audit — 2026-05-24 (after PR-1 correctness fixes)
 
 Deterministic cross-reference of every skill file against the source-truth
 registry. Produced by AST-derived rule sets.
 
-**PR-2c (2026-05-24):** Stripped 58 "legacy X was subsumed/removed" markers
-and 9 "v1.39+ / per ADR-0009 / replaces the four legacy upload methods"
-transitional notes. Skills now describe the current API only.
+**PR-1 (2026-05-24):** Fixed all 46 SIG_DRIFT findings (the `restructure_assets`
+API rename and the `cache_dataset(asset_rid=)` hallucination) and 12 REMOVED-PY
+findings (`cache_features` calls replaced with `feature_values`; the
+non-existent `fetch_table_features`/`list_feature_values`/`working_data`
+references cleaned up).
+
+Both finding kinds are now zero. Remaining 184 findings are REMOVED-TOOL
+(addressed by PR-2a/2b's bundled script templates) and HIST-PROSE
+(legitimate ADR references describing current invariants).
 
 ## Finding kinds
 
 - **REMOVED-TOOL** — references an MCP tool name not in the current registry
-- **REMOVED-PY** — references a Python method name not in the current public API (includes `upload_execution_outputs`, `upload_outputs`, `upload_pending`)
+- **REMOVED-PY** — references a Python method name not in the current public API
 - **SIG_DRIFT** — invokes a current method with kwargs that no longer match the registry signature
 - **LOWER-STATUS** — lowercase `ExecutionStatus` value (TitleCase only)
 - **OLD-STATUS-ENUM** — references the removed `Status.<lowercase>` enum
-- **HIST-PROSE** — historical framing markers ("legacy", "superseded", "formerly", "(formerly...)", version-tag, ADR-tag, etc.)
-
-ADR references that describe a current invariant (e.g., "Per ADR-0003, datasets carry two-state versions") are NOT findings — they're descriptive,
-not historical. Only ADR references framed as "X replaces the old Y" or
-"X was the v1.38 surface" are HIST-PROSE.
+- **HIST-PROSE** — historical framing markers
 
 ## Summary
 
-- **Skills with findings:** 17 of 29
-- **Total findings:** 263
+- **Skills with findings:** 15 of 29
+- **Total findings:** 232
 
 ### Per-skill finding counts (sorted by total)
 
 | Skill | Total | Breakdown |
 |---|---:|---|
 | `execution-lifecycle` | 74 | REMOVED-TOOL=74 |
+| `create-feature` | 46 | HIST-PROSE=2, REMOVED-PY=20, REMOVED-TOOL=24 |
 | `troubleshoot-execution` | 31 | HIST-PROSE=1, OLD-STATUS-ENUM=2, REMOVED-TOOL=28 |
-| `dataset-lifecycle` | 30 | HIST-PROSE=9, REMOVED-PY=7, REMOVED-TOOL=9, SIG_DRIFT=5 |
-| `create-feature` | 29 | HIST-PROSE=2, REMOVED-PY=1, REMOVED-TOOL=24, SIG_DRIFT=2 |
-| `ml-data-engineering` | 29 | SIG_DRIFT=29 |
+| `dataset-lifecycle` | 21 | HIST-PROSE=9, REMOVED-PY=3, REMOVED-TOOL=9 |
 | `deriva-ml-context` | 16 | HIST-PROSE=4, REMOVED-TOOL=12 |
-| `work-with-assets` | 13 | REMOVED-TOOL=8, SIG_DRIFT=5 |
-| `manage-storage` | 10 | REMOVED-TOOL=9, SIG_DRIFT=1 |
 | `model-development-workflow` | 9 | HIST-PROSE=2, REMOVED-TOOL=7 |
+| `manage-storage` | 8 | REMOVED-TOOL=8 |
+| `work-with-assets` | 8 | REMOVED-TOOL=8 |
 | `api-naming-conventions` | 6 | REMOVED-TOOL=6 |
-| `generate-scripts` | 4 | REMOVED-PY=4 |
-| `new-model` | 4 | SIG_DRIFT=4 |
+| `ml-data-engineering` | 5 | REMOVED-PY=5 |
 | `generate-descriptions` | 3 | HIST-PROSE=2, REMOVED-TOOL=1 |
 | `debug-bag-contents` | 2 | HIST-PROSE=2 |
 | `compare-model-runs` | 1 | REMOVED-TOOL=1 |
@@ -54,8 +54,10 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 - `configure-experiment`
 - `create-web-app`
 - `experiment-lifecycle`
+- `generate-scripts`
 - `help`
 - `maintain-experiment-notes`
+- `new-model`
 - `setup-derivaml-project`
 - `setup-ml-catalog`
 - `setup-notebook-environment`
@@ -88,9 +90,9 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 
 ### `create-feature`
 
-- `create-feature/SKILL.md:126` **REMOVED-TOOL** — `deriva_ml_create_execution`
-  > | Adding values without an execution | Error — provenance required | `deriva_ml_create_execution` + `deriva_ml_start_exe
 - `create-feature/SKILL.md:126` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > | Adding values without an execution | Error — provenance required | `deriva_ml_create_execution` + `deriva_ml_start_exe
+- `create-feature/SKILL.md:126` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > | Adding values without an execution | Error — provenance required | `deriva_ml_create_execution` + `deriva_ml_start_exe
 - `create-feature/SKILL.md:132` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | Forgetting `deriva_ml_commit_execution` | Execution stays "running" | Always commit (or `deriva_ml_abort_execution` on
@@ -106,22 +108,56 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > deriva_ml_add_feature_values(hostname, catalog_id,
 - `create-feature/SKILL.md:253` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > # and auto-commits on exit. No separate deriva_ml_commit_execution needed.
-- `create-feature/SKILL.md:273` **REMOVED-PY** — `cache_features`
-  > For the exploratory-preview MCP tool examples and the full Python API retrieval pattern (`ml.cache_features`, `ml.fetch_
+- `create-feature/SKILL.md:282` **REMOVED-PY** — `list_feature_values`
+  > all_values = list(ml.list_feature_values("Image", "Scouts_Pick"))
 - `create-feature/SKILL.md:293` **HIST-PROSE** — `ADR-reference`
   > - **Dataset versioning** — adding feature values to dataset members does NOT automatically flip the dataset to a dev ver
 - `create-feature/references/concepts.md:287` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > When using `deriva_ml_add_feature_values`, optional columns can be:
 - `create-feature/references/concepts.md:296` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > deriva_ml_add_feature_values(
-- `create-feature/references/concepts.md:442` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"], value_selector=select_highest_confidence,
+- `create-feature/references/concepts.md:348` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image", selector=FeatureRecord.select_newest)
+- `create-feature/references/concepts.md:351` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features(
+- `create-feature/references/concepts.md:357` **REMOVED-PY** — `list_feature_values`
+  > values = list(ml.list_feature_values("Image", "Diagnosis"))
+- `create-feature/references/concepts.md:358` **REMOVED-PY** — `list_feature_values`
+  > values = list(ml.list_feature_values(
+- `create-feature/references/concepts.md:369` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image", feature_name="Classification")
+- `create-feature/references/concepts.md:387` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image", selector=select_best)
+- `create-feature/references/concepts.md:418` **REMOVED-PY** — `list_feature_values`
+  > | Single feature only | `feature_name="Diagnosis"` | `ml.list_feature_values("Image", "Diagnosis")` |
+- `create-feature/references/concepts.md:434` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features(
+- `create-feature/references/concepts.md:504` **REMOVED-PY** — `fetch_table_features`
+  > features = bag.fetch_table_features("Image")
+- `create-feature/references/concepts.md:505` **REMOVED-PY** — `list_feature_values`
+  > values = list(bag.list_feature_values("Image", "Diagnosis",
 - `create-feature/references/concepts.md:526` **HIST-PROSE** — `ADR-reference`
   > Adding feature values to records in a dataset does NOT automatically update existing released versions. Released version
+- `create-feature/references/concepts.md:562` **REMOVED-PY** — `list_feature_values`
+  > for v in ml.list_feature_values("Image", "Diagnosis"):
 - `create-feature/references/concepts.md:587` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > | Add values | `deriva_ml_add_feature_values` | `exe.add_features()` | Plural — pass single-element list for one value |
-- `create-feature/references/feature-selectors.md:71` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=FeatureRecord.select_newest,
+- `create-feature/references/concepts.md:597` **REMOVED-PY** — `list_feature_values`
+  > | Feature values | `deriva_ml_list_feature_values` | `ml.list_feature_values()` | With provenance, supports selectors |
+- `create-feature/references/concepts.md:598` **REMOVED-PY** — `fetch_table_features`
+  > | Values in a bag | — | `bag.fetch_table_features()` | Same API on downloaded bags |
+- `create-feature/references/feature-selectors.md:46` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image", selector=FeatureRecord.select_newest)
+- `create-feature/references/feature-selectors.md:47` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image", selector=FeatureRecord.select_first)
+- `create-feature/references/feature-selectors.md:50` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image",
+- `create-feature/references/feature-selectors.md:56` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image",
+- `create-feature/references/feature-selectors.md:61` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image",
+- `create-feature/references/feature-selectors.md:140` **REMOVED-PY** — `fetch_table_features`
+  > features = ml.fetch_table_features("Image",
 - `create-feature/references/workflow.md:77` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > Then call `deriva_ml_create_execution(hostname=..., catalog_id=..., workflow_rid=<workflow_rid>, description=...)`.
 - `create-feature/references/workflow.md:79` **REMOVED-TOOL** — `deriva_ml_start_execution`
@@ -151,18 +187,14 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 
 - `dataset-lifecycle/SKILL.md:97` **HIST-PROSE** — `ADR-reference`
   > Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main
-- `dataset-lifecycle/SKILL.md:217` **REMOVED-PY** — `cache_features`
-  > - `references/curated-subsets.md` — Phase 3b workflow: filter types, scaffolding, the 8-step subset workflow, `cache_fea
+- `dataset-lifecycle/references/bags.md:37` **REMOVED-PY** — `fetch_table_features`
+  > 4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `ba
 - `dataset-lifecycle/references/bags.md:82` **HIST-PROSE** — `ADR-reference`
   > - To capture recent changes, mutate the dataset (which lands on a dev version per ADR-0003), then call `deriva_ml_releas
-- `dataset-lifecycle/references/bags.md:258` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],     # create subdirs by label
-- `dataset-lifecycle/references/bags.md:281` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `dataset-lifecycle/references/bags.md:293` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `dataset-lifecycle/references/bags.md:311` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
+- `dataset-lifecycle/references/bags.md:206` **REMOVED-PY** — `fetch_table_features`
+  > feature_df = bag.fetch_table_features(
+- `dataset-lifecycle/references/bags.md:213` **REMOVED-PY** — `list_feature_values`
+  > values = bag.list_feature_values(target="2-ABCD", feature="Diagnosis")
 - `dataset-lifecycle/references/concepts.md:266` **HIST-PROSE** — `ADR-reference`
   > ## Dataset Versioning (ADR-0003 dev/release model)
 - `dataset-lifecycle/references/concepts.md:268` **HIST-PROSE** — `ADR-reference`
@@ -175,16 +207,6 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > - "Fixed 47 mislabeled pneumonia images identified in audit review. Retraining recommended for any model trained on v1.1
 - `dataset-lifecycle/references/concepts.md:401` **HIST-PROSE** — `version-reference`
   > members = versioned_dataset.list_dataset_members()  # members at v1.0.0
-- `dataset-lifecycle/references/concepts.md:655` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `dataset-lifecycle/references/curated-subsets.md:103` **REMOVED-PY** — `cache_features`
-  > ## Caching feature values with `cache_features()`
-- `dataset-lifecycle/references/curated-subsets.md:105` **REMOVED-PY** — `cache_features`
-  > When filtering by a single feature (e.g., "images with label X"), downloading a full bag just to read labels is overkill
-- `dataset-lifecycle/references/curated-subsets.md:110` **REMOVED-PY** — `cache_features`
-  > feature_df = ml.cache_features(
-- `dataset-lifecycle/references/curated-subsets.md:127` **REMOVED-PY** — `cache_features`
-  > - The first call to `cache_features()` fetches from the catalog and stores locally. Subsequent calls within the same scr
 - `dataset-lifecycle/references/workflow.md:43` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > Then call `deriva_ml_create_execution` with the returned `workflow_rid` and `description="Create training dataset"`.
 - `dataset-lifecycle/references/workflow.md:45` **REMOVED-TOOL** — `deriva_ml_start_execution`
@@ -203,11 +225,7 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
 - `dataset-lifecycle/references/workflow.md:369` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
-- `dataset-lifecycle/scripts/generate_subset_template.py:41` **REMOVED-PY** — `cache_features`
-  > - ``ml_instance.cache_features(table, feature, selector=...)`` → pd.DataFrame
-- `dataset-lifecycle/scripts/generate_subset_template.py:136` **REMOVED-PY** — `cache_features`
-  > feature_df = ml_instance.cache_features(
-- `dataset-lifecycle/scripts/generate_subset_template.py:195` **HIST-PROSE** — `ADR-reference`
+- `dataset-lifecycle/scripts/generate_subset_template.py:198` **HIST-PROSE** — `ADR-reference`
   > # current_version may be a dev label (per ADR-0003) if member-add
 
 ### `debug-bag-contents`
@@ -231,38 +249,38 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > | **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets carry a type (`D
 - `deriva-ml-context/SKILL.md:72` **HIST-PROSE** — `ADR-reference`
   > | **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets carry a type (`D
-- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_commit_execution`
+- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
-- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_update_execution`
+- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
 - `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
 - `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
-- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_start_execution`
+- `deriva-ml-context/SKILL.md:74` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. 
 - `deriva-ml-context/SKILL.md:75` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by
 - `deriva-ml-context/SKILL.md:93` **HIST-PROSE** — `ADR-reference`
   > - **Version management** — Datasets carry a two-state PEP 440 version (released / dev) per ADR-0003. The mutation tools 
+- `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
 - `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
 - `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_abort_execution`
-  > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
-- `deriva-ml-context/SKILL.md:138` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > | `Execution_Status_Type` | (managed automatically by the execution-state machine — do not extend) | Status transitions 
 
 ### `execution-lifecycle`
 
 - `execution-lifecycle/SKILL.md:37` **REMOVED-TOOL** — `deriva_ml_cache_dataset`
   > 4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — `deriva_ml_cac
+- `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
 - `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
 - `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
 - `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_abort_execution`
-  > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
-- `execution-lifecycle/SKILL.md:47` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > | **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_
 - `execution-lifecycle/SKILL.md:111` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > 3. **Every execution needs a workflow** — find with `deriva_ml_find_workflow_by_url` or let `deriva_ml_create_execution`
@@ -280,13 +298,13 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > - `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` — failure marking
 - `execution-lifecycle/references/concepts.md:120` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > - `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` — update the execution's descr
+- `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
 - `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
 - `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
 - `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_abort_execution`
-  > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
-- `execution-lifecycle/references/concepts.md:126` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > - **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (s
 - `execution-lifecycle/references/concepts.md:162` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > When using MCP tools, `deriva_ml_create_execution` can find or create the workflow for you — pass `workflow_name` and `w
@@ -308,31 +326,31 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > deriva_ml_add_nested_execution(hostname="data.example.org", catalog_id="1",
 - `execution-lifecycle/references/concepts.md:361` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > - In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_
-- `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_commit_execution`
+- `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
-- `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_update_execution`
+- `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
 - `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
 - `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
-- `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_start_execution`
+- `execution-lifecycle/references/concepts.md:394` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execu
 - `execution-lifecycle/references/concepts.md:417` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > When using MCP tools, `deriva_ml_create_execution(hostname, catalog_id, ...)` accepts `workflow_name`, `workflow_type`, 
+- `execution-lifecycle/references/concepts.md:436` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/concepts.md:436` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/concepts.md:436` **REMOVED-TOOL** — `deriva_ml_abort_execution`
-  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
-- `execution-lifecycle/references/concepts.md:436` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/concepts.md:488` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > In MCP tools, pass `dry_run`: `true` to `deriva_ml_create_execution`. In Python, pass `dry_run=True` to the runner or se
 - `execution-lifecycle/references/concepts.md:503` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > 3. **Create a fresh execution.** Call `deriva_ml_create_execution(hostname, catalog_id, ...)` with the same workflow, da
-- `execution-lifecycle/references/concepts.md:504` **REMOVED-TOOL** — `deriva_ml_commit_execution`
-  > 4. **Continue the lifecycle as normal.** Start it (`deriva_ml_start_execution`), do the work, and commit (`deriva_ml_com
 - `execution-lifecycle/references/concepts.md:504` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > 4. **Continue the lifecycle as normal.** Start it (`deriva_ml_start_execution`), do the work, and commit (`deriva_ml_com
+- `execution-lifecycle/references/concepts.md:504` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > 4. **Continue the lifecycle as normal.** Start it (`deriva_ml_start_execution`), do the work, and commit (`deriva_ml_com
 - `execution-lifecycle/references/concepts.md:525` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > All of these can be caught before `deriva_ml_start_execution(...)`.
@@ -370,11 +388,11 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > On failure: call `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<explanation>")`. The reason te
 - `execution-lifecycle/references/workflow.md:125` **REMOVED-TOOL** — `deriva_ml_update_execution`
   > For mid-run progress recording, use the Python API's `metrics_file` (write JSON-lines to a metrics file as the run progr
+- `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_abort_execution`
-  > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
-- `execution-lifecycle/references/workflow.md:178` **REMOVED-TOOL** — `deriva_ml_start_execution`
   > - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start
 - `execution-lifecycle/references/workflow.md:265` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_ri
@@ -412,17 +430,6 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 - `generate-descriptions/references/templates.md:99` **HIST-PROSE** — `version-reference`
   > Train ResNet-50 on chest X-ray dataset `1-ABC4` v1.2.0.
 
-### `generate-scripts`
-
-- `generate-scripts/SKILL.md:13` **REMOVED-PY** — `cache_features`
-  > > **Note:** This skill generates Python scripts that use the DerivaML Python API directly, not MCP tools. Methods like `
-- `generate-scripts/SKILL.md:24` **REMOVED-PY** — `cache_features`
-  > - DO use the working data cache (`ml.cache_table()`, `ml.cache_features()`, etc.)
-- `generate-scripts/SKILL.md:46` **REMOVED-PY** — `cache_features`
-  > labels = ml.cache_features("Image", "Classification")
-- `generate-scripts/SKILL.md:152` **REMOVED-PY** — `cache_features`
-  > features = ml.cache_features("Image", "Classification")
-
 ### `manage-storage`
 
 - `manage-storage/SKILL.md:21` **REMOVED-TOOL** — `deriva_ml_cache_dataset`
@@ -435,10 +442,6 @@ not historical. Only ADR references framed as "X replaces the old Y" or
   > deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
 - `manage-storage/SKILL.md:174` **REMOVED-TOOL** — `deriva_ml_cache_dataset`
   > deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0", materialize=fa
-- `manage-storage/SKILL.md:182` **REMOVED-TOOL** — `deriva_ml_cache_dataset`
-  > deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", asset_rid="3WSE")
-- `manage-storage/SKILL.md:182` **SIG_DRIFT** — `cache_dataset(asset_rid=) — never existed`
-  > deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", asset_rid="3WSE")
 - `manage-storage/SKILL.md:201` **REMOVED-TOOL** — `deriva_ml_cache_dataset`
   > 3. **Pre-fetch** — `deriva_ml_cache_dataset(...)` — download anything that's `not_cached`
 - `manage-storage/SKILL.md:203` **REMOVED-TOOL** — `deriva_ml_create_execution`
@@ -448,64 +451,16 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 
 ### `ml-data-engineering`
 
-- `ml-data-engineering/SKILL.md:41` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"]
-- `ml-data-engineering/SKILL.md:175` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/SKILL.md:212` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/SKILL.md:227` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Primary_Diagnosis", "Severity"],  # nested dirs
-- `ml-data-engineering/SKILL.md:228` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=FeatureRecord.select_latest,
-- `ml-data-engineering/references/restructure-guide.md:38` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],     # create subdirs by label
-- `ml-data-engineering/references/restructure-guide.md:66` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Species"]
-- `ml-data-engineering/references/restructure-guide.md:73` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"]
-- `ml-data-engineering/references/restructure-guide.md:80` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Classification.Label"]
-- `ml-data-engineering/references/restructure-guide.md:80` **SIG_DRIFT** — `restructure_assets group_by="Feature.column" dotted syntax`
-  > group_by=["Classification.Label"]
-- `ml-data-engineering/references/restructure-guide.md:87` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Species", "Diagnosis"]
-- `ml-data-engineering/references/restructure-guide.md:105` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:106` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=FeatureRecord.select_newest,
-- `ml-data-engineering/references/restructure-guide.md:112` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:113` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=FeatureRecord.select_first,
-- `ml-data-engineering/references/restructure-guide.md:122` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:123` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=RecordClass.select_majority_vote(),
-- `ml-data-engineering/references/restructure-guide.md:129` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:130` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=FeatureRecord.select_majority_vote("Diagnosis_Type"),
-- `ml-data-engineering/references/restructure-guide.md:147` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:175` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:191` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:222` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Score"],
-- `ml-data-engineering/references/restructure-guide.md:237` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:258` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:385` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `ml-data-engineering/references/restructure-guide.md:386` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=FeatureRecord.select_newest,
-- `ml-data-engineering/references/restructure-guide.md:414` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Primary_Diagnosis", "Severity"],  # nested dirs
-- `ml-data-engineering/references/restructure-guide.md:415` **SIG_DRIFT** — `restructure_assets(value_selector=) → fold into targets={feature: selector}`
-  > value_selector=FeatureRecord.select_latest,
+- `ml-data-engineering/SKILL.md:140` **REMOVED-PY** — `fetch_table_features`
+  > feature_df = bag.fetch_table_features(
+- `ml-data-engineering/SKILL.md:262` **REMOVED-PY** — `fetch_table_features`
+  > bag.fetch_table_features(table="Image", feature_name="Diagnosis", selector="newest")
+- `ml-data-engineering/references/restructure-guide.md:359` **REMOVED-PY** — `fetch_table_features`
+  > feature_df = bag.fetch_table_features(
+- `ml-data-engineering/references/restructure-guide.md:366` **REMOVED-PY** — `list_feature_values`
+  > values = bag.list_feature_values(target="2-ABCD", feature="Diagnosis")
+- `ml-data-engineering/references/restructure-guide.md:485` **REMOVED-PY** — `fetch_table_features`
+  > | `deriva_ml_list_feature_values` | Access feature values from the catalog (or `bag.fetch_table_features` from a downloa
 
 ### `model-development-workflow`
 
@@ -528,17 +483,6 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 - `model-development-workflow/SKILL.md:303` **HIST-PROSE** — `ADR-reference`
   > ADR-0003, feature drift is not auto-detected by the dataset-mutation
 
-### `new-model`
-
-- `new-model/SKILL.md:50` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["My_Feature"],
-- `new-model/references/runner-interface.md:87` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Image_Classification"],
-- `new-model/references/runner-interface.md:147` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Image_Classification"],
-- `new-model/references/runner-interface.md:283` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Image_Classification"],
-
 ### `run-notebook`
 
 - `run-notebook/references/workflow.md:262` **REMOVED-TOOL** — `deriva_ml_abort_execution`
@@ -548,9 +492,9 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 
 - `troubleshoot-execution/SKILL.md:26` **REMOVED-TOOL** — `deriva_ml_add_feature_values`
   > | `deriva_ml_add_feature_values` or feature-related calls error about a missing feature | "Feature Not Found" |
-- `troubleshoot-execution/SKILL.md:51` **REMOVED-TOOL** — `deriva_ml_create_execution`
-  > - With MCP tools, ensure you called `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` before attempting e
 - `troubleshoot-execution/SKILL.md:51` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > - With MCP tools, ensure you called `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` before attempting e
+- `troubleshoot-execution/SKILL.md:51` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > - With MCP tools, ensure you called `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` before attempting e
 - `troubleshoot-execution/SKILL.md:63` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > 1. Call `commit_output_assets()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it afte
@@ -611,27 +555,17 @@ not historical. Only ADR references framed as "X replaces the old Y" or
 
 ### `work-with-assets`
 
-- `work-with-assets/SKILL.md:52` **REMOVED-TOOL** — `deriva_ml_create_execution`
-  > 1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_
 - `work-with-assets/SKILL.md:52` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > 1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_
+- `work-with-assets/SKILL.md:52` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > 1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_
 - `work-with-assets/SKILL.md:55` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > 4. `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — finalize on success (use `deriva_ml_abort_executi
 - `work-with-assets/SKILL.md:55` **REMOVED-TOOL** — `deriva_ml_abort_execution`
   > 4. `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — finalize on success (use `deriva_ml_abort_executi
-- `work-with-assets/references/restructure-guide.md:35` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `work-with-assets/references/restructure-guide.md:51` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Species", "Diagnosis"]
-- `work-with-assets/references/restructure-guide.md:102` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `work-with-assets/references/restructure-guide.md:130` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `work-with-assets/references/restructure-guide.md:143` **SIG_DRIFT** — `restructure_assets(group_by=) → use targets=`
-  > group_by=["Diagnosis"],
-- `work-with-assets/references/workflow.md:140` **REMOVED-TOOL** — `deriva_ml_create_execution`
-  > Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description
 - `work-with-assets/references/workflow.md:140` **REMOVED-TOOL** — `deriva_ml_start_execution`
+  > Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description
+- `work-with-assets/references/workflow.md:140` **REMOVED-TOOL** — `deriva_ml_create_execution`
   > Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description
 - `work-with-assets/references/workflow.md:169` **REMOVED-TOOL** — `deriva_ml_commit_execution`
   > On success: call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` to finaliz
