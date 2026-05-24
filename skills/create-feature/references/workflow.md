@@ -86,7 +86,7 @@ Then call `deriva_ml_start_execution(hostname=..., catalog_id=..., execution_rid
 - `execution_rid`: REQUIRED — the RID of an active execution (Running, or Created if you want the hybrid auto-wrap path to drive the lifecycle)
 - `entries`: list of dicts, each with `target_rid` plus column values matching the feature's schema. For a single-column feature, supply `target_rid` plus the one term column (e.g., `Tumor_Grade`). For a multi-column feature, include all required columns and any optional ones you have values for.
 
-**Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. (Use `deriva_ml_abort_execution` instead if something went wrong.) Feature values are written directly to the catalog by `deriva_ml_add_feature_values` — no Python API `exe.upload_execution_outputs()` call is needed unless you also registered file assets with Python API `exe.asset_file_path()`.
+**Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. (Use `deriva_ml_abort_execution` instead if something went wrong.) Feature values are written directly to the catalog by `deriva_ml_add_feature_values` — no Python API `exe.commit_output_assets()` call is needed unless you also registered file assets with Python API `exe.asset_file_path()`.
 
 > `deriva_ml_add_feature_values` (plural) handles both single and multi-column feature values. Pass a single-element list when you only have one value.
 

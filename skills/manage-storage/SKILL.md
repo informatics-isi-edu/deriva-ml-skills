@@ -110,7 +110,7 @@ Returns a preview of matching entries without deleting anything. A single RID ma
 - Completed execution directories — outputs already uploaded to catalog
 
 **What's NOT safe to delete:**
-- Execution directories where `exe.upload_execution_outputs()` (Python API) was never called — those outputs are **only** on local disk
+- Execution directories where `exe.commit_output_assets()` (Python API) was never called — those outputs are **only** on local disk
 
 ### Bulk cleanup workflow
 
@@ -121,7 +121,7 @@ Returns a preview of matching entries without deleting anything. A single RID ma
 
 ## Phase 2b: Find and Resume Incomplete Executions
 
-Execution working directories may contain outputs that were never uploaded — from interrupted runs, crashes, or forgotten `exe.upload_execution_outputs()` (Python API) calls. These are the **only** local data that can't be re-downloaded from the catalog.
+Execution working directories may contain outputs that were never uploaded — from interrupted runs, crashes, or forgotten `exe.commit_output_assets()` (Python API) calls. These are the **only** local data that can't be re-downloaded from the catalog.
 
 ### Find incomplete executions
 

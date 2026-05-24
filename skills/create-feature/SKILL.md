@@ -204,7 +204,7 @@ def main(hostname: str, catalog_id: str, csv_path: Path) -> int:
 
     # Upload after the context exits — this is where assets and feature values
     # become visible. See /deriva-ml:execution-lifecycle for the lifecycle rules.
-    exe.upload_execution_outputs(clean_folder=True)
+    exe.commit_output_assets(clean_folder=True)
     return 0
 
 if __name__ == "__main__":

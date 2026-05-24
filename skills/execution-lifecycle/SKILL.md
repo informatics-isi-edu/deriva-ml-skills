@@ -54,7 +54,7 @@ The lifecycle is the same regardless of path:
 
 1. Create execution (with workflow, inputs, description)
 2. Start → download inputs → do work → register outputs → stop
-3. Upload outputs to catalog
+3. Commit outputs to catalog (uploads bytes + writes asset rows in one call)
 
 **I/O goes through the Python API**, not MCP tools: `exe.download_dataset_bag()`, `exe.asset_file_path()`, `exe.commit_output_assets()`. MCP tools handle lifecycle state transitions; Python handles file I/O. The unified `commit_output_assets()` API (deriva-ml v1.39+; see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)) replaces the four legacy upload methods (`upload_execution_outputs`, `upload_outputs`, snapshot `upload_outputs`, `upload_pending`) — one method, one surface, idempotent on re-call.
 
