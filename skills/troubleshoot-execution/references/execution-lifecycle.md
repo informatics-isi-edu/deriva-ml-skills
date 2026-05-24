@@ -102,23 +102,23 @@ all_workflows = ml.find_workflows()
 
 ## Execution Configuration
 
-### MCP tools
+### Bundled script template
 
+Copy `skills/execution-lifecycle/scripts/basic_execution.py` into your project, then customize the workflow + work block. The template handles workflow lookup-or-create and opens the execution context manager:
+
+```python
+workflow = ml.create_workflow(
+    name="ResNet50 Training",
+    workflow_type=args.workflow_type,
+    description="Train ResNet50 with augmented data",
+)
+config = ExecutionConfiguration(description="ResNet50 training run")
+with ml.create_execution(config, workflow=workflow,
+                         dry_run=args.dry_run) as execution:
+    # ... training code ...
 ```
-# Resolve the workflow first (look up by URL or create if new)
-deriva_ml_find_workflow_by_url(hostname="data.example.org", catalog_id="1",
-    url="https://github.com/my-org/my-repo/blob/abc123/train.py")
-# → capture workflow_rid from result, e.g. "2-WF01"
 
-deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_rid="2-WF01",
-    description="ResNet50 Training run with augmented data")
-# Capture the returned execution_rid (e.g. "2-YYYY") and pass it explicitly:
-deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="2-YYYY")
-```
-
-### Python API
+### Python API (under the hood)
 
 ```python
 from deriva_ml.execution import ExecutionConfiguration
@@ -288,41 +288,34 @@ The `timeout` tuple is `(connect_timeout, read_timeout)`. urllib3 uses `connect_
 4. Increase retries — retries use exponential backoff
 5. Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see if partial uploads succeeded
 
-## Status Updates
+## Status Updates and Progress Reporting
 
-Report progress during long-running workflows using `deriva_ml_update_execution`:
+Execution status transitions are driven by the context manager (`Running` on entry, `Stopped`/`Failed` on exit) and by `exe.commit_output_assets()` (the `Stopped → Pending_Upload → Uploaded` phase). Free-form progress messages do not live on the Execution row.
 
-### MCP tools
-
-```
-# Arbitrary status with a message
-deriva_ml_update_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="2-YYYY",
-    status="Running",
-    message="Epoch 15/100 complete")
-
-# Normal completion
-deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="2-YYYY")
-
-# Failure marking
-deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="2-YYYY")
-```
-
-### Python API
+For mid-run progress reporting (e.g., "epoch 15 of 100"), write JSON-lines to a metrics file via the dedicated `exe.metrics_file()` API:
 
 ```python
-from deriva_ml.core.definitions import Status
+import json
+from deriva_ml.execution.state_store import ExecutionStatus
 
-with ml.create_execution(config) as exe:
-    exe.update_status(Status.running, "Loading data...")
+with ml.create_execution(config, workflow=workflow) as exe:
     data = load_data()
 
-    for epoch in range(100):
-        train_epoch(model, data)
-        exe.update_status(Status.running, f"Epoch {epoch+1}/100 complete")
+    with exe.metrics_file().open("a") as f:
+        for epoch in range(100):
+            train_epoch(model, data)
+            # Append one JSON record per evaluation point
+            f.write(json.dumps({"epoch": epoch, "val_loss": 0.42}) + "\n")
+
+    # Failure marking from inside the with block (only when you need to override
+    # the auto-Stopped transition — usually you let the context manager handle it):
+    # exe.update_status(ExecutionStatus.Failed, error="Out of memory mid-epoch")
+
+# After the with block:
+exe.commit_output_assets()
 ```
+
+The metrics file is uploaded as an `Execution_Metadata` asset (type `Metrics_File`) when `commit_output_assets()` runs. Readback from the downloaded bag is a simple JSONL parse.
 
 ## Automatic Source Code Detection
 
@@ -370,24 +363,22 @@ export DERIVA_ML_WORKFLOW_CHECKSUM="abc123def456"
 
 ## Recovering from a Failed Execution
 
-For the full recovery decision tree (commit-retry vs commit-as-is vs abort-and-recover vs claim-survivors-as-inputs), see the **"Salvage a Failed Execution"** section in this skill's `SKILL.md`. Quick orientation:
+For the full recovery decision tree (salvage vs recovery-from-inputs vs claim-survivors-as-inputs), see the **"Salvage a Failed Execution"** section in this skill's `SKILL.md`. Quick orientation:
 
-- An execution in `Failed`, `Stopped`, or `Pending_Upload` is salvageable — `deriva_ml_commit_execution` drains the staged work and makes it visible. Re-call to retry: the bag-commit pipeline is idempotent under `match_by_columns` dedup.
-- An execution in `Aborted` is not salvageable — abort destroys staged outputs at abort time.
-- A "recovery execution" is a new execution that consumes the failed run's inputs (Branch C) or its surviving outputs (Branch D); use the `asset_rids=` parameter on `deriva_ml_create_execution` to claim existing asset RIDs as inputs.
+- An execution in `Stopped` or `Pending_Upload` is salvageable — run `skills/execution-lifecycle/scripts/salvage_execution.py` to drain the staged work. Idempotent under `match_by_columns` dedup, so re-call to resume on partial failure.
+- An execution in `Failed` (terminal) cannot be salvaged from the same RID — the rows that already uploaded are preserved in the catalog, but anything still staged at the moment of failure is lost. Start a new execution by re-running the committed script (Branch B in SKILL.md).
+- An execution in `Aborted` keeps its staged work for inspection — `ml.resume_execution(rid)` followed by `commit_output_assets()` will commit it, or you can leave it as a permanent provenance row.
+- A "recovery execution" is a new execution that consumes the failed run's inputs (Branch B) or its surviving outputs (Branch C); set `ExecutionConfiguration(assets=[...])` in the recovery script to claim existing asset RIDs as inputs.
 
 The one piece that does NOT live in this guide: the failed execution's row stays in the catalog as a permanent provenance record, but the catalog does not auto-link it to its recovery successor. That linkage is your responsibility — capture both RIDs in `experiment-decisions.md` (the `maintain-experiment-notes` skill auto-fires when you do this).
 
 ## Nested Executions
 
-Executions can be nested for complex workflows. Two directional tools navigate the hierarchy:
+Executions can be nested for complex workflows. Author parent-child runs via the bundled `skills/execution-lifecycle/scripts/nested_execution.py` template; the template calls `parent_exe.add_nested_execution(child_exe, sequence=i)` after each child's `with` block exits.
 
-### MCP tools
+Two directional MCP tools navigate the hierarchy post-run:
 
 ```
-deriva_ml_add_nested_execution(hostname="data.example.org", catalog_id="1",
-    parent_rid="1-AAA", child_rid="1-BBB")
-
 # Walk down (descendants)
 deriva_ml_list_execution_children(hostname="data.example.org", catalog_id="1",
     execution_rid="1-AAA")
@@ -418,16 +409,7 @@ with ml.create_execution(config) as exe:
 exe.commit_output_assets()
 ```
 
-### MCP tool equivalent
-
-```
-deriva_ml_create_execution_dataset(hostname="data.example.org", catalog_id="1",
-    execution_rid="2-YYYY",
-    description="Augmented training images",
-    dataset_types=["Training", "Augmented"])
-deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1",
-    dataset_rid="<new_rid>", members=["2-A1", "2-A2", ...])
-```
+The dataset row is created with the execution as its producer for provenance; `exe.commit_output_assets()` afterward writes the new dataset's bag and any staged feature values.
 
 ## Dry Run Debugging
 
@@ -471,9 +453,9 @@ Use the Python API: `exe.working_dir` returns the local filesystem path for the 
 | `deriva://catalog/{h}/{c}/ml/execution/{rid}` | Resource form of the same content |
 | `deriva://storage/execution-dirs` | Local execution working directories |
 | Python API `exe.working_dir` | Local filesystem path for the execution |
-| `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` | Update an execution's description after the fact (description-only; status transitions go through start/commit/abort) |
-| `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` | Drain staged outputs (Running/Stopped/Failed/Pending_Upload → Uploaded). Re-call to retry — idempotent under `match_by_columns` dedup. Also the salvage entry point — see "Recovering from a Failed Execution" |
-| `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason=...)` | Cancel an execution; **destroys staged outputs**. Use only when staged work is bad |
+| `skills/execution-lifecycle/scripts/salvage_execution.py` | Drive `commit_output_assets()` on a `Stopped`/`Failed` execution. Idempotent under `match_by_columns` dedup. The canonical salvage entry point. |
+| `skills/execution-lifecycle/scripts/crash_recovery.py` | `Running → Pending_Upload` direct transition after a hard crash; `--abort` mode to discard. |
+| Python API `exe.abort()` | Transition to `Aborted`. Staged rows are preserved for inspection; the execution row stays in the catalog as a permanent provenance record. |
 | `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` | Walk down a nested-execution tree |
 | `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` | Walk up a nested-execution tree |
 | Python API `exe.pending_summary()` | Per-table breakdown of staged / failed / uploaded counts for a resumed execution. The authoritative diagnostic for "what survived the crash". No MCP wrapper yet — Python-only |

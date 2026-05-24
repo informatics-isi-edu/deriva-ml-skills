@@ -14,7 +14,7 @@ This skill covers descriptions for the **DerivaML domain entities** — the abst
 
 - **Datasets** (`deriva_ml_create_dataset` -- description parameter)
 - **Workflows** (`deriva_ml_create_workflow` -- description parameter)
-- **Executions** (`deriva_ml_create_execution` -- description parameter)
+- **Executions** (`ExecutionConfiguration(description=...)` -- passed via the bundled `skills/execution-lifecycle/scripts/basic_execution.py` template; execution authorship is Python-only)
 - **Features** (`deriva_ml_create_feature` -- description parameter)
 - **Assets** (`exe.asset_file_path()` -- description parameter; built-in execution metadata files like Hydra configs and `configuration.json` get automatic descriptions)
 - **Experiments** (description parameter on the experiment config)

@@ -284,26 +284,23 @@ Term names are case-sensitive. "Normal" ≠ "normal". Using an invalid term name
 
 ### Adding values with optional columns
 
-When using `deriva_ml_add_feature_values`, optional columns can be:
-- **Included** in some entries and **omitted** in others
-- **Set to null** explicitly
-- **Mixed** — some entries with the column, some without
+When building `FeatureRecord` instances inside the bundled `populate_feature_values.py` template (see `workflow.md`), optional columns can be:
+- **Included** in some records and **omitted** in others
+- **Set to None** explicitly
+- **Mixed** — some records with the column, some without
 
 This is common for confidence scores: human annotations may not have confidence, while model predictions always include one.
 
+```python
+# Some records with confidence, some without — valid because confidence is optional
+records = [
+    RecordClass(Image="2-IMG1", Diagnosis_Type="Normal"),
+    RecordClass(Image="2-IMG2", Diagnosis_Type="Abnormal", confidence=0.87),
+]
+exe.add_features(records)
 ```
-# Some entries with confidence, some without — valid because confidence is optional
-deriva_ml_add_feature_values(
-    hostname="data.example.org",
-    catalog_id="1",
-    target_table="Image",
-    feature_name="Diagnosis",
-    values=[
-        {"target_rid": "2-IMG1", "Diagnosis_Type": "Normal"},
-        {"target_rid": "2-IMG2", "Diagnosis_Type": "Abnormal", "confidence": 0.87},
-    ]
-)
-```
+
+Pydantic validation runs at `RecordClass(...)` construction, so a missing required column or a typo in a column name fails immediately.
 
 ## Multivalued Features
 
@@ -584,7 +581,7 @@ for f in features:
 | Operation | MCP Tool | Python API | Notes |
 |-----------|----------|------------|-------|
 | Create feature | `deriva_ml_create_feature` | `ml.create_feature()` | Vocabulary must exist first |
-| Add values | `deriva_ml_add_feature_values` | `exe.add_features()` | Plural — pass single-element list for one value |
+| Add values | `skills/create-feature/scripts/populate_feature_values.py` | `exe.add_features()` | Bundled template — no MCP equivalent; authorship belongs in committed scripts |
 | Delete feature | `deriva_ml_delete_feature` | `ml.delete_feature()` | Removes feature table and all values |
 
 ### Discovery and navigation

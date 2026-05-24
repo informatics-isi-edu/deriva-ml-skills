@@ -138,25 +138,17 @@ Before training, confirm the feature schema works with your development data.
 2. `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>")` — confirm valid term values
 3. `deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="<feature_name>", selector="newest")` — check that labels exist for your dev records
 
-**If labels are missing**, add them to the development dataset first. Create+start, then commit on success or abort on failure:
+**If labels are missing**, add them to the development dataset before training. Feature-value writes go through a bundled script template — copy `skills/create-feature/scripts/populate_feature_values.py` to `src/scripts/populate_diagnosis.py`, edit the target table and feature name, commit, then run:
 
+```bash
+uv run python src/scripts/populate_diagnosis.py \
+    --hostname data.example.org --catalog-id 1 \
+    --workflow-type Annotation \
+    --csv ./labels/dev_diagnosis.csv \
+    --target-table Image --feature-name Diagnosis
 ```
-deriva_ml_create_execution(
-    hostname="data.example.org",
-    catalog_id="1",
-    workflow_rid="<workflow_rid>",
-    description="Dev labeling annotation run",
-)
-deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<exec_rid>")
-deriva_ml_add_feature_values(
-    hostname="data.example.org",
-    catalog_id="1",
-    target_table="Image",
-    feature_name="Diagnosis",
-    values=[{"target_rid": "...", "value": "Normal"}, ...],
-)
-deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<exec_rid>")
-```
+
+The template opens `with ml.create_execution(config, workflow=workflow) as exe:`, stages `exe.add_features(records)`, and `exe.commit_output_assets()` post-`with` flushes them to the catalog. Pydantic validates each row against the feature's term vocabulary, so mismatched terms fail loudly.
 
 **Verify the full pipeline** by denormalizing:
 ```
@@ -184,16 +176,18 @@ uv run deriva-ml-run +experiment=my_experiment --cfg job
 uv run deriva-ml-run +experiment=my_experiment dry_run=true
 ```
 
-### With MCP tools
+### With the bundled script template
+
+`skills/execution-lifecycle/scripts/basic_execution.py` exposes `--dry-run` as a top-level argparse flag — it builds the `ExecutionConfiguration` and opens `with ml.create_execution(config, workflow=workflow, dry_run=True)` so the runner validates inputs without creating execution records or committing outputs:
+
+```bash
+uv run python src/scripts/train_resnet50.py \
+    --hostname data.example.org --catalog-id 1 \
+    --workflow-type Training \
+    --dry-run
 ```
-deriva_ml_create_execution(
-    hostname="data.example.org",
-    catalog_id="1",
-    workflow_rid="<workflow_rid>",
-    dataset_rids=["<dev_dataset_rid>"],
-    dry_run=True,
-)
-```
+
+For ad-hoc validation without writing a script, use `deriva_ml_validate_execution_configuration` (see Phase 5 pre-flight) — it's the metadata-only equivalent that doesn't pay the bag-download cost.
 
 ### What dry_run validates
 - ✅ Config resolves without errors
@@ -219,7 +213,7 @@ Run a real execution against your development dataset. This creates catalog reco
 ### Pre-flight checklist
 1. Validate the full config with `deriva_ml_validate_execution_configuration(hostname=..., catalog_id=..., config={...})` — one call confirms every dataset RID, every dataset version, every asset RID, the workflow, and surfaces cross-spec issues (duplicate RIDs, version conflicts, role conflicts). Cheap metadata-only pre-flight; doesn't pay the bag-download cost that `dry_run=True` does.
 2. `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — check cache status
-3. `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — pre-fetch if needed
+3. `uv run python src/scripts/warm_cache.py --hostname ... --catalog-id ... --dataset-rid ... --version ...` — pre-fetch via the bundled `manage-storage` template if anything reads `not_cached`
 4. Code committed and version bumped (`bump_version(bump_type="patch")`)
 
 ### Run with small data
@@ -263,7 +257,7 @@ If you don't already have one, see the `dataset-lifecycle` skill for:
 |------|------|---------|
 | 1 | `deriva_ml_validate_execution_configuration(hostname=..., catalog_id=..., config={...})` | Confirms all dataset RIDs + versions exist, all asset RIDs exist, workflow is valid, no cross-spec conflicts — single metadata-only call (cheaper than dry_run, which downloads bags) |
 | 2 | `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=...)` | Check dataset sizes and cache status |
-| 3 | `deriva_ml_cache_dataset(hostname=..., catalog_id=..., dataset_rid=...)` | Pre-fetch large datasets |
+| 3 | `uv run python src/scripts/warm_cache.py --hostname ... --catalog-id ... --dataset-rid ...` | Pre-fetch large datasets via the `manage-storage` template |
 | 4 | `uv run bump-version <type>` (or `bump_version("<type>")` MCP) | Tag the code version — see decision matrix below for `<type>` |
 | 5 | `git status` | Confirm clean working tree |
 | 6 | Verify experiment description | Will be recorded in execution |

@@ -297,13 +297,14 @@ The "every mutation lands on dev" rule:
 | `deriva_ml_add_dataset_members` | Flip to `<last_release>.post1.dev1` (or advance `.devN` if dev row exists) |
 | `deriva_ml_delete_dataset_members` | Flip to dev (advance `.devN`) |
 | `split_dataset` | Flip to dev (advance `.devN`) |
-| Adding a feature value (via `deriva_ml_add_feature_values` or Python API) | Drift is **not** auto-detected; if you want to record it, call `dataset.mark_dev(description)` from the Python API |
+| Adding a feature value (via `exe.add_features()` from the `populate_feature_values.py` template) | Drift is **not** auto-detected; if you want to record it, call `dataset.mark_dev(description)` from the Python API |
 | `deriva_ml_release(bump, description)` | Promote dev row to released `<bumped>.<from>.<last_release>` |
 
 **Things that do NOT flip the dataset to dev:**
 
 - Execution-output assets (model weights, prediction CSVs, training logs, plots) — linked to the producing execution, not to dataset members.
-- Reads (`deriva_ml_get_dataset`, `deriva_ml_list_dataset_members`, `deriva_ml_bag_info`, `deriva_ml_cache_dataset`).
+- Reads (`deriva_ml_get_dataset`, `deriva_ml_list_dataset_members`, `deriva_ml_bag_info`).
+- Cache warm-ups via the bundled `skills/manage-storage/scripts/warm_cache.py` template — it only populates the local cache directory and never touches catalog state.
 
 ### Drift detection (Python API only)
 

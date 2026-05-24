@@ -18,9 +18,9 @@ All DerivaML local data lives under a **working directory**, typically `~/.deriv
 
 | Directory | Contents | Grows from |
 |-----------|----------|------------|
-| `cache/` | Downloaded dataset bags (BDBags), keyed by RID + checksum | Python API `dataset.download_dataset_bag(version)`, Python API `exe.download_dataset_bag()`, `deriva_ml_cache_dataset` |
+| `cache/` | Downloaded dataset bags (BDBags), keyed by RID + checksum | Python API `dataset.download_dataset_bag(version)`, `exe.download_dataset_bag(spec)`, or the bundled `scripts/warm_cache.py` |
 | `cache/assets/` | Individually cached assets (model weights, etc.), keyed by RID + MD5 | `AssetSpec(cache=True)` |
-| `execution_{RID}/` | Execution working directories — staged output files, logs | `deriva_ml_create_execution` |
+| `execution_{RID}/` | Execution working directories — staged output files, logs | Created when the `with ml.create_execution(...) as exe:` context manager opens (see `execution-lifecycle/scripts/`) |
 | Other dirs | Hydra configs, client exports, temporary files | Various |
 
 ### Cache vs Working Directory
@@ -145,7 +145,7 @@ If status is `running` or `pending` (not `completed`), the outputs may not have 
 
 ### Resume and upload
 
-> **Resuming an aborted execution:** there is no MCP tool that resumes an aborted execution. **Workaround:** inspect the aborted execution's state via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")`, salvage any local outputs from the working directory by hand (copy them aside or upload via `update_asset` / a fresh upload script), then create a fresh execution with `deriva_ml_create_execution` for any new work. Track the relationship in the new execution's description for provenance.
+> **Resuming an aborted execution:** inspect the aborted execution's state via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")` or use `ml.resume_execution(rid)` in Python to re-hydrate the staged work. To commit the staged outputs from an aborted run, call `commit_output_assets()` on the resumed execution. For broader salvage flows (Stopped, Failed, crash recovery), see `skills/execution-lifecycle/scripts/salvage_execution.py` and `crash_recovery.py`. For brand-new work, copy `basic_execution.py` and run it; the relationship to the prior run lives in `experiment-decisions.md`, not in the catalog automatically.
 
 ### After successful upload, clean up
 
@@ -162,19 +162,36 @@ Download datasets or assets into the local cache **without creating an execution
 
 ### Cache a dataset bag
 
-```
-deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
+Use the bundled `skills/manage-storage/scripts/warm_cache.py` template. Copy it into the user's project (typically `src/scripts/`), then run:
+
+```bash
+uv run python src/scripts/warm_cache.py \
+    --hostname data.example.org --catalog-id 1 \
+    --dataset-rid 28CT --version 0.9.0
 ```
 
-Downloads the full bag (including materialized assets) into the cache. Subsequent calls to Python API `exe.download_dataset_bag()` with the same RID and version will reuse the cached copy.
+Downloads the full bag (including materialized assets) into the cache. Subsequent calls to `exe.download_dataset_bag(spec)` with the same RID and version reuse the cached copy.
 
 ### Cache metadata only (no asset files)
 
-```
-deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0", materialize=false)
+Add `--metadata-only` to skip asset bytes:
+
+```bash
+uv run python src/scripts/warm_cache.py \
+    --hostname data.example.org --catalog-id 1 \
+    --dataset-rid 28CT --version 0.9.0 \
+    --metadata-only
 ```
 
-Downloads table data but skips large asset files. Useful for inspecting schema and row counts.
+Useful for inspecting schema and row counts before committing to a full download.
+
+For ad-hoc Python use without the template:
+
+```python
+from deriva_ml.dataset.aux_classes import DatasetSpec
+spec = DatasetSpec(rid="28CT", version="0.9.0")
+ml.cache_dataset(spec, materialize=True)
+```
 
 ### Cache an individual asset
 
@@ -198,9 +215,9 @@ The recommended pre-flight sequence:
 
 1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filters={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result.
 2. **Check cache** — `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=..., version=...)` — see what's already cached
-3. **Pre-fetch** — `deriva_ml_cache_dataset(...)` — download anything that's `not_cached`
+3. **Pre-fetch** — run `scripts/warm_cache.py --dataset-rid <rid> --version <version>` to download anything that's `not_cached`
 4. **Verify** — `deriva_ml_bag_info(...)` — confirm `cached_materialized`
-5. **Run** — `deriva_ml_create_execution(...)` → downloads hit cache instantly
+5. **Run** — copy `skills/execution-lifecycle/scripts/basic_execution.py`, commit it, and run with `deriva-ml-run`. Downloads inside the execution hit cache instantly.
 
 ## Storage Manager Web App
 
@@ -217,7 +234,7 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 - Bash `ls -la ~/.deriva-ml/` — Browse all local storage
 - Bash `rm -rf ~/.deriva-ml/...` — Remove cached items by RID
 - `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version
-- `deriva_ml_cache_dataset` — Pre-fetch a dataset or asset into cache
+- `scripts/warm_cache.py` — Bundled template for pre-fetching a dataset bag into the local cache (no execution required)
 
 ## Related Skills
 
