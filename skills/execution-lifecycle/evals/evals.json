@@ -10,7 +10,7 @@
     {
       "id": 2,
       "prompt": "I need to create an execution that downloads a dataset, runs inference, and uploads the prediction results. Show me the full MCP tool sequence.",
-      "expected_output": "Should show the complete MCP lifecycle: deriva_ml_create_execution with workflow_name and workflow_type, deriva_ml_start_execution, download_execution_dataset with dataset_rid and version, do work, asset_file_path to register outputs, optionally deriva_ml_add_feature_values for predictions, deriva_ml_commit_execution, upload_execution_outputs. Should mention that steps 2-7 operate on the active execution.",
+      "expected_output": "Should show the complete MCP lifecycle: deriva_ml_create_execution with workflow_name and workflow_type, deriva_ml_start_execution, download_execution_dataset with dataset_rid and version, do work, asset_file_path to register outputs, optionally deriva_ml_add_feature_values for predictions, deriva_ml_commit_execution, commit_output_assets. Should mention that steps 2-7 operate on the active execution.",
       "files": []
     },
     {

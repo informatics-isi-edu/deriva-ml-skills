@@ -110,7 +110,7 @@ with execution.execute() as exe:
     # ... write to path ...
 
 # Upload AFTER the with block
-exe.upload_execution_outputs()
+exe.commit_output_assets()
 
 print(f"Loaded {len(labels)} diagnosis labels")
 print(f"Execution: {execution.execution_rid}")

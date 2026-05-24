@@ -1,13 +1,13 @@
 ---
 name: troubleshoot-execution
-description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, produces unexpected results, OR when an execution failed mid-way and the user needs to recover/salvage partial results (uploads that succeeded, assets that staged, feature values that were written before the failure). Covers errors specific to the deriva-ml execution lifecycle (asset_file_path, upload_execution_outputs, stuck Running status, dataset version mismatch, missing features), the salvage decision (commit-retry vs commit-as-is vs abort vs new recovery execution), and the recovery-execution pattern (creating a new execution that claims the failed run's surviving outputs as inputs). Also covers checking and updating the three DerivaML components (deriva-ml Python lib, deriva-ml-mcp MCP server, deriva-ml-skills plugin) — version mismatches between them are a common cause of confusing errors. For generic catalog errors (auth, permissions, invalid RID, missing record), see the troubleshoot-deriva-errors skill in the deriva-skills plugin (which carries the equivalent versioning section for the foundation: deriva-py, deriva-mcp-core, deriva plugin). Triggers on: 'execution failed', 'execution stuck', 'salvage', 'recover', 'partial upload', 'training failed at upload time', 'what got uploaded', 'rerun or salvage', 'recovery execution', 'asset_file_path', 'upload_execution_outputs', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml', 'upgrade derivaml packages'."
+description: "ALWAYS use when a DerivaML execution fails, errors, gets stuck, produces unexpected results, OR when an execution failed mid-way and the user needs to recover/salvage partial results (uploads that succeeded, assets that staged, feature values that were written before the failure). Covers errors specific to the deriva-ml execution lifecycle (asset_file_path, commit_output_assets, stuck Running status, dataset version mismatch, missing features), the salvage decision (commit-retry vs commit-as-is vs abort vs new recovery execution), and the recovery-execution pattern (creating a new execution that claims the failed run's surviving outputs as inputs). Also covers checking and updating the three DerivaML components (deriva-ml Python lib, deriva-ml-mcp MCP server, deriva-ml-skills plugin) — version mismatches between them are a common cause of confusing errors. For generic catalog errors (auth, permissions, invalid RID, missing record), see the troubleshoot-deriva-errors skill in the deriva-skills plugin (which carries the equivalent versioning section for the foundation: deriva-py, deriva-mcp-core, deriva plugin). Triggers on: 'execution failed', 'execution stuck', 'salvage', 'recover', 'partial upload', 'training failed at upload time', 'what got uploaded', 'rerun or salvage', 'recovery execution', 'asset_file_path', 'commit_output_assets', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml', 'upgrade derivaml packages'."
 user-invocable: false
 disable-model-invocation: true
 ---
 
 # Troubleshooting DerivaML Executions
 
-This guide covers errors specific to the **DerivaML execution lifecycle** — the things that can only break when you're using `deriva-ml` and `deriva-ml-mcp` (Python API patterns like `ml.create_execution()`, `exe.asset_file_path()`, `exe.upload_execution_outputs()`; MCP execution-status tools; dataset versioning; feature value uploads).
+This guide covers errors specific to the **DerivaML execution lifecycle** — the things that can only break when you're using `deriva-ml` and `deriva-ml-mcp` (Python API patterns like `ml.create_execution()`, `exe.asset_file_path()`, `exe.commit_output_assets()`; MCP execution-status tools; dataset versioning; feature value uploads).
 
 > **Generic catalog errors** (auth, permissions, invalid RID, missing record, vocabulary term not found, connect failures) are NOT covered here. See the **`/deriva:troubleshoot-deriva-errors`** skill *(deriva-skills)* for those — those errors surface in any Deriva catalog operation and don't require the execution machinery to reproduce.
 
@@ -24,7 +24,7 @@ Jump straight to the right section if you already know what's wrong:
 | `deriva_ml_get_dataset(rid)` errors / returns empty for a dataset RID you expected to exist | "Dataset Not Found" |
 | Bag contents or `denormalize_dataset` output doesn't match what you expected | "Version Mismatch" |
 | `deriva_ml_add_feature_values` or feature-related calls error about a missing feature | "Feature Not Found" |
-| `exe.upload_execution_outputs()` hangs or times out | "Upload Timeout" |
+| `exe.commit_output_assets()` hangs or times out | "Upload Timeout" |
 | Execution status shows `Running` but the process has crashed or ended | "Execution Stuck in Running" |
 | Error mentions a missing `Workflow_Type`, `Dataset_Type`, or `Asset_Type` term | "ML Vocabulary Term Not Found" |
 | Training ran for hours, failed partway, and you need to recover survivors | "Salvage a Failed Execution" |
@@ -36,7 +36,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 
 ## Problem: "No Active Execution"
 
-**Symptom**: Tools that require an execution context (Python API `exe.asset_file_path()`, `exe.upload_execution_outputs()`) fail with an error about no active execution.
+**Symptom**: Tools that require an execution context (Python API `exe.asset_file_path()`, `exe.commit_output_assets()`) fail with an error about no active execution.
 
 **Cause**: The execution was not properly started, or you are outside the execution context.
 
@@ -57,10 +57,10 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 
 **Symptom**: Execution completes but asset files are not visible in the catalog.
 
-**Cause**: Python API `exe.upload_execution_outputs()` was not called, or files were written to the wrong path.
+**Cause**: Python API `exe.commit_output_assets()` was not called, or files were written to the wrong path.
 
 **Solution**:
-1. Call `upload_execution_outputs()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it after `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`.
+1. Call `commit_output_assets()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it after `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`. If your execution was uploaded from the CLI (`deriva-ml-run`, `deriva-ml-upload`), the CLI now (v1.39+) drives `commit_output_assets()` itself and transitions the execution to `Uploaded` — earlier versions left CLI-uploaded executions stuck at `Stopped` (see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)).
 2. Ensure files are written to the **exact path** returned by `asset_file_path()`. Writing to any other directory will cause the upload to miss those files.
 3. Verify the file actually exists at the path before uploading:
    ```python
@@ -119,7 +119,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 
 ## Problem: "Upload Timeout"
 
-**Symptom**: Python API `exe.upload_execution_outputs()` hangs or times out.
+**Symptom**: Python API `exe.commit_output_assets()` hangs or times out.
 
 **Cause**: Large files, network issues, or server limits.
 
@@ -127,7 +127,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 - Check your network connectivity.
 - For large files, consider breaking them into smaller batches.
 - The server may have upload size limits. Check with your catalog administrator.
-- Retry the upload -- transient network issues are the most common cause.
+- Retry by re-calling `commit_output_assets()` — the bag-commit pipeline is idempotent under `match_by_columns` dedup, so already-uploaded rows are a no-op and only the failed entries are re-attempted. Transient network issues are the most common cause.
 - **Tool**: `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to check if partial uploads succeeded.
 
 ---
@@ -138,12 +138,14 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 
 **Cause**: The execution context was not properly closed (e.g., crash without cleanup, not using context manager).
 
+> **Note (v1.39+ behavior change):** CLI-uploaded executions (`deriva-ml-upload`, `deriva-ml-run`) now transition `Stopped → Pending_Upload → Uploaded` correctly. Earlier versions left CLI uploads stuck at `Stopped` even after the bytes were in hatrac — that bug is fixed under the unified `commit_output_assets` API (see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)). If you're still seeing a stuck `Stopped` execution from a CLI upload, check that deriva-ml is at v1.39 or later.
+
 **Solution**: pick the right transition based on whether there's salvageable work.
 
 - **Best practice for next time**: always use the context manager (`with ml.create_execution(config) as exe:`) — it cleans up on both success and failure.
 - **First, inspect** with `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see the current state and what (if anything) staged or uploaded before the crash.
 - **Then choose**:
-  - **`deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`** — drains staged outputs and advances `Running → Stopped → Pending_Upload → Uploaded`. **Use this when there is salvageable work.** Commit accepts Running, Stopped, and Pending_Upload states; if the run did some real work before crashing (uploaded some assets, staged some feature values), commit makes those visible. Pass `retry_failed=True` to retry rows/assets that previously errored mid-upload. Even partial successes are usually worth committing.
+  - **`deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`** — drains staged outputs and advances `Running → Stopped → Pending_Upload → Uploaded`. **Use this when there is salvageable work.** Commit accepts Running, Stopped, and Pending_Upload states; if the run did some real work before crashing (uploaded some assets, staged some feature values), commit makes those visible. The drain is idempotent — if some rows previously failed mid-upload, re-running picks them up via `match_by_columns` dedup while leaving the already-uploaded ones alone. Even partial successes are usually worth committing.
   - **`deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="<short explanation>")`** — transitions to `Aborted` and **destroys staged outputs**. Use this only when the staged work is bad (wrong inputs, corrupted state, code bug whose outputs you don't want in the catalog). The `reason` is recorded in the audit log.
 - **If commit succeeds but you also want to keep going** (more inputs to process, more outputs to write), see "Salvage a Failed Execution" below — committing puts the execution into a terminal state, so further work goes into a new execution.
 
@@ -186,7 +188,7 @@ Look at the `status` field. The seven legal states and what each one means for s
 | `Created` | No | Execution was registered but `start_execution` was never called. No work happened. | Start it (`deriva_ml_start_execution`) and run normally, OR abort if no longer needed. Nothing to salvage. |
 | `Running` | No | The execution started and the process either is still running, crashed, or never closed cleanly. | If the process is dead, see "Execution Stuck in Running" above. Either commit (salvage staged work) or abort (destroy it). |
 | `Stopped` | No | The execution finished its work but `commit_execution` was not called. Outputs are staged but invisible. | Commit to make staged outputs visible. **This is the most common salvageable state.** |
-| `Pending_Upload` | No | Commit drained the catalog row writes but the asset-file uploads are queued or partially failed. | Commit again with `retry_failed=True` — that's its job — to re-attempt the file uploads. |
+| `Pending_Upload` | No | Commit drained the catalog row writes but the asset-file uploads are queued or partially failed. | Commit again to re-attempt the file uploads — the bag-commit pipeline is idempotent under `match_by_columns` dedup, so re-running picks up the failed rows and leaves the already-uploaded ones alone. |
 | `Uploaded` | Yes | Terminal success. Already finalized. | If you wrote new outputs after `Uploaded` was reached, calling commit again cycles `Uploaded → Pending_Upload → Uploaded` for the new entries (additive-upload entry point). Otherwise nothing to do. |
 | `Failed` | **Yes** | An exception was caught during the run; the state machine moved the execution to terminal-failure. **Anything that uploaded before the failure is already in the catalog. Anything still staged at the moment of failure stays staged but cannot be drained — `commit_execution` rejects `Failed` executions.** | Cannot recover this execution's staged work. Inspect what made it via `pending_summary()` (see below) and `deriva_ml_get_execution`, then start a new recovery execution (Branches C/D below). |
 | `Aborted` | Yes | Explicit `abort_execution` call. Staged outputs were destroyed at abort time. | Cannot be salvaged. The aborted execution row stays in the catalog as a provenance record but its staged work is gone. Start a new execution. |
@@ -209,13 +211,13 @@ print(summary.render())
 
 Four branches, depending on whether the staged work is salvageable and whether you need follow-on work. Each has different meanings for the catalog and your provenance trail:
 
-**Branch A — Commit-retry (execution is in `Stopped`, `Running`, or `Pending_Upload`; failure was transient).** If the staged work is correct and the failure cause was network/timeout/transient I/O, **commit with retry**:
+**Branch A — Commit-retry (execution is in `Stopped`, `Running`, or `Pending_Upload`; failure was transient).** If the staged work is correct and the failure cause was network/timeout/transient I/O, **commit again**:
 
 ```
-deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<rid>", retry_failed=True)
+deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<rid>")
 ```
 
-This drains the staged work and re-attempts any rows or assets that previously errored. The execution transitions to `Uploaded`. The provenance trail is the most natural — same execution, same workflow, same input lineage; the only "evidence" of the failure is the catalog audit log and the time gap between start and commit.
+This drains the staged work and re-attempts any rows or assets that previously errored. The bag-commit pipeline is idempotent under `match_by_columns` dedup, so already-uploaded rows are a no-op and only the failed entries are re-attempted (no separate `retry_failed=` flag needed — that was the v1.38 surface and is gone in v1.39, see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)). The execution transitions to `Uploaded`. The provenance trail is the most natural — same execution, same workflow, same input lineage; the only "evidence" of the failure is the catalog audit log and the time gap between start and commit.
 
 Use this when:
 - Execution status is `Stopped`, `Running`, or `Pending_Upload` (NOT `Failed` — that's terminal; commit will reject).
@@ -226,7 +228,7 @@ Use this when:
 **Branch B — Commit-as-is, then continue work in a new execution.** If the staged work is partially useful (e.g., 80 of 100 inference outputs were generated and you want them in the catalog) and you're done with this execution but need more work after, **commit what's there**:
 
 ```
-deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<rid>", retry_failed=False)
+deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<rid>")
 ```
 
 Then create a new execution for the remaining work — see Branch C or D for the recovery-execution pattern. Note both RIDs in `experiment-decisions.md` so the relationship is recoverable later (the catalog does not auto-link executions to their recovery successors; that lineage lives in your notes).

@@ -154,8 +154,8 @@ with ml.create_execution(config) as exe:
 
     # Your ML workflow here...
 
-# Upload AFTER context exits
-exe.upload_execution_outputs()
+# Commit AFTER context exits
+exe.commit_output_assets()
 ```
 
 What the context manager does:
@@ -163,13 +163,15 @@ What the context manager does:
 - **On exit (success)**: Records stop time, calculates duration
 - **On exit (exception)**: Sets status to "Failed", records error
 
-### Why upload is separate
+### Why commit is separate
 
-`upload_execution_outputs()` is called **outside** the context manager because:
+`commit_output_assets()` is called **outside** the context manager because:
 1. Upload can be done asynchronously for large files
-2. You can inspect outputs before uploading
-3. Partial uploads can be retried if they fail
+2. You can inspect outputs before committing
+3. Partial uploads can be re-driven by simply re-calling — the bag-commit pipeline is idempotent under `match_by_columns` dedup, so already-uploaded rows are a no-op and failed entries get re-attempted
 4. Even failed executions should upload partial results
+
+If the caller bypasses the `with` block and calls `commit_output_assets()` on a still-`Running` execution, the method auto-stops the execution first. The end state is the same: `Uploaded` (or `Failed` on error).
 
 ## Registering Output Files
 
@@ -224,17 +226,21 @@ This is a Python-API-only operation. Call it after the `with` block exits:
 
 ```python
 # Default: 50 MB chunks, 10 min timeout, 3 retries
-exe.upload_execution_outputs()
+exe.commit_output_assets()
 ```
 
-### What upload does
+### What commit does
 
 1. Finds all files registered via `asset_file_path()`
 2. Uploads each file to the object store
-3. Creates catalog records in the target asset tables
+3. Creates catalog records in the target asset tables (writing the descriptions you supplied at `asset_file_path()` time and `Upload_Duration` on every row — earlier versions silently skipped these on the post-CLI path)
 4. Assigns asset types
 5. Links each asset to the execution with role "Output"
-6. Cleans up the local staging directory (by default)
+6. Transitions the execution `Stopped → Pending_Upload → Uploaded` (or `→ Failed` on error)
+7. Cleans up the local staging directory (`clean_folder=True` by default)
+8. Returns an `UploadReport` (`total_uploaded`, `total_failed`, `per_table`, `errors`) — for per-asset paths, read `exe.uploaded_assets` after the call
+
+The call is idempotent — re-running after a partial failure picks up the failed rows and leaves the already-uploaded ones alone. See [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md) for the unification rationale.
 
 ## Tuning Uploads for Large Files
 
@@ -253,16 +259,16 @@ When uploading large files (> 1 GB), default timeouts may be insufficient.
 
 ```python
 # Large files on slow connection (30 min per chunk)
-exe.upload_execution_outputs(timeout=(1800, 1800))
+exe.commit_output_assets(timeout=(1800, 1800))
 
 # Smaller chunks if timeouts persist (25 MB)
-exe.upload_execution_outputs(chunk_size=25 * 1024 * 1024)
+exe.commit_output_assets(chunk_size=25 * 1024 * 1024)
 
 # More retries with longer delay
-exe.upload_execution_outputs(max_retries=5, retry_delay=10.0)
+exe.commit_output_assets(max_retries=5, retry_delay=10.0)
 
 # Combined: large files on slow connection
-exe.upload_execution_outputs(
+exe.commit_output_assets(
     timeout=(1800, 1800),
     chunk_size=25 * 1024 * 1024,
     max_retries=5,
@@ -366,7 +372,7 @@ export DERIVA_ML_WORKFLOW_CHECKSUM="abc123def456"
 
 For the full recovery decision tree (commit-retry vs commit-as-is vs abort-and-recover vs claim-survivors-as-inputs), see the **"Salvage a Failed Execution"** section in this skill's `SKILL.md`. Quick orientation:
 
-- An execution in `Failed`, `Stopped`, or `Pending_Upload` is salvageable — `deriva_ml_commit_execution` (optionally with `retry_failed=True`) drains the staged work and makes it visible.
+- An execution in `Failed`, `Stopped`, or `Pending_Upload` is salvageable — `deriva_ml_commit_execution` drains the staged work and makes it visible. Re-call to retry: the bag-commit pipeline is idempotent under `match_by_columns` dedup (no separate `retry_failed=` flag — that was the v1.38 surface).
 - An execution in `Aborted` is not salvageable — abort destroys staged outputs at abort time.
 - A "recovery execution" is a new execution that consumes the failed run's inputs (Branch C) or its surviving outputs (Branch D); use the `asset_rids=` parameter on `deriva_ml_create_execution` to claim existing asset RIDs as inputs.
 
@@ -409,7 +415,7 @@ with ml.create_execution(config) as exe:
     )
     output_dataset.add_dataset_members(processed_rids)
 
-exe.upload_execution_outputs()
+exe.commit_output_assets()
 ```
 
 ### MCP tool equivalent
@@ -466,9 +472,9 @@ Use the Python API: `exe.working_dir` returns the local filesystem path for the 
 | `deriva://storage/execution-dirs` | Local execution working directories |
 | Python API `exe.working_dir` | Local filesystem path for the execution |
 | `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` | Update an execution's description after the fact (description-only; status transitions go through start/commit/abort) |
-| `deriva_ml_commit_execution(hostname, catalog_id, execution_rid, retry_failed=False)` | Drain staged outputs (Running/Stopped/Failed/Pending_Upload → Uploaded). `retry_failed=True` re-attempts previously-failed rows. Also the salvage entry point — see "Recovering from a Failed Execution" |
+| `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` | Drain staged outputs (Running/Stopped/Failed/Pending_Upload → Uploaded). Re-call to retry — idempotent under `match_by_columns` dedup. Also the salvage entry point — see "Recovering from a Failed Execution" |
 | `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason=...)` | Cancel an execution; **destroys staged outputs**. Use only when staged work is bad |
 | `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` | Walk down a nested-execution tree |
 | `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` | Walk up a nested-execution tree |
 | Python API `exe.pending_summary()` | Per-table breakdown of staged / failed / uploaded counts for a resumed execution. The authoritative diagnostic for "what survived the crash". No MCP wrapper yet — Python-only |
-| Python API `exe.upload_execution_outputs()` | Upload registered files to catalog |
+| Python API `exe.commit_output_assets()` | Commit registered files to catalog — uploads bytes, writes asset rows (descriptions + `Upload_Duration`), transitions `Stopped → Pending_Upload → Uploaded`. Returns `UploadReport`; per-asset paths on `exe.uploaded_assets`. Idempotent on re-call |

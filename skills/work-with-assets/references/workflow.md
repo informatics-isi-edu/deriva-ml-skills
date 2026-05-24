@@ -158,11 +158,11 @@ Returns a `file_path` — if creating a new file, write your output to this path
 
 **Example:** To stage an existing CSV, call Python API `exe.asset_file_path()` with `asset_name`: `"Execution_Asset"`, `file_name`: `"/path/to/predictions.csv"`, `asset_types`: `["Predictions"]`, `description`: `"Per-image class predictions and probability distributions"`.
 
-### Step 3: Upload all staged files
+### Step 3: Commit all staged files
 
-Call Python API `exe.upload_execution_outputs()` with `clean_folder` (optional, default `true`) to remove the local staging directory after upload.
+Call Python API `exe.commit_output_assets()` with `clean_folder` (optional, default `true`) to remove the local staging directory after upload.
 
-This uploads all files registered via Python API `exe.asset_file_path()` to the object store, creates catalog records, assigns asset types, and links each asset to the execution with role "Output".
+This uploads all files registered via Python API `exe.asset_file_path()` to the object store, creates catalog records, assigns asset types, writes the descriptions you supplied plus `Upload_Duration`, links each asset to the execution with role "Output", and transitions the execution from `Stopped` → `Pending_Upload` → `Uploaded`. Returns an `UploadReport` (`total_uploaded`, `total_failed`, `per_table`, `errors`); per-asset path data is on `exe.uploaded_assets`. The call is idempotent — re-running after a partial failure resumes the failed rows and leaves the already-uploaded ones alone.
 
 ### Step 4: Commit (or abort) the execution
 
@@ -199,7 +199,7 @@ with ml.create_execution(config) as exe:
     )
 
     # Upload happens automatically when context manager exits
-    # Or call: exe.upload_execution_outputs()
+    # Or call: exe.commit_output_assets()
 ```
 
 ## Asset Types

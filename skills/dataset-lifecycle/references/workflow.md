@@ -74,7 +74,7 @@ For multi-table additions, pass multiple keys:
 
 **Step 5: Finalize**
 
-Call `deriva_ml_commit_execution` with the execution RID. (No need to call Python API `exe.upload_execution_outputs()` — dataset operations don't produce output files. If something went wrong, call `deriva_ml_abort_execution` instead.)
+Call `deriva_ml_commit_execution` with the execution RID. (No need to call Python API `exe.commit_output_assets()` — dataset operations don't produce output files. If something went wrong, call `deriva_ml_abort_execution` instead.)
 
 ### Python API
 
@@ -145,7 +145,7 @@ Start from the **Base Script Template** in the `catalog-operations-workflow` ski
 3. **Register a workflow.** `ml.create_workflow(name="…", workflow_type="Dataset_Split", description="…")`. URL and checksum are filled in automatically from the script's git context.
 4. **Open an execution.** `with ml.create_execution(ExecutionConfiguration(workflow=workflow, description="…")) as exe:` — the splits happen inside.
 5. **Call `split_dataset(ml, source_rid, exe, ...)`** for each split. Reuse the same `exe` across related splits so the lineage stays coherent.
-6. **Commit.** `exe.upload_execution_outputs(clean_folder=True)` after the `with` block.
+6. **Commit.** `exe.commit_output_assets(clean_folder=True)` after the `with` block.
 
 Run with `uv run python src/scripts/<your_split>.py --hostname … --catalog-id … --dry-run` first, inspect the printed plan, then re-run without `--dry-run` to commit.
 
@@ -309,7 +309,7 @@ with ml.create_execution(config) as exe:
     )
     print(f"Training: {result.training.rid}, Testing: {result.testing.rid}")
 
-exe.upload_execution_outputs(clean_folder=True)
+exe.commit_output_assets(clean_folder=True)
 ```
 
 ## Bootstrap dataset (no source dataset)
@@ -346,7 +346,7 @@ Use this when creating the **first dataset** from records already in the catalog
            test_size=0.2, seed=42, dry_run=True,  # preview first
        )
        # Inspect `result`, then re-run with dry_run=False to commit.
-   exe.upload_execution_outputs(clean_folder=True)
+   exe.commit_output_assets(clean_folder=True)
    ```
 
 ## MCP-tool-only path (trivial cases)

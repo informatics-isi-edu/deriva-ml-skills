@@ -142,10 +142,10 @@ There are no papermill parameter cells, no tagged cells, no manual connection se
 **The upload cell** (last code cell):
 
 ```python
-execution.upload_execution_outputs()
+execution.commit_output_assets()
 ```
 
-This uploads all files registered via `execution.asset_file_path()` to the catalog. Place it as the final cell so all outputs are captured.
+This commits all files registered via `execution.asset_file_path()` to the catalog — uploads bytes, writes asset rows (including any descriptions you supplied and the `Upload_Duration`), and transitions the execution to `Uploaded`. Place it as the final cell so all outputs are captured. The call is idempotent, so re-running the notebook after a partial failure resumes from the last good state.
 
 **Saving output files** — use `asset_file_path()` to register files for upload:
 
@@ -373,7 +373,7 @@ uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb assets=roc_lr_sweep
 
 - [ ] Config module created in `src/configs/`
 - [ ] `run_notebook("<name>")` call in first cell matches config name
-- [ ] `upload_execution_outputs()` in final cell
+- [ ] `commit_output_assets()` in final cell
 - [ ] Runs end-to-end with Restart & Run All
 - [ ] Outputs cleared, code committed, version bumped
 

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I have a trained model weights file (model_v3.pt, about 2 GB) that I want to upload to the catalog so my team can use it. How do I do this?",
-      "expected_output": "Should explain that assets must be uploaded within an execution for provenance. Should show the execution lifecycle: deriva_ml_create_execution, deriva_ml_start_execution, asset_file_path to register the file, upload_execution_outputs to upload. Should mention that asset_file_path returns a path to write to or stages an existing file. Should NOT suggest directly inserting into a table.",
+      "expected_output": "Should explain that assets must be uploaded within an execution for provenance. Should show the execution lifecycle: deriva_ml_create_execution, deriva_ml_start_execution, asset_file_path to register the file, commit_output_assets to commit and upload. Should mention that asset_file_path returns a path to write to or stages an existing file. Should NOT suggest directly inserting into a table.",
       "files": []
     },
     {

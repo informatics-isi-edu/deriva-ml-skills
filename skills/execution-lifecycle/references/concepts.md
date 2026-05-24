@@ -263,7 +263,7 @@ deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
 # ... child work ...
 deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="1-CHILD1")
-# Then upload outputs via the Python API: exe.upload_execution_outputs()
+# Then commit outputs via the Python API: exe.commit_output_assets()
 
 # Link child to parent
 deriva_ml_add_nested_execution(hostname="data.example.org", catalog_id="1",
@@ -341,21 +341,25 @@ Registered files are **not yet in the catalog** — they exist only in the local
 
 ### Uploading outputs
 
-After the execution's work is complete, call Python API `exe.upload_execution_outputs()` to upload all registered files to the catalog in one batch. This:
+After the execution's work is complete, call Python API `exe.commit_output_assets()` to commit all registered files to the catalog in one batch. This:
 
 1. Uploads each staged file to the object store
-2. Creates asset records in the appropriate asset tables
+2. Creates asset records in the appropriate asset tables (writing the descriptions you supplied at `asset_file_path()` time and the `Upload_Duration` on every row)
 3. Links each asset to the execution with role "Output"
-4. Optionally cleans up the local staging directory
+4. Transitions the execution `Stopped → Pending_Upload → Uploaded` (or `→ Failed` on error)
+5. Optionally cleans up the local staging directory (`clean_folder=True` by default)
+6. Returns an `UploadReport` (`total_uploaded`, `total_failed`, `per_table`, `errors`) — for per-asset path data, read `exe.uploaded_assets` after the call
 
-Until Python API `exe.upload_execution_outputs()` is called, output files exist only locally. This is a deliberate design — it allows the execution to complete (or fail) without partial uploads.
+If the caller bypasses the `with` block and calls `commit_output_assets()` on a still-`Running` execution, the method auto-stops the execution first; the end state is the same `Uploaded`. The call is idempotent — re-running after a partial failure picks up the failed rows and leaves the already-uploaded ones alone (no separate `retry_failed=` flag needed — that was the v1.38 surface, see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)).
+
+Until Python API `exe.commit_output_assets()` is called, output files exist only locally. This is a deliberate design — it allows the execution to complete (or fail) without partial uploads.
 
 ### Recording feature values
 
-An execution can also produce **feature values** — structured annotations on catalog records (e.g., per-image classification labels, confidence scores). Like output files, feature values are **staged locally** and uploaded when Python API `exe.upload_execution_outputs()` is called:
+An execution can also produce **feature values** — structured annotations on catalog records (e.g., per-image classification labels, confidence scores). Like output files, feature values are **staged locally** and uploaded when Python API `exe.commit_output_assets()` is called:
 
 - In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution.
-- In Python, call `execution.add_features(records)`. This writes JSONL files to disk in the execution's `feature/` directory — the catalog is not updated until `upload_execution_outputs()` runs.
+- In Python, call `execution.add_features(records)`. This writes JSONL files to disk in the execution's `feature/` directory — the catalog is not updated until `commit_output_assets()` runs.
 
 Both output files and feature values are linked to the execution for provenance. For creating features and populating values, see the `create-feature` skill.
 
@@ -431,7 +435,7 @@ with ml.create_execution(config) as exe:
 **Key points:**
 - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start_execution` tool) and to `Completed` (or `Failed`/`Aborted` on exception) on exit (equivalent to MCP `deriva_ml_commit_execution` / `deriva_ml_abort_execution`).
 - If an exception occurs, status is set to "Failed" automatically
-- Call `upload_execution_outputs()` **after** exiting the `with` block, not inside it
+- Call `commit_output_assets()` **after** exiting the `with` block, not inside it (or omit it entirely and let the context manager's auto-stop drive the commit on exit; if you bypass `with`, the method auto-stops a still-`Running` execution before draining)
 - When using `deriva-ml-run`, upload is handled automatically by the runner
 
 ## Execution Working Directory
@@ -463,7 +467,7 @@ Every execution automatically captures four types of metadata, uploaded to the `
 | `Execution_Config` | `uv.lock` — the environment lock file capturing exact dependency versions | On execution creation (when present in the project) |
 | `Runtime_Env` | Python and system environment snapshot — Python version, platform, installed packages, environment variables | On execution creation |
 
-These metadata files are uploaded automatically during `upload_execution_outputs()`. You do not need to register them manually — they are created and staged by the execution lifecycle.
+These metadata files are uploaded automatically during `commit_output_assets()`. You do not need to register them manually — they are created and staged by the execution lifecycle.
 
 **Why this matters:** If a model produces unexpected results, the metadata lets you reconstruct the exact software environment (`uv.lock`), configuration (`Deriva_Config`, `Hydra_Config`), and runtime context (`Runtime_Env`) that produced them.
 

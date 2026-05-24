@@ -204,7 +204,7 @@ execution.asset_file_path("Execution_Asset", existing_file_path)
 
 Use `"Execution_Asset"` for all model-produced files. Use a domain asset table (e.g., `"Image"`, `"Model"`) only when outputs should be queryable as first-class catalog entities with custom metadata.
 
-**Upload happens automatically** after the model function returns and the execution context manager exits. You never call `upload_execution_outputs()` from inside the model function.
+**Upload happens automatically** after the model function returns and the execution context manager exits. You never call `commit_output_assets()` from inside the model function.
 
 ## Recording Feature Values
 
@@ -225,7 +225,7 @@ records = [
 execution.add_features(records)
 ```
 
-`add_features()` automatically sets the Execution field on each record. Like output files, feature values are staged locally as JSONL files in the execution's `feature/` directory and uploaded to the catalog when `upload_execution_outputs()` runs after the model completes.
+`add_features()` automatically sets the Execution field on each record. Like output files, feature values are staged locally as JSONL files in the execution's `feature/` directory and uploaded to the catalog when `commit_output_assets()` runs after the model completes.
 
 ## Complete Data Flow
 

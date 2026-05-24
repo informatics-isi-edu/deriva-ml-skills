@@ -142,7 +142,7 @@ The `deriva-ml-run-notebook` command is the production execution path. It wraps 
 
 6. **Asset registration** — registers both the executed `.ipynb` and the `.md` as `Execution_Asset` records with type `notebook_output`
 
-7. **Upload** — calls `upload_execution_outputs()` which uploads:
+7. **Commit** — calls `commit_output_assets()` which uploads:
    - The executed `.ipynb` (with all cell outputs preserved)
    - The `.md` conversion (human-readable, renders in catalog UI)
    - Any assets the notebook itself registered via `asset_file_path()`
@@ -263,7 +263,7 @@ uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb --info
 | Outputs still in committed notebook | `nbstripout` not installed | Run `uv run nbstripout --install` |
 | `PapermillExecutionError` | A cell raised an exception during CLI run | Check the output notebook for the traceback |
 | `AuthenticationError` during execution | Credentials expired mid-run | Re-authenticate and re-run |
-| Files not appearing in catalog | `upload_execution_outputs()` not called or not in final cell | Add it as the last code cell |
+| Files not appearing in catalog | `commit_output_assets()` not called or not in final cell | Add it as the last code cell |
 | Dry run skips upload | Expected behavior | Remove `dry_run=true` for production runs |
 | `--config` doesn't change notebook behavior | `--config` is a CLI flag, not a Hydra override | Use positional overrides: `assets=other_assets` |
 | Config attribute missing on `config` object | Custom parameter not in the config dataclass | Add it to your `BaseConfig` subclass |

@@ -101,7 +101,7 @@ def main():
         # Perform operations
         ...
 
-    execution.upload_execution_outputs()
+    execution.commit_output_assets()
 
 if __name__ == "__main__":
     sys.exit(main())
@@ -116,7 +116,7 @@ Key elements:
 - `ExecutionConfiguration` takes `description` (and optionally `datasets`, `assets`); the `workflow` goes to `create_execution()` separately
 - `ml.pathBuilder()` is a **method call** (not a property) — use `pb = ml.pathBuilder()`
 - `pb.schemas[schema].tables[table].entities()` returns a lazy iterator — wrap with `list()` to materialize
-- `execution.upload_execution_outputs()` is called **after** the `with` block — the execution object remains valid for upload after the context closes
+- `execution.commit_output_assets()` is called **after** the `with` block — the execution object remains valid for upload after the context closes
 - Wrap `DerivaML()` in try/except for connection errors
 - **Do NOT add CLI entry points** in `pyproject.toml` for these scripts. They are one-time catalog operations, not reusable tools. Run with `uv run python src/scripts/<script>.py`.
 
@@ -154,7 +154,7 @@ with ml.create_execution(config, workflow=workflow, dry_run=args.dry_run) as exe
         {args.table: all_rids}, validate=False
     )
 
-execution.upload_execution_outputs()
+execution.commit_output_assets()
 ```
 
 ---
@@ -206,7 +206,7 @@ with ml.create_execution(config, workflow=workflow, dry_run=args.dry_run) as exe
         records.append(RecordClass(Image=image_rid, Severity_Grade=severity))
     execution.add_features(records)
 
-execution.upload_execution_outputs()
+execution.commit_output_assets()
 ```
 
 ---
@@ -225,5 +225,5 @@ with ml.create_execution(config, workflow=workflow, dry_run=args.dry_run) as exe
     table = pb.schemas[ml.default_schema].tables["TargetTable"]
     table.insert(transform(data))
 
-execution.upload_execution_outputs()
+execution.commit_output_assets()
 ```

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I want to create a new analysis notebook that loads a dataset, computes some metrics, and saves a plot. What's the basic structure?",
-      "expected_output": "Should show the three-stage development cycle: interactive → restart-and-run-all → CLI production. Should show the config module with notebook_config(). Should show the initialization cell with run_notebook() returning ml, execution, config. Should show asset_file_path for saving output plots. Should show upload_execution_outputs() as the final cell.",
+      "expected_output": "Should show the three-stage development cycle: interactive → restart-and-run-all → CLI production. Should show the config module with notebook_config(). Should show the initialization cell with run_notebook() returning ml, execution, config. Should show asset_file_path for saving output plots. Should show commit_output_assets() as the final cell.",
       "files": []
     },
     {
