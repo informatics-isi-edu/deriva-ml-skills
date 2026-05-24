@@ -145,13 +145,16 @@ Assets are created as part of the execution lifecycle — you register files dur
 
 2. **Write to the path** — save your model weights, predictions, plots, etc. to the returned path
 
-3. **Upload all at once** — call `upload_execution_outputs()` after the execution completes. This:
+3. **Commit all at once** — call `commit_output_assets()` after the execution completes. This:
    - Uploads each staged file to the object store
    - Computes the MD5 checksum automatically
    - Records the file size (Length) automatically
    - Creates asset records in the catalog with Filename, URL, Length, MD5
+   - Writes any descriptions you supplied to `asset_file_path(..., description=...)` and the `Upload_Duration` on each row
    - Links each asset to the execution with role "Output"
    - Applies any asset types specified during registration
+   - Transitions the execution from `Stopped` → `Pending_Upload` → `Uploaded` (or `Failed` on error)
+   - Returns an `UploadReport` with `total_uploaded`, `total_failed`, `per_table` counts, and `errors`; for per-asset paths, read `exe.uploaded_assets` after the call. Re-calling `commit_output_assets()` after a partial failure is a no-op on already-uploaded rows (idempotent under `match_by_columns` dedup) and retries the failed ones.
 
 ### What metadata is captured automatically
 
@@ -196,7 +199,7 @@ This bidirectional tracking means you can answer two key questions:
 - "Where did this asset come from?" — find the execution with role "Output"
 - "What used this asset?" — find all executions with role "Input"
 
-Provenance is recorded automatically: uploading via Python API `exe.upload_execution_outputs()` records "Output" links, and downloading via Python API `ml.download_asset(rid)` within an execution records "Input" links.
+Provenance is recorded automatically: committing via Python API `exe.commit_output_assets()` records "Output" links, and downloading via Python API `ml.download_asset(rid)` within an execution records "Input" links.
 
 ## Creating an Asset Table (Manual Recipe)
 
@@ -271,7 +274,7 @@ The `Execution_Metadata` and `Execution_Asset` tables serve different roles:
 
 These metadata files ensure full reproducibility — given the same code commit and metadata, an execution can be recreated exactly.
 
-**Execution_Asset** stores user output files — the artifacts your code explicitly produces. These are the files you register with `exe.asset_file_path()` and upload with `exe.upload_execution_outputs()`. Examples include model weights, prediction CSVs, plots, and evaluation metrics.
+**Execution_Asset** stores user output files — the artifacts your code explicitly produces. These are the files you register with `exe.asset_file_path()` and commit with `exe.commit_output_assets()`. Examples include model weights, prediction CSVs, plots, and evaluation metrics.
 
 **Key distinction:** Execution_Metadata is written by the framework (you never create these entries). Execution_Asset is written by your code (you explicitly register and upload these files).
 
@@ -284,4 +287,4 @@ When running notebooks via `deriva-ml-run-notebook`, the framework automatically
 | The executed `.ipynb` file | The full notebook with all cell outputs (plots, tables, printed values) |
 | A converted `.md` file | A Markdown version of the executed notebook, suitable for quick review without Jupyter |
 
-These are uploaded automatically — you do not need to call `exe.asset_file_path()` or `exe.upload_execution_outputs()` for them. They appear as `Execution_Asset` records linked to the notebook's execution with role "Output".
+These are uploaded automatically — you do not need to call `exe.asset_file_path()` or `exe.commit_output_assets()` for them. They appear as `Execution_Asset` records linked to the notebook's execution with role "Output".

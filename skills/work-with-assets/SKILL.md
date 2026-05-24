@@ -17,7 +17,7 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 ## Critical Rules
 
 1. **Use RIDs to reference assets** — not filenames or URLs. RIDs are immutable and unique.
-2. **Upload within an execution** — assets must be registered with Python API `exe.asset_file_path()` and uploaded with Python API `exe.upload_execution_outputs()` inside an active execution for provenance tracking.
+2. **Upload within an execution** — assets must be registered with Python API `exe.asset_file_path()` and committed with Python API `exe.commit_output_assets()` inside an active execution for provenance tracking.
 3. **Download records provenance automatically** — calling Python API `ml.download_asset(rid)` within an execution links the asset as an "Input" to that execution.
 4. **Create the asset table before uploading** — the table must exist before you can register files for upload to it.
 
@@ -51,7 +51,7 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 
 1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` — start provenance tracking. Capture the returned `execution_rid`.
 2. Python API `exe.asset_file_path()` — register each output file for upload (returns a path to write to).
-3. Python API `exe.upload_execution_outputs()` — upload all registered files to the object store and catalog.
+3. Python API `exe.commit_output_assets()` — commit all registered output files (uploads bytes, writes catalog rows, sets descriptions and `Upload_Duration`, transitions the execution to `Uploaded`). Returns an `UploadReport`; for per-asset paths, read `exe.uploaded_assets` after the call.
 4. `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — finalize on success (use `deriva_ml_abort_execution` on failure).
 
 ### Managing asset types
