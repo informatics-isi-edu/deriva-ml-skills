@@ -433,10 +433,10 @@ with ml.create_execution(config) as exe:
 ```
 
 **Key points:**
-- The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start_execution` tool) and to `Completed` (or `Failed`/`Aborted` on exception) on exit (equivalent to MCP `deriva_ml_commit_execution` / `deriva_ml_abort_execution`).
-- If an exception occurs, status is set to "Failed" automatically
-- Call `commit_output_assets()` **after** exiting the `with` block, not inside it (or omit it entirely and let the context manager's auto-stop drive the commit on exit; if you bypass `with`, the method auto-stops a still-`Running` execution before draining)
-- When using `deriva-ml-run`, upload is handled automatically by the runner
+- The `with` block automatically transitions the execution to `Running` on entry and to `Stopped` (or `Failed` on exception) on exit.
+- If an exception occurs, status is set to `Failed` automatically and the exception propagates.
+- Call `commit_output_assets()` **after** exiting the `with` block, not inside it. The context manager's `__exit__` only sets status to `Stopped`/`Failed`; `commit_output_assets()` is the call that uploads staged bytes, writes asset rows, and transitions `Stopped → Pending_Upload → Uploaded`.
+- When using `deriva-ml-run`, upload is handled automatically by the runner.
 
 ## Execution Working Directory
 

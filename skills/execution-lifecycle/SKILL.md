@@ -109,7 +109,7 @@ Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/d
 1. **Validate before running** — typed reads (`deriva_ml_get_dataset`, `get_entities`) plus `deriva_ml_bag_info` catch config errors early
 2. **Dry run first** — test with `dry_run=True` before production runs
 3. **Every execution needs a workflow** — find with `deriva_ml_find_workflow_by_url` or let `deriva_ml_create_execution` create one
-4. **Commit AFTER the with block** — `exe.commit_output_assets()` goes after `with`, not inside (or omit it entirely and let the context manager's auto-stop drive the commit on exit). Re-call if the first attempt partially failed — the bag-commit pipeline is idempotent.
+4. **Commit AFTER the with block** — `exe.commit_output_assets()` goes after `with`, not inside. The context manager's `__exit__` sets status to `Stopped` (or `Failed`); `commit_output_assets()` is what then transitions `Stopped → Pending_Upload → Uploaded`. Re-call if the first attempt partially failed — the bag-commit pipeline is idempotent.
 5. **Use Python API `exe.asset_file_path()` for all outputs** — never manually place files in the working directory
 6. **Commit code before running** — DerivaML raises `DerivaMLDirtyWorkflowError` if uncommitted changes exist. Use `--allow-dirty` only for debugging.
 

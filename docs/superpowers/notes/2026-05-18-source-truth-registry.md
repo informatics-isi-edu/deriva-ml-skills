@@ -291,8 +291,11 @@ Always use as `with ml.create_execution(...) as exe:`. Public methods:
 This is the single per-execution output-commit entry point (ADR-0009).
 Uploads staged asset bytes to Hatrac and writes asset rows to the
 catalog in one call. Idempotent on re-call (the bag-commit pipeline
-resumes partial work). Call after the `with` block exits, or omit and
-let the context manager's auto-stop drive the commit on exit.
+resumes partial work). **Call after the `with` block exits, not
+inside it.** The context manager's `__exit__` sets status to
+`Stopped` (or `Failed` on exception) but does not commit assets;
+`commit_output_assets()` is what transitions `Stopped → Pending_Upload
+→ Uploaded`.
 
 ### B.10 `ExecutionRecord` (live catalog-backed)
 
@@ -617,7 +620,7 @@ Standard CLI conventions:
 - Task-specific arguments named after their semantic role
 - No hardcoded host / catalog / vocab values
 - Workflow type passed in, not hardcoded
-- `execution.commit_output_assets()` AFTER the `with` block, never inside (or omit and let the context manager's auto-stop drive the commit on exit). Idempotent on re-call.
+- `execution.commit_output_assets()` AFTER the `with` block, never inside. Idempotent on re-call.
 
 ### E.2 MCP-tool vs Python boundary
 
