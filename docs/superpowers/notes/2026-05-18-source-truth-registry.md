@@ -1,5 +1,15 @@
 # Source-truth registry — 2026-05-18
 
+> **2026-05-24 refresh.** Re-extracted against deriva-ml v1.39
+> ([PR #224](https://github.com/informatics-isi-edu/deriva-ml/pull/224))
+> and deriva-ml-mcp HEAD (45 entries). Material changes since the
+> first cut: the four legacy upload entry points
+> (`Execution.upload_outputs`, `Execution.upload_execution_outputs`,
+> `ExecutionSnapshot.upload_outputs`, `DerivaML.upload_pending`) have
+> been unified per ADR-0009 into **`Execution.commit_output_assets()`**
+> + **`DerivaML.commit_pending_executions()`**. Two new MCP tools
+> registered: `deriva_ml_find_assets`, `deriva_ml_find_experiments`.
+
 Canonical reference of every API surface skills in this plugin are
 allowed to mention. Built directly from `deriva-ml` HEAD and
 `deriva-ml-mcp` HEAD via AST inspection — no human transcription of
@@ -18,18 +28,20 @@ this file, then sweep any newly-stale skill mentions.
 
 ---
 
-## Section A — MCP tools (43 entries: 41 tools + 2 prompts)
+## Section A — MCP tools (45 entries: 43 tools + 2 prompts)
 
 Every entry below was extracted by AST-walking `deriva-ml-mcp/src/`
 for `@ctx.tool` and `@ctx.prompt` decorators on `deriva_ml_*` names.
 
-### A.1 Tools — read-only (28)
+### A.1 Tools — read-only (30)
 
 | Tool | Signature | Source |
 |---|---|---|
 | `deriva_ml_bag_info` | `(hostname, catalog_id, dataset_rid, version, exclude_tables=None)` | read.py:741 |
 | `deriva_ml_bootstrap_config` | `(hostname, catalog_id, kinds=None, dataset_type_filter=None)` | read.py:1096 |
 | `deriva_ml_denormalize_dataset` | `(hostname, catalog_id, include_tables, dataset_rid=None, version=None, row_per=None, via=None, limit, after_rid=None, preflight_count=False)` | complex.py:88 |
+| `deriva_ml_find_assets` | `(hostname, catalog_id, asset_type=None, asset_table=None, limit=100, after_rid=None, preflight_count=False)` | asset.py |
+| `deriva_ml_find_experiments` | `(hostname, catalog_id, workflow_rid=None, status=None, limit=100, after_rid=None, preflight_count=False)` | execution/read.py |
 | `deriva_ml_find_workflow_by_url` | `(hostname, catalog_id, url_or_checksum)` | workflow.py:293 |
 | `deriva_ml_find_workflow_executions` | `(hostname, catalog_id, workflow_rid, status=None, limit, after_rid=None, preflight_count=False, sort=False)` | read.py:537 |
 | `deriva_ml_get_dataset` | `(hostname, catalog_id, dataset_rid, include_history=False)` | read.py:365 |
@@ -154,7 +166,7 @@ Construct via `DerivaML(host, catalog_id, ...)` or `from_context()`.
 - `lookup_experiment(execution_rid) -> Experiment`
 - `find_experiments(workflow_rid=None, status=None) -> Iterable[Experiment]`
 - `pending_summary() -> WorkspacePendingSummary`
-- `upload_pending(execution_rids=None, retry_failed=False) -> UploadReport`
+- `commit_pending_executions(execution_rids=None, clean_folder=False) -> UploadReport`
 - `lookup_lineage(rid, depth=None, max_executions) -> LineageResult`
 
 ### B.3 DatasetMixin (methods on `DerivaML`)
@@ -272,9 +284,15 @@ Always use as `with ml.create_execution(...) as exe:`. Public methods:
 - `metrics_file(filename='metrics.jsonl') -> AssetFilePath`
 - `table_path(table) -> Path`
 
-**Upload (post-`with`):**
-- `upload_outputs(retry_failed=False) -> UploadReport`
+**Commit (post-`with`):**
+- `commit_output_assets(clean_folder=None, progress_callback=None) -> UploadReport`
 - `pending_summary() -> PendingSummary`
+
+This is the single per-execution output-commit entry point (ADR-0009).
+Uploads staged asset bytes to Hatrac and writes asset rows to the
+catalog in one call. Idempotent on re-call (the bag-commit pipeline
+resumes partial work). Call after the `with` block exits, or omit and
+let the context manager's auto-stop drive the commit on exit.
 
 ### B.10 `ExecutionRecord` (live catalog-backed)
 
@@ -299,8 +317,9 @@ Returned by `ml.list_executions()` and `ml.find_incomplete_executions()`. SQLite
 
 - `from_row(cls, row, pending_rows, failed_rows, pending_files, failed_files) -> ExecutionSnapshot`
 - `pending_summary(ml) -> PendingSummary`
-- `upload_outputs(ml, retry_failed=False) -> UploadReport`
 - `update_status(target, ml, error=None) -> None`
+
+For output commits, look up the live Execution via `ml.resume_execution(rid)` and call `commit_output_assets()` on it, or call `ml.commit_pending_executions(execution_rids=[rid])` for a bulk commit.
 
 ### B.12 `Dataset` (catalog-backed)
 
@@ -390,7 +409,9 @@ canonical replacement to use instead.
 | `table_path` | private; no public replacement |
 | `AssetRIDConfig` | `AssetSpec` (runtime Pydantic) / `AssetSpecConfig` (hydra-zen) |
 | `Status` enum | `ExecutionStatus` (see §D.1) |
-| `upload_execution_outputs` | `exe.upload_outputs(retry_failed=False)` |
+| `upload_execution_outputs` | `exe.commit_output_assets()` |
+| `upload_outputs` (on `Execution` or `ExecutionSnapshot`) | `exe.commit_output_assets()` (per-execution) |
+| `upload_pending` (on `DerivaML`) | `ml.commit_pending_executions(execution_rids=...)` (bulk) |
 
 ---
 
@@ -581,8 +602,8 @@ def main() -> int:
         #      execution.create_dataset(...)
         ...
 
-    # Upload happens AFTER the with block.
-    execution.upload_outputs()
+    # Commit output assets AFTER the with block. Idempotent on re-call.
+    execution.commit_output_assets()
     return 0
 
 
@@ -596,7 +617,7 @@ Standard CLI conventions:
 - Task-specific arguments named after their semantic role
 - No hardcoded host / catalog / vocab values
 - Workflow type passed in, not hardcoded
-- `execution.upload_outputs()` AFTER the `with` block, never inside
+- `execution.commit_output_assets()` AFTER the `with` block, never inside (or omit and let the context manager's auto-stop drive the commit on exit). Idempotent on re-call.
 
 ### E.2 MCP-tool vs Python boundary
 
