@@ -1,6 +1,6 @@
 ---
 name: execution-lifecycle
-description: "ALWAYS use this skill when running ML experiments, creating executions, managing workflow provenance, pre-flight validation, or configuring experiment runs in DerivaML. Covers the full execution lifecycle: pre-flight checks (validate RIDs, check cache, cache data), creating and running executions via MCP tools or Python API, managing inputs/outputs with provenance, uploading results, nested executions, dry runs, and the deriva-ml-run CLI. After an execution completes and uploads its output assets (model weights, prediction CSVs, plots, etc.), proactively offer to wire the resulting asset RIDs into src/configs/assets.py so downstream experiments can pin them — this skill owns the bulk-output offer (the per-asset scope lives in work-with-assets). Triggers on: 'run experiment', 'create execution', 'execution lifecycle', 'upload outputs', 'pre-flight', 'dry run', 'validate before running', 'cache dataset', 'workflow provenance', 'deriva-ml-run', 'multirun', 'sweep', 'check git before running', 'nested execution', 'track my work', 'wire outputs into config', 'add output assets to assets.py'."
+description: "ALWAYS use this skill when running ML experiments, creating executions, managing workflow provenance, pre-flight validation, or configuring experiment runs in DerivaML. Covers the full execution lifecycle: pre-flight checks (validate RIDs, check cache, cache data), creating and running executions via MCP tools or Python API, managing inputs/outputs with provenance, committing results via the unified commit_output_assets API, nested executions, dry runs, and the deriva-ml-run CLI. After an execution completes and commits its output assets (model weights, prediction CSVs, plots, etc.), proactively offer to wire the resulting asset RIDs into src/configs/assets.py so downstream experiments can pin them — this skill owns the bulk-output offer (the per-asset scope lives in work-with-assets). Triggers on: 'run experiment', 'create execution', 'execution lifecycle', 'commit outputs', 'upload outputs', 'commit_output_assets', 'pre-flight', 'dry run', 'validate before running', 'cache dataset', 'workflow provenance', 'deriva-ml-run', 'multirun', 'sweep', 'check git before running', 'nested execution', 'track my work', 'wire outputs into config', 'add output assets to assets.py'."
 ---
 
 # Execution Lifecycle in DerivaML
@@ -56,7 +56,7 @@ The lifecycle is the same regardless of path:
 2. Start → download inputs → do work → register outputs → stop
 3. Upload outputs to catalog
 
-**I/O goes through the Python API**, not MCP tools: `exe.download_dataset_bag()`, `exe.asset_file_path()`, `exe.upload_execution_outputs()`. MCP tools handle lifecycle state transitions; Python handles file I/O.
+**I/O goes through the Python API**, not MCP tools: `exe.download_dataset_bag()`, `exe.asset_file_path()`, `exe.commit_output_assets()`. MCP tools handle lifecycle state transitions; Python handles file I/O. The unified `commit_output_assets()` API (deriva-ml v1.39+; see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)) replaces the four legacy upload methods (`upload_execution_outputs`, `upload_outputs`, snapshot `upload_outputs`, `upload_pending`) — one method, one surface, idempotent on re-call.
 
 **Automatic metadata:** Every execution captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records — see `references/concepts.md`.
 
@@ -82,7 +82,7 @@ The scope is distinct from `work-with-assets`'s offer:
 
 | Scope | When the offer fires | Who owns |
 |---|---|---|
-| Bulk output of a completed run (N assets at once) | `exe.upload_execution_outputs()` finishes; `deriva_ml_get_execution` lists the new asset RIDs | `execution-lifecycle` (this skill) |
+| Bulk output of a completed run (N assets at once) | `exe.commit_output_assets()` returns an `UploadReport`; `deriva_ml_get_execution` lists the new asset RIDs | `execution-lifecycle` (this skill) |
 | Single-asset creation / registration / upload (one at a time, intentional) | a single new asset RID becomes visible | `work-with-assets` |
 
 Sample wording (multi-asset case is the common one for executions):
@@ -109,7 +109,7 @@ Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/d
 1. **Validate before running** — typed reads (`deriva_ml_get_dataset`, `get_entities`) plus `deriva_ml_bag_info` catch config errors early
 2. **Dry run first** — test with `dry_run=True` before production runs
 3. **Every execution needs a workflow** — find with `deriva_ml_find_workflow_by_url` or let `deriva_ml_create_execution` create one
-4. **Upload AFTER the with block** — `exe.upload_execution_outputs()` goes after `with`, not inside
+4. **Commit AFTER the with block** — `exe.commit_output_assets()` goes after `with`, not inside (or omit it entirely and let the context manager's auto-stop drive the commit on exit). Re-call if the first attempt partially failed — the bag-commit pipeline is idempotent.
 5. **Use Python API `exe.asset_file_path()` for all outputs** — never manually place files in the working directory
 6. **Commit code before running** — DerivaML raises `DerivaMLDirtyWorkflowError` if uncommitted changes exist. Use `--allow-dirty` only for debugging.
 

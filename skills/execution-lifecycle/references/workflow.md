@@ -39,7 +39,7 @@ Step-by-step MCP tool and Python API examples for running executions. For backgr
 | Python API `exe.download_dataset_bag()` | Download dataset as BDBag within execution |
 | Python API `ml.download_asset(rid)` | Download individual asset within execution |
 | Python API `exe.asset_file_path()` | Register output file for upload |
-| Python API `exe.upload_execution_outputs()` | Upload all registered files to catalog |
+| Python API `exe.commit_output_assets()` | Commit all registered files to catalog — uploads bytes, writes asset rows (descriptions + `Upload_Duration`), transitions `Stopped → Pending_Upload → Uploaded`. Returns an `UploadReport`; per-asset paths on `exe.uploaded_assets`. Idempotent on re-call. The unified replacement for the legacy `upload_execution_outputs` / `upload_outputs` / `upload_pending` family (deriva-ml v1.39+, ADR-0009) |
 | `deriva_ml_get_execution` | Execution details by RID |
 | `deriva_ml_add_nested_execution` | Link parent-child executions |
 | `deriva_ml_list_execution_children` | Navigate parent → children (supports `recurse`) |
@@ -124,9 +124,9 @@ On failure: call `deriva_ml_abort_execution(hostname, catalog_id, execution_rid,
 
 For mid-run progress recording, use the Python API's `metrics_file` (write JSON-lines to a metrics file as the run progresses) — the catalog itself does not support arbitrary status transitions or free-form progress messages on the Execution row. To update an execution's description after the fact, use `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` (description-only; status changes go through start/commit/abort).
 
-**Step 7: Upload outputs.**
+**Step 7: Commit outputs.**
 
-Call Python API `exe.upload_execution_outputs()` to upload all registered files to the catalog. Optionally set `clean_folder` to `false` to keep local staging files.
+Call Python API `exe.commit_output_assets()` to commit all registered files to the catalog — uploads bytes, writes asset rows (including descriptions you supplied and `Upload_Duration`), and transitions the execution `Stopped → Pending_Upload → Uploaded`. Optionally set `clean_folder` to `false` to keep local staging files. Returns an `UploadReport`; for per-asset paths, read `exe.uploaded_assets` after the call. Re-call to retry on partial failure — the bag-commit pipeline is idempotent under `match_by_columns` dedup.
 
 **Important:** Every lifecycle call takes the explicit `execution_rid` you captured in Step 1. There is no implicit active execution.
 
@@ -177,8 +177,8 @@ with ml.create_execution(config) as exe:
 **Key points:**
 - The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start_execution` tool) and to `Completed` (or `Failed`/`Aborted` on exception) on exit (equivalent to MCP `deriva_ml_commit_execution` / `deriva_ml_abort_execution`).
 - If an exception occurs inside the block, status is set to "Failed" automatically.
-- Call `upload_execution_outputs()` **after** exiting the `with` block, not inside it.
-- When using `deriva-ml-run`, upload is handled automatically by the runner.
+- Call `commit_output_assets()` **after** exiting the `with` block, not inside it. (If you bypass the `with` block, `commit_output_assets()` auto-stops a still-`Running` execution before draining — the end state is the same `Uploaded`.)
+- When using `deriva-ml-run`, the commit is handled automatically by the runner.
 
 ## CLI: deriva-ml-run
 
@@ -250,9 +250,9 @@ Returns a `file_path`. If `file_name` is a path to an existing file, it's symlin
 
 **Always provide a description** for execution assets so they are identifiable in the catalog.
 
-### Upload all registered files
+### Commit all registered files
 
-Call Python API `exe.upload_execution_outputs()` with `clean_folder` (optional, default `true`) to upload all staged files to the catalog, create asset records, and link them to the execution with role "Output".
+Call Python API `exe.commit_output_assets()` with `clean_folder` (optional, default `true`) to commit all staged files: uploads bytes to the object store, creates asset records (with the descriptions you supplied and `Upload_Duration`), links each to the execution with role "Output", and transitions the execution from `Stopped` → `Pending_Upload` → `Uploaded`. Returns an `UploadReport` (`total_uploaded`, `total_failed`, `per_table`, `errors`); for per-asset path data, read `exe.uploaded_assets` after the call. Re-call to retry on partial failure — the bag-commit pipeline is idempotent under `match_by_columns` dedup.
 
 **`Execution_Asset` vs domain asset tables:** Use `Execution_Asset` (the default) for general outputs like model weights, predictions, and plots. Use a domain asset table (e.g., `Image`, `Model`) when outputs should be queryable as first-class catalog entities with custom metadata.
 
@@ -260,9 +260,9 @@ For creating new asset tables and managing asset types, see the `work-with-asset
 
 ### Recording feature values
 
-An execution can also record **feature values** (e.g., per-image predictions, classification labels). Like output files, feature values are **staged locally** and uploaded when Python API `exe.upload_execution_outputs()` is called — they are not written to the catalog immediately.
+An execution can also record **feature values** (e.g., per-image predictions, classification labels). Like output files, feature values are **staged locally** and uploaded when Python API `exe.commit_output_assets()` is called — they are not written to the catalog immediately.
 
-In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution (the legacy single-value `add_feature_value` and `add_feature_value_record` are subsumed — pass a single-element list). In Python, call `execution.add_features(records)`. Both write JSONL files to the execution's `feature/` directory on disk. The catalog is updated when `upload_execution_outputs()` processes these files.
+In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution (the legacy single-value `add_feature_value` and `add_feature_value_record` are subsumed — pass a single-element list). In Python, call `execution.add_features(records)`. Both write JSONL files to the execution's `feature/` directory on disk. The catalog is updated when `commit_output_assets()` processes these files.
 
 For creating features and populating values, see the `create-feature` skill.
 
@@ -277,7 +277,7 @@ When a notebook is run via `deriva-ml-run-notebook` or `run_notebook()`, its out
 | Executed `.ipynb` file | `Execution_Asset` | The fully executed notebook with all cell outputs (plots, tables, logs) preserved |
 | Converted `.md` file | `Execution_Asset` | A Markdown rendering of the executed notebook, viewable directly in Chaise |
 
-Both files are uploaded during `upload_execution_outputs()` after the notebook finishes.
+Both files are uploaded during `commit_output_assets()` after the notebook finishes.
 
 ### Registering additional output files from notebooks
 
@@ -405,7 +405,7 @@ End-to-end workflow combining MCP tools (for lifecycle management) with Python A
 
 **Step 9:** Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-YYYY")`. (On failure, call `deriva_ml_abort_execution` instead.)
 
-**Step 10:** Call Python API `exe.upload_execution_outputs()`.
+**Step 10:** Call Python API `exe.commit_output_assets()`.
 
 ## Complete Example: Python API
 
@@ -451,6 +451,6 @@ with ml.create_execution(config) as exe:
     )
     predictions_df.to_csv(preds_path, index=False)
 
-# Upload after context manager exits
-exe.upload_execution_outputs()
+# Commit after context manager exits
+exe.commit_output_assets()
 ```
