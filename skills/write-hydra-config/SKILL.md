@@ -1,6 +1,6 @@
 ---
 name: write-hydra-config
-description: "Write, bootstrap, and validate hydra-zen config files for DerivaML — DatasetSpecConfig, asset_store, builds(), experiment_config, multirun_config, with_description. Use when adding/editing/updating any config in configs/, when bootstrapping a fresh project's configs from an existing catalog (per-config-group recipes + a worked end-to-end example), or when validating that config RIDs and versions match the catalog (singular validators per group, whole-tree composition, and the planned single-call deriva_ml_validate_config_file tool). Triggers on: 'write hydra config', 'edit datasets.py', 'edit assets.py', 'bootstrap configs', 'populate configs from catalog', 'validate config', 'validate datasets.py', 'check config matches catalog'."
+description: "Write, bootstrap, and validate hydra-zen config files for DerivaML — DatasetSpecConfig, asset_store, builds(), experiment_config, multirun_config, with_description. Use when adding/editing/updating any config in configs/, when bootstrapping a fresh project's configs from an existing catalog (per-config-group recipes + a worked end-to-end example), or when validating that config RIDs and versions match the catalog (singular validators per group, whole-tree composition, or the single-call deriva_ml_validate_config_file tool). Triggers on: 'write hydra config', 'edit datasets.py', 'edit assets.py', 'bootstrap configs', 'populate configs from catalog', 'validate config', 'validate datasets.py', 'check config matches catalog'."
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -16,7 +16,7 @@ This skill is the authoritative reference for the Python API used in DerivaML hy
 - After creating a catalog entity (dataset, asset, workflow) that should be added to configs
 - Fixing or updating existing config entries
 - **Bootstrapping a fresh project's configs from an existing catalog** — per-config-group recipes and a worked end-to-end example
-- **Validating that config RIDs and versions exist in the catalog** — singular per-group validators, whole-tree composition, and the planned single-call `deriva_ml_validate_config_file` tool
+- **Validating that config RIDs and versions exist in the catalog** — the single-call `deriva_ml_validate_config_file` tool, or singular per-group validators + whole-tree composition for granular debugging
 
 After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_create_workflow`, or running a splitting script that calls `split_dataset(ml, source_rid, exe, ...)` from the Python API, etc.), proactively offer to update the relevant config file using these patterns.
 
@@ -374,7 +374,7 @@ deriva_ml_lookup_asset(
 # (see "Validating Configs Against the Catalog" below)
 ```
 
-The agent that runs this drives one round-trip per `deriva_ml_get_dataset_spec` / `deriva_ml_lookup_asset`. That's tolerable for a one-time bootstrap (N usually < 20). For routine re-bootstrap against a heavily-populated catalog, the higher-leverage path is the planned `deriva_ml_bootstrap_config` MCP tool (see `docs/superpowers/plans/2026-05-22-config-validator-bootstrap-design.md`) — until that lands, the per-tool composition above is the canonical recipe.
+The agent that runs this drives one round-trip per `deriva_ml_get_dataset_spec` / `deriva_ml_lookup_asset`. That's tolerable for a one-time bootstrap (N usually < 20). For routine re-bootstrap against a heavily-populated catalog, use `deriva_ml_bootstrap_config(hostname, catalog_id, kinds=[...])` — one round trip that returns ready-to-write config bodies.
 
 ## Validating Configs Against the Catalog
 
@@ -386,7 +386,7 @@ Before running experiments, validate that all RIDs and versions in config files 
 | `deriva_ml_lookup_asset` | One asset RID at a time | Iterating on `assets.py`; confirming an asset RID exists and is the expected type |
 | `deriva_ml_validate_execution_configuration` | A complete `ExecutionConfiguration` (datasets + assets + workflow + cross-spec consistency) | Pre-flight check before `deriva-ml-run`; whole-experiment sanity |
 
-For walking the entire `src/configs/` tree at once, compose these tools — see "Whole-tree validation" below. (A single-call `deriva_ml_validate_config_file` MCP tool is planned per `docs/superpowers/plans/2026-05-22-config-validator-bootstrap-design.md`; until it lands, the composition recipe is the canonical path.)
+For walking the entire `src/configs/` tree at once, use `deriva_ml_validate_config_file(hostname, catalog_id, file_contents)` — one round trip that validates every dataset spec, asset spec, and workflow reference in the file. For granular debugging on a single config group, compose the per-group validators — see "Whole-tree validation" below.
 
 ### Iterating on `datasets.py` — `deriva_ml_validate_dataset_specs`
 
@@ -427,7 +427,7 @@ Returns per-spec results (datasets, assets, workflow) plus cross-spec issues (`d
 
 ### Iterating on `assets.py` — `deriva_ml_lookup_asset` per-RID
 
-There's no asset analog to `deriva_ml_validate_dataset_specs` yet (planned for the future `deriva_ml_validate_config_file` tool). For now, loop `deriva_ml_lookup_asset` over each RID in `assets.py`:
+For asset-by-asset validation, loop `deriva_ml_lookup_asset` over each RID in `assets.py`. For whole-file validation, use `deriva_ml_validate_config_file` (above):
 
 ```
 for rid in [asset_rid for entry in src/configs/assets.py]:

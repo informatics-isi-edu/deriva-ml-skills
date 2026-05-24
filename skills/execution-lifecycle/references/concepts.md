@@ -223,7 +223,7 @@ Common use cases:
 
 Each child is a full execution with its own RID, inputs, outputs, and provenance. The parent-child link is tracked via an association table with an optional `sequence` number for ordering.
 
-Use `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` to walk down the tree and `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` to walk up. The legacy `list_nested_executions` tool was split into these two directional tools.
+Use `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` to walk down the tree and `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` to walk up.
 
 ### How multiruns create nested executions
 
@@ -350,7 +350,7 @@ After the execution's work is complete, call Python API `exe.commit_output_asset
 5. Optionally cleans up the local staging directory (`clean_folder=True` by default)
 6. Returns an `UploadReport` (`total_uploaded`, `total_failed`, `per_table`, `errors`) — for per-asset path data, read `exe.uploaded_assets` after the call
 
-If the caller bypasses the `with` block and calls `commit_output_assets()` on a still-`Running` execution, the method auto-stops the execution first; the end state is the same `Uploaded`. The call is idempotent — re-running after a partial failure picks up the failed rows and leaves the already-uploaded ones alone (no separate `retry_failed=` flag needed — that was the v1.38 surface, see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)).
+If the caller bypasses the `with` block and calls `commit_output_assets()` on a still-`Running` execution, the method auto-stops the execution first; the end state is the same `Uploaded`. The call is idempotent — re-running after a partial failure picks up the failed rows and leaves the already-uploaded ones alone.
 
 Until Python API `exe.commit_output_assets()` is called, output files exist only locally. This is a deliberate design — it allows the execution to complete (or fail) without partial uploads.
 
@@ -494,7 +494,7 @@ Use dry runs to:
 
 ## Re-Running an Aborted Execution
 
-> **Known gap:** the legacy `restore_execution` tool has **no equivalent** in the new MCP surface. The replacement pattern is to inspect the prior execution and create a fresh one with the same configuration.
+> **Known gap:** there is no dedicated tool to restore an aborted execution. The pattern is to inspect the prior execution and create a fresh one with the same configuration.
 
 When you need to re-run work after a failure or abort:
 
@@ -528,7 +528,7 @@ All of these can be caught before `deriva_ml_start_execution(...)`.
 
 | Step | Tool | What it checks |
 |------|------|---------------|
-| Validate RIDs | `deriva_ml_get_dataset` / `get_entities` | All dataset and asset RIDs exist (legacy `validate_rids` was removed; check by typed lookup) |
+| Validate RIDs | `deriva_ml_get_dataset` / `get_entities` | All dataset and asset RIDs exist (check by typed lookup) |
 | Check cache | `deriva_ml_bag_info` | Dataset sizes, cache status (`not_cached`, `cached_metadata_only`, `cached_materialized`, `cached_incomplete`); also doubles as a version-existence check |
 | Cache data | `deriva_ml_cache_dataset` | Downloads bags/assets into cache without execution provenance |
 | Git clean | `git status` | No uncommitted changes (for CLI runs) |

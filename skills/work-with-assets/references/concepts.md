@@ -124,7 +124,7 @@ add_term(hostname="data.example.org", catalog_id="1",
     description="Pixel-level annotation overlay for an input image")
 ```
 
-The legacy `add_asset_type` shortcut was removed. When you create a new asset table by hand (see [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)), remember to also add the table name as a term in `Asset_Type`.
+When you create a new asset table by hand (see [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)), remember to also add the table name as a term in `Asset_Type`.
 
 ## Object Storage
 
@@ -203,7 +203,7 @@ Provenance is recorded automatically: committing via Python API `exe.commit_outp
 
 ## Creating an Asset Table (Manual Recipe)
 
-> **Known gap:** the legacy `create_asset_table` shortcut is gone. To create a new asset table you now use the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK. The recipe is mechanical but multi-step. (Filed as an upstream gap.)
+> **Known gap:** there is no dedicated `create_asset_table` tool. To create a new asset table, use the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK. The recipe is mechanical but multi-step.
 
 The "asset" shape is a regular catalog table whose columns include the standard hatrac file-tracking columns plus a foreign key to `Asset_Type` and any custom metadata columns you need.
 

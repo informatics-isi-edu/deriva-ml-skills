@@ -425,7 +425,7 @@ bag.restructure_assets(
 | Python API `dataset.download_dataset_bag(version)` | Download bag (supports `exclude_tables`, `timeout`, `materialize`) |
 | Python API `bag.restructure_assets()` | Organize assets into ML-ready directory layouts |
 | `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
-| `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest per table (subsumes legacy estimate_bag_size) |
+| `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest per table |
 | `deriva_ml_list_feature_values` | Access feature values from the catalog (or `bag.fetch_table_features` from a downloaded bag) |
 | `deriva_ml_get_dataset` | Dataset details including version and element types |
 | `deriva_ml_list_features` | Available features for building training labels |

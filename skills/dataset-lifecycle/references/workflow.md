@@ -106,9 +106,9 @@ with ml.create_execution(ExecutionConfiguration(workflow=workflow)) as exe:
 
 To **add a type** to a dataset, call `deriva_ml_update_dataset` with `dataset_rid` and `dataset_types=["Training", ...]` (the existing types plus your additions).
 
-To **remove a type**, call `update_entities` on the dataset's type-association table and remove the row that links the dataset to the type. (The legacy `remove_dataset_type` shortcut was removed; only generic `update_entities` remains.)
+To **remove a type**, call `update_entities` on the dataset's type-association table and remove the row that links the dataset to the type.
 
-To **create a new custom type**, call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed", description="...")`. The legacy `create_dataset_type_term` shortcut was subsumed by the generic `add_term` tool.
+To **create a new custom type**, call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed", description="...")`.
 
 To **delete a custom type**, call `delete_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed")`.
 
@@ -118,7 +118,7 @@ For more on vocabulary CRUD see `/deriva:manage-vocabulary` *(deriva-skills)*.
 
 To **list current members**, call `deriva_ml_list_dataset_members` with `hostname`, `catalog_id`, and `dataset_rid`.
 
-To **validate RIDs** before adding (catches invalid RIDs early), call `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<table>", filters={"RID": "<rid>"})` per candidate RID and check whether the result is non-empty. The legacy single-shot `validate_rids` tool was removed.
+To **validate RIDs** before adding (catches invalid RIDs early), call `get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<table>", filters={"RID": "<rid>"})` per candidate RID and check whether the result is non-empty.
 
 To **add more members**, call `deriva_ml_add_dataset_members` with:
 - `hostname`, `catalog_id`
@@ -198,9 +198,7 @@ When `deriva_ml_denormalize_dataset` (or `split_dataset`'s internal stratificati
 
 `split_dataset` creates a parent "Split" dataset with child datasets for each partition, and returns a `SplitResult` whose `.split`, `.training`, `.testing`, and `.validation` (optional) each carry a `.rid` and `.version`.
 
-To **list relations** of a dataset (both children and parents in one call), call `deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")`. Add `recurse=true` to include all descendants/ancestors, or `version` to list relations at a specific version.
-
-> Note: the legacy split between `list_dataset_children` and `list_dataset_parents` is gone — `deriva_ml_list_dataset_relations` returns both directions.
+To **list relations** of a dataset (both children and parents in one call), call `deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")`. Add `recurse=true` to include all descendants/ancestors, or `version` to list relations at a specific version. Returns both directions.
 
 To **list members across nested datasets**, call `deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", recurse=true)` (optionally with `limit`).
 
@@ -208,7 +206,7 @@ To create parent-child relationships manually (e.g., grouping pre-existing datas
 
 ## Versioning (ADR-0003 dev/release model)
 
-Per ADR-0003 (deriva-ml 1.34+), datasets are at one of two version states at any moment:
+Per ADR-0003, datasets are at one of two version states at any moment:
 
 - **Released** (`0.4.0`) — frozen snapshot, citable, reproducible.
 - **Dev** (`0.4.0.post1.dev3`) — mutable working state. PEP 440 dev-release suffix marks "drift since the last release"; cite URLs resolve to the live catalog.
@@ -223,7 +221,7 @@ See the versioning section of `references/concepts.md` for full rules and the pr
 
 ## Downloading
 
-To **preview** what a bag will contain (size + manifest), call `deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", version="1.0.0")`. The legacy `estimate_bag_size` tool was subsumed by `deriva_ml_bag_info`.
+To **preview** what a bag will contain (size + manifest), call `deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", version="1.0.0")`.
 
 For downloading, preparing, and restructuring dataset data for ML training, see the `ml-data-engineering` skill. For details on bag contents, FK traversal, and timeout handling, see `bags.md`. For diagnosing missing data, see the `debug-bag-contents` skill.
 
@@ -231,7 +229,7 @@ For downloading, preparing, and restructuring dataset data for ML training, see 
 
 To find **which executions used a dataset**, call `deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")` — the returned record includes execution provenance.
 
-To find **which executions produced or used an asset**, call `deriva_ml_lookup_asset(hostname="data.example.org", catalog_id="1", asset_rid="<rid>")` for the producing execution, or `deriva_ml_find_workflow_executions(hostname="data.example.org", catalog_id="1", workflow_rid="<rid>")` for broader workflow queries. (The legacy single-shot `list_asset_executions` tool was removed in favor of these targeted calls.)
+To find **which executions produced or used an asset**, call `deriva_ml_lookup_asset(hostname="data.example.org", catalog_id="1", asset_rid="<rid>")` for the producing execution, or `deriva_ml_find_workflow_executions(hostname="data.example.org", catalog_id="1", workflow_rid="<rid>")` for broader workflow queries.
 
 ## Deleting
 

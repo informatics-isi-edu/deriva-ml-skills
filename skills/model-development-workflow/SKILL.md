@@ -138,7 +138,7 @@ Before training, confirm the feature schema works with your development data.
 2. `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>")` — confirm valid term values
 3. `deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", target_table="Image", feature_name="<feature_name>", selector="newest")` — check that labels exist for your dev records
 
-**If labels are missing**, add them to the development dataset first. The legacy `start_execution` / `stop_execution` pair was split — create+start, then commit on success or abort on failure:
+**If labels are missing**, add them to the development dataset first. Create+start, then commit on success or abort on failure:
 
 ```
 deriva_ml_create_execution(
@@ -317,7 +317,7 @@ uv run deriva-ml-run +multirun=lr_sweep
 
 ML development is iterative. After each production run:
 
-1. **Analyze results** — use `deriva_ml_denormalize_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (renamed from the legacy `preview_denormalized_dataset`) or download the bag to examine predictions
+1. **Analyze results** — use `deriva_ml_denormalize_dataset(hostname=..., catalog_id=..., dataset_rid=...)` or download the bag to examine predictions
 2. **Identify improvements** — more data? Better labels? Different architecture?
 3. **Go back to the appropriate tier:**
    - Config change only → Tier 1 (dry run)

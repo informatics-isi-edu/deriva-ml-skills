@@ -249,7 +249,6 @@ Overrides use Hydra's syntax. Comma-separated values create the sweep:
 - `deriva_ml_list_execution_children(hostname=..., catalog_id=..., execution_rid="<parent_rid>")` — see all children of a parent multirun execution
 - `deriva_ml_list_execution_parents(hostname=..., catalog_id=..., execution_rid="<child_rid>")` — find the parent of a given child execution
 - `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<parent_rid>")` — fetch the parent execution record (which holds the multirun description); pair with `deriva_ml_list_execution_children(...)` to see its children
-- The legacy `list_nested_executions` tool was split into the two `_children` / `_parents` calls above
 
 ## Best Practices
 

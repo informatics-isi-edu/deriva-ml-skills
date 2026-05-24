@@ -61,7 +61,7 @@ The `workflow_type` must exist in the `Workflow_Type` vocabulary before creating
 | Evaluation | Model evaluation and metrics |
 | Annotation | Adding labels or features |
 
-Add custom types via the generic `add_term` tool (the legacy `add_workflow_type` helper was removed):
+Add custom types via the generic `add_term` tool:
 ```python
 ml.add_term(table="Workflow_Type", term_name="Data_Augmentation",
             description="Workflows that augment training data")
@@ -240,7 +240,7 @@ exe.commit_output_assets()
 7. Cleans up the local staging directory (`clean_folder=True` by default)
 8. Returns an `UploadReport` (`total_uploaded`, `total_failed`, `per_table`, `errors`) — for per-asset paths, read `exe.uploaded_assets` after the call
 
-The call is idempotent — re-running after a partial failure picks up the failed rows and leaves the already-uploaded ones alone. See [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md) for the unification rationale.
+The call is idempotent — re-running after a partial failure picks up the failed rows and leaves the already-uploaded ones alone.
 
 ## Tuning Uploads for Large Files
 
@@ -290,22 +290,22 @@ The `timeout` tuple is `(connect_timeout, read_timeout)`. urllib3 uses `connect_
 
 ## Status Updates
 
-Report progress during long-running workflows. The legacy `update_execution_status` was folded into `deriva_ml_update_execution`:
+Report progress during long-running workflows using `deriva_ml_update_execution`:
 
 ### MCP tools
 
 ```
-# Arbitrary status with a message (replaces the legacy update_execution_status)
+# Arbitrary status with a message
 deriva_ml_update_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="2-YYYY",
     status="Running",
     message="Epoch 15/100 complete")
 
-# Normal completion (replaces the success path of the legacy stop_execution)
+# Normal completion
 deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="2-YYYY")
 
-# Failure marking (replaces the failure path of the legacy stop_execution)
+# Failure marking
 deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1",
     execution_rid="2-YYYY")
 ```
@@ -372,7 +372,7 @@ export DERIVA_ML_WORKFLOW_CHECKSUM="abc123def456"
 
 For the full recovery decision tree (commit-retry vs commit-as-is vs abort-and-recover vs claim-survivors-as-inputs), see the **"Salvage a Failed Execution"** section in this skill's `SKILL.md`. Quick orientation:
 
-- An execution in `Failed`, `Stopped`, or `Pending_Upload` is salvageable — `deriva_ml_commit_execution` drains the staged work and makes it visible. Re-call to retry: the bag-commit pipeline is idempotent under `match_by_columns` dedup (no separate `retry_failed=` flag — that was the v1.38 surface).
+- An execution in `Failed`, `Stopped`, or `Pending_Upload` is salvageable — `deriva_ml_commit_execution` drains the staged work and makes it visible. Re-call to retry: the bag-commit pipeline is idempotent under `match_by_columns` dedup.
 - An execution in `Aborted` is not salvageable — abort destroys staged outputs at abort time.
 - A "recovery execution" is a new execution that consumes the failed run's inputs (Branch C) or its surviving outputs (Branch D); use the `asset_rids=` parameter on `deriva_ml_create_execution` to claim existing asset RIDs as inputs.
 
@@ -380,7 +380,7 @@ The one piece that does NOT live in this guide: the failed execution's row stays
 
 ## Nested Executions
 
-Executions can be nested for complex workflows. The legacy `list_nested_executions` was split into two directional tools:
+Executions can be nested for complex workflows. Two directional tools navigate the hierarchy:
 
 ### MCP tools
 
@@ -440,7 +440,7 @@ deriva_ml_bag_info(hostname="data.example.org", catalog_id="1",
     dataset_rid="2-XXXX", version="1.0.0")
 ```
 
-Shows row counts and asset sizes per table (the legacy `estimate_bag_size` is subsumed by `deriva_ml_bag_info`). Use to verify the execution would download the expected data.
+Shows row counts and asset sizes per table. Use to verify the execution would download the expected data.
 
 ### Preview split
 

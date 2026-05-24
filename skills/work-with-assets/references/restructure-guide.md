@@ -172,5 +172,5 @@ exe.commit_output_assets(
 | Python API `ml.download_asset(rid)` | Download single asset by RID |
 | Python API `exe.asset_file_path()` | Register file for upload |
 | Python API `exe.commit_output_assets()` | Commit staged files to catalog (uploads + writes rows + transitions execution to `Uploaded`) |
-| (gap) Creating an asset table | Legacy `create_asset_table` was removed; use the manual `create_table` recipe — see `concepts.md` |
-| `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)` | Preview what a download will contain (subsumes the legacy `estimate_bag_size`) |
+| (gap) Creating an asset table | No dedicated tool; use the manual `create_table` recipe — see `concepts.md` |
+| `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)` | Preview what a download will contain |

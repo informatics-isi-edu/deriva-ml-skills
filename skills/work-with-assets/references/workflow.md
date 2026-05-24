@@ -37,7 +37,7 @@ For a bounded snapshot of one asset table, read `deriva://catalog/{h}/{c}/ml/ass
 
 For a paginated, filterable browse, call `deriva_ml_list_assets(hostname="data.example.org", catalog_id="1", asset_table="Image")` to see all assets in a specific table with their RIDs, filenames, sizes, types, and descriptions.
 
-To query with filters, call `get_entities(hostname="data.example.org", catalog_id="1", schema=<schema>, table="Image", filters={"Subject": "2-A1B2"})` for whole rows, or `query_attribute(hostname="data.example.org", catalog_id="1", path="<schema>:Image/Subject=2-A1B2", attributes=["RID", "Filename"])` if you only need specific columns. (Both replace the legacy `preview_table`.)
+To query with filters, call `get_entities(hostname="data.example.org", catalog_id="1", schema=<schema>, table="Image", filters={"Subject": "2-A1B2"})` for whole rows, or `query_attribute(hostname="data.example.org", catalog_id="1", path="<schema>:Image/Subject=2-A1B2", attributes=["RID", "Filename"])` if you only need specific columns.
 
 For an unfiltered sample, call `get_table_sample_data(hostname="data.example.org", catalog_id="1", schema=<schema>, table="Image")`.
 
@@ -45,7 +45,7 @@ For an unfiltered sample, call `get_table_sample_data(hostname="data.example.org
 
 Call `deriva_ml_lookup_asset(hostname="data.example.org", catalog_id="1", asset_rid="2-IMG1")` to get full details including filename, size, MD5, types, description, and provenance (which execution created it).
 
-For the raw catalog row with all custom metadata columns, call `get_entities(hostname="data.example.org", catalog_id="1", schema=<schema>, table=<asset_table>, filters={"RID": "2-IMG1"})`. (Replaces the legacy `get_record`.)
+For the raw catalog row with all custom metadata columns, call `get_entities(hostname="data.example.org", catalog_id="1", schema=<schema>, table=<asset_table>, filters={"RID": "2-IMG1"})`.
 
 ## Finding Assets by Type and Execution
 
@@ -80,7 +80,7 @@ To answer "where did this asset come from?":
 2. Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` — get full execution details including inputs, configuration, and other outputs.
 
 To answer "what used this asset?":
-- The legacy `list_asset_executions(asset_rid, asset_role="Input")` was removed. Use `deriva_ml_find_workflow_executions(hostname, catalog_id, workflow_rid=...)` and filter the results, or query the asset's Execution association table directly via `query_attribute` on `<AssetTable>_Execution` with `filters={"<AssetTable>": asset_rid, "Asset_Role": "Input"}`.
+- Use `deriva_ml_find_workflow_executions(hostname, catalog_id, workflow_rid=...)` and filter the results, or query the asset's Execution association table directly via `query_attribute` on `<AssetTable>_Execution` with `filters={"<AssetTable>": asset_rid, "Asset_Role": "Input"}`.
 
 ## Inspecting an Asset
 
@@ -119,7 +119,7 @@ Call Python API `exe.working_dir` to find the local path where downloaded assets
 
 ## Creating Asset Tables
 
-> **Known gap:** the legacy `create_asset_table` shortcut is gone. Build the table by hand using the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK, plus the necessary association tables.
+> **Known gap:** there is no dedicated `create_asset_table` tool. Build the table by hand using the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK, plus the necessary association tables.
 
 See `concepts.md` → "Creating an Asset Table (Manual Recipe)" for the full step-by-step recipe. Summary:
 
@@ -168,7 +168,7 @@ This uploads all files registered via Python API `exe.asset_file_path()` to the 
 
 On success: call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` to finalize.
 
-On failure: call `deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` instead. (The legacy `stop_execution` tool was split into these two: pick the right one for the path you're on.)
+On failure: call `deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` instead. Pick the right one for the path you're on.
 
 ### Python API pattern
 
@@ -206,11 +206,11 @@ with ml.create_execution(config) as exe:
 
 ### Create a new asset type
 
-Call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Asset_Type", name=..., description=...)`. The legacy `add_asset_type` shortcut was removed; generic `add_term` works.
+Call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Asset_Type", name=..., description=...)`.
 
 ### Add a type to an asset
 
-> **Known gap:** there is no dedicated tool. Use `update_entities` on the asset row's `Asset_Type` column. (The legacy `add_asset_type_to_asset` was removed.)
+> **Known gap:** there is no dedicated tool. Use `update_entities` on the asset row's `Asset_Type` column.
 
 ```
 update_entities(hostname="data.example.org", catalog_id="1",
@@ -222,7 +222,7 @@ For tables that allow multiple types via an association table, insert into the `
 
 ### Remove a type from an asset
 
-> **Known gap:** there is no dedicated tool. Use `update_entities` to clear the `Asset_Type` column (or delete the association row). (The legacy `remove_asset_type_from_asset` was removed.)
+> **Known gap:** there is no dedicated tool. Use `update_entities` to clear the `Asset_Type` column (or delete the association row).
 
 ```
 update_entities(hostname="data.example.org", catalog_id="1",
@@ -238,7 +238,7 @@ Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` to see an asset's
 
 ### Find what created an asset
 
-Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` — returns the producer execution (RID, workflow, status, description). The legacy `list_asset_executions(..., asset_role="Output")` was removed; the typed lookup returns the same info.
+Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` — returns the producer execution (RID, workflow, status, description).
 
 ### Find what used an asset
 

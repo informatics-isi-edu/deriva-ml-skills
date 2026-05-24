@@ -28,23 +28,23 @@ Step-by-step MCP tool and Python API examples for running executions. For backgr
 
 | Tool / API | Purpose |
 |------|---------|
-| `deriva_ml_get_dataset` / `get_entities` | Pre-flight: verify RIDs exist (legacy `validate_rids` was removed) |
+| `deriva_ml_get_dataset` / `get_entities` | Pre-flight: verify RIDs exist |
 | `deriva_ml_bag_info` | Pre-flight: check dataset size and cache status; also serves as a version-existence check |
 | `deriva_ml_cache_dataset` | Pre-flight: download data into cache without execution |
 | `deriva_ml_create_execution` | Create execution (finds/creates workflow automatically) |
 | `deriva_ml_start_execution` | Sets status to `Running`, records start timestamp |
 | `deriva_ml_commit_execution` | Sets status to `Completed` (success path) |
 | `deriva_ml_abort_execution` | Sets status to `Failed`/`Aborted` (failure path) |
-| `deriva_ml_update_execution` | Arbitrary status / message updates (replaces legacy `update_execution_status`) |
+| `deriva_ml_update_execution` | Arbitrary status / message updates |
 | Python API `exe.download_dataset_bag()` | Download dataset as BDBag within execution |
 | Python API `ml.download_asset(rid)` | Download individual asset within execution |
 | Python API `exe.asset_file_path()` | Register output file for upload |
-| Python API `exe.commit_output_assets()` | Commit all registered files to catalog — uploads bytes, writes asset rows (descriptions + `Upload_Duration`), transitions `Stopped → Pending_Upload → Uploaded`. Returns an `UploadReport`; per-asset paths on `exe.uploaded_assets`. Idempotent on re-call. The unified replacement for the legacy `upload_execution_outputs` / `upload_outputs` / `upload_pending` family (deriva-ml v1.39+, ADR-0009) |
+| Python API `exe.commit_output_assets()` | Commit all registered files to catalog — uploads bytes, writes asset rows (descriptions + `Upload_Duration`), transitions `Stopped → Pending_Upload → Uploaded`. Returns an `UploadReport`; per-asset paths on `exe.uploaded_assets`. Idempotent on re-call. |
 | `deriva_ml_get_execution` | Execution details by RID |
 | `deriva_ml_add_nested_execution` | Link parent-child executions |
 | `deriva_ml_list_execution_children` | Navigate parent → children (supports `recurse`) |
 | `deriva_ml_list_execution_parents` | Navigate child → parent (supports `recurse`) |
-| (gap) | Re-running an aborted execution: legacy `restore_execution` was removed; create a fresh execution from the prior config — see [Re-Running After an Aborted Execution](#re-running-after-an-aborted-execution) |
+| (gap) | Re-running an aborted execution has no dedicated tool — create a fresh execution from the prior config; see [Re-Running After an Aborted Execution](#re-running-after-an-aborted-execution) |
 
 ---
 
@@ -75,7 +75,7 @@ Call `deriva_ml_create_workflow(hostname, catalog_id, ...)` with:
 
 ### Add a new workflow type
 
-If the workflow type you need doesn't exist, call `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`. The legacy `add_workflow_type` shortcut is gone — generic `add_term` handles all DerivaML built-in vocabularies.
+If the workflow type you need doesn't exist, call `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`. Generic `add_term` handles all DerivaML built-in vocabularies.
 
 ### Set or update a workflow description
 
@@ -235,7 +235,7 @@ Call Python API `exe.working_dir` to get the local path where downloads are stor
 
 ### Register files for upload
 
-**Note:** The target asset table must already exist in the catalog before you can register files for upload to it. The built-in `Execution_Asset` table is always available. If you need a new domain-specific asset table (e.g., `"Image"`, `"Model"`), use the `work-with-assets` skill to create it first with `create_table` plus the standard hatrac column shape (the legacy `create_asset_table` shortcut was removed).
+**Note:** The target asset table must already exist in the catalog before you can register files for upload to it. The built-in `Execution_Asset` table is always available. If you need a new domain-specific asset table (e.g., `"Image"`, `"Model"`), use the `work-with-assets` skill to create it first with `create_table` plus the standard hatrac column shape.
 
 Call Python API `exe.asset_file_path()` with:
 - `asset_name` (required): target asset table (e.g., `"Execution_Asset"`, `"Image"`, `"Model"`)
@@ -262,7 +262,7 @@ For creating new asset tables and managing asset types, see the `work-with-asset
 
 An execution can also record **feature values** (e.g., per-image predictions, classification labels). Like output files, feature values are **staged locally** and uploaded when Python API `exe.commit_output_assets()` is called — they are not written to the catalog immediately.
 
-In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution (the legacy single-value `add_feature_value` and `add_feature_value_record` are subsumed — pass a single-element list). In Python, call `execution.add_features(records)`. Both write JSONL files to the execution's `feature/` directory on disk. The catalog is updated when `commit_output_assets()` processes these files.
+In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution; pass a single-element `entries` list for a single value. In Python, call `execution.add_features(records)`. Both write JSONL files to the execution's `feature/` directory on disk. The catalog is updated when `commit_output_assets()` processes these files.
 
 For creating features and populating values, see the `create-feature` skill.
 
@@ -322,7 +322,7 @@ Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` to find the execu
 
 ## Updating Execution State
 
-The legacy `update_execution_status` and `set_execution_description` tools were folded into `deriva_ml_update_execution`. Three patterns:
+Use `deriva_ml_update_execution` for status or description changes. Three patterns:
 
 1. **Normal completion (success):**
    ```
@@ -353,14 +353,14 @@ Call `deriva_ml_add_nested_execution(hostname, catalog_id, ...)` with:
 
 ### Navigate the hierarchy
 
-The legacy `list_nested_executions` was split into two directional tools:
+Two directional tools navigate parent-child execution relationships:
 
 - Parent → children: `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)`. Set `recurse=True` for the full tree.
 - Child → parents: `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)`. Set `recurse=True` to walk up the full chain.
 
 ## Re-Running After an Aborted Execution
 
-> **Known gap:** the legacy `restore_execution` tool has **no equivalent**. To re-run after a failure or abort, manually inspect the prior execution and create a fresh one.
+> **Known gap:** there is no dedicated tool to restore an aborted execution. To re-run after a failure or abort, manually inspect the prior execution and create a fresh one.
 
 Steps:
 

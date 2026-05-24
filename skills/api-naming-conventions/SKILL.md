@@ -163,13 +163,11 @@ Sets a property on an existing entity. (Core annotation tools immediately apply 
 
 **Behavior**: Overwrites the specified property. Returns None.
 
-> **Note on description setters**: The legacy `set_dataset_description` / `set_workflow_description` / `set_execution_description` wrappers are gone — they're subsumed by `deriva_ml_update_dataset(description=...)`, `deriva_ml_update_workflow(description=...)`, and `deriva_ml_update_execution(description=...)`.
-
-> **Note on connection state**: The legacy `set_default_schema` and `set_active_catalog` are gone — every MCP tool now takes `hostname=`, `catalog_id=`, and `schema=` arguments explicitly. There is no connection state.
+> **Note on connection state**: Every MCP tool takes `hostname=`, `catalog_id=`, and `schema=` arguments explicitly. There is no connection state.
 
 ### `update_*(rid, ...)` -- Update Domain Entity
 
-Updates fields on an existing DerivaML domain entity (Dataset / Workflow / Execution / Asset). Replaces the legacy single-purpose `set_*_description` wrappers.
+Updates fields on an existing DerivaML domain entity (Dataset / Workflow / Execution / Asset).
 
 | Method | Description |
 |--------|-------------|
