@@ -60,7 +60,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 **Cause**: Python API `exe.commit_output_assets()` was not called, or files were written to the wrong path.
 
 **Solution**:
-1. Call `commit_output_assets()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it after `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`. If your execution was uploaded from the CLI (`deriva-ml-run`, `deriva-ml-upload`), the CLI now (v1.39+) drives `commit_output_assets()` itself and transitions the execution to `Uploaded` — earlier versions left CLI-uploaded executions stuck at `Stopped` (see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)).
+1. Call `commit_output_assets()` **after** the `with` block exits in Python, not inside it. With MCP tools, call it after `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)`. The CLI (`deriva-ml-run`, `deriva-ml-upload`) drives `commit_output_assets()` itself and transitions the execution to `Uploaded`.
 2. Ensure files are written to the **exact path** returned by `asset_file_path()`. Writing to any other directory will cause the upload to miss those files.
 3. Verify the file actually exists at the path before uploading:
    ```python
@@ -96,7 +96,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 
 **Solution**:
 - Check the dataset's version history with `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`.
-- Per ADR-0003 (deriva-ml 1.34+), dataset mutations flip `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release(hostname, catalog_id, dataset_rid, bump="minor", description="...")` to promote the dev period to a released version that experiments can pin to.
+- Per ADR-0003, dataset mutations flip `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release(hostname, catalog_id, dataset_rid, bump="minor", description="...")` to promote the dev period to a released version that experiments can pin to.
 - When referencing datasets in workflow configs, **always pin to a released version** (no `.devN` suffix) — dev labels are mutable and break reproducibility.
 - Use `deriva_ml_get_dataset_spec(hostname, catalog_id, dataset_rid)` to see the current dataset specification and version.
 
@@ -137,8 +137,6 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 **Symptom**: An execution shows status `Running` but the process has ended or crashed.
 
 **Cause**: The execution context was not properly closed (e.g., crash without cleanup, not using context manager).
-
-> **Note (v1.39+ behavior change):** CLI-uploaded executions (`deriva-ml-upload`, `deriva-ml-run`) now transition `Stopped → Pending_Upload → Uploaded` correctly. Earlier versions left CLI uploads stuck at `Stopped` even after the bytes were in hatrac — that bug is fixed under the unified `commit_output_assets` API (see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)). If you're still seeing a stuck `Stopped` execution from a CLI upload, check that deriva-ml is at v1.39 or later.
 
 **Solution**: pick the right transition based on whether there's salvageable work.
 
@@ -217,7 +215,7 @@ Four branches, depending on whether the staged work is salvageable and whether y
 deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid="<rid>")
 ```
 
-This drains the staged work and re-attempts any rows or assets that previously errored. The bag-commit pipeline is idempotent under `match_by_columns` dedup, so already-uploaded rows are a no-op and only the failed entries are re-attempted (no separate `retry_failed=` flag needed — that was the v1.38 surface and is gone in v1.39, see [ADR-0009](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0009-unified-commit-output-assets.md)). The execution transitions to `Uploaded`. The provenance trail is the most natural — same execution, same workflow, same input lineage; the only "evidence" of the failure is the catalog audit log and the time gap between start and commit.
+This drains the staged work and re-attempts any rows or assets that previously errored. The bag-commit pipeline is idempotent under `match_by_columns` dedup, so already-uploaded rows are a no-op and only the failed entries are re-attempted. The execution transitions to `Uploaded`. The provenance trail is the most natural — same execution, same workflow, same input lineage; the only "evidence" of the failure is the catalog audit log and the time gap between start and commit.
 
 Use this when:
 - Execution status is `Stopped`, `Running`, or `Pending_Upload` (NOT `Failed` — that's terminal; commit will reject).

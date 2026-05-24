@@ -80,7 +80,7 @@ Returns:
 - `cache_path`: where it lives on disk
 - Manifest preview
 
-(Note: `deriva_ml_bag_info` subsumes both the legacy `bag_info` and `estimate_bag_size` — it works whether or not the bag is already cached.)
+`deriva_ml_bag_info` works whether or not the bag is already cached.
 
 ### Estimate download size before caching
 
@@ -216,7 +216,7 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 
 - Bash `ls -la ~/.deriva-ml/` — Browse all local storage
 - Bash `rm -rf ~/.deriva-ml/...` — Remove cached items by RID
-- `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version (subsumes legacy bag_info / estimate_bag_size)
+- `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version
 - `deriva_ml_cache_dataset` — Pre-fetch a dataset or asset into cache
 
 ## Related Skills

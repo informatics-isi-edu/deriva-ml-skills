@@ -128,7 +128,7 @@ Two ways to preview bag contents without downloading:
 
 ### deriva_ml_bag_info (tool)
 
-Call `deriva_ml_bag_info` with `hostname`, `catalog_id`, `dataset_rid`, and `version`. Returns row counts, asset file sizes per table, and a manifest preview. (The legacy `estimate_bag_size` tool was subsumed by this — `deriva_ml_bag_info` covers both size estimation and manifest inspection.) Use this to:
+Call `deriva_ml_bag_info` with `hostname`, `catalog_id`, `dataset_rid`, and `version`. Returns row counts, asset file sizes per table, and a manifest preview. Covers both size estimation and manifest inspection. Use this to:
 - Verify the bag includes the expected tables
 - Decide whether to increase the timeout or use `exclude_tables`
 - Estimate disk space needed
@@ -337,7 +337,7 @@ DatasetSpecConfig(rid="28EA", version="0.4.0", exclude_tables=["Study", "Institu
 | Resource / Tool | Purpose |
 |-----------------|---------|
 | Python API `dataset.download_dataset_bag(version)` | Download bag (supports `exclude_tables`, `timeout`, `materialize`) |
-| `deriva_ml_bag_info` | Preview row counts, asset sizes per table, and manifest (subsumes legacy estimate_bag_size) |
+| `deriva_ml_bag_info` | Preview row counts, asset sizes per table, and manifest |
 | Python API bag inspection | Cross-validate bag contents against live catalog |
 | `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
 | `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` | Preview FK paths and tables before downloading |

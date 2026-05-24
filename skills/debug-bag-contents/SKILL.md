@@ -47,7 +47,7 @@ Every table that contributes members to a dataset must be registered as a **data
 
 Before downloading a full bag, preview what the export will contain.
 
-- **Tool**: `deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", version="1.0.0")` returns row counts, asset sizes, and the projected manifest per table. (This subsumes the legacy `estimate_bag_size`.)
+- **Tool**: `deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", version="1.0.0")` returns row counts, asset sizes, and the projected manifest per table.
 - This preview shows which tables will be included and how many rows each will have, without actually downloading anything.
 - Compare the preview counts against your expectations to spot discrepancies early.
 
@@ -275,7 +275,7 @@ Use this checklist when data is missing from a bag:
 | `deriva_ml_delete_dataset_members` | Remove records from a dataset |
 | `deriva_ml_add_dataset_element_type` | Register a table as dataset element type |
 | Python API bag inspection | Validate bag contents against expectations |
-| `deriva_ml_release` | Promote a dev period to a released version (per ADR-0003 — replaces the old increment_dataset_version) |
+| `deriva_ml_release` | Promote a dev period to a released version (per ADR-0003) |
 | `deriva_ml_get_dataset_spec` | View dataset specification |
 | `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest before downloading |
 | Python API `dataset.download_dataset_bag(version)` | Download the dataset bag (supports `exclude_tables` and `timeout`) |

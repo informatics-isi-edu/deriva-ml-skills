@@ -94,7 +94,7 @@ The two related skills carry the broader config-file mechanics; **this skill own
 
 ## Phase 4: Version
 
-Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md) (deriva-ml 1.34+):
+Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md):
 
 - **Released** versions like `0.4.0` — frozen snapshots, citable, reproducible. Snapshot-pinned in cite URLs.
 - **Dev** versions like `0.4.0.post1.dev3` — mutable working state between releases. The PEP 440 dev-release suffix marks "drift after the last release"; dev rows have no snapshot, so cite URLs resolve to the live catalog state.

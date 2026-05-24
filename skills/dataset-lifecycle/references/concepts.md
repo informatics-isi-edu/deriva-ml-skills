@@ -112,7 +112,7 @@ The substitution test helps identify whether two types belong on the same dimens
 
 ### Creating custom types
 
-Custom types are created using the generic `add_term` tool on the `Dataset_Type` vocabulary (the legacy `create_dataset_type_term` shortcut was removed):
+Custom types are created using the generic `add_term` tool on the `Dataset_Type` vocabulary:
 
 ```
 add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed", description="...", synonyms=[...])
@@ -217,7 +217,7 @@ Child datasets are independent — they have their own RIDs, versions, and types
 deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="1-PAR", members={"Dataset": ["1-CHD"]})
 ```
 
-> Note: the legacy `add_dataset_child(parent, child)` shortcut was removed. Children are now members of the parent's element-type `Dataset`.
+Children are members of the parent's element-type `Dataset`.
 
 ```python
 # Python API
@@ -265,7 +265,7 @@ For the full parameter reference, MCP tool examples, and Python API, see `workfl
 
 ## Dataset Versioning (ADR-0003 dev/release model)
 
-Per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md) (deriva-ml 1.34+), datasets carry a **two-state PEP 440 version** at any moment:
+Per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md), datasets carry a **two-state PEP 440 version** at any moment:
 
 - **Released** (`0.4.0`) — frozen catalog snapshot, citable, reproducible. Created by `deriva_ml_release`.
 - **Dev** (`0.4.0.post1.dev3`) — mutable working state between releases. The PEP 440 dev-release suffix marks "drift since the last release"; dev rows have no snapshot, so cite URLs resolve to the live catalog.
@@ -469,7 +469,7 @@ Datasets form parent-child hierarchies. The most common is the split hierarchy c
 
 **Listing children and parents in one call:**
 ```
-# Both directions in a single call (replaces the legacy split list_dataset_children / list_dataset_parents)
+# Both directions in a single call
 deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4")
 
 # Recurse for the full tree
@@ -479,7 +479,7 @@ deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", da
 deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
 ```
 
-> Note: the legacy `list_dataset_parents(rid)` was generalized into `deriva_ml_list_dataset_relations(rid)`, which returns both parents and children together. There is no separate parents-only call.
+`deriva_ml_list_dataset_relations` returns both parents and children together; there is no separate parents-only call.
 
 **When to use recursion:**
 - Use `recurse=false` (default) when you only need the immediate level — e.g., listing the Training/Testing/Validation children of a Split dataset
@@ -672,7 +672,6 @@ By default, symlinks are used to save disk space. Set `use_symlinks=False` to co
 
 ```
 # MCP — `deriva_ml_bag_info` returns the size estimate plus the manifest
-# (the legacy estimate_bag_size is subsumed by this tool)
 deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
 ```
 
@@ -718,7 +717,7 @@ Deletion removes the dataset container and member associations, not the member r
 | Split | *(script only)* | `split_dataset(ml, source_rid, exe, ...)` | Run from a script that opens an execution; auto-increments version |
 | Nest datasets | `deriva_ml_add_dataset_members(parent, members={"Dataset": [child_rid]})` | `parent.add_dataset_members()` | Children are members of element-type Dataset |
 | Release a dev period | `deriva_ml_release` | `dataset.release(bump, description)` | Promotes dev → released; errors if no dev row |
-| Update description | `deriva_ml_update_dataset(rid, description=...)` | — | Subsumes legacy set_dataset_description |
+| Update description | `deriva_ml_update_dataset(rid, description=...)` | — | Single setter for any updatable field |
 | Delete | `deriva_ml_delete_dataset` | `ml.delete_dataset()` | Soft delete, optional recurse |
 
 ### Navigation and discovery
@@ -731,8 +730,8 @@ Deletion removes the dataset container and member associations, not the member r
 | List relations (parents + children) | `deriva_ml_list_dataset_relations` | `dataset.list_dataset_relations()` | Both directions in one call; supports `recurse`, `version` |
 | Check element types | `deriva_ml_list_dataset_element_types` | `ml.list_dataset_element_types()` | Per-dataset or catalog-wide |
 | List executions | `deriva_ml_get_dataset` (includes provenance) | — | Provenance: which runs used this dataset |
-| Validate RIDs | `get_entities(filters={"RID": "..."})` per candidate table; check for empty result | — | The legacy validate_rids tool was removed; use generic entity fetch |
-| Bag info / size estimate | `deriva_ml_bag_info` (subsumes legacy estimate_bag_size) | `dataset.estimate_bag_size()` | Preview before download |
+| Validate RIDs | `get_entities(filters={"RID": "..."})` per candidate table; check for empty result | — | Use generic entity fetch |
+| Bag info / size estimate | `deriva_ml_bag_info` | `dataset.estimate_bag_size()` | Preview before download |
 | Get version spec | `deriva_ml_get_dataset_spec` | — | Generate `DatasetSpecConfig` string |
 | Cite | `cite` | `ml.cite(rid)` | Permanent shareable URL |
 
