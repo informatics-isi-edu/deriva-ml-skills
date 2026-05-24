@@ -173,6 +173,7 @@ If the execution is already in a non-`Running` state (`Stopped`, `Failed`, `Pend
   - `Workflow_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`
   - `Asset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`
 - For other vocabularies (custom domain vocabs), use `add_term` with the appropriate schema and table.
+- **If the vocabulary table itself doesn't exist yet**, create it with `deriva_ml_create_vocabulary(hostname=..., catalog_id=..., vocab_name=..., comment=...)` — the ML-aware tool applies the deriva-ml project curie prefix and refreshes the navbar. The generic `create_vocabulary` from deriva-mcp-core skips both. See `deriva-ml-context` for the steering rationale.
 - For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the `/deriva:troubleshoot-deriva-errors` skill *(deriva-skills)*.
 
 ---
@@ -318,11 +319,25 @@ Whichever branch you pick, two follow-ups apply:
 
 ### Review Recent Executions
 
-- Call `deriva_ml_list_executions(hostname, catalog_id)` to see the latest execution activity, statuses, and any patterns of failure.
+- Call `deriva_ml_list_executions(hostname, catalog_id, sort=True)` to see the latest execution activity (newest-first by RCT), statuses, and any patterns of failure. Without `sort=True`, results are RID-ascending — "the last 5 runs" then requires paging to the end of the result set.
+- **Cross-workflow filter:** pass `workflow_type="Training"` (or any `Workflow_Type` vocab value) to scope to one class of run across every workflow that produced it — e.g., `deriva_ml_list_executions(hostname, catalog_id, workflow_type="Inference", sort=True)`. This is the one-call answer to "show me every inference execution" without enumerating workflows first. Mutually compatible with `workflow_rid=` (both narrow the result), and with `status=` to filter on `Running` / `Failed` / `Aborted` / etc.
 - **Tool**: `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` to see descendants if the execution is the parent of a multirun or pipeline.
 - **Tool**: `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` to find ancestors if this is a nested step.
 
 > **Orchestration vs data-flow:** the `list_execution_children` / `list_execution_parents` calls above walk the **orchestration** graph (which Execution called which — `Execution_Execution` table). For the **data-flow** graph (what produced this output? which dataset trained the model?), use `deriva_ml_get_lineage(hostname, catalog_id, rid=...)` instead — see "Trace an artifact's provenance" below.
+
+### Compare feature values across recent executions
+
+When triaging "did my last few runs produce reasonable predictions / metrics?", batch-fetch the feature values across all the candidate executions in **one** call rather than looping per-execution:
+
+```
+deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1",
+    target_table="Image",
+    feature_name="Predicted_Class",
+    execution_rids=["1-EXEC-A", "1-EXEC-B", "1-EXEC-C"])
+```
+
+The `execution_rids=` filter runs server-side, returning rows from any of the listed executions. One round trip instead of N. The default 50,000-row cap protects against accidental wholesale materialization; if you blow through it, narrow the filter (fewer execution RIDs, or pair with `selector="newest"`) or raise `max_results=`. See `/deriva-ml:compare-model-runs` for the full pattern.
 
 ### Trace an artifact's provenance
 

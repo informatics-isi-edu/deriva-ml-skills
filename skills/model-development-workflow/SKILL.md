@@ -231,6 +231,7 @@ After the run completes:
 2. Verify outputs were uploaded — call `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid="...")` for each output asset (or `deriva_ml_find_workflow_executions(hostname=..., catalog_id=..., workflow_rid="...")` for the broader query).
 3. Inspect output files — download and examine predictions, metrics, model weights
 4. Check provenance chain — `deriva_ml_list_execution_children(hostname=..., catalog_id=..., execution_rid="...")` for descendants and `deriva_ml_list_execution_parents(hostname=..., catalog_id=..., execution_rid="...")` for ancestors.
+5. **Compare against prior runs** — fetch the same feature across this run and the last few runs in one call: `deriva_ml_list_feature_values(hostname=..., catalog_id=..., target_table=..., feature_name=..., execution_rids=["<this_rid>", "<prev_rid_1>", "<prev_rid_2>"])`. The `execution_rids=` filter runs server-side, so it's one round trip instead of N. Detects regressions early. See `/deriva-ml:compare-model-runs` for the full ranking pattern.
 
 ### Fix problems at this tier
 Common tier 2 failures:

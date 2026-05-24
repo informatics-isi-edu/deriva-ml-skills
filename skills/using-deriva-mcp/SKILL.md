@@ -58,6 +58,16 @@ You can invoke the slash command by typing `/` and selecting from the menu Claud
 - Repeat MCP calls in the same conversation. Once you've read the orientation material, you've read it — don't re-fetch.
 - Read-only catalog *resource* fetches against URIs you already understand (e.g., re-reading `deriva://catalog/<h>/<c>/ml/datasets` after you've done it once). The resource shape is established; no re-orientation needed.
 
+## The MCP / local-Python boundary
+
+The deriva-ml MCP surface is **observation + catalog-state mutation**, not execution authorship. Two whole classes of operation belong in user-local Python, not on the wire:
+
+1. **Execution lifecycle.** Creating an Execution, opening its context manager, staging feature values, and committing output assets all require the user's git checkout (for workflow URL + commit hash), the local filesystem (for staged output files), and a per-process SQLite manifest (for feature-value staging). An MCP server can't participate in any of that. The pattern is `with ml.create_execution(config) as exe:` in a committed script, run via `deriva-ml-run`. The MCP surface still exposes read-only execution tools (`deriva_ml_list_executions`, `deriva_ml_get_execution`, `deriva_ml_get_lineage`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_find_workflow_executions`) and the matching `deriva://catalog/{h}/{c}/ml/execution/...` resources for post-run observation — those stay on the wire. See `/deriva-ml:execution-lifecycle` for the script-template pattern.
+
+2. **Bag materialization.** Downloading a dataset bag writes bytes to the caller's local cache directory. The MCP server has no shared filesystem with the caller, so any "warm the cache" MCP call would produce inaccessible bytes on the server's disk. The pattern is `ml.cache_dataset(spec)` in a committed script — see the `skills/manage-storage/scripts/warm_cache.py` template. The MCP surface keeps the **preview** path (`deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` resource and `deriva_ml_bag_info` tool) because both return bounded inline rows the wire is good for. The denormalized-bag tool (`deriva_ml_denormalize_dataset`) stays too — its output is bounded inline rows; the cache_dataset it uses internally is an implementation detail the caller never sees.
+
+The rule of thumb: if an operation needs **bytes on the caller's machine** or **the caller's git commit hash**, it's local Python.
+
 ## What you should NOT do
 
 - **Skip the orientation and hit a tool directly.** This is the failure mode this skill exists to prevent. Without `deriva_ml_getting_started`'s pagination contract, you will mis-paginate. Without `query_guide`, you will pass `schema` + `table` + `filter` to `query_attribute` instead of a `path` expression. Without `deriva_ml_concepts`, you will treat Datasets / Workflows / Executions as raw tables and mutate them with `insert_entities` (bypassing the lifecycle machinery — see the inheritance-with-override rule in `/deriva-ml:deriva-ml-context`).

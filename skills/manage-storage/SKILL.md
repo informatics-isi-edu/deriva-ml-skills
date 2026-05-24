@@ -69,22 +69,30 @@ Returns every cached bag, execution directory, and other artifact.
 
 ### Check a specific dataset's cache status
 
+For the **current released version** of a dataset, the lead path is the bag-preview resource (one round trip, no parameters):
+
+```
+deriva://catalog/data.example.org/1/ml/dataset/28CT/bag-preview
+```
+
+For a **pinned version** or to **exclude tables** from the preview, use the `deriva_ml_bag_info` tool:
+
 ```
 deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
 ```
 
-Returns:
+Both return the same shape:
 - `cache_status`: one of `not_cached`, `cached_metadata_only`, `cached_materialized`, `cached_incomplete`
 - `total_asset_bytes` / `total_asset_size`: how much space the bag uses
 - `tables`: per-table row counts and asset sizes
 - `cache_path`: where it lives on disk
 - Manifest preview
 
-`deriva_ml_bag_info` works whether or not the bag is already cached.
+Both work whether or not the bag is already cached.
 
 ### Estimate download size before caching
 
-The same `deriva_ml_bag_info` call works for un-cached bags — when the bag isn't local, the response uses catalog metadata to estimate size.
+Either the bag-preview resource (current version) or `deriva_ml_bag_info` tool (pinned version) works for un-cached bags — when the bag isn't local, the response uses catalog metadata to estimate size.
 
 ## Phase 2: Clean Up — Free Disk Space
 
