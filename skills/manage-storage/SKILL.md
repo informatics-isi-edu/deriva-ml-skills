@@ -178,11 +178,11 @@ Downloads table data but skips large asset files. Useful for inspecting schema a
 
 ### Cache an individual asset
 
-```
-deriva_ml_cache_dataset(hostname="data.example.org", catalog_id="1", asset_rid="3WSE")
-```
+Individual-asset download is a Python-API operation. Pass the asset RID to `Execution.download_asset()` from inside an execution context, or call it through a bundled script template — there is no MCP tool that warms a single asset to the user's machine.
 
-Downloads a single asset (e.g., pre-trained model weights) into the asset cache.
+```python
+exe.download_asset("3WSE")  # pre-trained model weights, etc.
+```
 
 ### Verify cache after pre-fetching
 

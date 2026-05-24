@@ -6,8 +6,10 @@
 
 - [Overview](#overview)
 - [Basic Usage](#basic-usage)
-- [group_by Options](#group_by-options)
-- [Value Selectors](#value-selectors)
+- [`targets` Options](#targets-options)
+- [Per-Feature Selectors](#per-feature-selectors)
+- [Extracting a Column with `target_transform`](#extracting-a-column-with-target_transform)
+- [Handling Missing Labels](#handling-missing-labels)
 - [File Transformers](#file-transformers)
 - [Directory Layout Options](#directory-layout-options)
 - [ML Framework Patterns](#ml-framework-patterns)
@@ -32,59 +34,97 @@ bag = dataset.download_dataset_bag(version="1.0.0")
 bag.restructure_assets(
     output_dir="./ml_data",
     asset_table="Image",        # auto-detected if only one asset table
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
 )
 ```
 
-## group_by Options
+## `targets` Options
 
-The `group_by` list determines the subdirectory hierarchy. Each item can be:
+`targets` takes either a list (default selector per feature) or a dict mapping each feature name to a selector. Items can be:
 
 | Type | Example | How it works |
 |------|---------|--------------|
 | Column name | `"Species"` | Direct column on the asset table |
 | Feature name | `"Diagnosis"` | Feature values for each asset (via feature table) |
-| Feature.column | `"Classification.Label"` | Specific column from a multi-column feature |
 
-Multiple `group_by` levels create nested directories:
+Multiple `targets` levels create nested directories:
 ```python
-group_by=["Species", "Diagnosis"]
+targets=["Species", "Diagnosis"]
 # → training/human/normal/..., training/mouse/tumor/...
 ```
 
-## Value Selectors
+## Per-Feature Selectors
 
-When an asset has multiple feature values (from different annotators or executions), a `value_selector` picks one.
+When an asset has multiple feature values (from different annotators or executions), use the dict form of `targets` to attach a selector per feature.
 
 ### Built-in selectors
 
 ```python
-from deriva_ml.dataset.dataset_bag import select_majority_vote, select_latest, select_first
+from deriva_ml.feature import FeatureRecord
 
 # Most common label; ties broken by newest
-value_selector=select_majority_vote
+targets={"Diagnosis": FeatureRecord.select_majority_vote("Diagnosis_Type")}
 
 # Most recent annotation (by RCT timestamp)
-value_selector=select_latest
+targets={"Diagnosis": FeatureRecord.select_latest}
 
 # Earliest annotation
-value_selector=select_first
+targets={"Diagnosis": FeatureRecord.select_first}
+
+# Different selector per feature:
+targets={
+    "Diagnosis": FeatureRecord.select_newest,
+    "Severity":  FeatureRecord.select_majority_vote("Grade"),
+}
 ```
 
 ### Custom selector
 
-Receives a list of `FeatureValueRecord` objects, returns one:
+Receives a list of `FeatureRecord` objects, returns one:
 
 ```python
-def select_highest_confidence(records):
-    return max(records, key=lambda r: r.raw_record.get("Confidence", 0))
+from deriva_ml.feature import FeatureRecord
+
+def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
+    return max(records, key=lambda r: getattr(r, "Confidence", 0))
+
+bag.restructure_assets(
+    output_dir="./ml_data",
+    targets={"Diagnosis": select_highest_confidence},
+)
 ```
 
-`FeatureValueRecord` attributes:
-- `.value` — the feature value (e.g., vocabulary term name)
-- `.raw_record` — full row dict from the feature table
-- `.execution_rid` — which execution produced this annotation
-- `.rct` — record creation timestamp
+`FeatureRecord` attributes:
+- Named attributes for each feature column (e.g., `.Diagnosis_Type`, `.Confidence`)
+- `.Execution` — RID of the execution that produced this value
+- `.RCT` — record creation timestamp
+- `.Feature_Name` — name of the feature
+
+## Extracting a Column with `target_transform`
+
+When a feature has multiple columns and you want the directory name to come from one specific column, use `target_transform`:
+
+```python
+# Feature "Classification" has columns Label, Confidence, Reviewer.
+# Use the Label column as the directory name:
+bag.restructure_assets(
+    output_dir="./ml_data",
+    targets=["Classification"],
+    target_transform=lambda rec: rec.Label,
+)
+```
+
+`target_transform` is `(FeatureRecord) -> str`. The returned string is the directory segment; non-string returns raise `DerivaMLValidationError`.
+
+## Handling Missing Labels
+
+The `missing` parameter controls behavior when an asset has no matching feature value for one of its targets:
+
+| Value | Behavior |
+|---|---|
+| `"unknown"` *(default)* | Place the asset in an `Unknown` subdirectory |
+| `"skip"` | Omit the asset from the output tree entirely |
+| `"error"` | Raise `DerivaMLValidationError` on the first missing label |
 
 ## File Transformers
 
@@ -99,7 +139,7 @@ def dicom_to_png(src, dest):
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
     file_transformer=dicom_to_png,
 )
 ```
@@ -112,11 +152,10 @@ A transformer receives `(src_path, dest_path)` and returns the actual output pat
 |-----------|---------|-------------|
 | `use_symlinks` | `True` | Symlink to original files (saves disk). Set `False` to copy. |
 | `type_to_dir_map` | Auto | Map dataset types to directory names: `{"Training": "train", "Testing": "test"}` |
-| `enforce_vocabulary` | `True` | Require features in `group_by` to have vocabulary terms. Set `False` for any feature type. |
+| `enforce_vocabulary` | `True` | Require features in `targets` to have vocabulary terms. Set `False` for any feature type. |
+| `missing` | `"unknown"` | Behavior on missing labels — see [Handling Missing Labels](#handling-missing-labels) above. |
 
 **Datasets without types** → treated as Testing (common for prediction/inference).
-
-**Assets without labels** → placed in `"Unknown"` subdirectory.
 
 ## ML Framework Patterns
 
@@ -127,7 +166,7 @@ from torchvision.datasets import ImageFolder
 
 bag.restructure_assets(
     output_dir="./data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
     type_to_dir_map={"Training": "train", "Testing": "test"},
 )
 train_ds = ImageFolder("./data/train", transform=train_transform)
@@ -140,7 +179,7 @@ import tensorflow as tf
 
 bag.restructure_assets(
     output_dir="./data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
 )
 train_ds = tf.keras.utils.image_dataset_from_directory(
     "./data/training", image_size=(224, 224), batch_size=32

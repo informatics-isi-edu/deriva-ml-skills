@@ -270,7 +270,7 @@ Feature queries fall into two categories. **Always choose the right one — neve
 
 **NEVER use `query_attribute` or `get_table_sample_data` with large limits to retrieve feature values.** This dumps raw records into the conversation context, which is wasteful and doesn't support selectors or caching.
 
-For the exploratory-preview MCP tool examples and the full Python API retrieval pattern (`ml.cache_features`, `ml.fetch_table_features`, `ml.list_feature_values`), see `references/workflow.md` under "Query Feature Values".
+For the exploratory-preview MCP tool examples and the full Python API retrieval pattern (`ml.feature_values(table, feature_name, selector=...)` and the `materialize_limit=` / `execution_rids=` filters), see `references/workflow.md` under "Query Feature Values".
 
 ### Resolve multiple values with selectors
 

@@ -38,7 +38,8 @@ it to ``src/scripts/generate_<name>.py`` in the user's project.
 - ``dataset.add_dataset_members(members=..., description=...)`` → None
 - ``ml_instance.pathBuilder().schemas["deriva-ml"].tables[...]`` — note pathBuilder() is a method
 - ``ml_instance.lookup_dataset(rid)`` → Dataset
-- ``ml_instance.cache_features(table, feature, selector=...)`` → pd.DataFrame
+- ``ml_instance.feature_values(table, feature, selector=...)`` → Iterable[FeatureRecord]
+  (materialize as pd.DataFrame via ``pd.DataFrame.from_records(r.model_dump() for r in records)``)
 
 Run via:
     uv run deriva-ml-run +experiment={{EXPERIMENT_NAME}} dry_run=true
@@ -127,18 +128,20 @@ def {{FUNCTION_NAME}}(
 
     else:
         # ---------------------------------------------------------------
-        # Data path: download bag or cache features, then filter
+        # Data path: read feature values from the catalog, or download a
+        # bag and denormalize, then filter
         # ---------------------------------------------------------------
         dataframes: dict[str, pd.DataFrame] = {}
 
         if feature_name:
-            # Catalog-query path: cache feature values directly.
-            feature_df = ml_instance.cache_features(
+            # Catalog-query path: read feature values directly.
+            records = ml_instance.feature_values(
                 element_table,
                 feature_name,
                 selector=FeatureRecord.select_newest,
             )
-            print(f"Cached features: {len(feature_df)} rows from {element_table}.{feature_name}")
+            feature_df = pd.DataFrame.from_records(r.model_dump() for r in records)
+            print(f"Read features: {len(feature_df)} rows from {element_table}.{feature_name}")
             for rid in source_dataset_rids:
                 dataset = ml_instance.lookup_dataset(rid)
                 print(f"Source: {dataset.description} (RID: {rid})")

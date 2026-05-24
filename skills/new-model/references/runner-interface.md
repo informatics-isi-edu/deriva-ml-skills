@@ -84,7 +84,7 @@ for dataset in execution.datasets:
     dataset.restructure_assets(
         asset_table="Image",
         output_dir=execution.working_dir / "data",
-        group_by=["Image_Classification"],
+        targets=["Image_Classification"],
     )
 ```
 
@@ -107,25 +107,32 @@ data/
 |-----------|------|---------|-------------|
 | `output_dir` | `Path \| str` | *(required)* | Base directory for restructured files |
 | `asset_table` | `str \| None` | `None` | Which asset table to restructure. Auto-detected if the dataset has only one asset table type |
-| `group_by` | `list[str] \| None` | `None` | Create nested subdirectories by column or feature name. Each entry adds a nesting level |
+| `targets` | `list[str] \| dict[str, FeatureSelector] \| None` | `None` | Create nested subdirectories by column or feature name. List form takes the default selector per feature; dict form attaches a selector per feature. Each entry adds a nesting level. |
+| `target_transform` | `Callable[..., str] \| None` | `None` | Extract a directory-name string from the resolved `FeatureRecord` (e.g., `lambda rec: rec.Label` to use one column of a multi-column feature) |
+| `missing` | `Literal["error", "skip", "unknown"]` | `"unknown"` | Behavior when an asset has no value for one of its targets: `"unknown"` (place in `Unknown` subdir), `"skip"` (omit), `"error"` (raise) |
 | `use_symlinks` | `bool` | `True` | Symlink files instead of copying (saves disk space) |
 | `type_selector` | `Callable` | `None` | Custom function to choose the top-level directory name from a list of dataset types |
 | `type_to_dir_map` | `dict[str, str]` | `None` | Map dataset types to directory names. Default: `Training→"training"`, `Testing→"testing"` |
-| `enforce_vocabulary` | `bool` | `True` | Raise error if an asset has multiple different feature values for the same feature |
-| `value_selector` | `Callable` | `None` | Resolve conflicts when an asset has multiple feature values |
+| `enforce_vocabulary` | `bool` | `True` | Require features used in `targets` to have vocabulary terms |
 | `file_transformer` | `Callable` | `None` | Transform files during restructuring (e.g., DICOM to PNG conversion) |
 
 Returns a `dict[Path, Path]` manifest mapping source paths to output paths.
 
-### How `group_by` works
+### How `targets` works
 
-Each string in the `group_by` list creates a directory nesting level. Values are resolved in order:
+Each string in the `targets` list (or each key in the dict form) creates a directory nesting level. Values can be:
 
 1. **Column name** — a direct column on the asset table (e.g., `"Diagnosis"`)
 2. **Feature name** — a feature defined on the asset table (e.g., `"Image_Classification"` uses the first term column of that feature)
-3. **Feature.column** — a specific column from a multi-term feature (e.g., `"Classification.Label"`)
 
-If a value is missing or `None`, the directory name defaults to `"Unknown"`.
+For multi-column features, use `target_transform` to extract the column you want:
+
+```python
+targets=["Classification"],
+target_transform=lambda rec: rec.Label,
+```
+
+If a value is missing, behavior is controlled by `missing` (default: place in `"Unknown"` subdirectory).
 
 ### Custom type selection
 
@@ -144,7 +151,7 @@ def type_selector(types: list[str]) -> str:
 dataset.restructure_assets(
     asset_table="Image",
     output_dir=data_dir,
-    group_by=["Image_Classification"],
+    targets=["Image_Classification"],
     type_selector=type_selector,
 )
 ```
@@ -280,7 +287,7 @@ def image_classifier(
         dataset.restructure_assets(
             asset_table="Image",
             output_dir=data_dir,
-            group_by=["Image_Classification"],
+            targets=["Image_Classification"],
         )
 
     # 2. Load with PyTorch

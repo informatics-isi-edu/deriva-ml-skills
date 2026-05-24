@@ -6,8 +6,10 @@
 
 - [Overview](#overview)
 - [Basic Usage](#basic-usage)
-- [group_by Options](#group_by-options)
-- [Handling Multi-Valued Features](#handling-multi-valued-features)
+- [`targets` Options](#targets-options)
+- [Per-Feature Selectors](#per-feature-selectors)
+- [Extracting a Column with `target_transform`](#extracting-a-column-with-target_transform)
+- [Handling Missing Labels](#handling-missing-labels)
 - [File Transformation](#file-transformation)
 - [Directory Layout Control](#directory-layout-control)
 - [ML Framework Integration](#ml-framework-integration)
@@ -35,7 +37,7 @@ bag = dataset.download_dataset_bag(version="1.0.0")
 bag.restructure_assets(
     output_dir="./ml_data",
     asset_table="Image",        # auto-detected if only one asset table
-    group_by=["Diagnosis"],     # create subdirs by label
+    targets=["Diagnosis"],      # create subdirs by label
 )
 ```
 
@@ -56,45 +58,53 @@ bag.restructure_assets(
       img005.png
 ```
 
-## group_by Options
+## `targets` Options
 
-The `group_by` list controls subdirectory creation. Items can be:
+The `targets` parameter controls subdirectory creation. Two shapes:
+
+### List form (default selector per feature)
+```python
+targets=["Diagnosis"]
+# Looks up feature values for each asset, creates subdirs by value.
+# Multi-valued features fall back to the most-recent annotation.
+```
+
+### Dict form (per-feature selector)
+```python
+from deriva_ml.feature import FeatureRecord
+
+targets={"Diagnosis": FeatureRecord.select_newest}
+# Each feature gets its own selector — see "Per-Feature Selectors" below.
+```
+
+Targets can be:
 
 ### Column names
 Direct columns on the asset table:
 ```python
-group_by=["Species"]
+targets=["Species"]
 # Result: training/mouse/..., training/human/...
 ```
 
 ### Feature names
 Features defined on the asset table or FK-reachable tables:
 ```python
-group_by=["Diagnosis"]
+targets=["Diagnosis"]
 # Looks up feature values for each asset, creates subdirs by value
 ```
 
-### Feature.column
-Specific column from a multi-column feature:
-```python
-group_by=["Classification.Label"]
-# Uses only the "Label" column from the "Classification" feature
-```
-
-### Multiple group_by levels
+### Multiple `targets` levels
 Create nested hierarchies:
 ```python
-group_by=["Species", "Diagnosis"]
+targets=["Species", "Diagnosis"]
 # Result: training/human/normal/..., training/mouse/tumor/...
 ```
 
-## Handling Multi-Valued Features
+## Per-Feature Selectors
 
-When an asset has multiple feature values (e.g., annotations from different executions or annotators), you need a `value_selector` to pick one:
+When an asset has multiple feature values (annotations from different executions or annotators), use the dict form of `targets` to attach a selector per feature.
 
-### Built-in selectors
-
-All selectors use `FeatureRecord` — the same type used everywhere in the API:
+All selectors use `FeatureRecord` — the same type used everywhere in the API.
 
 ```python
 from deriva_ml.feature import FeatureRecord
@@ -102,32 +112,28 @@ from deriva_ml.feature import FeatureRecord
 # Most recent annotation (by RCT timestamp)
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    value_selector=FeatureRecord.select_newest,
+    targets={"Diagnosis": FeatureRecord.select_newest},
 )
 
 # Earliest annotation (by RCT timestamp)
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    value_selector=FeatureRecord.select_first,
+    targets={"Diagnosis": FeatureRecord.select_first},
 )
 
 # Most common label; ties broken by newest annotation
-# For single-term features, column is auto-detected:
-feat = ml.lookup_feature("Image", "Diagnosis")
-RecordClass = feat.feature_record_class()
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    value_selector=RecordClass.select_majority_vote(),
+    targets={"Diagnosis": FeatureRecord.select_majority_vote("Diagnosis_Type")},
 )
 
-# Or specify the column explicitly:
+# Different selector per feature (the whole point of the dict form):
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    value_selector=FeatureRecord.select_majority_vote("Diagnosis_Type"),
+    targets={
+        "Diagnosis": FeatureRecord.select_newest,
+        "Severity":  FeatureRecord.select_majority_vote("Grade"),
+    },
 )
 ```
 
@@ -144,8 +150,7 @@ def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    value_selector=select_highest_confidence,
+    targets={"Diagnosis": select_highest_confidence},
 )
 ```
 
@@ -154,6 +159,55 @@ Key `FeatureRecord` attributes:
 - `.Execution` — RID of the execution that produced this value
 - `.RCT` — ISO 8601 creation timestamp
 - `.Feature_Name` — name of the feature
+
+## Extracting a Column with `target_transform`
+
+When a target feature has multiple columns and you want the directory name to come from one specific column (or some computation across columns), use `target_transform`:
+
+```python
+# Feature "Classification" has columns Label, Confidence, Reviewer.
+# Use the Label column as the directory name:
+bag.restructure_assets(
+    output_dir="./ml_data",
+    targets=["Classification"],
+    target_transform=lambda rec: rec.Label,
+)
+
+# Or combine columns:
+bag.restructure_assets(
+    output_dir="./ml_data",
+    targets=["Classification"],
+    target_transform=lambda rec: f"{rec.Label}_{rec.Confidence_Bucket}",
+)
+```
+
+`target_transform` is a callable `(FeatureRecord) -> str`. The returned string is used as the directory segment. Non-string returns raise `DerivaMLValidationError`.
+
+## Handling Missing Labels
+
+The `missing` parameter controls behavior when an asset has no matching feature value for one of its targets:
+
+| Value | Behavior |
+|---|---|
+| `"unknown"` *(default)* | Place the asset in an `Unknown` subdirectory |
+| `"skip"` | Omit the asset from the output tree entirely |
+| `"error"` | Raise `DerivaMLValidationError` on the first missing label |
+
+```python
+# Strict mode for production training: fail loudly if any asset is unlabeled
+bag.restructure_assets(
+    output_dir="./ml_data",
+    targets=["Diagnosis"],
+    missing="error",
+)
+
+# Drop unlabeled assets from the output (useful for exploratory work)
+bag.restructure_assets(
+    output_dir="./ml_data",
+    targets=["Diagnosis"],
+    missing="skip",
+)
+```
 
 ## File Transformation
 
@@ -172,7 +226,7 @@ def oct_to_png(src, dest):
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
     file_transformer=oct_to_png,
 )
 ```
@@ -188,7 +242,7 @@ By default, dataset types map to directory names (Training → "training", Testi
 ```python
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
     type_to_dir_map={"Training": "train", "Testing": "test", "Validation": "val"},
 )
 # Result: train/normal/..., test/normal/..., val/normal/...
@@ -210,16 +264,16 @@ Datasets that have no dataset type are treated as Testing. This is common for pr
 
 ### Assets without labels
 
-Assets that have no matching feature value for a `group_by` entry are placed in an `"Unknown"` subdirectory.
+The `missing` parameter controls behavior — see [Handling Missing Labels](#handling-missing-labels) above.
 
 ### Vocabulary enforcement
 
-By default, features used in `group_by` must have vocabulary terms:
+By default, features used in `targets` must have vocabulary terms:
 ```python
 # Allow non-vocabulary features (e.g., numeric or free-text columns)
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Score"],
+    targets=["Score"],
     enforce_vocabulary=False,
 )
 ```
@@ -234,7 +288,7 @@ from torchvision import transforms
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
     type_to_dir_map={"Training": "train", "Testing": "test"},
 )
 
@@ -255,7 +309,7 @@ import tensorflow as tf
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
 )
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -382,8 +436,7 @@ bag = dataset.download_dataset_bag(version="1.0.0")
 # 2. Restructure for PyTorch
 bag.restructure_assets(
     output_dir="./data",
-    group_by=["Diagnosis"],
-    value_selector=FeatureRecord.select_newest,
+    targets={"Diagnosis": FeatureRecord.select_newest},
     type_to_dir_map={"Training": "train", "Testing": "test"},
 )
 
@@ -411,8 +464,11 @@ y = df["Subject_Diagnosis"]
 ```python
 bag.restructure_assets(
     output_dir="./data",
-    group_by=["Primary_Diagnosis", "Severity"],  # nested dirs
-    value_selector=FeatureRecord.select_latest,
+    # Per-feature selector picks the most-recent annotation for each:
+    targets={
+        "Primary_Diagnosis": FeatureRecord.select_latest,
+        "Severity":          FeatureRecord.select_latest,
+    },
     file_transformer=dicom_to_png,
     use_symlinks=False,  # copy for portability
 )

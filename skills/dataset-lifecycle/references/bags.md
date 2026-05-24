@@ -255,43 +255,50 @@ The Python API `bag.restructure_assets()` method organizes downloaded asset file
 bag.restructure_assets(
     output_dir="./ml_data",
     asset_table="Image",        # auto-detected if only one asset table
-    group_by=["Diagnosis"],     # create subdirs by label
+    targets=["Diagnosis"],      # create subdirs by label
 )
 # Result: ./ml_data/training/normal/img001.png
 #         ./ml_data/training/pneumonia/img002.png
 ```
 
-### group_by options
+### `targets` options
 
-The `group_by` list can contain:
+The `targets` parameter takes either a list (default selector per feature) or a dict mapping each feature name to its own selector. Items can be:
 - **Column names** — direct columns on the asset table (e.g., `"Species"`)
 - **Feature names** — features defined on the asset table or FK-reachable tables (e.g., `"Diagnosis"`)
-- **Feature.column** — specific column from a multi-column feature (e.g., `"Classification.Label"`)
+
+For multi-column features where you want the directory name to come from one specific column, use `target_transform`:
+
+```python
+bag.restructure_assets(
+    output_dir="./ml_data",
+    targets=["Classification"],
+    target_transform=lambda rec: rec.Label,
+)
+```
 
 ### Handling multi-valued features
 
-When an asset has multiple feature values (e.g., annotations from different executions), use `value_selector` to choose one:
+When an asset has multiple feature values (annotations from different executions), use the dict form of `targets` to attach a per-feature selector:
 
 ```python
-from deriva_ml.dataset.dataset_bag import select_majority_vote, select_latest, select_first
+from deriva_ml.feature import FeatureRecord
 
 # Built-in selectors:
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    value_selector=select_majority_vote,  # most common label, ties broken by newest
+    targets={"Diagnosis": FeatureRecord.select_majority_vote("Diagnosis_Type")},
 )
 
-# Or: select_latest (most recent RCT), select_first (earliest RCT)
+# Other built-ins: FeatureRecord.select_newest, .select_first, .select_latest
 
 # Custom selector:
 def select_highest_confidence(records):
-    return max(records, key=lambda r: r.raw_record.get("Confidence", 0))
+    return max(records, key=lambda r: getattr(r, "Confidence", 0))
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
-    value_selector=select_highest_confidence,
+    targets={"Diagnosis": select_highest_confidence},
 )
 ```
 
@@ -308,7 +315,7 @@ def oct_to_png(src, dest):
 
 bag.restructure_assets(
     output_dir="./ml_data",
-    group_by=["Diagnosis"],
+    targets=["Diagnosis"],
     file_transformer=oct_to_png,
 )
 ```
@@ -317,9 +324,9 @@ bag.restructure_assets(
 
 - **`use_symlinks=True`** (default) — symlink to original files to save disk space. Set `False` to copy.
 - **`type_to_dir_map`** — customize directory names: `{"Training": "train", "Testing": "test"}`
-- **`enforce_vocabulary=True`** (default) — require features used in `group_by` to have vocabulary terms. Set `False` to allow any feature type.
+- **`enforce_vocabulary=True`** (default) — require features used in `targets` to have vocabulary terms. Set `False` to allow any feature type.
+- **`missing`** — behavior when an asset has no feature value for one of its targets: `"unknown"` (default; place in an `Unknown` subdirectory), `"skip"` (omit from output), `"error"` (raise on first miss).
 - **Datasets without types** are treated as Testing (common for prediction/inference).
-- **Assets without labels** are placed in an `"Unknown"` subdirectory.
 
 ## Hydra-Zen Configuration
 
