@@ -28,79 +28,48 @@ Before creating a dataset, review what already exists:
 - Use `rag_search("dataset types", doc_type="catalog-schema")` to find dataset type terms. Fall back to `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type")` for the full list.
 - Call `deriva_ml_list_dataset_element_types(hostname, catalog_id)` to see which tables are registered as element types.
 
-### MCP Tools
+### Catalog-only steps (no execution required)
 
-Each step below is a separate MCP tool call. Use the RID returned by each tool in subsequent calls.
+A few dataset operations are pure catalog mutations — no files staged, no execution provenance needed. These can run as direct MCP calls:
 
-**Step 1: Create a workflow and execution for provenance**
-
-Call `deriva_ml_create_workflow` with:
-- `hostname`: `"data.example.org"`, `catalog_id`: `"1"`
-- `name`: `"Dataset Curation"`
-- `workflow_type`: `"Data Management"`
-- `description`: `"Curate and organize training datasets"`
-
-Then call `deriva_ml_create_execution` with the returned `workflow_rid` and `description="Create training dataset"`.
-
-Then call `deriva_ml_start_execution` with the returned `execution_rid`.
-
-**Step 2: Create the dataset**
-
-Call `deriva_ml_create_dataset` with:
-- `hostname`: `"data.example.org"`, `catalog_id`: `"1"`
-- `description`: `"Curated set of labeled tumor histology images"`
-- `dataset_types`: `["Training", "Labeled"]`
-
-Note the returned dataset RID (e.g., `"2-DS01"`) — you'll need it for subsequent steps.
-
-**Step 3: Register element types** (catalog-level, idempotent)
+**Register element types** (catalog-level, idempotent — one-time setup per dataset shape):
 
 Call `deriva_ml_add_dataset_element_type` with `dataset_rid="2-DS01"`, `element_table="Image"`.
 Call `deriva_ml_add_dataset_element_type` with `dataset_rid="2-DS01"`, `element_table="Subject"`.
 
-**Step 4: Add members**
+**Update types or descriptions** on an existing dataset: see "Managing Types" below — `deriva_ml_update_dataset` and `deriva_ml_add_dataset_members` carry their own provenance via the `description=` parameter (recorded in version history).
 
-Call `deriva_ml_add_dataset_members` with:
-- `hostname`: `"data.example.org"`, `catalog_id`: `"1"`
-- `dataset_rid`: the RID from step 2
-- `members`: `{"Image": ["2-IMG1", "2-IMG2", "2-IMG3", "2-IMG4", "2-IMG5"]}`
-- `description`: `"Initial population of labeled tumor images"`
+### Creating a dataset with provenance (bundled script template)
 
-This auto-increments the dataset version; the description is recorded in version history.
+Creating a new dataset — or making changes that should be reproducibly tied to a workflow — requires an execution context manager so the workflow URL + git commit get recorded. The canonical entry point is `skills/execution-lifecycle/scripts/basic_execution.py`. Copy it into your project, customize the work block to call `exe.create_dataset(...)` and `dataset.add_dataset_members(...)`, commit, then run via `deriva-ml-run`.
 
-For multi-table additions, pass multiple keys:
-- `members`: `{"Image": ["2-IMG1", "2-IMG2"], "Subject": ["2-SUB1"]}`
-- `description`: `"Added remaining images and subjects"`
-
-**Step 5: Finalize**
-
-Call `deriva_ml_commit_execution` with the execution RID. (No need to call Python API `exe.commit_output_assets()` — dataset operations don't produce output files. If something went wrong, call `deriva_ml_abort_execution` instead.)
-
-### Python API
-
-For creating datasets in Python scripts with full provenance, see the `execution-lifecycle` skill which covers `ExecutionConfiguration` and context manager patterns. A brief example:
+The work block looks like:
 
 ```python
-from deriva_ml import DerivaML, ExecutionConfiguration
-
-ml = DerivaML(hostname, catalog_id)
-workflow = ml.create_workflow(
-    name="Dataset Curation",
-    workflow_type="Data Management",
-    description="Curate and organize training datasets"
-)
-
-with ml.create_execution(ExecutionConfiguration(workflow=workflow)) as exe:
-    dataset = exe.create_dataset(
-        description="Labeled tumor images",
-        dataset_types=["Training", "Labeled"]
+with ml.create_execution(config, workflow=workflow, dry_run=args.dry_run) as execution:
+    dataset = execution.create_dataset(
+        description="Curated set of labeled tumor histology images",
+        dataset_types=["Training", "Labeled"],
     )
-    ml.add_dataset_element_type("Image")
     dataset.add_dataset_members(
-        members=["2-IMG1", "2-IMG2", "2-IMG3"],
-        description="Initial labeled images"
+        members={"Image": ["2-IMG1", "2-IMG2", "2-IMG3", "2-IMG4", "2-IMG5"]},
+        description="Initial population of labeled tumor images",
     )
+
+# After the with block — flushes dataset bag and any staged feature values
+execution.commit_output_assets()
 ```
+
+For multi-table additions, pass multiple keys to `members`:
+
+```python
+dataset.add_dataset_members(
+    members={"Image": ["2-IMG1", "2-IMG2"], "Subject": ["2-SUB1"]},
+    description="Added remaining images and subjects",
+)
+```
+
+Each `add_dataset_members` call auto-increments the dataset version; the description is recorded in version history.
 
 ## Managing Types
 
@@ -347,29 +316,22 @@ Use this when creating the **first dataset** from records already in the catalog
    exe.commit_output_assets(clean_folder=True)
    ```
 
-## MCP-tool-only path (trivial cases)
+## Quick-edit MCP path (existing datasets only)
 
-For creating an empty dataset or adding a small number of known RIDs, the script-based path is overkill. Use these MCP tools directly:
+For routine edits to an already-existing dataset — adding a few known RIDs, updating the description, retagging types — there's no need to spin up an execution. These MCP calls record their own provenance via the `description=` parameter (written to version history):
 
-1. **Create a workflow and execution** for provenance tracking:
-   ```
-   deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1", name="Dataset Curation", workflow_type="Dataset_Management", description="...")
-   deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description="...")
-   deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
-   ```
+```
+deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1",
+    dataset_rid="...", members={"Image": ["2-IMG1", "2-IMG2"]},
+    description="Add late-arriving images from batch 2")
 
-2. **Create the dataset** with types and a good description:
-   ```
-   deriva_ml_create_dataset(hostname="data.example.org", catalog_id="1", description="...", dataset_types=["Complete", "Labeled"])
-   ```
+deriva_ml_update_dataset(hostname="data.example.org", catalog_id="1",
+    dataset_rid="...", description="Updated description")
+```
 
-3. **Add members and finalize:**
-   ```
-   deriva_ml_add_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="...", members={"Image": ["2-IMG1", "2-IMG2"]})
-   deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
-   ```
+For large member lists, always pass `members` as a `{table: [rids]}` dict (the typed form) instead of a flat list to avoid expensive per-RID table resolution.
 
-For large member lists, always pass members as a `{table: [rids]}` dict (the typed form) instead of a flat list to avoid expensive per-RID table resolution.
+**Creating a new dataset, by contrast, always goes through a bundled script template** (see the previous section) — `deriva_ml_create_dataset` exists as an MCP tool, but using it without an execution context manager produces a dataset with no workflow provenance. Reach for it only inside an `exe.create_dataset(...)` call from a committed script.
 
 ## Why render splits explicitly in the catalog
 

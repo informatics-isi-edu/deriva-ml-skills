@@ -68,27 +68,39 @@ This creates the feature record and a `{FeatureName}_Feature_Value` association 
 
 Feature values require an active execution for provenance tracking. Every label assignment is tied to the execution that created it.
 
-### MCP workflow
+### Bundled script template
 
-**Step 1:** Create a workflow and execution.
+The canonical entry point is `skills/create-feature/scripts/populate_feature_values.py`. Copy it into the user's project (typically `src/scripts/populate_<feature>.py`), edit the CSV path / feature name, commit, then run via `deriva-ml-run`. The template handles workflow creation, execution context, validation, `add_features()` staging, and commit — all with the typed argparse skeleton and `--dry-run` flag.
 
-Call `deriva_ml_create_workflow(hostname=..., catalog_id=..., name=..., workflow_type=..., description=...)`.
+```bash
+# 1. Copy + customize
+cp skills/create-feature/scripts/populate_feature_values.py \
+   src/scripts/populate_tumor_classification.py
+# Edit the script: set target_table, feature_name, CSV column mapping.
 
-Then call `deriva_ml_create_execution(hostname=..., catalog_id=..., workflow_rid=<workflow_rid>, description=...)`.
+# 2. Commit so the workflow URL + commit hash resolve to real code
+git add src/scripts/populate_tumor_classification.py
+git commit -m "feat(scripts): populate Tumor_Classification feature values"
 
-Then call `deriva_ml_start_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)`.
+# 3. Run dry-first
+uv run python src/scripts/populate_tumor_classification.py \
+    --hostname data.example.org --catalog-id 1 \
+    --workflow-type Annotation \
+    --csv ./labels/tumor_grades.csv \
+    --target-table Image --feature-name Tumor_Classification \
+    --dry-run
 
-**Step 2:** Add values using `deriva_ml_add_feature_values` (one tool — singular vs multi-column shape was unified):
+# 4. Production run (drop --dry-run)
+uv run python src/scripts/populate_tumor_classification.py \
+    --hostname data.example.org --catalog-id 1 \
+    --workflow-type Annotation \
+    --csv ./labels/tumor_grades.csv \
+    --target-table Image --feature-name Tumor_Classification
+```
 
-- `hostname`, `catalog_id`
-- `table`: the target table (e.g., `"Image"`) — the table the feature is defined on
-- `feature_name`: the feature name (e.g., `"Tumor_Classification"`)
-- `execution_rid`: REQUIRED — the RID of an active execution (Running, or Created if you want the hybrid auto-wrap path to drive the lifecycle)
-- `entries`: list of dicts, each with `target_rid` plus column values matching the feature's schema. For a single-column feature, supply `target_rid` plus the one term column (e.g., `Tumor_Grade`). For a multi-column feature, include all required columns and any optional ones you have values for.
+Inside the template, the work block builds typed `FeatureRecord` objects, calls `execution.add_features(records)` to stage them, and the post-`with`-block `execution.commit_output_assets()` flushes them to the catalog. Pydantic validates each row against the feature's term vocabulary; mismatched terms raise `DerivaMLInvalidTerm` immediately.
 
-**Step 3:** Call `deriva_ml_commit_execution(hostname=..., catalog_id=..., execution_rid=<execution_rid>)` to finalize. (Use `deriva_ml_abort_execution` instead if something went wrong.) Feature values are written directly to the catalog by `deriva_ml_add_feature_values` — no Python API `exe.commit_output_assets()` call is needed unless you also registered file assets with Python API `exe.asset_file_path()`.
-
-> `deriva_ml_add_feature_values` (plural) handles both single and multi-column feature values. Pass a single-element list when you only have one value.
+For multi-column features, edit the `RecordClass(**row)` instantiation in the loop to map CSV columns to the feature's columns. For asset-based features, set the asset reference column to the asset RID.
 
 ### Python API with context manager
 
@@ -194,15 +206,17 @@ Call `deriva_ml_create_feature(hostname="data.example.org", catalog_id="1", targ
 
 **Step 3:** Add values within an execution.
 
-Call `deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1", name="Expert Cell Annotation", workflow_type="Annotation", description="Expert cell type annotation workflow")`.
+Copy `skills/create-feature/scripts/populate_feature_values.py` to `src/scripts/populate_cell_classification.py`. Edit the `target_table` and `feature_name` arguments (already CLI-driven), or hardcode for this specific use case. Stage a CSV with columns `Image` (the target table's RID column) and `Cell_Type` (the feature's term column), commit the script, then run:
 
-Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description="Expert cell type annotation - batch 1")`.
+```bash
+uv run python src/scripts/populate_cell_classification.py \
+    --hostname data.example.org --catalog-id 1 \
+    --workflow-type Annotation \
+    --csv ./annotations/cell_types_batch1.csv \
+    --target-table Image --feature-name Cell_Classification
+```
 
-Call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")`.
-
-Call `deriva_ml_add_feature_values(hostname="data.example.org", catalog_id="1", table="Image", feature_name="Cell_Classification", execution_rid="<execution_rid>", entries=[{"target_rid": "2-IMG1", "Cell_Type": "Epithelial"}, {"target_rid": "2-IMG2", "Cell_Type": "Immune"}])`.
-
-Call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")` to finalize. Feature values were already written to the catalog by `deriva_ml_add_feature_values`.
+The script's `with ml.create_execution(...) as exe:` block stages the values via `exe.add_features(records)`; `exe.commit_output_assets()` post-context flushes them to the catalog. Each value carries provenance back to the committed script (workflow URL + git commit) and the execution.
 
 ## Complete Example: Python API
 

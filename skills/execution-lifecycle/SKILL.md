@@ -34,29 +34,46 @@ Before running an experiment, validate that everything is in place. **Stop and f
    | `cached_materialized` | Ready to go |
    | `cached_incomplete` | Needs re-materialization |
 
-4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — `deriva_ml_cache_dataset(...)` first. Individual assets (model weights) — `ml.download_asset("3WSE")` in a short Python staging script. Staging populates the local cache without creating execution records.
+4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — use the bundled `skills/manage-storage/scripts/warm_cache.py` template to pre-fetch into the local cache before the execution starts. Individual assets (model weights) — `skills/work-with-assets/scripts/download_asset.py`. Staging populates the local cache without creating execution records.
 5. **Code and environment checks (CLI runs).** `git status` clean (`DerivaMLDirtyWorkflowError` if not — use `--allow-dirty` only for debugging). Version current (`bump_version("patch")` or `uv run bump-version patch|minor`). Lock file valid (`uv lock --check`).
 6. **User confirmation.** Present commit hash + version + branch + experiment name + key parameters + dataset versions and cache status. Get explicit approval before production runs.
 
 ## Phase 2: Create and Run
 
-Three paths; choose based on context:
+Two paths; choose based on context:
 
-| Path | When to use | Lifecycle managed by |
-|------|-------------|---------------------|
-| **MCP Tools** | Claude-driven interactive work | Explicit tool calls (`deriva_ml_create_execution` → `deriva_ml_start_execution` → work → `deriva_ml_commit_execution` / `deriva_ml_abort_execution`) + Python API for I/O |
-| **Python API** | Scripts and custom workflows | Context manager (`with ml.create_execution(config) as exe:`) |
-| **CLI** | Reproducible experiment runs | `deriva-ml-run` handles everything automatically |
+| Path | When to use | What runs |
+|------|-------------|-----------|
+| **Bundled script template** | Author any catalog-mutating execution | Copy a template from `scripts/`, edit parameters, commit, run with `deriva-ml-run` |
+| **CLI (`deriva-ml-run`)** | Reproducible Hydra-driven experiment runs | Wraps the same context-manager pattern + drives `commit_output_assets()` automatically |
 
-**Key rule:** Always dry run first — `dry_run=True` (MCP/Python) or `dry_run=True` (CLI override).
+**MCP tools are for observation only**, not for authoring or mutating executions. Use them to inspect: `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_find_workflow_executions`, `deriva_ml_get_lineage`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`. Lifecycle transitions and output uploads happen inside the script you committed — the workflow's URL + checksum then resolve to real code, which is the reproducibility contract.
 
-The lifecycle is the same regardless of path:
+### Bundled script templates
 
-1. Create execution (with workflow, inputs, description)
-2. Start → download inputs → do work → register outputs → stop
-3. Commit outputs to catalog (uploads bytes + writes asset rows in one call)
+This skill ships ready-to-edit templates under `skills/execution-lifecycle/scripts/`. Copy the one that matches your task into the user's project (typically `src/scripts/<task>.py`), edit the parameters and the work block, commit the script, then run with `deriva-ml-run`.
 
-**I/O goes through the Python API**, not MCP tools: `exe.download_dataset_bag()`, `exe.asset_file_path()`, `exe.commit_output_assets()`. MCP tools handle lifecycle state transitions; Python handles file I/O. `commit_output_assets()` is the single per-execution commit primitive; it is idempotent on re-call.
+| Template | When to use |
+|---|---|
+| `basic_execution.py` | One-shot run producing output assets |
+| `nested_execution.py` | Parent run with N children (sweeps, pipelines, fan-out batches) |
+| `salvage_execution.py` | Drive `commit_output_assets()` on a `Stopped`/`Failed` execution with staged outputs |
+| `crash_recovery.py` | `Running → Pending_Upload` direct transition after a hard crash; `--abort` mode to discard |
+
+Companion task templates live under other skills' `scripts/` directories:
+
+- `skills/create-feature/scripts/populate_feature_values.py` — bulk-load feature values from a CSV
+- `skills/manage-storage/scripts/warm_cache.py` — pre-fetch a dataset bag into local cache
+- `skills/work-with-assets/scripts/upload_asset.py` / `download_asset.py` — per-asset file I/O with execution provenance
+
+**Key rule:** Always dry run first — `--dry-run` on the script (or `dry_run=true` Hydra override on `deriva-ml-run`).
+
+The lifecycle inside every template is the same:
+
+1. Create the workflow (content-addressed by URL + commit hash).
+2. Open `with ml.create_execution(config, workflow=workflow, dry_run=...) as exe:`.
+3. Inside the `with` block: download inputs (`exe.download_dataset_bag()`, `exe.download_asset()`), do the work, stage outputs (`exe.asset_file_path()`, `exe.add_features()`, `exe.create_dataset()`).
+4. After the `with` block: `exe.commit_output_assets()` — uploads staged bytes, writes asset rows, transitions `Stopped → Pending_Upload → Uploaded`. Idempotent on re-call.
 
 **Automatic metadata:** Every execution captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records — see `references/concepts.md`.
 
@@ -72,7 +89,7 @@ After a run, check the execution:
 deriva_ml_get_execution(hostname, catalog_id, execution_rid="<rid>")
 ```
 
-Or read the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}`, or `cite(hostname, catalog_id, rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Completed`, correct inputs linked, output assets attached, git hash matches.
+Or read the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}`, or `cite(hostname, catalog_id, rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Uploaded`, correct inputs linked, output assets attached, git hash matches.
 
 ### Proactively offer to wire output assets into `src/configs/assets.py`
 
@@ -108,7 +125,7 @@ Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/d
 
 1. **Validate before running** — typed reads (`deriva_ml_get_dataset`, `get_entities`) plus `deriva_ml_bag_info` catch config errors early
 2. **Dry run first** — test with `dry_run=True` before production runs
-3. **Every execution needs a workflow** — find with `deriva_ml_find_workflow_by_url` or let `deriva_ml_create_execution` create one
+3. **Every execution needs a workflow** — find with `deriva_ml_find_workflow_by_url`, or let `ml.create_workflow(name, workflow_type, description)` mint a new one (the bundled templates do this for you)
 4. **Commit AFTER the with block** — `exe.commit_output_assets()` goes after `with`, not inside (or omit it entirely and let the context manager's auto-stop drive the commit on exit). Re-call if the first attempt partially failed — the bag-commit pipeline is idempotent.
 5. **Use Python API `exe.asset_file_path()` for all outputs** — never manually place files in the working directory
 6. **Commit code before running** — DerivaML raises `DerivaMLDirtyWorkflowError` if uncommitted changes exist. Use `--allow-dirty` only for debugging.

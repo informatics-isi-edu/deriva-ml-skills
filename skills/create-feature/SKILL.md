@@ -123,20 +123,22 @@ Adding values requires knowing what columns a feature has, which are required, a
 
 | Mistake | What happens | Fix |
 |---------|-------------|-----|
-| Adding values without an execution | Error — provenance required | `deriva_ml_create_execution` + `deriva_ml_start_execution` first |
-| Using MCP tools for production batch annotations | Works but no code provenance | Write and commit a script, run via `deriva-ml-run` |
+| Adding values without an execution | Error — provenance required | Use a bundled script template (e.g. `create-feature/scripts/populate_feature_values.py`) so the work runs inside the canonical `with ml.create_execution(...) as exe:` context manager |
+| Generating inline Python in the model turn | Workflow has no committed URL; provenance lies about reproducibility | Always copy a bundled template into `src/scripts/`, edit, commit, then run via `deriva-ml-run` |
 | Using wrong term name | Error — must match vocabulary exactly | `rag_search("{vocab} terms", doc_type="catalog-schema")` or `list_vocabulary_terms(...)` |
 | Missing required column | Error — required fields must be present | `rag_search("{feature} columns", doc_type="catalog-schema")` or `deriva_ml_get_feature(...)` |
 | One execution per label | Works but clutters provenance | Batch labels from same source into one execution |
 | Passing boolean as string `"true"`/`"false"` | Pydantic validation error | Pass as native bool: `true` / `false` (no quotes) |
-| Forgetting `deriva_ml_commit_execution` | Execution stays "running" | Always commit (or `deriva_ml_abort_execution` on failure) after adding values |
+| Forgetting `exe.commit_output_assets()` after the `with` block | Execution stays in `Stopped` and values stay staged | The bundled templates always call `commit_output_assets()` post-context. If you write your own script, do the same. On failure inside the `with` block, the context manager auto-transitions to `Failed`; run `salvage_execution.py` to drain anything that successfully staged. |
 | CSV ingest without capturing the source file | Provenance traces to Execution but not to *what data* | Upload the CSV as an Execution input asset (see the worked example below) |
 
 ### Worked example: bulk-populate feature values from a CSV
 
 The most common production pattern: a domain expert hands you a CSV of ground-truth values (image RIDs + diagnosis labels, sample IDs + quality scores, etc.) and you load them into a Feature. Walk this end-to-end so the resulting feature values are fully reproducible.
 
-The pattern in three pieces — **capture the source, validate, ingest** — all inside a single committed script run via `deriva-ml-run` (or as a standalone script under `src/scripts/`):
+**The canonical entry point is the bundled template** `skills/create-feature/scripts/populate_feature_values.py`. Copy it into the user's project (typically `src/scripts/`), edit the CSV path and the feature name, commit, then run with `deriva-ml-run`. The script encodes the validate → execute → commit pattern with full provenance.
+
+For tasks that need additional work beyond a flat-CSV load (e.g., capturing the source CSV as an input asset of the execution, custom validation, multi-column features), here's the same pattern fleshed out — copy as a starting point and adapt:
 
 ```python
 # src/scripts/ingest_image_quality.py
@@ -228,36 +230,9 @@ The git commit is mandatory — `ml.create_workflow(...)` raises `DerivaMLDirtyW
 
 **What you get afterward:** every feature value links to the execution, the execution links to the workflow (this script at this git commit), and the workflow's execution has the CSV as a captured input asset. `deriva_ml_get_lineage(rid=<any feature value RID>)` walks the full chain back to the CSV. If a year from now someone asks "what data produced these labels?", the answer is in the catalog, not in someone's downloads folder.
 
-#### Quick alternative for ad-hoc loads: the MCP tool path
-
-`deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid, entries=[...])` writes values directly. Like the Python API, **it requires an `execution_rid`** — there is no way to bypass execution-level provenance. The execution lifecycle is auto-driven when the execution is in `Created` state (no separate `deriva_ml_commit_execution` needed); for executions already in `Running`, you control the lifecycle yourself and **must** call `deriva_ml_commit_execution` afterwards or the values stay staged and invisible.
-
-```
-# Quick MCP pattern for an ad-hoc handful of values
-deriva_ml_create_workflow(hostname, catalog_id,
-    name="Interactive Image_Quality Test", workflow_type="Data_Load",
-    description="Smoke test for Image_Quality feature; not for production")
-# (capture workflow_rid from result)
-
-deriva_ml_create_execution(hostname, catalog_id, workflow_rid="<wf_rid>")
-# (capture execution_rid from result; state is "Created")
-
-deriva_ml_add_feature_values(hostname, catalog_id,
-    table="Image", feature_name="Image_Quality",
-    execution_rid="<exe_rid>",
-    entries=[
-        {"Image": "1-AAAA", "Quality_Score": 0.85},
-        {"Image": "1-BBBB", "Quality_Score": 0.62},
-    ])
-# Auto-driven from Created: the tool opens with execution.execute(), writes,
-# and auto-commits on exit. No separate deriva_ml_commit_execution needed.
-```
-
-**Use the MCP path only when reproducibility doesn't matter.** Values get an Execution and a Workflow — provenance is structurally enforced by the tool signature — but the Workflow's source-code URL is just whatever you wrote in `name`/`description`. There's no committed script, no input asset, no reproducible re-run. That's the right trade-off for smoke-testing a new feature definition, correcting a handful of bad values, or other genuinely throwaway loads. For anything that goes into production or that anyone will cite, use the script path above.
-
 #### If the script crashes mid-ingest
 
-The Execution is recoverable. See `/deriva-ml:troubleshoot-execution` "Salvage a Failed Execution" — the four-branch decision tree (commit-retry, commit-as-is, abort + recovery execution, or recovery execution that claims the survivors as inputs) applies directly. The CSV asset stays captured even if some feature values failed to upload.
+The Execution is recoverable. See `/deriva-ml:troubleshoot-execution` "Salvage a Failed Execution" — the three-branch decision tree (salvage staged work via `salvage_execution.py`, recovery execution from inputs, or recovery execution that claims survivors as inputs) applies directly. The CSV asset stays captured even if some feature values failed to upload.
 
 ## Phase 5: Query and Explore Feature Values
 

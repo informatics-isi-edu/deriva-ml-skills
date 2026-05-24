@@ -12,8 +12,8 @@ Consistent naming conventions for API methods ensure discoverability and predict
 > **MCP tools vs Python API**: This reference covers both **MCP tools** (available directly in Claude conversations via `deriva-mcp-core` and the `deriva-ml-mcp` plugin) and **Python API methods** (available only in Python scripts and notebooks via `from deriva_ml import DerivaML`). The distinction matters:
 >
 > - **MCP tools (core)**: Generic catalog operations with bare names: `add_term`, `delete_term`, `query_attribute`, `get_table_sample_data`, `get_entities`, `insert_entities`, `update_entities`, `lookup_term`. All take `hostname=` and `catalog_id=` parameters explicitly.
-> - **MCP tools (deriva-ml)**: **All prefixed `deriva_ml_*`**: `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_create_feature`, `deriva_ml_add_feature_values`, etc. Same calling convention.
-> - **Python API only**: Must be used in Python scripts or notebooks. These are marked with "Python API" in the tables below (e.g., `lookup_dataset`, `find_datasets`, `list_vocabulary_terms`, `list_tables`). When working via MCP, use the corresponding MCP tool instead (e.g., `deriva_ml_list_datasets`, `rag_search()`, `query_attribute`).
+> - **MCP tools (deriva-ml)**: **All prefixed `deriva_ml_*`**: `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_create_feature`, `deriva_ml_release`, etc. Same calling convention. MCP is the observation + catalog-state-mutation surface; execution authorship (the `with ml.create_execution(...) as exe:` lifecycle and `add_features` / `commit_output_assets`) lives in user-local Python via bundled script templates.
+> - **Python API only**: Must be used in Python scripts or notebooks. Used for execution authorship (`create_execution`, `add_features`, `commit_output_assets`), file I/O (`asset_file_path`, `download_asset`), and any operation that needs local filesystem access. When working via MCP, use the corresponding MCP tool for the **read** side (e.g., `deriva_ml_list_datasets`, `deriva_ml_get_execution`, `rag_search()`, `query_attribute`); for the **write** side, copy a bundled script template from `skills/<name>/scripts/`.
 > - **MCP resources**: Read-only data accessed via `deriva://catalog/{hostname}/{catalog_id}/...` URIs. These provide catalog state without requiring a tool call.
 
 ## Method Prefixes
@@ -97,9 +97,9 @@ Creates a new entity and returns it.
 | `deriva_ml_create_workflow` (MCP) / Python API `create_workflow` | Create new workflow |
 | `deriva_ml_create_feature` (MCP) / Python API `create_feature` | Create new feature |
 | `create_table` (MCP, core) | Create new table |
-| `create_vocabulary` (MCP, core) | Create new vocabulary |
-| `deriva_ml_create_execution` (MCP) / Python API `create_execution` | Create new execution |
-| `deriva_ml_create_execution_dataset` (MCP) | Create dataset from execution outputs |
+| `deriva_ml_create_vocabulary` (MCP) | Create new vocabulary (deriva-ml-aware: applies project curie prefix, refreshes navbar) |
+| Python API `ml.create_execution(config, workflow=..., dry_run=...)` | Open a new execution context manager. **No MCP equivalent** — execution authorship belongs in committed scripts; copy a template from `skills/execution-lifecycle/scripts/`. |
+| Python API `exe.create_dataset(...)` inside an execution context | Create dataset linked to the execution as an output. **No MCP equivalent** for the same reason. |
 
 **Behavior**: Creates and returns the new entity. Fails if entity already exists (where applicable).
 
@@ -113,11 +113,11 @@ Adds an item to an existing entity.
 | `deriva_ml_add_dataset_element_type` (MCP) | Add element type to dataset |
 | `add_term` (MCP, core) | Add term to any vocabulary (including built-in `Dataset_Type` / `Workflow_Type` / `Asset_Type` via `schema="deriva-ml"`) |
 | `add_synonym` (MCP, core) | Add synonym to term |
-| `deriva_ml_add_feature_values` (MCP) / Python API `add_feature_values` | Add one or more feature values (always plural) |
+| Python API `exe.add_features(records)` inside an execution context | Add one or more feature values (always plural). For bulk-loading from a CSV, use `skills/create-feature/scripts/populate_feature_values.py`. **No MCP equivalent** — feature value authorship goes through the execution context manager. |
 | `add_visible_column` (MCP, core) | Add column to visible columns |
 | `add_visible_foreign_key` (MCP, core) | Add FK to visible foreign keys |
 | `add_column` (MCP, core) | Add column to table |
-| `deriva_ml_add_nested_execution` (MCP) | Add a child execution under a parent |
+| Python API `parent_exe.add_nested_execution(child_exe, sequence=...)` | Link a child execution under a parent. See `skills/execution-lifecycle/scripts/nested_execution.py`. **No MCP equivalent.** |
 
 **Behavior**: Modifies an existing entity. Returns None.
 
@@ -172,9 +172,9 @@ Updates fields on an existing DerivaML domain entity (Dataset / Workflow / Execu
 | Method | Description |
 |--------|-------------|
 | `deriva_ml_update_dataset` (MCP) | Update dataset description, type, etc. |
-| `deriva_ml_update_workflow` (MCP) | Update workflow description, etc. |
-| `deriva_ml_update_execution` (MCP) | Update execution description, status, message (replaces `update_execution_status`, `set_execution_description`) |
+| `deriva_ml_update_workflow` (MCP) | Update workflow description, type |
 | `deriva_ml_update_asset` (MCP) | Update asset metadata, including Asset_Type tagging |
+| Python API `exe.update_status(target, error=...)` inside an execution context | Transition the execution's status (`ExecutionStatus.Failed`, `ExecutionStatus.Pending_Upload`, etc.). Used by `salvage_execution.py` and `crash_recovery.py`. |
 | `update_entities` (MCP, core) | Generic entity update — use only when no domain wrapper exists |
 
 ## Parameter Naming

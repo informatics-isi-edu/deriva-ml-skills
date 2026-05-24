@@ -49,10 +49,15 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 
 ### Uploading assets (within an execution)
 
-1. `deriva_ml_create_execution(hostname, catalog_id, ...)` + `deriva_ml_start_execution(hostname, catalog_id, execution_rid)` — start provenance tracking. Capture the returned `execution_rid`.
-2. Python API `exe.asset_file_path()` — register each output file for upload (returns a path to write to).
-3. Python API `exe.commit_output_assets()` — commit all registered output files (uploads bytes, writes catalog rows, sets descriptions and `Upload_Duration`, transitions the execution to `Uploaded`). Returns an `UploadReport`; for per-asset paths, read `exe.uploaded_assets` after the call.
-4. `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — finalize on success (use `deriva_ml_abort_execution` on failure).
+Asset upload always goes through a bundled script template — the execution context manager (`with ml.create_execution(config, workflow=workflow) as exe:`) is what binds the upload to a workflow + git commit for provenance. Copy `skills/work-with-assets/scripts/upload_asset.py` to `src/scripts/upload_<thing>.py`, customize the work block, commit, and run via `deriva-ml-run`.
+
+Inside the template, the pattern is:
+
+1. Python API `exe.asset_file_path(asset_name, file_name, asset_types=[...])` — register each output file for upload (returns a path to write to).
+2. Write the bytes to that path.
+3. Post-`with` block: `exe.commit_output_assets()` — uploads bytes, writes catalog rows, sets descriptions and `Upload_Duration`, transitions the execution `Stopped → Pending_Upload → Uploaded`. Returns an `UploadReport`; for per-asset paths, read `exe.uploaded_assets` after the call.
+
+The context manager handles status transitions on success or exception — there is no separate "commit execution" call.
 
 ### Managing asset types
 

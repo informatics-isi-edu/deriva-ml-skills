@@ -135,9 +135,24 @@ Once those steps are done you can register files for upload via Python API `exe.
 
 Asset upload happens within an execution context. The workflow is: register files for upload, then upload them all at once.
 
-### Step 1: Create and start an execution
+### Step 1: Open the execution context manager (from a committed script)
 
-Call `deriva_ml_create_execution(hostname="data.example.org", catalog_id="1", workflow_rid="<workflow_rid>", description=...)` and capture the returned `execution_rid`. Then call `deriva_ml_start_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)`. The `workflow_rid` is the RID of an already-registered Workflow record — look it up with `deriva_ml_find_workflow_by_url` or create it with `deriva_ml_create_workflow`.
+The canonical entry point is `skills/work-with-assets/scripts/upload_asset.py`. Copy it to `src/scripts/upload_<thing>.py`, customize the work block, commit, then run via `deriva-ml-run`. Inside the template:
+
+```python
+workflow = ml.lookup_workflow_by_url(__file__) or ml.create_workflow(
+    name="Upload Trained Model",
+    workflow_type=args.workflow_type,
+    description="Upload model weights and metrics",
+)
+config = ExecutionConfiguration(workflow=workflow,
+                                 description="Trained CNN upload")
+with ml.create_execution(config, workflow=workflow,
+                         dry_run=args.dry_run) as execution:
+    # ... register files via execution.asset_file_path() ...
+```
+
+The context manager records start time, sets status to `Running`, and (on exit) transitions to `Stopped` or `Failed`. There is no separate "create" / "start" call.
 
 ### Step 2: Register output files
 
@@ -164,11 +179,15 @@ Call Python API `exe.commit_output_assets()` with `clean_folder` (optional, defa
 
 This uploads all files registered via Python API `exe.asset_file_path()` to the object store, creates catalog records, assigns asset types, writes the descriptions you supplied plus `Upload_Duration`, links each asset to the execution with role "Output", and transitions the execution from `Stopped` → `Pending_Upload` → `Uploaded`. Returns an `UploadReport` (`total_uploaded`, `total_failed`, `per_table`, `errors`); per-asset path data is on `exe.uploaded_assets`. The call is idempotent — re-running after a partial failure resumes the failed rows and leaves the already-uploaded ones alone.
 
-### Step 4: Commit (or abort) the execution
+### Step 4: Status transitions happen automatically
 
-On success: call `deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` to finalize.
+There is no separate "commit execution" or "abort execution" call. The context manager handles status transitions:
 
-On failure: call `deriva_ml_abort_execution(hostname="data.example.org", catalog_id="1", execution_rid=...)` instead. Pick the right one for the path you're on.
+- **On clean exit:** `Running → Stopped`, then `commit_output_assets()` drives `Stopped → Pending_Upload → Uploaded`.
+- **On exception:** `Running → Failed` with the exception recorded.
+- **Manual abort from inside the with block:** call `exe.update_status(ExecutionStatus.Aborted, error="reason")` — staged work is preserved for inspection. See `skills/execution-lifecycle/scripts/crash_recovery.py --abort` for the crash-recovery variant.
+
+For salvage of a Stopped or Failed execution (re-driving `commit_output_assets()` against staged work), copy `skills/execution-lifecycle/scripts/salvage_execution.py`.
 
 ### Python API pattern
 

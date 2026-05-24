@@ -36,7 +36,7 @@ Executions are represented in the `Execution` table in the `deriva-ml` schema. L
 
 Every execution has a unique RID (Resource IDentifier) — a short, immutable string like `2-YYYY` or `3-AB4C`. This RID is the primary way to reference an execution:
 
-- **In MCP tools**: Pass `execution_rid` to `deriva_ml_get_execution`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_update_execution`, etc.
+- **In MCP tools**: Pass `execution_rid` to `deriva_ml_get_execution`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_get_lineage`, etc.
 - **In provenance queries**: Asset and dataset provenance records reference execution RIDs
 - **In the web UI**: Each execution has a Chaise page at its RID-based URL
 - **In citation**: `cite(hostname, catalog_id, rid)` generates a permanent URL for an execution
@@ -87,45 +87,42 @@ print(record.workflow_rid)    # "1-WXYZ"
 | Status | Meaning |
 |--------|---------|
 | `Created` | Record created in catalog, no work started |
-| `Initializing` | Downloading input datasets and assets |
-| `Pending` | Initialization complete, ready to run |
-| `Running` | Model/workflow work in progress |
-| `Completed` | Finished successfully |
-| `Failed` | Encountered an error |
-| `Aborted` | Manually stopped |
+| `Running` | Work in progress inside the context manager |
+| `Stopped` | Algorithm finished successfully; outputs staged but not yet committed |
+| `Failed` | Encountered an error (set by `__exit__` on exception, or by `update_status`) |
+| `Pending_Upload` | `commit_output_assets()` has started uploading staged outputs |
+| `Uploaded` | All staged outputs successfully committed to the catalog |
+| `Aborted` | Manually stopped; staged work preserved for inspection/recovery |
+
+Values are defined as the `ExecutionStatus` `StrEnum` in `deriva_ml.execution.state_store`.
 
 ### Status State Machine
 
-The execution lifecycle follows a defined state machine. Each transition occurs at a specific point:
-
 ```
-Created → Initializing → Pending → Running → Completed
-                                      ↓
-                                    Failed
+Created → Running → Stopped → Pending_Upload → Uploaded
+              ↓        ↓                       ↗ ↓
+              ↓     Failed → Pending_Upload    ↑ Failed
+              ↓                                ↑
+              └──→ Pending_Upload (crash recovery)
+Created → Aborted
+Running → Aborted
 ```
 
 | Transition | When It Occurs |
 |-----------|----------------|
-| `Created` → `Initializing` | Context manager entered; begins downloading input datasets and assets specified in the configuration |
-| `Initializing` → `Pending` | All input downloads complete; execution is ready to begin work |
-| `Pending` → `Running` | `deriva_ml_start_execution(...)` is called (automatic in the context manager); records the start timestamp |
-| `Running` → `Completed` | `deriva_ml_commit_execution(...)` is called (automatic on context manager exit); records the stop timestamp |
-| `Running` → `Failed` | An unhandled exception occurs inside the context manager; the error is recorded |
-| Any → `Aborted` | `deriva_ml_abort_execution(hostname, catalog_id, execution_rid, reason="...")`. The state machine forbids manual `Status` edits via `update_execution`; abort is the only entry to the Aborted state. |
+| `Created` → `Running` | Context manager `__enter__`; records `start_time` |
+| `Running` → `Stopped` | Context manager `__exit__` on clean exit; records `stop_time` |
+| `Running` → `Failed` | Context manager `__exit__` on exception; records the error message and propagates the exception |
+| `Stopped` → `Pending_Upload` → `Uploaded` | `exe.commit_output_assets()` succeeds — uploads staged bytes, writes asset rows |
+| `Stopped` → `Pending_Upload` → `Failed` | `commit_output_assets()` fails mid-upload; idempotent, re-call to resume |
+| `Running` → `Pending_Upload` | **Crash recovery** path: a process died mid-execution without `__exit__` running. Re-hydrate via `ml.resume_execution(rid)` then call `exe.update_status(ExecutionStatus.Pending_Upload)` followed by `commit_output_assets()`. See `crash_recovery.py` bundled template. |
+| `Created` → `Aborted` or `Running` → `Aborted` | `exe.abort()`. Staged rows are preserved (not discarded), so the user can inspect them and decide whether to salvage via `resume_execution` or clean up via `gc_executions`. |
 
-The execution context manager automatically transitions through `Created` → `Initializing` → `Pending` → `Running` → `Completed` (or `Failed` on exception). You have three patterns for status changes from MCP tools:
+`commit_output_assets()` is the single per-execution commit primitive (ADR-0009). It must be called **after** the `with` block exits — the context manager only sets status to `Stopped`/`Failed`, never commits. The call is idempotent: re-running after a partial failure picks up the failed rows and leaves already-uploaded ones alone.
 
-- `deriva_ml_commit_execution(hostname, catalog_id, execution_rid)` — normal success completion
-- `deriva_ml_abort_execution(hostname, catalog_id, execution_rid)` — failure marking
-- `deriva_ml_update_execution(hostname, catalog_id, execution_rid, description="<text>")` — update the execution's description after the fact (description-only; status edits are not allowed)
-- For mid-run progress (e.g. "epoch 12 of 20"), write JSON-lines to a metrics file via the Python API's `exe.metrics_file().open("a")`. The catalog does not store free-form progress messages on the Execution row.
+For mid-run progress reporting (e.g. "epoch 12 of 20"), write JSON-lines to a metrics file via `exe.metrics_file().open("a")`. The catalog does not store free-form progress messages on the Execution row.
 
-**MCP tools vs Python API:** Both MCP tools and the Python API use the same underlying `Execution` class, so the status transitions work identically. The difference is only in how the lifecycle is driven:
-
-- **Python API (context manager):** The `with ml.create_execution(config) as exe:` block automatically transitions through all states — `Created` → `Initializing` → `Pending` → `Running` → `Completed` (or `Failed` on exception).
-- **MCP tools (explicit calls):** You call `deriva_ml_create_execution` (sets `Created`), `deriva_ml_start_execution` (sets `Running`), and `deriva_ml_commit_execution` / `deriva_ml_abort_execution` (sets `Completed` / `Failed`) individually. The `Initializing` and `Pending` transitions still occur — they happen internally when input datasets and assets are downloaded via the Python API (e.g., `exe.download_dataset_bag()`).
-
-In both cases, the same `Execution` object manages the state machine. The context manager simply automates the start/stop calls and error handling that you would otherwise do manually with MCP tools.
+**The lifecycle in code:** Executions are authored in user-local Python via the `with ml.create_execution(config, workflow=workflow, dry_run=...) as exe:` context manager. The skills in this plugin ship runnable templates under `skills/<name>/scripts/` — copy the template, edit parameters, commit, then run with `deriva-ml-run`. The committed script's git URL + checksum become the workflow's reproducibility anchor. MCP tools (`deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_get_lineage`, etc.) are the read-side observation surface.
 
 ## Workflows and Workflow Types
 
@@ -159,7 +156,7 @@ If no suitable workflow exists, create one:
 - Call `deriva_ml_create_workflow(hostname, catalog_id, name=..., workflow_type=..., description=...)`.
 - If the workflow type doesn't exist yet, add it with `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)` first.
 
-When using MCP tools, `deriva_ml_create_execution` can find or create the workflow for you — pass `workflow_name` and `workflow_type` and it handles the lookup/creation automatically.
+The bundled script templates do the lookup-or-create automatically: `ml.create_workflow(name, workflow_type, description)` mints a fresh row when no matching one exists.
 
 ## Automatic Source Code Detection
 
@@ -171,7 +168,7 @@ DerivaML automatically records the source code that produced each execution by d
 |----------------|---------------------------|-------------|
 | **Python scripts** (`deriva-ml-run`) | Inspects the git repository — constructs a GitHub blob URL using the remote origin, current commit hash, and script file path | `https://github.com/org/repo/blob/abc1234/src/models/train.py` |
 | **Notebooks** (`deriva-ml-run-notebook`) | Reads the `DERIVA_ML_WORKFLOW_URL` environment variable, which must be set before running the notebook | Value of `$DERIVA_ML_WORKFLOW_URL` |
-| **MCP tools** (`deriva_ml_create_execution`) | You provide `workflow_name` and `workflow_type`; the URL is not auto-detected | Set manually via `deriva_ml_update_workflow(...)` or `deriva_ml_create_workflow(...)` |
+| **Pure-Python (no `deriva-ml-run`)** | You pass a Workflow object built explicitly with `ml.create_workflow(name, workflow_type, url=..., checksum=...)` | Caller must supply the URL + commit hash; auto-detection only applies through `deriva-ml-run` |
 
 For Python scripts, the URL includes the **exact commit hash** (not a branch name), ensuring the source reference is permanent and immutable. This means the URL always points to the specific code version that ran.
 
@@ -239,36 +236,29 @@ This creates:
 
 The parent's RID is the single reference point for the entire sweep. All children are accessible via `deriva_ml_list_execution_children`.
 
-### Manual nesting with MCP tools
+### Manual nesting with the bundled template
 
-For custom multi-step workflows, create nested executions manually:
+For custom multi-step workflows, copy `skills/execution-lifecycle/scripts/nested_execution.py` and edit. The template encodes the canonical pattern:
 
+```python
+with ml.create_execution(parent_config, workflow=parent_workflow,
+                         dry_run=args.dry_run) as parent_exe:
+    for i, unit in enumerate(work_units):
+        child_config = ExecutionConfiguration(description=f"Child {i}: {unit}")
+        with ml.create_execution(child_config, workflow=child_workflow,
+                                 dry_run=args.dry_run) as child_exe:
+            # ... child work ...
+            ...
+
+        parent_exe.add_nested_execution(child_exe, sequence=i)
+        if not args.dry_run:
+            child_exe.commit_output_assets()
+
+if not args.dry_run:
+    parent_exe.commit_output_assets()
 ```
-# Create the parent
-# workflow_rid is the RID of a pre-registered Workflow record
-deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_rid="<workflow_rid>")
-deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="1-PARENT")
-# ... parent-level work (e.g., shared preprocessing) ...
-deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="1-PARENT")
 
-# Record the parent RID, then create children
-# Each child is its own execution with its own inputs/outputs
-deriva_ml_create_execution(hostname="data.example.org", catalog_id="1",
-    workflow_rid="<workflow_rid>", ...)
-deriva_ml_start_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="1-CHILD1")
-# ... child work ...
-deriva_ml_commit_execution(hostname="data.example.org", catalog_id="1",
-    execution_rid="1-CHILD1")
-# Then commit outputs via the Python API: exe.commit_output_assets()
-
-# Link child to parent
-deriva_ml_add_nested_execution(hostname="data.example.org", catalog_id="1",
-    parent_rid="1-PARENT", child_rid="1-CHILD1", sequence=0)
-```
+Each child is its own execution with its own inputs and outputs; the parent's `add_nested_execution(child)` writes the parent → child link. Each child's `commit_output_assets()` runs after its own `with` block exits; the parent's runs last so the parent's summary outputs (if any) commit after the children.
 
 ### Navigating nested execution hierarchies
 
@@ -358,8 +348,8 @@ Until Python API `exe.commit_output_assets()` is called, output files exist only
 
 An execution can also produce **feature values** — structured annotations on catalog records (e.g., per-image classification labels, confidence scores). Like output files, feature values are **staged locally** and uploaded when Python API `exe.commit_output_assets()` is called:
 
-- In MCP tools, call `deriva_ml_add_feature_values(hostname, catalog_id, table, feature_name, execution_rid="<execution_rid>", entries=[...])` during the execution.
-- In Python, call `execution.add_features(records)`. This writes JSONL files to disk in the execution's `feature/` directory — the catalog is not updated until `commit_output_assets()` runs.
+- Inside the `with` block of an execution template, call `execution.add_features(records)`. This writes JSONL files to disk in the execution's `feature/` directory — the catalog is not updated until `commit_output_assets()` runs after the `with` block.
+- For a one-shot CSV bulk-load, use the bundled `skills/create-feature/scripts/populate_feature_values.py` template.
 
 Both output files and feature values are linked to the execution for provenance. For creating features and populating values, see the `create-feature` skill.
 
@@ -391,7 +381,7 @@ with ml.create_execution(config) as exe:
     ...
 ```
 
-In MCP tools, the lifecycle is managed through explicit tool calls (`deriva_ml_create_execution`, `deriva_ml_start_execution`, `deriva_ml_commit_execution` for success, `deriva_ml_abort_execution` for failure, `deriva_ml_update_execution` for arbitrary status changes) that take an explicit `execution_rid` parameter (the new server is stateless — there is no implicit "active execution").
+MCP exposes read-only execution observation (`deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_find_workflow_executions`, `deriva_ml_get_lineage`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`). Execution authorship — creating an execution, starting work, staging outputs, committing — lives in user-local Python via the bundled `scripts/` templates. The committed script's git URL + checksum is the workflow's reproducibility anchor.
 
 ## ExecutionConfiguration
 
@@ -414,29 +404,32 @@ config = ExecutionConfiguration(
 - **description**: Human-readable description. Supports Markdown for rich formatting in the Chaise UI.
 - **config_choices**: Dict of Hydra config group selections (auto-populated by `deriva-ml-run`).
 
-When using MCP tools, `deriva_ml_create_execution(hostname, catalog_id, ...)` accepts `workflow_name`, `workflow_type`, and `description` directly — it finds or creates the workflow automatically.
+The bundled execution templates handle workflow setup inline: each template calls `ml.create_workflow(name=..., workflow_type=..., description=...)` before opening the execution context, then passes the resulting Workflow object to `create_execution(config, workflow=workflow, ...)`.
 
 ## The Execution Context Manager
 
-The recommended Python pattern uses a `with` block:
+The canonical Python pattern uses a `with` block:
 
 ```python
-with ml.create_execution(config) as exe:
-    # On enter: creates execution record, sets status to Initializing → Running
-    # Datasets specified in config are auto-downloaded
+with ml.create_execution(config, workflow=workflow, dry_run=False) as exe:
+    # On enter: creates execution record, sets status to Running.
+    # Datasets specified in config are auto-downloaded.
     for dataset in exe.datasets:
         dataset.restructure_assets(...)  # DatasetBag objects
-    # ... do work ...
+    # ... do work, stage outputs ...
     path = exe.asset_file_path("Execution_Asset", "results.csv")
     # ... write to path ...
-    # On exit: sets status to Completed (or Failed), outputs auto-uploaded
+    # On exit: sets status to Stopped (or Failed on exception).
+
+# Commit AFTER the with block — required, not optional.
+exe.commit_output_assets()
 ```
 
 **Key points:**
-- The `with` block automatically transitions the execution to `Running` on entry (equivalent to the MCP `deriva_ml_start_execution` tool) and to `Completed` (or `Failed`/`Aborted` on exception) on exit (equivalent to MCP `deriva_ml_commit_execution` / `deriva_ml_abort_execution`).
-- If an exception occurs, status is set to "Failed" automatically
-- Call `commit_output_assets()` **after** exiting the `with` block, not inside it (or omit it entirely and let the context manager's auto-stop drive the commit on exit; if you bypass `with`, the method auto-stops a still-`Running` execution before draining)
-- When using `deriva-ml-run`, upload is handled automatically by the runner
+- The `with` block transitions the execution to `Running` on entry and to `Stopped` (or `Failed` on exception) on exit.
+- On exception, status is set to `Failed` automatically and the exception propagates (the context manager does not suppress).
+- Call `commit_output_assets()` **after** exiting the `with` block, not inside it. The context manager's `__exit__` only sets status to `Stopped`/`Failed`; `commit_output_assets()` is what uploads staged bytes, writes asset rows, and transitions `Stopped → Pending_Upload → Uploaded`. The call is idempotent — re-run after partial failure to resume.
+- When using `deriva-ml-run`, the commit is handled automatically by the runner.
 
 ## Execution Working Directory
 
@@ -485,7 +478,7 @@ Dry run mode lets you test the full pipeline without writing to the catalog:
 - Configuration is still resolved — you can verify parameters are correct
 - Output files can still be written locally — you can verify the model runs
 
-In MCP tools, pass `dry_run`: `true` to `deriva_ml_create_execution`. In Python, pass `dry_run=True` to the runner or set it in the Hydra config.
+Every bundled execution template accepts a `--dry-run` flag that threads through to `dry_run=True` on the context-manager call. For Hydra-driven runs, pass `dry_run=true` on the `deriva-ml-run` invocation.
 
 Use dry runs to:
 - Test data loading and model initialization before committing to a full run
@@ -500,8 +493,7 @@ When you need to re-run work after a failure or abort:
 
 1. **Inspect the prior execution.** Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to retrieve the workflow RID, dataset RIDs, asset RIDs, and description from the original.
 2. **Decide whether to retry.** If the failure was transient (network, timeout) re-running with the same config is the right move. If the failure was a code or config bug, fix it first.
-3. **Create a fresh execution.** Call `deriva_ml_create_execution(hostname, catalog_id, ...)` with the same workflow, dataset_rids, and asset_rids you collected in step 1. This creates a new execution record (new RID) — the prior execution remains in its terminal state for provenance.
-4. **Continue the lifecycle as normal.** Start it (`deriva_ml_start_execution`), do the work, and commit (`deriva_ml_commit_execution`).
+3. **Re-run the committed script.** Use the same template (and the same dataset / asset / workflow parameters) that produced the original execution. The new run creates a fresh execution record with a new RID; the prior execution remains in its terminal state for provenance. If the failure happened *after* the work block but before commit (status `Stopped`/`Failed` with staged work), use `skills/execution-lifecycle/scripts/salvage_execution.py` instead — same execution RID, resume the commit phase.
 
 ### Finding execution RIDs to inspect
 
@@ -522,15 +514,15 @@ Experiments fail at runtime when:
 - Bags are too large to download during execution
 - Network issues during materialization
 
-All of these can be caught before `deriva_ml_start_execution(...)`.
+All of these can be caught before the execution context manager opens.
 
 ### The pre-flight checklist
 
-| Step | Tool | What it checks |
+| Step | Tool / Template | What it checks |
 |------|------|---------------|
 | Validate RIDs | `deriva_ml_get_dataset` / `get_entities` | All dataset and asset RIDs exist (check by typed lookup) |
 | Check cache | `deriva_ml_bag_info` | Dataset sizes, cache status (`not_cached`, `cached_metadata_only`, `cached_materialized`, `cached_incomplete`); also doubles as a version-existence check |
-| Cache data | `deriva_ml_cache_dataset` | Downloads bags/assets into cache without execution provenance |
+| Warm cache | `skills/manage-storage/scripts/warm_cache.py` | Pre-fetches bags into local cache (no execution row) |
 | Git clean | `git status` | No uncommitted changes (for CLI runs) |
 | Config check | `--info` | Resolved Hydra config is correct (for CLI runs) |
 
@@ -540,23 +532,26 @@ The `deriva_ml_bag_info` tool returns a `cache_status` field:
 
 | Status | Meaning | Action |
 |--------|---------|--------|
-| `not_cached` | No local copy | Call `deriva_ml_cache_dataset` if large |
-| `cached_metadata_only` | Table data present, assets not fetched | Call `deriva_ml_cache_dataset(..., materialize=True)` |
+| `not_cached` | No local copy | Run `warm_cache.py` if large |
+| `cached_metadata_only` | Table data present, assets not fetched | Run `warm_cache.py` (default materialize=True) |
 | `cached_materialized` | Fully downloaded and validated | Ready to use — no action needed |
-| `cached_incomplete` | Was cached but assets are missing | Call `deriva_ml_cache_dataset` to re-materialize |
+| `cached_incomplete` | Was cached but assets are missing | Run `warm_cache.py` to re-materialize |
 
 ### Prefetching strategy
 
-For large datasets (>1 GB), cache ahead of time rather than downloading during the execution:
+For large datasets (>1 GB), warm the cache ahead of time rather than downloading during the execution. The bundled `skills/manage-storage/scripts/warm_cache.py` template handles this:
+
+```bash
+uv run python src/scripts/warm_cache.py \
+    --hostname data.example.org --catalog-id 1 \
+    --dataset-rid 28CT --version 0.9.0
+```
+
+Equivalent Python-API call (what the template runs under the hood):
 
 ```python
-# Check what we're dealing with (Python API)
 info = ml.bag_info(DatasetSpec(rid="28CT", version="0.9.0"))
 print(f"Size: {info['total_asset_size']}, Cache: {info['cache_status']}")
-
-# Cache if not already cached
 if info["cache_status"] == "not_cached":
     ml.cache_dataset(DatasetSpec(rid="28CT", version="0.9.0"))
 ```
-
-The MCP tool `deriva_ml_cache_dataset(hostname, catalog_id, dataset_rid, version)` does the same thing without requiring Python.
