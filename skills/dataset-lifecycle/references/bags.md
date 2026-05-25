@@ -87,7 +87,7 @@ Each bag is tied to a **catalog snapshot** — the exact catalog state at the ti
 
 ## Materialization
 
-The `materialize=True` default fetches all referenced asset files into the bag (self-contained); `materialize=False` keeps the bag manifest-only and defers asset fetching. See `/deriva:download-bag` "Materialization" for the full mechanics (including `bdbag --resolve-fetch` to materialize selectively after the fact). DerivaML-specific note: `bag.validate()` uses `materialize=False` under the hood, so validating a bag's contents against the live catalog is cheap even for large bags.
+The `materialize=True` default fetches all referenced asset files into the bag (self-contained); `materialize=False` keeps the bag manifest-only and defers asset fetching. See `/deriva:download-bag` "Materialization" for the full mechanics (including `bdbag --resolve-fetch` to materialize selectively after the fact). For validating a bag's contents against the live catalog (manual diff between `ml.lookup_dataset(rid).list_dataset_members(version=...)` and per-table `bag.get_table_as_dict(...)` output), `materialize=False` is sufficient since the comparison is on RIDs only — no asset bytes needed. See `/deriva-ml:debug-bag-contents` Step 6 for the recipe.
 
 ## Caching
 

@@ -93,10 +93,10 @@ What this phase adds to the catalog: usually nothing new (the run already added 
 
 Compare this cycle's results against the hypothesis from phase 1. Two paths depending on scope:
 
-- **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `experiment-decisions.md` (auto-fired by `maintain-experiment-notes`).
+- **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(hostname=..., catalog_id=..., execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `experiment-decisions.md` (auto-fired by `maintain-experiment-notes`).
 - **Multi-run comparison** — comparing this cycle to previous cycles or to a sweep. Hand off to `/deriva-ml:compare-model-runs` for the ranking/aggregation logic.
 
-> **Surfacing prior runs of the same kind:** `deriva_ml_list_executions(workflow_type="Training", sort=True)` returns every training execution across every workflow in newest-first order — one call instead of "enumerate workflows of that type, then page each one's executions". Pair with `status="Uploaded"` if you only want successful runs. The same `workflow_type=` filter works for `Inference`, `Evaluation`, `Annotation`, etc. — anything in your `Workflow_Type` vocab.
+> **Surfacing prior runs of the same kind:** `deriva_ml_list_executions(hostname=..., catalog_id=..., workflow_type="Training", sort=True)` returns every training execution across every workflow in newest-first order — one call instead of "enumerate workflows of that type, then page each one's executions". Pair with `status="Uploaded"` if you only want successful runs. The same `workflow_type=` filter works for `Inference`, `Evaluation`, `Annotation`, etc. — anything in your `Workflow_Type` vocab.
 
 What this phase adds to the catalog: typically nothing — evaluation reads existing artifacts. The new content goes into `experiment-decisions.md` (your notebook of results-and-interpretations).
 

@@ -358,8 +358,8 @@ This keeps the project-specific logic in your repository (versioned, reviewable)
 | Create/split/version datasets | `dataset-lifecycle` | this plugin |
 | Run experiments with provenance | `execution-lifecycle` | this plugin |
 | Upload/download/track assets | `work-with-assets` | this plugin |
-| Restructure data for PyTorch/TF | `ml-data-engineering` |
-| Write hydra-zen configs | `configure-experiment`; `write-hydra-config` for syntax |
-| Run notebooks with tracking | `run-notebook` |
-| Document decisions | `maintain-experiment-notes` |
-| **Iterate on an existing pipeline** (cycle 2 onward) | **`experiment-lifecycle`** — once cycle zero (this skill) is done |
+| Restructure data for PyTorch/TF | `ml-data-engineering` | this plugin |
+| Write hydra-zen configs | `configure-experiment`; `write-hydra-config` for syntax | this plugin |
+| Run notebooks with tracking | `run-notebook` | this plugin |
+| Document decisions | `maintain-experiment-notes` | this plugin |
+| **Iterate on an existing pipeline** (cycle 2 onward — once cycle zero, this skill, is done) | **`experiment-lifecycle`** | this plugin |

@@ -131,38 +131,15 @@ Generated from `src/configs/experiments.py` and `src/configs/multiruns.py`.
 - **Purpose**: Why this experiment exists
 ```
 
-## Storage: Cache vs Working Directory
+## Configuring storage locations in `configs/deriva.py`
 
-DerivaML uses two distinct storage locations. Understanding the difference prevents data loss and disk bloat.
+DerivaML uses two distinct storage locations — a **working directory** (per-execution inputs/outputs/logs, ephemeral) and a **cache directory** (downloaded dataset bags and assets that persist across executions). The defaults work for most users, but you can override both in your hydra-zen config when needed.
 
-### Working Directory
+For the conceptual difference, the on-disk layout, and the management commands (cleanup, garbage-collection, incomplete-execution recovery), see **`/deriva-ml:manage-storage`** — that skill owns the storage surface.
 
-The **working directory** is where execution-specific data lives — each execution gets its own subdirectory with downloaded inputs, generated outputs, and logs. After upload, execution directories are cleaned up (controlled by `clean_execution_dir`).
+This skill owns only the **config-authorship** side: how to set `working_dir` and `cache_dir` in `configs/deriva.py`.
 
-**Default:** `~/.deriva-ml/<hostname>/<catalog_id>/`
-
-**Contains:** `executions/<execution_rid>/` subdirectories — one per run.
-
-### Cache Directory
-
-The **cache directory** stores downloaded dataset bags and cached assets that persist across executions. When you download the same dataset version twice, the second download hits the cache instantly. Cache entries are keyed by checksum, so they're only invalidated when data actually changes.
-
-**Default:** `<working_dir>/cache/`
-
-**Contains:** Dataset bags (keyed by `{rid}_{checksum}`) and cached assets (keyed by `{rid}_{md5}`).
-
-### Why separate them?
-
-| | Working Dir | Cache Dir |
-|---|---|---|
-| **Lifecycle** | Ephemeral — cleaned after upload | Persistent — survives across runs |
-| **Content** | Execution inputs/outputs | Downloaded dataset bags, cached assets |
-| **Growth** | Bounded (auto-cleanup) | Unbounded (manual cleanup) |
-| **Sharing** | Not shared between executions | Shared across all executions |
-
-### Configuring custom locations
-
-Set these in your `configs/deriva.py`:
+### Setting custom locations
 
 ```python
 from hydra_zen import store
@@ -181,17 +158,18 @@ deriva_store(
 ```
 
 **When to set a custom `working_dir`:**
-- Default `~/.deriva-ml` is on a small disk — redirect to a larger volume
-- Running on a compute cluster — use a local scratch disk for speed
-- Shared environment — use a per-user directory on shared storage
+- Default `~/.deriva-ml/<hostname>/<catalog_id>/` is on a small disk — redirect to a larger volume.
+- Running on a compute cluster — use a local scratch disk for speed.
+- Shared environment — use a per-user directory on shared storage.
 
 **When to set a custom `cache_dir`:**
 - **Team sharing** — point to a shared NFS or network mount so downloaded bags and large assets are reused across team members. When one person downloads a 15 GB dataset, everyone else gets a cache hit instead of re-downloading. This is the most common reason to customize the cache directory.
-- **Disk management** — keep the cache on a large, cheap volume separate from fast compute storage
-- **Cluster environments** — use a shared filesystem visible to all compute nodes
-- If not set, defaults to `<working_dir>/cache/`
+- **Disk management** — keep the cache on a large, cheap volume separate from fast compute storage.
+- **Cluster environments** — use a shared filesystem visible to all compute nodes.
+- If not set, defaults to `<working_dir>/cache/`.
 
 **Shared cache example:**
+
 ```python
 # All team members point to the same shared cache
 deriva_store(
@@ -203,6 +181,7 @@ deriva_store(
     cache_dir="/shared/team-ml-cache",       # Shared across team
 )
 ```
+
 When user A downloads dataset `28CT v0.9.0`, the bag lands in `/shared/team-ml-cache/`. When user B runs an experiment referencing the same dataset and version, it's already there — no download needed.
 
 ### ⚠️ The working directory must NOT be inside the cache directory
@@ -210,35 +189,18 @@ When user A downloads dataset `28CT v0.9.0`, the bag lands in `/shared/team-ml-c
 If the working directory is a subdirectory of the cache directory (or vice versa), execution cleanup can delete cached data, or cache cleanup can delete active execution files. Always keep them as independent directory trees.
 
 **Good:**
+
 ```python
 working_dir="/scratch/ml-work"    # Fast local disk
 cache_dir="/data/ml-cache"        # Large shared disk
 ```
 
 **Bad:**
+
 ```python
 working_dir="/data/ml-cache/work"   # ❌ Working dir INSIDE cache dir
 cache_dir="/scratch/ml-work/cache"  # ❌ Cache dir INSIDE working dir
 ```
-
-### Managing storage
-
-Use the Bash `ls -la ~/.deriva-ml/` MCP tool to see what's consuming disk space:
-
-```
-# Python API or Bash: inspect ~/.deriva-ml/ ()                    # Everything
-# Python API or Bash: inspect ~/.deriva-ml/ (filter="cache")      # Just cached bags
-# Python API or Bash: inspect ~/.deriva-ml/ (filter="executions") # Just execution dirs
-```
-
-To free disk space, use Bash `rm -rf ~/.deriva-ml/...` with specific RIDs:
-
-```
-# Python API: ml.clean_storage(rids=["28CT"], confirm=False)  # Preview what would be deleted
-# Python API: ml.clean_storage(rids=["28CT"], confirm=True)   # Actually delete
-```
-
-**Caution:** Cached bags can be re-downloaded, but execution outputs that haven't been uploaded to the catalog will be permanently lost.
 
 ## Reference Resources
 
