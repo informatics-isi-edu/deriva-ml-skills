@@ -33,6 +33,7 @@ Jump straight to the right section if you already know what's wrong:
 | `DerivaMLOfflineError` raised on `refresh_schema()` / `diff_schema()` / catalog read | "Offline Mode Errors" |
 | `DerivaMLConfigurationError: offline mode requires a cached schema...` | "Offline Mode Errors" |
 | "Tool not found" / "unknown parameter" / docs and behavior disagree | "Versioning and updates" |
+| "where did this prediction come from" / "what code produced this asset" / "what dataset version trained this model" — provenance question, not an error | → `/deriva-ml:compare-model-runs` → "Trace an artifact's provenance" |
 
 If your situation isn't in the table, read top to bottom — the sections are short.
 
@@ -401,7 +402,7 @@ Whichever branch you pick, two follow-ups apply:
 - **Tool**: `deriva_ml_list_execution_children(hostname, catalog_id, execution_rid)` to see descendants if the execution is the parent of a multirun or pipeline.
 - **Tool**: `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` to find ancestors if this is a nested step.
 
-> **Orchestration vs data-flow:** the `list_execution_children` / `list_execution_parents` calls above walk the **orchestration** graph (which Execution called which — `Execution_Execution` table). For the **data-flow** graph (what produced this output? which dataset trained the model?), use `deriva_ml_get_lineage(hostname, catalog_id, rid=...)` instead — see "Trace an artifact's provenance" below.
+> **Orchestration vs data-flow:** the `list_execution_children` / `list_execution_parents` calls above walk the **orchestration** graph (which Execution called which — `Execution_Execution` table). For the **data-flow** graph (what produced this output? which dataset trained the model?), use `deriva_ml_get_lineage(hostname, catalog_id, rid=...)` instead — see `/deriva-ml:compare-model-runs` → "Trace an artifact's provenance" for the worked end-to-end pattern (lineage walk → workflow URL + git commit).
 
 ### Compare feature values across recent executions
 
@@ -415,65 +416,6 @@ deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1",
 ```
 
 The `execution_rids=` filter runs server-side, returning rows from any of the listed executions. One round trip instead of N. The default 50,000-row cap protects against accidental wholesale materialization; if you blow through it, narrow the filter (fewer execution RIDs, or pair with `selector="newest"`) or raise `max_results=`. See `/deriva-ml:compare-model-runs` for the full pattern.
-
-### Trace an artifact's provenance
-
-When the question is "where did this output come from?" or "why does this prediction look wrong?", walk the data-flow chain in one call:
-
-```
-deriva_ml_get_lineage(hostname="data.example.org", catalog_id="1", rid="<asset-or-feature-or-dataset-rid>")
-```
-
-Returns a tree of producing executions back to the root: which Execution produced this artifact, which Datasets and Assets it consumed, which Executions produced those, recursively. Replaces what would otherwise be 5-15 round-trips through typed reads.
-
-Pass any artifact RID (Dataset, Asset, Feature value, or Execution); the tool auto-detects the type. Pass `depth=N` to cap the walk; default is unbounded. Cycle-safe.
-
-This is the right tool when:
-- A model prediction looks wrong and you want to confirm which training dataset version it came from.
-- A feature value disagrees with what you expected and you want to identify which annotation execution wrote it.
-- Reproducing a result requires confirming the exact (dataset RID, dataset version, workflow RID, workflow git commit) tuple that produced an asset.
-
-#### Worked example: from a prediction asset back to the workflow's git commit
-
-A common ML-developer question: "I want to reproduce this prediction. What dataset version was used, and what code (git commit) produced it?" The lineage tool gets you most of the way there, but the **workflow's URL and git checksum are not in the lineage payload** — `WorkflowSummary` in the response only carries `rid` and `name`. To get the URL + commit hash you need a second call. The full two-step pattern:
-
-```
-# Step 1 — walk the lineage from the asset
-deriva_ml_get_lineage(hostname="data.example.org", catalog_id="1", rid="2-PRED1")
-```
-
-The response shape is `{"root": {...}, "lineage": {...}, "executions_visited": N, "walked_complete": true, ...}`. The `lineage` field is a tree of `LineageNode`s. Each node has:
-
-- `execution.rid`, `execution.description`, `execution.status`
-- `execution.workflow.rid`, `execution.workflow.name` — but NOT URL or checksum
-- `consumed_datasets` — list of `{rid, description, version}`
-- `consumed_assets` — list of `{rid, filename, asset_table}`
-- `parents` — recursively, the producing executions of consumed datasets and assets
-
-So the lineage tells you "asset `2-PRED1` was produced by execution `2-EXE1`, which consumed dataset `1-ABCD` at version `1.2.0` and was driven by workflow `2-WF01` named 'ResNet50 Training'." But not the git URL or commit.
-
-```
-# Step 2 — fetch the workflow record(s) named in the lineage
-ReadMcpResourceTool(server="<name>", uri="deriva://catalog/data.example.org/1/ml/workflow/2-WF01")
-```
-
-The workflow resource returns the full record including `URL` (the source-code URL, typically a GitHub blob URL pinned to a commit, e.g. `https://github.com/org/repo/blob/abc123/train.py`) and `Checksum` (the git commit hash). The URL is the reproducible-code reference; the checksum is the integrity check.
-
-**End-to-end summary table you can render for the user** (after both calls):
-
-| Field | Source |
-|-------|--------|
-| Prediction asset RID | The starting RID you passed |
-| Producing execution | `lineage.execution.rid` (immediate producer in the tree) |
-| Training dataset | `lineage.consumed_datasets[0].rid` |
-| Training dataset version | `lineage.consumed_datasets[0].version` |
-| Workflow | `lineage.execution.workflow.rid` + `.name` |
-| Code URL | workflow resource → `URL` field |
-| Code git commit | workflow resource → `Checksum` field |
-
-If the prediction depends on an upstream chain (the training execution itself consumed a dataset produced by a preprocessing execution, etc.), the same fields apply at each `parents` level of the tree.
-
-**For per-row feature-value provenance** (e.g. "which execution wrote *this specific* `Image_Quality` value?"), pass the feature value's RID — every feature value has an RID and the tool walks it the same way. See `/deriva-ml:create-feature` for how feature values get their producing-execution link in the first place.
 
 ### Verify Working Directory
 

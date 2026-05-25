@@ -1,6 +1,6 @@
 ---
 name: compare-model-runs
-description: "Use when comparing metrics across multiple ML training executions in DerivaML — ranking model runs by accuracy/F1/loss, finding the best of N recent runs, identifying performance regressions, or aggregating results across a sweep. Covers three metric-storage patterns: features-as-scalars (use `deriva_ml_list_feature_values(execution_rids=...)` for one-round-trip catalog query), metrics-as-JSONL-asset files (`Metrics_File` asset, download + parse locally), and prediction-CSV-as-`Execution_Asset` (per-execution tabular CSV plus optional per-analysis summary CSV — the deriva-ml-model-template's default pattern)."
+description: "Use when comparing metrics across multiple ML training executions in DerivaML — ranking model runs by accuracy/F1/loss, finding the best of N recent runs, identifying performance regressions, or aggregating results across a sweep. Covers three metric-storage patterns: features-as-scalars (`deriva_ml_list_feature_values(execution_rids=...)` for one-round-trip catalog query), metrics-as-JSONL-asset files (`Metrics_File` asset, download + parse locally), and prediction-CSV-as-`Execution_Asset` (per-execution tabular CSV plus optional per-analysis summary CSV — the deriva-ml-model-template's default pattern). ALSO use for **artifact provenance tracing** — when the question is 'where did this prediction come from', 'what code produced this asset', 'what dataset version trained this model', or 'why is this metric different from the last run' — `deriva_ml_get_lineage` walks the full data-flow chain in one call; the worked example shows the two-step pattern (lineage walk → workflow resource fetch) that yields the workflow's git URL + commit hash."
 disable-model-invocation: true
 ---
 
@@ -369,15 +369,71 @@ See `references/prediction-csv-pattern.md` for the full worked example with ROC-
 - `references/prediction-csv-pattern.md` — Worked example for Pattern C with the per-RID download recipe, ground-truth merge, and the optional summary-CSV migration to Pattern A. The model template's `notebooks/roc_analysis.ipynb` is the canonical implementation in running code.
 - `rag_search("metrics", doc_type="catalog-schema")` — Discover whether a catalog has a `Metrics_File` asset type or a `Metrics` feature defined.
 
-## After finding the winner — confirm provenance
+## Trace an artifact's provenance
 
-Once you've identified the best-performing execution, the natural next question is "what was different about that run?" — which dataset version, which workflow git commit, which input assets. Don't reconstruct that manually from execution metadata; use `deriva_ml_get_lineage(hostname=..., catalog_id=..., rid="<execution-rid>")` to walk the full data-flow chain in one call. The response includes the producing-execution chain plus consumed datasets (with versions) and consumed assets, all back to the root.
+After comparing runs (or any time the question is "where did this output come from?" or "why does this prediction look wrong?"), walk the data-flow chain in one call:
 
-Lineage is especially useful when the metric difference between runs is suspiciously large — it's often a dataset-version drift (one run trained on v0.4.0, another on v0.5.0) or an asset swap (different pretrained checkpoint), and lineage surfaces both immediately.
+```
+deriva_ml_get_lineage(hostname="data.example.org", catalog_id="1", rid="<asset-or-feature-or-dataset-or-execution-rid>")
+```
+
+Returns a tree of producing executions back to the root: which Execution produced this artifact, which Datasets and Assets it consumed, which Executions produced those, recursively. Replaces what would otherwise be 5-15 round-trips through typed reads.
+
+Pass any artifact RID (Dataset, Asset, Feature value, or Execution); the tool auto-detects the type. Pass `depth=N` to cap the walk; default is unbounded. Cycle-safe.
+
+This is the right tool when:
+
+- A model prediction looks wrong and you want to confirm which training dataset version it came from.
+- A feature value disagrees with what you expected and you want to identify which annotation execution wrote it.
+- Reproducing a result requires confirming the exact (dataset RID, dataset version, workflow RID, workflow git commit) tuple that produced an asset.
+- The metric difference between two runs is suspiciously large — often a dataset-version drift (one trained on v0.4.0, another on v0.5.0) or an asset swap (different pretrained checkpoint), and lineage surfaces both immediately.
+
+### Worked example: from a prediction asset back to the workflow's git commit
+
+A common ML-developer question: "I want to reproduce this prediction. What dataset version was used, and what code (git commit) produced it?" The lineage tool gets you most of the way there, but the **workflow's URL and git checksum are not in the lineage payload** — the lineage-specific `WorkflowSummary` only carries `rid` and `name` (intentionally compact; drill into the full record with a second call). The full two-step pattern:
+
+```
+# Step 1 — walk the lineage from the asset
+deriva_ml_get_lineage(hostname="data.example.org", catalog_id="1", rid="2-PRED1")
+```
+
+The response shape is `{"root": {...}, "lineage": {...}, "executions_visited": N, "walked_complete": true, "cycle_detected": false, "depth_capped": false}`. The `lineage` field is a tree of `LineageNode`s. Each node has:
+
+- `execution.rid`, `execution.description`, `execution.status`
+- `execution.workflow.rid`, `execution.workflow.name` — but NOT URL or checksum
+- `consumed_datasets` — list of `{rid, description, version}`
+- `consumed_assets` — list of `{rid, filename, asset_table}`
+- `parents` — recursively, the producing executions of consumed datasets and assets
+- `already_shown` — true when the node was already rendered earlier in the tree (cycle-safety / dedup)
+
+So the lineage tells you "asset `2-PRED1` was produced by execution `2-EXE1`, which consumed dataset `1-ABCD` at version `1.2.0` and was driven by workflow `2-WF01` named 'ResNet50 Training'." But not the git URL or commit.
+
+```
+# Step 2 — fetch the workflow record(s) named in the lineage
+ReadMcpResourceTool(server="<name>", uri="deriva://catalog/data.example.org/1/ml/workflow/2-WF01")
+```
+
+The workflow resource returns the full record including `url` (the source-code URL, typically a GitHub blob URL pinned to a commit, e.g. `https://github.com/org/repo/blob/abc123/train.py`) and `checksum` (the git commit hash). The URL is the reproducible-code reference; the checksum is the integrity check.
+
+**End-to-end summary table you can render for the user** (after both calls):
+
+| Field | Source |
+|-------|--------|
+| Prediction asset RID | The starting RID you passed |
+| Producing execution | `lineage.execution.rid` (immediate producer in the tree) |
+| Training dataset | `lineage.consumed_datasets[0].rid` |
+| Training dataset version | `lineage.consumed_datasets[0].version` |
+| Workflow | `lineage.execution.workflow.rid` + `.name` |
+| Code URL | workflow resource → `url` field |
+| Code git commit | workflow resource → `checksum` field |
+
+If the prediction depends on an upstream chain (the training execution itself consumed a dataset produced by a preprocessing execution, etc.), the same fields apply at each `parents` level of the tree.
+
+**For per-row feature-value provenance** (e.g. "which execution wrote *this specific* `Image_Quality` value?"), pass the feature value's RID — every feature value has an RID and the tool walks it the same way. See `/deriva-ml:create-feature` for how feature values get their producing-execution link in the first place.
 
 ## Related skills
 
 - **`execution-lifecycle`** — How executions are created and what metadata they carry. Read this first if the user is running NEW experiments rather than analyzing past ones.
 - **`create-feature`** — How to define a Feature for metrics-as-scalars. Useful if the user wants to ADD this pattern to their workflow.
 - **`work-with-assets`** — How to download asset bytes locally. Phase 2B's local-Python step is in this skill's domain.
-- **`troubleshoot-execution`** — When the recent runs returned by `list_executions` aren't in `Uploaded` state and you need to diagnose why. Also covers `deriva_ml_get_lineage` for tracing artifacts back to their producing executions.
+- **`troubleshoot-execution`** — When the recent runs returned by `list_executions` aren't in `Uploaded` state and you need to diagnose why. Routes provenance-tracing questions back to this skill.
