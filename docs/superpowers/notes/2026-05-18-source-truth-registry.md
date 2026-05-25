@@ -1,5 +1,19 @@
 # Source-truth registry — 2026-05-18
 
+> **2026-05-25 refresh.** Cosmetic delta only — no semantic drift since
+> 2026-05-24. Same 43 tools + 2 prompts = 45 entries; both DO-NOT-
+> REFERENCE lists still pass. Updated: source-file paths in §A.1/A.2
+> for upstream's `tools/` subpackage reorganization; new `validate=True`
+> parameter on `deriva_ml_add_dataset_members`; line numbers refreshed
+> for `deriva_ml_get_lineage` (now line 871), `deriva_ml_find_assets`
+> (334), `deriva_ml_lookup_asset` (489), `deriva_ml_update_asset` (564)
+> after sibling defs grew in upstream. §A.3 prompt lines: 1003/1014.
+> §B.1 gained `workspace` property, `create_table()`, `define_association()`
+> on `DerivaML` plus the full `__init__` signature. §B.9 (`Execution`)
+> gained the `from_registry()` classmethod. Two new value-object
+> sections: §B.13a (`Asset`) and §B.13b (`Workflow`), enumerating what
+> skills can call on the objects returned by mixin lookups.
+
 > **2026-05-24 refresh.** Re-extracted against deriva-ml v1.39
 > ([PR #224](https://github.com/informatics-isi-edu/deriva-ml/pull/224))
 > and deriva-ml-mcp HEAD (45 entries). Material changes since the
@@ -37,61 +51,61 @@ for `@ctx.tool` and `@ctx.prompt` decorators on `deriva_ml_*` names.
 
 | Tool | Signature | Source |
 |---|---|---|
-| `deriva_ml_bag_info` | `(hostname, catalog_id, dataset_rid, version, exclude_tables=None)` | read.py:741 |
-| `deriva_ml_bootstrap_config` | `(hostname, catalog_id, kinds=None, dataset_type_filter=None)` | read.py:1096 |
-| `deriva_ml_denormalize_dataset` | `(hostname, catalog_id, include_tables, dataset_rid=None, version=None, row_per=None, via=None, limit, after_rid=None, preflight_count=False)` | complex.py:88 |
-| `deriva_ml_find_assets` | `(hostname, catalog_id, asset_type=None, asset_table=None, limit=100, after_rid=None, preflight_count=False)` | asset.py |
-| `deriva_ml_find_experiments` | `(hostname, catalog_id, workflow_rid=None, status=None, limit=100, after_rid=None, preflight_count=False)` | execution/read.py |
-| `deriva_ml_find_workflow_by_url` | `(hostname, catalog_id, url_or_checksum)` | workflow.py:293 |
-| `deriva_ml_find_workflow_executions` | `(hostname, catalog_id, workflow_rid, status=None, limit, after_rid=None, preflight_count=False, sort=False)` | read.py:537 |
-| `deriva_ml_get_dataset` | `(hostname, catalog_id, dataset_rid, include_history=False)` | read.py:365 |
-| `deriva_ml_get_dataset_spec` | `(hostname, catalog_id, dataset_rid, version=None)` | read.py:801 |
-| `deriva_ml_get_execution` | `(hostname, catalog_id, execution_rid)` | read.py:492 |
-| `deriva_ml_get_feature` | `(hostname, catalog_id, table, feature_name)` | feature.py:222 |
-| `deriva_ml_get_lineage` | `(hostname, catalog_id, rid, depth=None, max_executions)` | read.py:756 |
-| `deriva_ml_get_workflow` | `(hostname, catalog_id, workflow_rid)` | workflow.py:249 |
-| `deriva_ml_list_assets` | `(hostname, catalog_id, asset_table, limit, after_rid=None, preflight_count=False)` | asset.py:234 |
-| `deriva_ml_list_dataset_element_types` | `(hostname, catalog_id)` | read.py:689 |
-| `deriva_ml_list_dataset_members` | `(hostname, catalog_id, dataset_rid, element_table=None, limit, after_rid=None, preflight_count=False, recurse=False, version=None)` | read.py:446 |
-| `deriva_ml_list_dataset_relations` | `(hostname, catalog_id, dataset_rid, direction: 'parents'\|'children'\|'both', recurse=False, limit, after_rid=None, version=None)` | read.py:573 |
-| `deriva_ml_list_datasets` | `(hostname, catalog_id, include_deleted=False, limit, after_rid=None, preflight_count=False, sort=False)` | read.py:239 |
-| `deriva_ml_list_execution_children` | `(hostname, catalog_id, execution_rid, recurse=False)` | read.py:632 |
-| `deriva_ml_list_execution_parents` | `(hostname, catalog_id, execution_rid, recurse=False)` | read.py:697 |
-| `deriva_ml_list_executions` | `(hostname, catalog_id, workflow_rid=None, workflow_type=None, status=None, limit, after_rid=None, preflight_count=False, sort=False)` | read.py:389 |
-| `deriva_ml_list_feature_values` | `(hostname, catalog_id, table, feature_name, selector: 'none'\|'newest'\|'first'\|'latest'\|'majority_vote'\|'by_workflow'\|'by_execution', selector_workflow=None, selector_execution_rid=None, dataset_rid=None, limit, after_rid=None, preflight_count=False, execution_rids=None, max_results)` | feature.py:292 |
-| `deriva_ml_list_features` | `(hostname, catalog_id, table=None, limit, after_rid=None, preflight_count=False)` | feature.py:140 |
-| `deriva_ml_list_workflows` | `(hostname, catalog_id, limit, after_rid=None, preflight_count=False, sort=False)` | workflow.py:167 |
-| `deriva_ml_lookup_asset` | `(hostname, catalog_id, asset_rid)` | asset.py:333 |
-| `deriva_ml_validate_config_file` | `(hostname, catalog_id, file_contents)` | read.py:1013 |
-| `deriva_ml_validate_dataset_specs` | `(hostname, catalog_id, specs)` | read.py:861 |
-| `deriva_ml_validate_execution_configuration` | `(hostname, catalog_id, config)` | read.py:929 |
+| `deriva_ml_bag_info` | `(hostname, catalog_id, dataset_rid, version, exclude_tables=None)` | tools/dataset/read.py:741 |
+| `deriva_ml_bootstrap_config` | `(hostname, catalog_id, kinds=None, dataset_type_filter=None)` | tools/dataset/read.py:1096 |
+| `deriva_ml_denormalize_dataset` | `(hostname, catalog_id, include_tables, dataset_rid=None, version=None, row_per=None, via=None, limit, after_rid=None, preflight_count=False)` | tools/dataset/complex.py:93 |
+| `deriva_ml_find_assets` | `(hostname, catalog_id, asset_type=None, asset_table=None, limit=100, after_rid=None, preflight_count=False)` | tools/asset.py:334 |
+| `deriva_ml_find_experiments` | `(hostname, catalog_id, workflow_rid=None, status=None, limit=100, after_rid=None, preflight_count=False)` | tools/execution/read.py:756 |
+| `deriva_ml_find_workflow_by_url` | `(hostname, catalog_id, url_or_checksum)` | tools/workflow.py:295 |
+| `deriva_ml_find_workflow_executions` | `(hostname, catalog_id, workflow_rid, status=None, limit, after_rid=None, preflight_count=False, sort=False)` | tools/execution/read.py:537 |
+| `deriva_ml_get_dataset` | `(hostname, catalog_id, dataset_rid, include_history=False)` | tools/dataset/read.py:365 |
+| `deriva_ml_get_dataset_spec` | `(hostname, catalog_id, dataset_rid, version=None)` | tools/dataset/read.py:801 |
+| `deriva_ml_get_execution` | `(hostname, catalog_id, execution_rid)` | tools/execution/read.py:492 |
+| `deriva_ml_get_feature` | `(hostname, catalog_id, table, feature_name)` | tools/feature.py:224 |
+| `deriva_ml_get_lineage` | `(hostname, catalog_id, rid, depth=None, max_executions)` | tools/execution/read.py:871 |
+| `deriva_ml_get_workflow` | `(hostname, catalog_id, workflow_rid)` | tools/workflow.py:251 |
+| `deriva_ml_list_assets` | `(hostname, catalog_id, asset_table, limit, after_rid=None, preflight_count=False)` | tools/asset.py:235 |
+| `deriva_ml_list_dataset_element_types` | `(hostname, catalog_id)` | tools/dataset/read.py:689 |
+| `deriva_ml_list_dataset_members` | `(hostname, catalog_id, dataset_rid, element_table=None, limit, after_rid=None, preflight_count=False, recurse=False, version=None)` | tools/dataset/read.py:446 |
+| `deriva_ml_list_dataset_relations` | `(hostname, catalog_id, dataset_rid, direction: 'parents'\|'children'\|'both', recurse=False, limit, after_rid=None, version=None)` | tools/dataset/read.py:573 |
+| `deriva_ml_list_datasets` | `(hostname, catalog_id, include_deleted=False, limit, after_rid=None, preflight_count=False, sort=False)` | tools/dataset/read.py:239 |
+| `deriva_ml_list_execution_children` | `(hostname, catalog_id, execution_rid, recurse=False)` | tools/execution/read.py:632 |
+| `deriva_ml_list_execution_parents` | `(hostname, catalog_id, execution_rid, recurse=False)` | tools/execution/read.py:697 |
+| `deriva_ml_list_executions` | `(hostname, catalog_id, workflow_rid=None, workflow_type=None, status=None, limit, after_rid=None, preflight_count=False, sort=False)` | tools/execution/read.py:389 |
+| `deriva_ml_list_feature_values` | `(hostname, catalog_id, table, feature_name, selector: 'none'\|'newest'\|'first'\|'latest'\|'majority_vote'\|'by_workflow'\|'by_execution', selector_workflow=None, selector_execution_rid=None, dataset_rid=None, limit, after_rid=None, preflight_count=False, execution_rids=None, max_results)` | tools/feature.py:294 |
+| `deriva_ml_list_features` | `(hostname, catalog_id, table=None, limit, after_rid=None, preflight_count=False)` | tools/feature.py:142 |
+| `deriva_ml_list_workflows` | `(hostname, catalog_id, limit, after_rid=None, preflight_count=False, sort=False)` | tools/workflow.py:169 |
+| `deriva_ml_lookup_asset` | `(hostname, catalog_id, asset_rid)` | tools/asset.py:489 |
+| `deriva_ml_validate_config_file` | `(hostname, catalog_id, file_contents)` | tools/dataset/read.py:1013 |
+| `deriva_ml_validate_dataset_specs` | `(hostname, catalog_id, specs)` | tools/dataset/read.py:861 |
+| `deriva_ml_validate_execution_configuration` | `(hostname, catalog_id, config)` | tools/dataset/read.py:929 |
 
 ### A.2 Tools — mutating (13)
 
 | Tool | Signature | Source |
 |---|---|---|
-| `deriva_ml_add_dataset_element_type` | `(hostname, catalog_id, table_name)` | mutate.py:637 |
-| `deriva_ml_add_dataset_members` | `(hostname, catalog_id, dataset_rid, member_rids=None, members_by_table=None, description, execution_rid=None)` | mutate.py:246 |
-| `deriva_ml_create_dataset` | `(hostname, catalog_id, execution_rid, dataset_types=None, description, version=None)` | mutate.py:85 |
-| `deriva_ml_create_feature` | `(hostname, catalog_id, target_table, feature_name, terms=None, assets=None, metadata=None, optional=None, comment)` | feature.py:520 |
-| `deriva_ml_create_vocabulary` | `(hostname, catalog_id, vocab_name, comment, schema=None, update_navbar=True)` | vocabulary.py:62 |
-| `deriva_ml_create_workflow` | `(hostname, catalog_id, name, workflow_type, url, checksum=None, version=None, description)` | workflow.py:357 |
-| `deriva_ml_delete_dataset` | `(hostname, catalog_id, dataset_rid, recurse=False)` | mutate.py:174 |
-| `deriva_ml_delete_dataset_members` | `(hostname, catalog_id, dataset_rid, member_rids, description, execution_rid=None)` | mutate.py:365 |
-| `deriva_ml_delete_feature` | `(hostname, catalog_id, table, feature_name)` | feature.py:608 |
-| `deriva_ml_reindex_vocabularies` | `(hostname, catalog_id, vocab=None)` | maintenance.py:66 |
-| `deriva_ml_release` | `(hostname, catalog_id, dataset_rid, bump: 'major'\|'minor'\|'patch', description, execution_rid=None)` | mutate.py:693 |
-| `deriva_ml_resync_indexes` | `(hostname, catalog_id, target=None)` | maintenance.py:130 |
-| `deriva_ml_update_asset` | `(hostname, catalog_id, asset_rid, asset_types=None, description=None)` | asset.py:408 |
-| `deriva_ml_update_dataset` | `(hostname, catalog_id, dataset_rid, dataset_types=None, description=None)` | mutate.py:457 |
-| `deriva_ml_update_workflow` | `(hostname, catalog_id, workflow_rid, description=None, workflow_type=None)` | workflow.py:552 |
+| `deriva_ml_add_dataset_element_type` | `(hostname, catalog_id, table_name)` | tools/dataset/mutate.py:643 |
+| `deriva_ml_add_dataset_members` | `(hostname, catalog_id, dataset_rid, member_rids=None, members_by_table=None, description, execution_rid=None, validate=True)` | tools/dataset/mutate.py:246 |
+| `deriva_ml_create_dataset` | `(hostname, catalog_id, execution_rid, dataset_types=None, description, version=None)` | tools/dataset/mutate.py:85 |
+| `deriva_ml_create_feature` | `(hostname, catalog_id, target_table, feature_name, terms=None, assets=None, metadata=None, optional=None, comment)` | tools/feature.py:527 |
+| `deriva_ml_create_vocabulary` | `(hostname, catalog_id, vocab_name, comment, schema=None, update_navbar=True)` | tools/vocabulary.py:62 |
+| `deriva_ml_create_workflow` | `(hostname, catalog_id, name, workflow_type, url, checksum=None, version=None, description)` | tools/workflow.py:359 |
+| `deriva_ml_delete_dataset` | `(hostname, catalog_id, dataset_rid, recurse=False)` | tools/dataset/mutate.py:174 |
+| `deriva_ml_delete_dataset_members` | `(hostname, catalog_id, dataset_rid, member_rids, description, execution_rid=None)` | tools/dataset/mutate.py:371 |
+| `deriva_ml_delete_feature` | `(hostname, catalog_id, table, feature_name)` | tools/feature.py:615 |
+| `deriva_ml_reindex_vocabularies` | `(hostname, catalog_id, vocab=None)` | tools/maintenance.py:66 |
+| `deriva_ml_release` | `(hostname, catalog_id, dataset_rid, bump: 'major'\|'minor'\|'patch', description, execution_rid=None)` | tools/dataset/mutate.py:699 |
+| `deriva_ml_resync_indexes` | `(hostname, catalog_id, target=None)` | tools/maintenance.py:130 |
+| `deriva_ml_update_asset` | `(hostname, catalog_id, asset_rid, asset_types=None, description=None)` | tools/asset.py:564 |
+| `deriva_ml_update_dataset` | `(hostname, catalog_id, dataset_rid, dataset_types=None, description=None)` | tools/dataset/mutate.py:463 |
+| `deriva_ml_update_workflow` | `(hostname, catalog_id, workflow_rid, description=None, workflow_type=None)` | tools/workflow.py:554 |
 
 ### A.3 Prompts (2)
 
 | Prompt | Source |
 |---|---|
-| `deriva_ml_concepts` | prompts.py:1000 |
-| `deriva_ml_getting_started` | prompts.py:1011 |
+| `deriva_ml_concepts` | prompts.py:1003 |
+| `deriva_ml_getting_started` | prompts.py:1014 |
 
 ### A.4 Names that are NOT MCP tools — never reference
 
@@ -123,14 +137,26 @@ must never appear in skill examples.
 
 ### B.1 `DerivaML` (entry-point class)
 
-Construct via `DerivaML(host, catalog_id, ...)` or `from_context()`.
+Construct via `DerivaML(hostname, catalog_id, ...)` or `from_context()`. Full constructor signature (`base.py:238`):
+
+```python
+DerivaML(hostname, catalog_id,
+         domain_schemas=None, default_schema=None, project_name=None,
+         cache_dir=None, working_dir=None, hydra_runtime_output_dir=None,
+         ml_schema=ML_SCHEMA,
+         logging_level=WARNING, deriva_logging_level=WARNING,
+         credential=None,
+         s3_bucket=None, use_minid=None, clean_execution_dir=True,
+         mode=ConnectionMode.online)
+```
 
 **Catalog / connection:**
 - `instantiate(cls, config: DerivaMLConfig) -> Self`
-- `from_context(cls, path=None) -> Self`
+- `from_context(cls, path=None) -> Self`  *(does NOT accept `mode=`; construct `DerivaML(...)` directly for offline)*
 - `mode() -> ConnectionMode` (property)
 - `catalog_snapshot(version_snapshot) -> Self`
 - `is_snapshot() -> bool`
+- `workspace -> Workspace` (property — `base.py:841`)
 
 **Schema:**
 - `refresh_schema(force=False) -> None`
@@ -138,6 +164,10 @@ Construct via `DerivaML(host, catalog_id, ...)` or `from_context()`.
 - `unpin_schema() -> None`
 - `pin_status() -> PinStatus`
 - `diff_schema() -> SchemaDiff`
+
+**Catalog DDL:** *(escape hatches for cases the deriva-ml-aware mutation tools don't cover; rare in skill code)*
+- `create_table(table, schema=None, update_navbar=True) -> Table` (`base.py:1218`)
+- `define_association(associates, metadata, table_name, comment, **kwargs)` (`base.py:1341`)
 
 **Cache + storage:**
 - `cache_table(table_name, force=False) -> pd.DataFrame`
@@ -249,6 +279,7 @@ Construct via `DerivaML(host, catalog_id, ...)` or `from_context()`.
 Always use as `with ml.create_execution(...) as exe:`. Public methods:
 
 **Lifecycle:**
+- `from_registry(cls, ml_object, execution_rid) -> Execution` (classmethod — re-hydrate a stored execution; used by `ml.resume_execution()` and the salvage flows in `troubleshoot-execution`)
 - `update_status(target: ExecutionStatus, error=None) -> None`
 - `execution_start() -> None`  *(usually called by `__enter__`)*
 - `execution_stop() -> None`  *(usually called by `__exit__`)*
@@ -387,6 +418,41 @@ Returned by `dataset.download_dataset_bag(...)` and `exe.download_dataset_bag(..
 - `as_torch_dataset(element_type, sample_loader=None, transform=None, targets=None, target_transform=None, missing='unknown') -> torch.utils.data.Dataset`
 - `as_tf_dataset(element_type, sample_loader=None, transform=None, targets=None, target_transform=None, missing='unknown', output_signature=None) -> tf.data.Dataset`
 - `restructure_assets(output_dir, asset_table=None, targets=None, target_transform=None, missing='unknown', use_symlinks=True, type_selector=None, type_to_dir_map=None, enforce_vocabulary=True, file_transformer=None) -> dict[Path, Path]`
+
+### B.13a `Asset` (catalog-backed value object)
+
+Returned by `ml.find_assets()`, `ml.list_assets(table)`, `ml.lookup_asset(rid)`, `Execution.list_assets(asset_role=...)`, etc. Live ERMrest-backed wrapper around one asset row.
+
+**Properties:**
+- `description -> str | None` (settable)
+- `asset_types -> list[str]` *(always includes the directional auto-tag `Input_File` or `Output_File` when the asset crossed an execution boundary — see §D.5; use `in` membership for filtering, not equality)*
+- `execution_rid -> RID | None`
+
+**Methods:**
+- `list_executions(asset_role: str | None = None) -> list[ExecutionRecord]` *(pass `"Input"` or `"Output"` to scope)*
+- `find_features() -> list[Feature]`
+- `add_asset_type(type_name: str) -> None`
+- `remove_asset_type(type_name: str) -> None`
+- `download(dest_dir: Path) -> Path` *(returns the local path of the downloaded file)*
+- `get_metadata() -> dict[str, Any]`
+- `get_chaise_url() -> str`
+
+### B.13b `Workflow` (catalog-backed value object)
+
+Returned by `ml.lookup_workflow(rid)`, `ml.find_workflow_by_url(url)`, `ml.find_workflows()`. Pydantic model with content-addressing helpers (URL + git checksum).
+
+**Properties:**
+- `workflow_types -> list[str]` *(from the `Workflow_Type` vocabulary)*
+
+**Type management:**
+- `add_workflow_type(workflow_type: str | VocabularyTerm) -> None`
+- `remove_workflow_type(workflow_type: str | VocabularyTerm) -> None`
+- `add_workflow_types(types: str | VocabularyTerm | list[...]) -> None`
+
+**Provenance helpers:**
+- `setup_url_checksum() -> Workflow` *(populates `url` and `checksum` from the running script via `get_url_and_checksum`)*
+- `get_url_and_checksum(executable_path: Path, allow_dirty: bool = False) -> tuple[str, str]` *(staticmethod)*
+- `get_dynamic_version(root: str | os.PathLike | None = None) -> str` *(staticmethod)*
 
 ### B.14 Names that are NOT public API — never reference
 
