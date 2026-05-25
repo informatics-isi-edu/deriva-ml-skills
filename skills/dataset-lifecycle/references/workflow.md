@@ -101,13 +101,13 @@ To **remove members**, call `deriva_ml_delete_dataset_members` with `hostname`, 
 
 ## Splitting Datasets
 
-Splits go through the same script-based pattern as bootstrap and curated-subset operations (`catalog-operations-workflow` skill): write a script in `src/scripts/` that opens an execution and calls the Python API. The script's git commit becomes the workflow's url and checksum, so the resulting dataset hierarchy carries honest, reproducible provenance.
+Splits go through the same script-based pattern as bootstrap and curated-subset operations (`generate-scripts` skill): write a script in `src/scripts/` that opens an execution and calls the Python API. The script's git commit becomes the workflow's url and checksum, so the resulting dataset hierarchy carries honest, reproducible provenance.
 
 The Python API is `deriva_ml.dataset.split.split_dataset(ml, source_rid, exe, ...)`. It follows the same conventions as scikit-learn's [`train_test_split`](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html) — parameters like `test_size`, `train_size`, `shuffle`, `seed`, and stratification work the same way. It auto-increments the dataset version. Always use `dry_run=True` first to preview the split plan.
 
 ### The script pattern
 
-Start from the **Base Script Template** in the `catalog-operations-workflow` skill (`references/script-patterns.md`) — same CLI args (`--hostname`, `--catalog-id`, `--dry-run`), same connect/configure/run shape, same "no CLI entry point in `pyproject.toml`" rule. Drop the script into `src/scripts/<your_split>.py`. The script body adds these steps on top of the Base Template:
+Start from the **Base Script Template** in the `generate-scripts` skill (`references/script-patterns.md`) — same CLI args (`--hostname`, `--catalog-id`, `--dry-run`), same connect/configure/run shape, same "no CLI entry point in `pyproject.toml`" rule. Drop the script into `src/scripts/<your_split>.py`. The script body adds these steps on top of the Base Template:
 
 1. **Connect.** `ml = DerivaML(hostname=args.hostname, catalog_id=args.catalog_id)`.
 2. **Ensure vocabulary terms.** Make sure `Workflow_Type` has `"Dataset_Split"` (or whatever your project uses): `ml.add_term("Workflow_Type", "Dataset_Split", description=...)` — idempotent, safe to re-run.
@@ -283,7 +283,7 @@ exe.commit_output_assets(clean_folder=True)
 
 Use this when creating the **first dataset** from records already in the catalog — e.g., "create a dataset with all file records" or "create a dataset from all Image records." There is no existing dataset to filter from.
 
-**Use the script patterns from the `catalog-operations-workflow` skill** (`references/script-patterns.md`), specifically the **Base Script Template** + **Dataset Creation** pattern.
+**Use the script patterns from the `generate-scripts` skill** (`references/script-patterns.md`), specifically the **Base Script Template** + **Dataset Creation** pattern.
 
 1. **Register element types** (via MCP — idempotent, one-time setup):
    ```
