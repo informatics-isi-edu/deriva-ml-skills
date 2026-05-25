@@ -178,7 +178,7 @@ If the execution is already in a non-`Running` state (`Stopped`, `Failed`, `Pend
   - `Workflow_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`
   - `Asset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`
 - For other vocabularies (custom domain vocabs), use `add_term` with the appropriate schema and table.
-- **If the vocabulary table itself doesn't exist yet**, create it with `deriva_ml_create_vocabulary(hostname=..., catalog_id=..., vocab_name=..., comment=...)` — the ML-aware tool applies the deriva-ml project curie prefix and refreshes the navbar. The generic `create_vocabulary` from deriva-mcp-core skips both. See `deriva-ml-context` for the steering rationale.
+- **If the vocabulary table itself doesn't exist yet**, create it with `deriva_ml_create_vocabulary(hostname=..., catalog_id=..., vocab_name=..., comment=...)`. See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (the ML-aware tool applies the curie prefix, default schema, and navbar refresh that the generic `create_vocabulary` skips).
 - For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the `/deriva:troubleshoot-deriva-errors` skill *(deriva-skills)*.
 
 ---
