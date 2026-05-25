@@ -207,7 +207,7 @@ For most operations the inheritance rule resolves the routing on its own — if 
 
 - **Version checks** — `/deriva:troubleshoot-deriva-errors` ("Versioning and updates" section) for the foundation (deriva-py, deriva-mcp-core, deriva plugin); `/deriva-ml:troubleshoot-execution` ("Versioning and updates" section) for the DerivaML layer. Check the foundation first — the DerivaML stack depends on it.
 
-The `deriva-skills` plugin has two paths for Chaise display annotations — `/deriva:customize-display` (interactive MCP-tool path) and `/deriva:use-annotation-builders` (type-safe Python builder classes for production scripts). The choice between them is interactive-vs-script-based, not domain-based.
+There are two paths for Chaise display annotations: `/deriva:customize-display` *(deriva-skills, interactive MCP-tool path — works on any Deriva catalog)* and `/deriva-ml:use-annotation-builders` *(this plugin, type-safe Python builder classes for production scripts — requires the deriva-ml Python package)*. The choice between them is interactive-vs-script-based, not domain-based.
 
 ## Pointers
 
