@@ -147,15 +147,35 @@ The bag export algorithm uses foreign key (FK) path traversal to determine which
 
 ## Step 6: Download and Validate the Bag
 
-Use the validation tool to get a detailed comparison of expected vs. actual bag contents.
+Compare expected vs. actual bag contents by diffing what the catalog says is in the dataset against what `DatasetBag` actually serves. This is a manual two-call comparison — the deriva-ml Python API doesn't ship a one-shot validator.
 
-- **Tool**: Python API bag inspection with the dataset RID.
-  - Returns a **per-table comparison** showing:
-    - Expected RIDs (based on dataset members and FK traversal).
-    - Actual RIDs present in the downloaded bag.
-    - **Missing RIDs**: records that should be in the bag but are not.
-    - **Extra RIDs**: records in the bag that were not expected (usually not a problem but worth investigating).
-  - Use the missing RIDs to identify exactly which records are being dropped and from which tables.
+**Expected side (from the catalog):**
+
+```python
+# What the catalog says belongs in this dataset+version
+expected = ml.lookup_dataset(dataset_rid).list_dataset_members(version="<version>")
+# expected is keyed by element table; values are lists of {RID, ...} records
+```
+
+**Actual side (from the downloaded bag):**
+
+```python
+bag = ml.lookup_dataset(dataset_rid).download_dataset_bag(version="<version>")
+# Per-table introspection — what actually made it into the bag
+for table_name in bag.list_tables():
+    rows = bag.get_table_as_dict(table_name)
+    actual_rids = {r["RID"] for r in rows}
+    # Diff against expected[table_name] to find missing / extra RIDs
+```
+
+For each table, compute:
+
+- **Missing RIDs**: `expected_rids - actual_rids` — records that should be in the bag but aren't. Usually the symptom of FK paths the export missed, or `exclude_tables=` filtering them out.
+- **Extra RIDs**: `actual_rids - expected_rids` — records the export pulled in through FK traversal that weren't dataset members. Usually fine, but worth checking when a bag is unexpectedly large.
+
+The missing-RIDs side is the diagnostic that matters; that's what tells you which records are being dropped and from which tables.
+
+> **BagIt-level structural validation** (manifest checksums, file integrity) is a separate concern — use `bdbag --validate fast <path>` or `bdbag --validate full <path>` on the downloaded bag directory. See `/deriva:download-bag` *(deriva-skills)* for the BagIt-tool surface.
 
 ---
 
@@ -247,7 +267,7 @@ Use this checklist when data is missing from a bag:
    - If not: add intermediate records as members, or restructure FKs.
 
 4. **Does validation show the discrepancy?**
-   - Python API bag inspection -- look at missing RIDs per table.
+   - Diff `ml.lookup_dataset(rid).list_dataset_members(version=...)` (expected) against per-table `bag.get_table_as_dict(...)` calls (actual) — see Step 6 for the recipe.
 
 5. **Is the version current?**
    - If `current_version` is a dev label (`<release>.post1.devN`) — members or features changed since the last release. Call `deriva_ml_release(...)` to mint a new release that captures the current state, then re-download.
@@ -274,7 +294,7 @@ Use this checklist when data is missing from a bag:
 | `deriva_ml_add_dataset_members` | Add records to a dataset |
 | `deriva_ml_delete_dataset_members` | Remove records from a dataset |
 | `deriva_ml_add_dataset_element_type` | Register a table as dataset element type |
-| Python API bag inspection | Validate bag contents against expectations |
+| Python API `bag.list_tables()` + `bag.get_table_as_dict(table)` | Diff actual bag contents against `ml.lookup_dataset(rid).list_dataset_members(version=...)` for the expected set (see Step 6 for the recipe) |
 | `deriva_ml_release` | Promote a dev period to a released version (per ADR-0003) |
 | `deriva_ml_get_dataset_spec` | View dataset specification |
 | `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest before downloading |

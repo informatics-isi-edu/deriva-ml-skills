@@ -184,10 +184,16 @@ assert not v.is_dev, (
 bag = ds.download_dataset_bag(version="1.0.0")
 # In an execution: exe.download_dataset_bag(DatasetSpec(rid="2-XXXX", version="1.0.0"))
 
-# Step 4: Validate (optional but cheap insurance for important runs).
-# Cross-checks the bag against the live catalog for the version's snapshot.
-report = bag.validate()
-assert all(t.status == "PASS" for t in report.tables), report
+# Step 4: Validate (optional, manual; cheap insurance for important runs).
+# Diff what the catalog says is in this dataset+version against what
+# actually made it into the bag. See /deriva-ml:debug-bag-contents Step 6
+# for the recipe; the gist is:
+#
+# expected = ds.list_dataset_members(version="1.0.0")
+# for table_name in bag.list_tables():
+#     actual_rids = {r["RID"] for r in bag.get_table_as_dict(table_name)}
+#     missing = {m["RID"] for m in expected[table_name]} - actual_rids
+#     assert not missing, f"{table_name}: {len(missing)} missing RIDs"
 ```
 
 **Common patterns:**
