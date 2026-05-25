@@ -126,6 +126,8 @@ add_term(hostname="data.example.org", catalog_id="1",
 
 When you create a new asset table by hand (see [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)), remember to also add the table name as a term in `Asset_Type`.
 
+> **Creating a separate vocabulary (not just adding a term)?** If your asset table needs a brand-new domain vocabulary as one of its columns (e.g., `Stain_Type` for histology images), use `deriva_ml_create_vocabulary(...)` to create the vocabulary table first, then `add_term` to populate it. The ML-aware creation tool applies the project curie prefix and refreshes the navbar. See `deriva-ml-context` → "Creating a new vocabulary" for the steering rationale.
+
 ## Object Storage
 
 Files are stored in Deriva's object store. When you upload an asset, the file goes to the object store and the catalog record gets a URL pointing to it. When you download an asset, DerivaML fetches the file from the object store using that URL.

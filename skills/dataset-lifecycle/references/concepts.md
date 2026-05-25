@@ -120,6 +120,8 @@ add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table=
 
 Or in Python: `ml.add_term(MLVocab.dataset_type, ...)`. Before creating, check existing types — the term you need may already exist under a different name. Use `rag_search("dataset types", doc_type="catalog-schema")` to find types by meaning, or `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type")` for the full list.
 
+> **Need a brand-new vocabulary table?** `add_term` extends an existing vocabulary table; if you need to create a new one (a domain-specific vocabulary like `Tumor_Grade`), use `deriva_ml_create_vocabulary(...)` instead — the ML-aware tool applies the project curie prefix and refreshes the navbar. See `deriva-ml-context` → "Creating a new vocabulary" for the steering rationale.
+
 For DerivaML-specific guidance on `Dataset_Type` (built-in dimensions, composing types on a Dataset, worked examples), see `type-naming-strategy.md`. For the **generic vocabulary design principles** that this guidance builds on (orthogonal tagging, dimension identification, naming conventions, anti-patterns, the substitution test, semantic checking) — applicable to all four DerivaML vocabularies and any custom domain vocabulary — see the deriva-skills `manage-vocabulary` skill in `deriva-skills` at `skills/manage-vocabulary/references/term-naming-strategy.md`.
 
 ### How `split_dataset` assigns types

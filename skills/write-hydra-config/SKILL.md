@@ -202,10 +202,12 @@ The recipes below cover the per-config-group catalog queries; the worked example
 The connection group. You need a `hostname` + `catalog_id` and ideally a sanity-check that the catalog responds.
 
 ```
-# Discovery
+# Discovery — prefer the resource form (one round trip, no pagination)
+# Read deriva://catalog/{hostname}/{catalog_id}/ml/datasets
+# Look for non-zero datasets; any error here means the bootstrap can't proceed.
+
+# Equivalent tool form if you need filters or paginated browsing:
 deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")
-# Just a heartbeat to confirm the catalog answers. Look for non-zero datasets;
-# any error here means the bootstrap can't proceed.
 
 # Or, for a multi-catalog server:
 # Read deriva://registry/{hostname} to see available catalog aliases.
@@ -291,7 +293,10 @@ assets_store(
 The workflow group. Typically one entry per script the project runs.
 
 ```
-# Browse existing workflows
+# Browse existing workflows — prefer the resource form (one round trip)
+# Read deriva://catalog/{hostname}/{catalog_id}/ml/workflows
+
+# Equivalent tool form if you need pagination or filters:
 deriva_ml_list_workflows(hostname="data.example.org", catalog_id="1")
 
 # Or find one by url:
@@ -329,6 +334,8 @@ Project code, not catalog state. Bootstrap doesn't apply.
 ### Worked end-to-end example: fresh-catalog bootstrap
 
 Scenario: someone hands you a catalog id (`localhost`, catalog `19`) and asks you to populate the model template's `src/configs/` from scratch.
+
+> Each tool call below has a resource-form equivalent (`deriva://catalog/{h}/{c}/ml/datasets`, `…/ml/assets/{schema}`, `…/ml/workflows`) — one round trip, no pagination cost. The tool form is shown here for readability; either works. See `deriva-ml-context` → "Read-side questions: fetch the resource first."
 
 ```python
 # Step 1: confirm the catalog answers and capture inventory.
@@ -465,7 +472,7 @@ Walking every config file in `src/configs/` against the catalog is the right gat
 
 4. **Loop `deriva_ml_get_workflow` over each workflow RID** if your `workflow.py` pins RIDs (most projects let workflows mint at first-run, in which case skip this).
 
-5. **For each connection group**, run a heartbeat — `deriva_ml_list_datasets` is fast and proves the catalog answers.
+5. **For each connection group**, run a heartbeat — read `deriva://catalog/{hostname}/{catalog_id}/ml/datasets` (resource form, one round trip) or call `deriva_ml_list_datasets(...)` if you need filters. Either proves the catalog answers.
 
 6. **Aggregate the per-tool reports** into one summary the user reviews. For each entry, surface:
    - File + line where the entry lives
