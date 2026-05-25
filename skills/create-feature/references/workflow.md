@@ -29,13 +29,12 @@ Before creating a new feature, review what already exists.
 
 If your feature needs a new set of terms, create the vocabulary first.
 
-**Prefer `deriva_ml_create_vocabulary` over the generic `create_vocabulary`** on any catalog with the deriva-ml schema installed (the typical case for this skill). The ML-aware tool delegates to `DerivaML.create_vocabulary`, which scopes the curie prefix to the deriva-ml project name (so terms get stable `{project}:{RID}` identifiers), defaults to the domain schema, and refreshes the catalog navbar so the new vocab is visible in Chaise immediately. Both tools produce physically-identical tables, so the existing `add_term` (from deriva-mcp-core) works against either.
+Use `deriva_ml_create_vocabulary` to create the vocab table, then `add_term` for each term. See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (curie prefix, default schema, navbar refresh) and when to fall back to the generic `create_vocabulary`.
 
 In brief:
 1. Call `deriva_ml_create_vocabulary(hostname="data.example.org", catalog_id="1", vocab_name="<vocab_name>", comment=...)`.
    - Optional: `schema=...` (defaults to the deriva-ml domain schema), `update_navbar=False` to skip the navbar refresh during batch creation.
-   - On non-deriva-ml catalogs, fall back to the generic `create_vocabulary(hostname, catalog_id, schema, vocabulary_name, comment)` from deriva-mcp-core. See `/deriva:manage-vocabulary` *(deriva-skills)* for that surface.
-2. Call `add_term(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>", name=..., description=..., synonyms=[...])` for each term. `add_term` lives in deriva-mcp-core; there is no ML-specific variant.
+2. Call `add_term(hostname="data.example.org", catalog_id="1", schema="<schema>", table="<vocab_name>", name=..., description=..., synonyms=[...])` for each term. (`add_term` lives in deriva-mcp-core; there is no ML-specific variant.)
 
 **Always provide meaningful descriptions for terms.** They appear in the UI and help annotators understand what each label means.
 
@@ -192,7 +191,7 @@ End-to-end MCP workflow: create a vocabulary, create a feature, and add values.
 
 **Step 1:** Create the vocabulary.
 
-Call `deriva_ml_create_vocabulary(hostname="data.example.org", catalog_id="1", vocab_name="Cell_Type", comment="Cell type classifications for microscopy images")`. The vocab lands in the deriva-ml domain schema, terms carry `{project}:{RID}` curie identifiers, and the navbar refreshes automatically.
+Call `deriva_ml_create_vocabulary(hostname="data.example.org", catalog_id="1", vocab_name="Cell_Type", comment="Cell type classifications for microscopy images")`. (Effects per `deriva-ml-context` → "Creating a new vocabulary": lands in the deriva-ml domain schema, terms carry `{project}:{RID}` curies, navbar refreshes.)
 
 Then call `add_term` for each term (from deriva-mcp-core — no ML-specific variant):
 - `add_term(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Cell_Type", name="Epithelial", description="Epithelial cells lining surfaces and cavities")`

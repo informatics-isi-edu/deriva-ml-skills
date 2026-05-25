@@ -126,7 +126,7 @@ add_term(hostname="data.example.org", catalog_id="1",
 
 When you create a new asset table by hand (see [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)), remember to also add the table name as a term in `Asset_Type`.
 
-> **Creating a separate vocabulary (not just adding a term)?** If your asset table needs a brand-new domain vocabulary as one of its columns (e.g., `Stain_Type` for histology images), use `deriva_ml_create_vocabulary(...)` to create the vocabulary table first, then `add_term` to populate it. The ML-aware creation tool applies the project curie prefix and refreshes the navbar. See `deriva-ml-context` → "Creating a new vocabulary" for the steering rationale.
+> **Creating a separate vocabulary (not just adding a term)?** If your asset table needs a brand-new domain vocabulary as one of its columns (e.g., `Stain_Type` for histology images), use `deriva_ml_create_vocabulary(...)` to create the vocabulary table first, then `add_term` to populate it. See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (curie prefix, default schema, navbar refresh) and the canonical call shape.
 
 ## Object Storage
 
