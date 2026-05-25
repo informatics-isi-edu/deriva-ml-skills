@@ -219,6 +219,29 @@ print(summary)
 
 `pending_summary()` returns a per-table breakdown: how many rows are staged, how many uploaded, how many failed, plus the failure messages for the failed ones. This is the authoritative read of "what's salvageable."
 
+#### Bulk discovery: find every stale execution on this machine
+
+When you're triaging "what runs from the last week didn't finish?" rather than one named RID, use the workspace-level finder:
+
+```python
+ml = DerivaML(hostname=..., catalog_id=...)
+incomplete = ml.find_incomplete_executions()
+# Returns ExecutionSnapshot rows for any execution whose local working
+# directory still has staged work (Stopped / Pending_Upload / orphaned Running)
+for snap in incomplete:
+    print(snap.execution_rid, snap.status, snap.working_dir)
+```
+
+To **commit every salvageable run in one pass** (instead of running `salvage_execution.py` N times), call the workspace-level commit:
+
+```python
+report = ml.commit_pending_executions(execution_rids=None, clean_folder=False)
+# Pass execution_rids=[...] to scope to a subset; omit (or None) to commit all
+# UploadReport: total_uploaded, total_failed, per_table, errors
+```
+
+`commit_pending_executions` is the same idempotent commit-pipeline as `commit_output_assets()`, applied across every locally-staged execution. Use it after a long break to clean up accumulated staged work, or after a batch job to flush several runs in one round trip.
+
 ### Step 2: Decide — salvage, recovery, or both?
 
 Three branches, depending on whether the staged work is salvageable and whether you need follow-on work.
