@@ -11,6 +11,8 @@ For background on the execution hierarchy, statuses, workflows, nested execution
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
 
+> **Cold-start orientation.** If this is the first DerivaML MCP call in the conversation, fetch the static orientation resources `deriva://deriva-ml/getting-started` (pagination contract, error envelopes, `(hostname, catalog_id)` conventions) and `deriva://deriva-ml/concepts` (the five abstractions: Dataset, Workflow, Execution, Feature, Asset) before reaching for `deriva_ml_*` tools. One round trip each. See `/deriva-ml:using-deriva-mcp` for the full discipline.
+
 ## Git Commit Enforcement
 
 DerivaML enforces that all code is committed before running catalog-mutating operations. If uncommitted changes are detected, `deriva-ml-run` and `deriva-ml-run-notebook` raise `DerivaMLDirtyWorkflowError` and refuse to proceed.
@@ -24,8 +26,8 @@ DerivaML enforces that all code is committed before running catalog-mutating ope
 Before running an experiment, validate that everything is in place. **Stop and fix any issues.** The full pre-flight walkthrough (Hydra `--info` / `--cfg job` invocations, per-RID validation calls, staging script patterns) lives in `references/workflow.md`; this section names what to validate.
 
 1. **Resolve the configuration.** For CLI runs, dump the resolved config with `uv run deriva-ml-run +experiment=<name> --info` (or `--cfg job` for the full YAML). Extract dataset RIDs, asset RIDs, and versions from the resolved `datasets` and `assets` groups. For MCP-tool / Python-API runs, collect the RIDs from the call site.
-2. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
-3. **Check data readiness with `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`.** Returns size info AND cache status:
+2. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for pinned dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
+3. **Check data readiness.** For the dataset's **current** version, the lead path is the bag-preview resource `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` (one round trip, no parameters). For a **pinned version** or to **exclude tables**, use the tool: `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`. Both return size info AND cache status:
 
    | Status | Meaning |
    |---|---|

@@ -9,6 +9,8 @@ A DerivaML experiment isn't a one-shot script run — it's a cycle. You identify
 
 This skill names the arc and walks you through it. The mechanics of each phase live in specialist skills (this skill routes to them); what *this* skill carries is the design step (phase 1, the gap with no other home), the cross-step disciplines that prevent waste (the dry-run → small-data → full-data progression; inter-phase gates), and the documentation loop (`maintain-experiment-notes` auto-fires anyway, but the lifecycle calls out where it should hit).
 
+> **Cold-start orientation.** Before the first DerivaML MCP call in the conversation, fetch `deriva://deriva-ml/getting-started` (pagination contract, error envelopes, `(hostname, catalog_id)` conventions) and `deriva://deriva-ml/concepts` (the five abstractions). One round trip each, both cached for the rest of the session. See `/deriva-ml:using-deriva-mcp` for the full cold-start discipline.
+
 ## The seven phases
 
 ```
@@ -93,6 +95,8 @@ Compare this cycle's results against the hypothesis from phase 1. Two paths depe
 
 - **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `experiment-decisions.md` (auto-fired by `maintain-experiment-notes`).
 - **Multi-run comparison** — comparing this cycle to previous cycles or to a sweep. Hand off to `/deriva-ml:compare-model-runs` for the ranking/aggregation logic.
+
+> **Surfacing prior runs of the same kind:** `deriva_ml_list_executions(workflow_type="Training", sort=True)` returns every training execution across every workflow in newest-first order — one call instead of "enumerate workflows of that type, then page each one's executions". Pair with `status="Uploaded"` if you only want successful runs. The same `workflow_type=` filter works for `Inference`, `Evaluation`, `Annotation`, etc. — anything in your `Workflow_Type` vocab.
 
 What this phase adds to the catalog: typically nothing — evaluation reads existing artifacts. The new content goes into `experiment-decisions.md` (your notebook of results-and-interpretations).
 

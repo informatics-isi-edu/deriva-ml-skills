@@ -141,6 +141,21 @@ The inheritance rule still applies: even though you are using the generic `add_t
 
 For all *other* vocabularies (your own domain vocabs like `Sample_Type`, `Tissue_Type`, `Image_Quality`), use the same generic `add_term` documented in `/deriva:manage-vocabulary` — pass your domain schema name instead of `"deriva-ml"`.
 
+### Creating a new vocabulary: prefer `deriva_ml_create_vocabulary`
+
+When you need to **create** a brand-new vocabulary table on a deriva-ml-loaded catalog, prefer the ML-aware `deriva_ml_create_vocabulary` over the generic `create_vocabulary` from deriva-mcp-core. Both produce a table of the same physical shape, but the ML version automatically:
+
+- scopes the curie prefix to the deriva-ml project name (so terms get stable `{project}:{RID}` identifiers that survive catalog clones),
+- defaults to the domain schema (so the new vocab lands next to your other domain entities, not in `public`),
+- refreshes the catalog navbar so the new vocab is visible in Chaise immediately.
+
+```
+deriva_ml_create_vocabulary(hostname=..., catalog_id=...,
+    vocab_name="Tumor_Grade", comment="Histological tumor grading scale")
+```
+
+Then call `add_term` (from deriva-mcp-core — no ML-specific variant) for each term. The generic `create_vocabulary` remains the right call on **non-deriva-ml catalogs**; reach for it via `/deriva:manage-vocabulary` *(deriva-skills)*.
+
 ## The entity resolution workflow
 
 This applies to **any catalog entity** referenced by name — tables, columns, schemas, vocabulary terms, datasets, workflows, executions, features, assets, or anything else the catalog tracks. ML-domain or generic, the workflow is the same.
