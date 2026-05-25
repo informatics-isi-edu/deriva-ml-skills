@@ -93,7 +93,7 @@ The two plugins are designed to be used together. As a rough guide:
 - Schema and table operations
 - Generic vocabulary CRUD (e.g., your project's `Sample_Type` or `Tissue_Type`)
 - Querying / browsing catalog data
-- Chaise display annotations — both the interactive MCP-tool path (`/deriva:customize-display`) and the type-safe Python builder path (`/deriva:use-annotation-builders`)
+- Chaise display annotations — interactive MCP-tool path (`/deriva:customize-display`). The type-safe Python builder path (`/deriva-ml:use-annotation-builders`) lives in this plugin because it requires the `deriva-ml` Python package.
 - Generic catalog troubleshooting (auth, RIDs, missing records)
 - Loading row data and uploading assets via `deriva-upload-cli`
 
