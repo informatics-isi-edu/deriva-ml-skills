@@ -53,7 +53,7 @@ deriva_ml_get_execution(
 )
 ```
 
-The response includes the execution's metadata files (typically in a `metadata` or `outputs` field). Filter for `asset_type == "Metrics_File"`:
+The response includes the execution's metadata files (typically in a `metadata` or `outputs` field). Filter for `"Metrics_File" in asset_types` — membership, not equality, because DerivaML auto-adds `Output_File` to every uploaded asset's `asset_types` list (see `work-with-assets` → "Asset_Type auto-tags" for the full contract):
 
 ```python
 import json

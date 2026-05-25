@@ -1,12 +1,12 @@
 ---
 name: browse-erd
-description: "Use to launch an interactive ERD (Entity-Relationship Diagram) browser for the currently connected Deriva catalog. Requires an active catalog connection."
+description: "Use to launch an interactive ERD (Entity-Relationship Diagram) browser for a Deriva catalog. Takes hostname and catalog_id like every other catalog operation in the plugin."
 disable-model-invocation: true
 ---
 
 # Interactive ERD Browser
 
-Launch the Schema Workbench — an interactive visual ERD for the connected catalog.
+Launch the Schema Workbench — an interactive visual ERD for a Deriva catalog. Pass the catalog's hostname and ID via the `--backend` and `#catalog=` URL params shown below.
 
 ## Prerequisites
 
@@ -16,9 +16,9 @@ Launch the Schema Workbench — an interactive visual ERD for the connected cata
 
 ## Steps
 
-### 1. Confirm catalog connection
+### 1. Confirm the catalog is reachable
 
-Read `deriva://catalog/connections` to verify you're connected. Note the hostname and catalog ID.
+Pick the hostname and catalog ID for the catalog you want to browse. If the user hasn't named one, look in `experiment-decisions.md`, `src/configs/deriva.py`, or `CLAUDE.md` — those typically record the working catalog. To confirm the catalog responds, do any quick read against it (e.g., `deriva_ml_list_datasets(hostname=..., catalog_id=..., limit=1)`).
 
 ### 2. Launch the app server
 

@@ -173,7 +173,7 @@ deriva_ml_get_execution(
 )
 ```
 
-The response includes the execution's metadata + output assets. Look for entries where `asset_type == "Metrics_File"`. Capture the asset RID for each execution.
+The response includes the execution's metadata + output assets. Look for entries where `"Metrics_File" in asset_types` (membership, not equality — DerivaML auto-adds `Output_File` to the list when assets are uploaded via `commit_output_assets()`, so an equality check would silently miss every match; see `work-with-assets` → "Asset_Type auto-tags"). Capture the asset RID for each execution.
 
 You can also use the `deriva://catalog/{h}/{c}/ml/execution/{rid}` resource — same data, no pagination cost.
 

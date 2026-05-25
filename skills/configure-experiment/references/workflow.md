@@ -163,7 +163,7 @@ uv run deriva-ml-run +experiment=my_experiment dry_run=True
 
 ## Running Experiments
 
-See the `run-experiment` skill for the full pre-flight checklist, CLI commands, and troubleshooting. Quick reference:
+See the `execution-lifecycle` skill for the full pre-flight checklist, CLI commands, and troubleshooting. Quick reference:
 
 ```bash
 uv run deriva-ml-run +experiment=baseline              # Single experiment

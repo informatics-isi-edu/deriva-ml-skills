@@ -251,4 +251,4 @@ To free disk space, use Bash `rm -rf ~/.deriva-ml/...` with specific RIDs:
 ## Related Skills
 
 - **`write-hydra-config`** — Exact Python API patterns for each config type
-- **`run-experiment`** — Pre-flight checklist and CLI commands for running
+- **`execution-lifecycle`** — Pre-flight checklist and CLI commands for running
