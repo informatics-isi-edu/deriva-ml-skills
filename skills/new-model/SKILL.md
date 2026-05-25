@@ -205,7 +205,7 @@ uv run bump-version minor   # New model = new feature = minor bump
 
 The version bump creates a git tag, giving production runs a clean version reference. Use `minor` for a new model; use `patch` if you're fixing an existing model.
 
-**Now run for real** — see the `run-experiment` skill for the pre-flight checklist. The key point: production runs (without `dry_run=true`) should only happen on `main` after the merge and version bump, so the recorded commit hash and version tag are meaningful.
+**Now run for real** — see the `execution-lifecycle` skill for the pre-flight checklist. The key point: production runs (without `dry_run=true`) should only happen on `main` after the merge and version bump, so the recorded commit hash and version tag are meaningful.
 
 ## Related Skills
 
