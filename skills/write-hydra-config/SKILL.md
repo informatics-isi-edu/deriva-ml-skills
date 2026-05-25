@@ -161,13 +161,64 @@ General principles — descriptions should be specific, quantified, purposeful, 
 | `description` | `str` | `""` | Human-readable description of this dataset spec |
 | `exclude_tables` | `list[str] \| None` | `None` | Table names to exclude from FK path traversal during bag export |
 | `timeout` | `list[int] \| None` | `None` | `[connect_timeout, read_timeout]` in seconds. Default `[10, 610]` |
+| `fetch_concurrency` | `int` | `8` | Parallelism for bag fetch. Lower if the catalog is rate-limiting; raise for fast networks |
 
 ### `AssetSpecConfig` (from `deriva_ml.asset.aux_classes`)
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `rid` | `str` | *(required)* | Asset RID |
+| `asset_role` | `Literal['Input', 'Output']` | `'Input'` | Whether this entry pins an asset the experiment will **consume** (default — pretrained weights, reference images) or one it will **produce** (when the same `assets.py` is also referenced by a downstream experiment as a hand-off). Most config entries are `'Input'` |
 | `cache` | `bool` | `False` | Cache asset locally by MD5. Use for large immutable files (model weights) |
+
+## Wiring fresh RIDs into config files
+
+Three skills produce new RIDs the user may want to consume downstream:
+
+| Source skill | What it produces | When to offer |
+|---|---|---|
+| [`dataset-lifecycle`](../dataset-lifecycle/SKILL.md) | New dataset RIDs + released versions (create, split, release, curated subset) | The skill prompts the offer; this skill owns the *shape* |
+| [`work-with-assets`](../work-with-assets/SKILL.md) | Single asset RID (asset-table creation, ad-hoc upload, role-tagged registration — one at a time) | Same |
+| [`execution-lifecycle`](../execution-lifecycle/SKILL.md) | Bulk output assets from a completed run (N at once, all linked to one execution) | Same |
+
+When any of those skills surfaces a new RID, the user-facing offer comes from there. The **format of the resulting config entry** lives here — read this section for the field reference, the canonical line generator, the file structure, and the commit conventions.
+
+### Generating the canonical entry line
+
+The Python-API generators below produce the exact string to paste into the config file. They handle PEP-440-correct version formatting (released, no dev labels) and ensure every required field is set.
+
+| Entry kind | Generator | Why prefer it over hand-typing |
+|---|---|---|
+| `DatasetSpecConfig` | `deriva_ml_get_dataset_spec(hostname=..., catalog_id=..., dataset_rid=..., version=...)` | Only call that guarantees the version segment is PEP-440 released-only (no `.devN` suffix would silently slip past pin-the-version reproducibility) |
+| `AssetSpecConfig` | Read the asset details first via `deriva://catalog/{h}/{c}/ml/asset/{rid}` or `deriva_ml_lookup_asset(...)`, then write `AssetSpecConfig(rid="<rid>", cache=<True\|False>, asset_role="<Input\|Output>")`. Choose `cache=True` for large immutable files (model weights, reference images); leave default for small files that may evolve. Choose `asset_role` per the table above |
+
+### File structure conventions
+
+- Wrap the new entry under the existing `datasets_store(...)` or `assets_store(...)` registration in the matching file (`src/configs/datasets.py` or `src/configs/assets.py`). Mirror the surrounding entries' shape.
+- Use `with_description(items, "...")` to attach a human-readable description if the file's other entries do.
+- Default configs (the one Hydra picks when no override is given) should use plain lists — `with_description` interferes with merge composition.
+
+### Commit conventions
+
+The git hash in execution records must match the config state at run time, so config edits commit on their own — never bundled with unrelated changes:
+
+| Source skill | Suggested commit message |
+|---|---|
+| `dataset-lifecycle` (single new dataset / split children) | `chore(configs): add <name> dataset RIDs from <date> run` |
+| `dataset-lifecycle` (version bump after release) | `chore(configs): bump <name> to <new_version>` |
+| `work-with-assets` (single new asset RID) | `chore(configs): add <name> asset (RID <rid>)` |
+| `execution-lifecycle` (bulk outputs from a completed run) | `chore(configs): add outputs from execution <rid>` |
+
+The execution or release RID in the message is the cross-reference back to provenance — a reader scanning `git log src/configs/` can trace each entry back to the action that produced it.
+
+### Decision hand-back
+
+The offer is *one prompt*. If the user declines, **acknowledge plainly** so future invocations in the same session don't re-offer the same RIDs. The config file isn't a side effect — the user has owned the decision. If they later change their mind, they'll ask again.
+
+### After the entry is committed
+
+- For *wiring* the new dataset / asset into a downstream experiment config (`input_assets=[...]`, `datasets=[...]`), see [`configure-experiment`](../configure-experiment/SKILL.md).
+- For *validating* the new entry against the catalog before running, use `deriva_ml_validate_config_file(hostname=..., catalog_id=..., file_contents=<file>)` — see "Validating Configs Against the Catalog" below.
 
 ## MCP Reference Resources
 

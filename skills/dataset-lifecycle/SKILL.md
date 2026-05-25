@@ -71,26 +71,15 @@ Create explicit split datasets (Training, Validation, Testing) and store them as
 
 ### Proactively offer to update `src/configs/datasets.py`
 
-Whenever this skill produces a RID + version the user may want to consume downstream — after creating a dataset, after running a split (one or more children), after promoting a dev row to a release, after a curated-subset generation — **offer to write the result into `src/configs/datasets.py`** as a `DatasetSpecConfig(rid=..., version=...)` entry. Don't wait for the user to ask.
+Whenever this skill produces a RID + version the user may want to consume downstream — after creating a dataset, after running a split (one or more children), after promoting a dev row to a release, after a curated-subset generation — **offer to write the result into `src/configs/datasets.py`** as a `DatasetSpecConfig` entry. Don't wait for the user to ask.
 
-The offer is one prompt, in line with the "user decides per finding" decision-rights pattern. Sample wording:
+Sample wording:
 
 > *"The new split produced Training RID `2-TRN1` @ `0.1.0`, Testing RID `2-TST1` @ `0.1.0`. Want me to add them to `src/configs/datasets.py`?"*
 
-If they say yes:
+If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs into config files"** — that section carries the canonical entry-line generator (`deriva_ml_get_dataset_spec(...)`), the file-structure conventions, and the commit message template (`chore(configs): add <name> dataset RIDs from <date> run`).
 
-- Use `deriva_ml_get_dataset_spec(hostname, catalog_id, dataset_rid, version)` to produce the canonical `DatasetSpecConfig(...)` string for each RID — it's the only call that's guaranteed to format the version segment correctly (PEP 440 release-only, no dev labels).
-- Wrap the new entry under the existing `datasets_store(...)` registration in the file. Mirror the surrounding entries' shape (description string via `with_description(...)` if the file uses it).
-- Commit the change with a message like `chore(configs): add labeled-split dataset RIDs from <date> run` — committed config + committed code is what reproducibility depends on.
-
-If they say no, **say so plainly** so future invocations know not to re-offer the same RIDs in the same session (the config file isn't a side effect of the skill — the user has owned the decision).
-
-Hand-offs:
-
-- For the *format* of `DatasetSpecConfig` entries, the `datasets` config group structure, or registering per-environment overrides, see `/deriva-ml:write-hydra-config` *(auto-loaded when editing configs)*.
-- For *wiring* the new dataset into an experiment config, see `/deriva-ml:configure-experiment`.
-
-The two related skills carry the broader config-file mechanics; **this skill owns the offer** because this skill is what produced the RID in the first place.
+**This skill owns the offer** (because this skill produced the RID); `write-hydra-config` owns the shape.
 
 ## Phase 4: Version
 

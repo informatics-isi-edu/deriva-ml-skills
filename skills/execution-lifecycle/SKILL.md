@@ -99,12 +99,7 @@ Or read the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid
 
 A completed execution typically produces one or more **output assets** (model weights, prediction CSVs, ROC plots, etc.) that downstream experiments will consume. The execution's `deriva_ml_get_execution` response lists them with their fresh RIDs. **Offer to wire those RIDs into `src/configs/assets.py`** so the next experiment in the pipeline can pin them. Don't wait for the user to ask.
 
-The scope is distinct from `work-with-assets`'s offer:
-
-| Scope | When the offer fires | Who owns |
-|---|---|---|
-| Bulk output of a completed run (N assets at once) | `exe.commit_output_assets()` returns an `UploadReport`; `deriva_ml_get_execution` lists the new asset RIDs | `execution-lifecycle` (this skill) |
-| Single-asset creation / registration / upload (one at a time, intentional) | a single new asset RID becomes visible | `work-with-assets` |
+This skill's scope is **bulk output from a completed run** (N assets at once, all linked to one execution). The parallel offer for single-asset creation / registration / upload (one at a time, intentional) lives in `/deriva-ml:work-with-assets`; the two are disjoint.
 
 Sample wording (multi-asset case is the common one for executions):
 
@@ -114,14 +109,11 @@ Sample wording (multi-asset case is the common one for executions):
 > *- `3-PNG1` — confusion_matrix.png*
 > *Want me to add them to `src/configs/assets.py`? I can group them as a single config entry (e.g., `cifar10_quick_outputs`) or as separate entries — your call."*
 
-If they say yes:
+The grouping decision is the user's call — for a single training run that produces weights + predictions + a plot, a single config entry referencing all three is idiomatic; for an unrelated set of uploads, separate entries make more sense.
 
-- Use `deriva_ml_get_execution(...)` (or its resource form) to confirm the assets are committed and to read each asset's metadata (file name, MD5, size) before writing the config entry.
-- Group decision is the user's call — for a single training run that produces weights + predictions + a plot, a single config entry referencing all three is idiomatic. For an unrelated set of uploads, separate entries make more sense.
-- The `AssetSpecConfig` shape lives in `deriva_ml.asset.aux_classes`; see `/deriva-ml:write-hydra-config` for the field reference.
-- Commit as `chore(configs): add outputs from execution <rid>` — the execution RID in the commit message is the cross-reference back to provenance.
+If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs into config files"** — that section carries the `AssetSpecConfig` field reference (including `asset_role='Output'` for assets produced by an execution), the file-structure conventions, and the commit-message template (`chore(configs): add outputs from execution <rid>` — the execution RID is the cross-reference back to provenance). Use `deriva_ml_get_execution(...)` (or its resource form) to read each asset's metadata before writing the entry.
 
-If they say no, **say so plainly** so future invocations in the same session don't re-offer the same RIDs. The config file isn't a side effect — the user has owned the decision.
+**This skill owns the bulk-output offer**; `write-hydra-config` owns the shape.
 
 Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/deriva-ml:configure-experiment` for wiring the assets into a downstream experiment config.
 
