@@ -11,8 +11,6 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 
 **Check project context first.** Before running any commands, look for catalog references in the project: `experiment-decisions.md` records which catalog/hostname previous operations used; `src/configs/deriva.py` carries hydra-zen connection configs; `CLAUDE.md` may specify the working catalog. Use the catalog the project is actively working with, NOT the original source catalog (e.g., the clone on dev.facebase.org, not the source on www.facebase.org). If you don't know the catalog ID, read `deriva://registry/{hostname}` to see available catalogs and aliases.
 
-> **Cold-start orientation.** If this is the first DerivaML MCP call in the conversation, fetch the static orientation resources `deriva://deriva-ml/getting-started` (pagination contract, error envelopes, `(hostname, catalog_id)` conventions) and `deriva://deriva-ml/concepts` (the five abstractions and the inheritance rule) before reaching for `deriva_ml_*` tools. They take one round trip each and prevent half a dozen "what does this error envelope mean" round-trips later. See `/deriva-ml:using-deriva-mcp` for the full cold-start discipline.
-
 ## Phase 1: Assess
 
 Before creating a dataset, determine whether an existing one can be reused, extended, or split. The find-before-you-create discipline is carried by `/deriva:semantic-awareness` *(deriva-skills, auto-fires)* — its synonym/abbreviation/spelling-variant search expansion applies to ML entities (Datasets) as well as generic catalog entities. The same skill covers the EAV-vs-wide-table dual extreme, which is worth knowing when designing the *element-type* tables a dataset will draw members from.

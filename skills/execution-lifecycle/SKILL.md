@@ -11,8 +11,6 @@ For background on the execution hierarchy, statuses, workflows, nested execution
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
 
-> **Cold-start orientation.** If this is the first DerivaML MCP call in the conversation, fetch the static orientation resources `deriva://deriva-ml/getting-started` (pagination contract, error envelopes, `(hostname, catalog_id)` conventions) and `deriva://deriva-ml/concepts` (the five abstractions: Dataset, Workflow, Execution, Feature, Asset) before reaching for `deriva_ml_*` tools. One round trip each. See `/deriva-ml:using-deriva-mcp` for the full discipline.
-
 ## Git Commit Enforcement
 
 DerivaML enforces that all code is committed before running catalog-mutating operations. If uncommitted changes are detected, `deriva-ml-run` and `deriva-ml-run-notebook` raise `DerivaMLDirtyWorkflowError` and refuse to proceed.

@@ -11,8 +11,6 @@ This skill names the arc and walks you through it. The mechanics of each phase l
 
 > **This skill assumes the pipeline already exists and works.** If you're standing up a new pipeline from scratch — schema design, first dev dataset, first dry run, first small-data run, first production run — that's cycle-zero work and belongs in `/deriva-ml:model-development-workflow`. Come back here for cycle 2 onward, once "does the plumbing run" has been answered and the next question is "what would teach us something we don't already know?"
 
-> **Cold-start orientation.** Before the first DerivaML MCP call in the conversation, fetch `deriva://deriva-ml/getting-started` (pagination contract, error envelopes, `(hostname, catalog_id)` conventions) and `deriva://deriva-ml/concepts` (the five abstractions). One round trip each, both cached for the rest of the session. See `/deriva-ml:using-deriva-mcp` for the full cold-start discipline.
-
 ## The seven phases
 
 ```
