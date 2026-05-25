@@ -201,6 +201,27 @@ This bidirectional tracking means you can answer two key questions:
 
 Provenance is recorded automatically: committing via Python API `exe.commit_output_assets()` records "Output" links, and downloading via Python API `ml.download_asset(rid)` within an execution records "Input" links.
 
+### Asset_Type auto-tags (directional)
+
+In addition to the `Asset_Role` column above, DerivaML auto-adds a **directional tag to the asset's `Asset_Type` list** every time an asset crosses the execution boundary:
+
+- **`Input_File`** — added when an asset is consumed inside an execution (via `exe.download_asset()` or `exe.download_dataset_bag()`).
+- **`Output_File`** — added when an asset is produced and uploaded via `exe.commit_output_assets()`.
+
+Both tags are managed by DerivaML — **callers must not supply them** to `exe.asset_file_path(asset_types=[...])`. The same asset can carry both tags over its lifetime (e.g., a model checkpoint that one execution outputs and a later execution consumes will end up with both `Input_File` and `Output_File`).
+
+**Consequence for filtering:** when you read `asset.asset_types` (or filter on it), the list **always** includes the directional tag in addition to your domain types. A query like "give me every `Model_Weights` asset" should not assume the list is exactly `["Model_Weights"]` — it will typically be `["Model_Weights", "Output_File"]` for any model the catalog produced through an execution. Use `in` membership checks, not equality:
+
+```python
+# WRONG — will silently miss every execution-produced asset
+matches = [a for a in assets if a.asset_types == ["Model_Weights"]]
+
+# RIGHT — robust to the auto-added directional tag
+matches = [a for a in assets if "Model_Weights" in a.asset_types]
+```
+
+The same rule applies on the MCP side: filters and post-processing of `asset_types` lists returned by `deriva_ml_lookup_asset`, `deriva_ml_list_assets`, `deriva_ml_find_assets`, and the `deriva://catalog/.../ml/asset/{rid}` resource must use membership semantics, not equality.
+
 ## Creating an Asset Table (Manual Recipe)
 
 > **Known gap:** there is no dedicated `create_asset_table` tool. To create a new asset table, use the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK. The recipe is mechanical but multi-step.

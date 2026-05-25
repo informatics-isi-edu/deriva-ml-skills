@@ -64,6 +64,8 @@ The context manager handles status transitions on success or exception — there
 1. **Create a new term in the Asset_Type vocabulary:** `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`.
 2. **Tag / untag an asset with a type:** `update_entities(hostname, catalog_id, schema, table, entities=[{"RID": asset_rid, "Asset_Type": <term>}])` to set the value, or pass `null` to clear it. See `references/workflow.md` for the full recipe.
 
+> **DerivaML auto-tags every execution-crossing asset.** When an asset is uploaded via `exe.commit_output_assets()` it gets the `Output_File` tag added to its `asset_types` list; when consumed via `exe.download_asset()` it gets `Input_File`. **Do not pass these tags yourself** to `exe.asset_file_path(asset_types=[...])` — DerivaML adds them. **Filters that use equality on `asset_types` will silently miss matches** because the directional tag is always present. Use `in` membership: `"Model_Weights" in asset.asset_types`, not `asset.asset_types == ["Model_Weights"]`. Full contract in `references/concepts.md` → "Asset_Type auto-tags (directional)".
+
 For the full step-by-step guide with MCP tool parameters and Python API examples, see `references/workflow.md`.
 
 ### Proactively offer to update `src/configs/assets.py`

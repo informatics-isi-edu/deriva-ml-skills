@@ -127,33 +127,74 @@ Returns a preview of matching entries without deleting anything. A single RID ma
 3. Bash: `du -sh ~/.deriva-ml/cache/*` — check sizes
 4. Bash: `rm -rf ~/.deriva-ml/cache/...` — delete
 
+### Bulk garbage-collect old executions
+
+For executions that already uploaded successfully (status `Uploaded`), the right cleanup call is `gc_executions` — it scopes by status and age, and optionally removes the working directory in the same pass:
+
+```python
+from datetime import timedelta
+from deriva_ml.execution.state_store import ExecutionStatus
+
+ml = DerivaML(hostname=..., catalog_id=...)
+
+# Drop the SQLite registry rows + working dirs for every Uploaded
+# execution older than 30 days. The catalog rows are untouched —
+# only the local workspace is cleaned.
+n = ml.gc_executions(
+    status=ExecutionStatus.Uploaded,
+    older_than=timedelta(days=30),
+    delete_working_dir=True,
+)
+print(f"cleaned {n} old executions")
+```
+
+By default `gc_executions` only removes the registry (SQLite) rows. Pass `delete_working_dir=True` to also `rm -rf` the on-disk execution root. **Always pair with `status=ExecutionStatus.Uploaded`** unless you have a specific reason to also remove `Stopped` / `Pending_Upload` directories (their staged outputs would be unrecoverable). The call never touches the catalog — executions that uploaded stay in the catalog regardless of local gc.
+
 ## Phase 2b: Find and Resume Incomplete Executions
 
 Execution working directories may contain outputs that were never uploaded — from interrupted runs, crashes, or forgotten `exe.commit_output_assets()` (Python API) calls. These are the **only** local data that can't be re-downloaded from the catalog.
 
 ### Find incomplete executions
 
-```
-# Bash: ls -la ~/.deriva-ml/<host>/<catalog>/execution_*
+The Python-API workspace finder is the lead path — it walks the execution directories AND consults the catalog to identify what's salvageable in one call:
+
+```python
+ml = DerivaML(hostname=..., catalog_id=...)
+incomplete = ml.find_incomplete_executions()
+for snap in incomplete:
+    print(snap.execution_rid, snap.status, snap.working_dir)
 ```
 
-Look for execution directories that:
-- Have files in them (non-empty) but the execution status is not `completed`
-- Were created recently but never uploaded
+Each returned `ExecutionSnapshot` carries the RID, status (`Stopped`, `Pending_Upload`, orphaned `Running`), and local working directory path. No more guessing whether a directory's contents have been uploaded yet.
+
+The bash equivalent (`ls -la ~/.deriva-ml/<host>/<catalog>/execution_*`) is still useful as a quick visual scan, but it doesn't tell you which directories represent staged-but-uncommitted work versus already-uploaded work.
 
 ### Check execution status in the catalog
 
-For each execution directory found, check its catalog status:
+For a specific execution from the list (or one whose RID came from elsewhere):
 
 ```
 deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
 ```
 
-If status is `running` or `pending` (not `completed`), the outputs may not have been uploaded.
+A status of `Stopped` or `Pending_Upload` means there's local staged work that has not made it to the catalog.
 
 ### Resume and upload
 
-> **Resuming an aborted execution:** inspect the aborted execution's state via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")` or use `ml.resume_execution(rid)` in Python to re-hydrate the staged work. To commit the staged outputs from an aborted run, call `commit_output_assets()` on the resumed execution. For broader salvage flows (Stopped, Failed, crash recovery), see `skills/execution-lifecycle/scripts/salvage_execution.py` and `crash_recovery.py`. For brand-new work, copy `basic_execution.py` and run it; the relationship to the prior run lives in `experiment-decisions.md`, not in the catalog automatically.
+**For one execution:** inspect via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")` or use `ml.resume_execution(rid)` in Python to re-hydrate the staged work, then call `commit_output_assets()` on the resumed execution. For broader salvage flows (Stopped, Failed, crash recovery), see `skills/execution-lifecycle/scripts/salvage_execution.py` and `crash_recovery.py`.
+
+**For every salvageable execution at once** (after a long break, after a batch run, or as periodic cleanup):
+
+```python
+report = ml.commit_pending_executions(execution_rids=None, clean_folder=False)
+# Omit execution_rids to commit all; pass a list to scope to a subset.
+# clean_folder=True wipes each working dir after a successful commit.
+# Returns an UploadReport (total_uploaded, total_failed, per_table, errors).
+```
+
+`commit_pending_executions` is idempotent under the same `match_by_columns` dedup as `commit_output_assets()`, so re-running it after a partial failure picks up the failed rows and leaves already-uploaded ones alone. This is the right call when several runs accumulated staged work over a session.
+
+For brand-new work (not resuming), copy `basic_execution.py` and run it; the relationship to the prior run lives in `experiment-decisions.md`, not in the catalog automatically.
 
 ### After successful upload, clean up
 
