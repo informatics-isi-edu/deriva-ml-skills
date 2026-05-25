@@ -1,15 +1,17 @@
 ---
 name: model-development-workflow
-description: "ALWAYS use this skill when starting a new ML project, onboarding to an existing one, or asking about the recommended development workflow for DerivaML. Covers the end-to-end progression from schema design through production training: design schema → create small representative dataset → validate features → dry run → small-data run → full-scale production run. Teaches the three-tier development pattern (dry_run → small dataset → full dataset) that prevents wasting compute on broken configs. Triggers on: 'new ML project', 'getting started', 'development workflow', 'how should I develop', 'start small', 'representative dataset', 'development subset', 'dry run first', 'debug my training', 'iterate faster', 'what order should I do things', 'onboard to project', 'ML workflow', 'best practices for training'."
+description: "Use when STANDING UP a new ML pipeline or onboarding to one for the first time — the cycle-zero work that has to happen before any hypothesis-driven experiment can start. Covers the end-to-end bootstrap: schema design → create small representative dataset → validate features → dry run → small-data run → first full-scale production run. Teaches the three-tier pattern (dry_run → small dataset → full dataset) that catches config and pipeline bugs before they cost full-scale compute. The skill's job ends when the pipeline produces real results; from there, hypothesis-driven iteration belongs in `/deriva-ml:experiment-lifecycle`. Triggers on: 'new ML project', 'set up a new pipeline', 'first model', 'onboard to existing project', 'standing up training', 'how should I get started', 'start small', 'representative dataset', 'development subset', 'what order should I do things', 'best practices for training', 'debug my training' (when the pipeline itself is new/unproven)."
 user-invocable: true
 disable-model-invocation: true
 ---
 
-# Model Development Workflow
+# Model Development Workflow (cycle zero)
 
-This skill teaches the end-to-end development workflow for DerivaML projects. The core principle: **start small, validate early, scale up only after everything works.**
+This skill teaches the **bootstrap** workflow for a new DerivaML pipeline. It's cycle-zero work: schema design through the first production-scale training run. The core principle: **start small, validate early, scale up only after everything works.**
 
 Most wasted compute comes from running full-scale training on broken configurations. This workflow catches problems at each tier before they become expensive.
+
+> **When this skill stops, `experiment-lifecycle` starts.** Once you have a working pipeline that's produced real (not validation) results, the hypothesis-driven iteration loop ("what's the next experiment that would teach us something we don't already know?") belongs in `/deriva-ml:experiment-lifecycle`. That skill assumes the pipeline exists and is sound; this skill exists to get you to that point.
 
 > Every MCP tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
@@ -360,3 +362,4 @@ This keeps the project-specific logic in your repository (versioned, reviewable)
 | Write hydra-zen configs | `configure-experiment`; `write-hydra-config` for syntax |
 | Run notebooks with tracking | `run-notebook` |
 | Document decisions | `maintain-experiment-notes` |
+| **Iterate on an existing pipeline** (cycle 2 onward) | **`experiment-lifecycle`** — once cycle zero (this skill) is done |

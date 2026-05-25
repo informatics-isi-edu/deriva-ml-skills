@@ -440,7 +440,7 @@ bag.restructure_assets(
 )
 ```
 
-When the MCP tool's built-in selectors are insufficient, write the script, test it, commit it for provenance, then run it. This follows the `catalog-operations-workflow` pattern.
+When the MCP tool's built-in selectors are insufficient, write the script, test it, commit it for provenance, then run it. This follows the `generate-scripts` pattern.
 
 ### Common pitfalls
 

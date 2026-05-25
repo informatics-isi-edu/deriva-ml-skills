@@ -56,9 +56,9 @@ Choose the script path based on whether a source dataset already exists:
 
 | Situation | Path | Where to read |
 |-----------|------|---------------|
-| **No source dataset** — first dataset from raw table data (bootstrap) | Standalone script via `catalog-operations-workflow` patterns | `references/workflow.md` → "Bootstrap dataset (no source dataset)" |
+| **No source dataset** — first dataset from raw table data (bootstrap) | Standalone script via `generate-scripts` patterns | `references/workflow.md` → "Bootstrap dataset (no source dataset)" |
 | **Source dataset exists** — filtering, subsetting, or selecting from existing | Subset template via `scripts/generate_subset_template.py` | `references/curated-subsets.md` |
-| **Source dataset exists** — partition into train/val/test | Script (Base Template from `catalog-operations-workflow` + `split_dataset` Python API) | `references/workflow.md` → "Splitting Datasets" |
+| **Source dataset exists** — partition into train/val/test | Script (Base Template from `generate-scripts` + `split_dataset` Python API) | `references/workflow.md` → "Splitting Datasets" |
 | **Trivial case** — empty dataset or 2-3 known RIDs | MCP-tool path | `references/workflow.md` → "MCP-tool-only path (trivial cases)" |
 
 ### Description guidance
@@ -242,6 +242,6 @@ For what to do with the bag after it lands — restructure for PyTorch, build tr
 - **`/deriva-ml:create-feature`** — Creating features and adding labels/annotations to records in datasets
 - **`/deriva-ml:configure-experiment`** — Setting up Hydra-zen configs that reference datasets
 - **`/deriva-ml:execution-lifecycle`** — Running experiments that consume datasets with provenance tracking
-- **`/deriva-ml:catalog-operations-workflow`** — Writing Python scripts for batch dataset operations with code provenance
+- **`/deriva-ml:generate-scripts`** — Writing Python scripts for batch dataset operations with code provenance
 - **`/deriva-ml:setup-ml-catalog`** — If you don't have a populated catalog yet: creating one from scratch (with a phased loader) or by cloning a slice from a source catalog. The handoff into this skill.
 - **`/deriva:evolve-schema`** *(deriva-skills)* — When a catalog schema change (split / merge / FK move / retype) lands beneath an existing dataset. The schema migration runs there; cutting the dataset's major release to pin the post-migration shape happens here.

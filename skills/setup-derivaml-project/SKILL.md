@@ -56,7 +56,7 @@ Key choices:
 
 - **`dynamic = ["version"]`** with `[tool.setuptools_scm]` — version is derived from git tags. The `bump-version` CLI manages tags; you never edit a version string by hand.
 - **`[dependency-groups]`** — separate `jupyter` and `dev` groups keep the base install lean. Install on demand: `uv sync --group=jupyter`.
-- **`[project.scripts]`** — for catalog-operations scripts that should get a CLI entry point. Most one-off scripts in `src/scripts/` should NOT have entry points (they're one-time operations, not reusable tools); see `/deriva-ml:catalog-operations-workflow` for the pattern.
+- **`[project.scripts]`** — for catalog-operations scripts that should get a CLI entry point. Most one-off scripts in `src/scripts/` should NOT have entry points (they're one-time operations, not reusable tools); see `/deriva-ml:generate-scripts` for the pattern.
 
 ## Step 3: Install the GitHub CLI
 
