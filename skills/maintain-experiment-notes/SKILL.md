@@ -1,6 +1,6 @@
 ---
 name: maintain-experiment-notes
-description: "Use when reading or writing the project's experiment-decisions.md tacit-knowledge log. WRITE triggers: an action a future team member would need to understand has just occurred — running an execution, creating or splitting a dataset, creating a feature or vocabulary, adding a vocabulary term, changing catalog structure (tables/columns/FKs), choosing hyperparameters, writing or modifying a hydra-zen config, loading data into a catalog, bumping versions, creating or cloning a catalog, resolving a problem with a non-obvious fix, OR making an MCP entry-point choice where more than one valid path existed (e.g., 'I used resource X rather than tool Y because the catalog was fresh and a snapshot was sufficient', 'I called the Python API directly rather than going through MCP because the operation was a one-shot script with code provenance'). These plumbing decisions are tacit-knowledge of the same character as content decisions — the future maintainer needs to know not just what entity was created but why the chosen entry-point was right for the context. Use in the SAME response as the action. READ triggers: the user is asking why something was done, whether something has been tried before, what was learned from a prior run, where the rationale for a configuration came from, or any other 'why' / 'have we tried' / 'what did we learn' question about this project's models or data. Skip only for routine read-only operations (queries, listing, browsing) that touch neither side."
+description: "Use whenever an experiment design decision is being made, proposed, or recalled. Three triggers: (1) WRITE — after any action a future teammate would need to understand (running an execution, creating/splitting a dataset, creating a feature or vocabulary, changing schema, choosing hyperparameters, picking an MCP entry-point when multiple paths existed, resolving a problem with a non-obvious fix). Append a short entry to experiment-decisions.md (project root) in the same response. Fire even when the choice felt obvious. (2) GUIDANCE (forward-looking read) — when the user proposes an action (add a feature, create a vocab term, train a model, change a config, split a dataset, run an experiment) and prior project experience may bear on whether it will work. Consult the file BEFORE executing or recommending. The user will not phrase this as a 'why' question — they'll just propose the action. Fire on the action, not on the phrasing. (3) FORENSIC (backward-looking read) — when the user asks 'why was X chosen', 'have we tried Y', 'what did we learn from Z', any indirect variant ('is this config still right?', 'should we still be using this?'), or is being oriented to the project for the first time. Consult before answering. If the file is silent, say so — do not invent rationale."
 user-invocable: false
 ---
 
@@ -8,13 +8,27 @@ user-invocable: false
 
 `experiment-decisions.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*. Entries connect: a follow-up run often references prior runs by RID, so the file reads top-to-bottom as the project's history of how its understanding evolved.
 
+This file is also the **cross-domain bridge** on multidisciplinary teams. The ML designer writes entries the domain expert needs to act on; the domain expert writes entries the ML designer needs to act on. Neither writes only for themselves. The entry conventions below name this responsibility explicitly.
+
 ## When to write
 
 If you have just made or recorded a decision the file would document, append an entry. Append silently — don't ask permission, don't announce. The bar is **intent**, not "alternatives were weighed": first runs, baselines, and pipeline-validation runs all qualify even when the choice felt obvious. Skip routine read-only operations (querying, listing, browsing schemas) — they leave no entry.
 
-## When to read
+## When to read — two distinct modes
 
-If the user is asking a question the file would answer — *why* did we choose X, *was there a reason* for Y, *have we tried* Z, *what did we learn* from a prior run, where does the rationale for this configuration live — consult `experiment-decisions.md` *before* answering from configs, current catalog state, or general reasoning.
+### Mode A: Guidance (before you act)
+
+**Before acting on a user request that touches the catalog** — creating a feature, adding a vocab term, changing schema, training with new parameters, splitting a dataset, picking an MCP entry-point — **scan `experiment-decisions.md` for entries about the same entity or the same kind of change**. The user will not phrase this as a "why" question; they'll just propose the action. The skill must fire on the *action*, not on a question keyword.
+
+The bar is low: if the file mentions the entity (by RID) or the change-type ("we tried label smoothing 0.1 on training runs"), surface what it says *before* doing the action. Don't paraphrase — **quote the relevant entry** and let the user decide whether to proceed, adjust, or abandon. The cost of a wasted file-read is seconds; the cost of repeating a documented dead end is hours-to-weeks.
+
+When prior experience contradicts the proposed action, hand the decision back with concrete options rather than blocking — the user may know the original constraints no longer hold.
+
+### Mode B: Forensic (when asked why)
+
+If the user is asking a question the file would answer — *why* did we choose X, *was there a reason* for Y, *have we tried* Z, *what did we learn* from a prior run, *where does the rationale for this configuration live*, or *catch me up on this project* (new collaborator orientation) — consult `experiment-decisions.md` *before* answering from configs, current catalog state, or general reasoning.
+
+### Honesty rule (both modes)
 
 **If the file is silent on the question, say so explicitly. Do not invent a rationale to fill the gap.** Frame any reconstruction from current state as exactly that — a reconstruction, not a recalled decision — so the user can choose whether to treat it as authoritative or look further. When the file does have an entry, cite it (entity RID + entry title) so the user can verify and follow back-references.
 
@@ -26,8 +40,9 @@ Every entry should answer:
 
 1. **What was run or decided** — the action.
 2. **Hypothesis or question** the entry was meant to answer. For non-run events (feature creation, schema change, vocabulary addition, dataset construction) this is the *use case the change exists to serve* — what does this enable, what was missing before — rather than a literal hypothesis.
-3. **Reasoning** — what led to this configuration, in plain language a domain scientist can follow. The catalog has the precise numbers.
+3. **Reasoning** — what led to this configuration, in plain language. **Spell out one term-of-art per entry that a reader from the other discipline wouldn't know** — either inline ("label smoothing 0.1 — softens hard 0/1 targets to discourage overconfidence") or as a parenthetical. The entry's job is to be readable by the discipline you're *not* in. The catalog has the precise numbers.
 4. **Immediate observations** *when applicable* — cheap-to-record facts that would be awkward to retrieve later (wall-clock time, headline metric the run printed, anomalies). For schema and feature changes there usually are no observations at write-time; skip part 4 rather than padding it.
+5. **Implications for collaborators** *when applicable* — what this means for someone in the *other* discipline. If an ML run produced something a domain expert should know about ("at this accuracy, roughly 8% of slides would surface below 0.5 confidence — that's the queue the QC team would absorb"), say so. If a schema change affects how ML configs reference the data ("training scripts that read `Subject.age` need to migrate to `Subject.age_at_intake`"), say so. Skip this part when the change is purely internal to one discipline.
 
 **Conclusions are optional and can be deferred.** At write-time you usually have a hypothesis and reasoning, not a settled "what this means." Don't fabricate. Conclusions show up later in whichever entry the reasoning crystallizes in — sometimes the very next run, sometimes much later. A single prior run can spawn multiple follow-ups exploring different angles. Refer back by execution RID so a reader can navigate the chain in either direction.
 
@@ -43,15 +58,15 @@ Every entry should answer:
    - Dataset creation or split → **dataset RID with version** (`### ... (dataset 7KE v0.4.0)`)
    - Schema change → **table RID** (`### ... (table 5-AB12)`)
 
-  Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Do **not** enumerate every individual supporting RID — they go stale, and the catalog already has them linked to the title's handle.
-- **When alternatives were weighed**, state what was rejected and why. When the entry is characterizing intent rather than picking between alternatives, skip the rejection clause.
+  Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
+- **Dead ends explored.** When alternatives were weighed, state what was rejected and why. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team — the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. **Standalone dead-end entries are valid** — if you tried something, abandoned it, and there's no successor decision yet, that's still a complete entry. Title it after the dead-end action itself ("### Tried stain_type as model input; abandoned (execution 3-XYZ)").
 - **Reference RIDs** for catalog entities; include quantitative evidence (counts, sizes) when known.
-- **Length is set by content.** Long enough to answer 1–4 above; short enough to scan in one pass (~5–12 lines in practice).
+- **Length is set by content.** Long enough to answer 1–5 above; short enough to scan in one pass (~5–15 lines in practice).
 - Past tense — these are settled records, not plans.
 
 ## Examples
 
-A model run:
+### Example 1 — A model run with cross-domain implications
 
 ```markdown
 ### First end-to-end CIFAR-10 run on localhost catalog 1407 (execution 8KG)
@@ -66,9 +81,14 @@ partitions (80 train, 20 test), so a real test number was reachable
 at this scale. Run finished in ~30s on CPU; held-out accuracy 20% on
 20 images vs a 10% guess-one-of-ten baseline — a learning signal but
 within noise at this sample size. Outputs linked to execution 8KG.
+
+Implications for collaborators: this is a pipeline-validation run, not a
+performance baseline — don't cite the 20% number as a model capability
+claim. The next end-to-end run on the full dataset is where the
+domain-meaningful accuracy comparison starts.
 ```
 
-A non-run event (no part-4 observations because nothing to observe at write-time):
+### Example 2 — A non-run event (no part-4 observations because nothing to observe at write-time)
 
 ```markdown
 ### QC status feature added to Image table (feature 9PQ4)
@@ -83,7 +103,52 @@ from diagnostic concerns rather than extending Image_Annotation with a
 reviewers, criteria, and consumers, so collapsing them would entangle
 the queues. Values not populated yet — annotator workflow is the next
 step.
+
+Implications for collaborators: ML training configs that currently filter
+on `Image_Annotation` should also start filtering on
+`QC_Status != "blurry"` once values are populated, to avoid training on
+images the pathologists have flagged unusable.
 ```
+
+### Example 3 — A dead end (no successor decision)
+
+```markdown
+### Tried stain_type as model input; abandoned (execution 3-XYZ)
+
+Hypothesis: adding the stain_type categorical (H&E vs IHC vs Trichrome)
+as a one-hot model input would let the network learn stain-specific
+diagnostic patterns. Trained the cifar10_quick architecture with the
+extra input channel on dataset 7KE v0.4.0; held-out accuracy actually
+dropped 4 points vs the baseline run (execution 8KG) that didn't use
+stain_type. Walking the model's gradient attributions showed the network
+was using stain_type as a shortcut to predict scanner site, not disease
+class — staining variance (which is operator- and lab-specific) was
+dominating the signal we wanted. Abandoned this input channel. Not
+revisiting unless we get a multi-site dataset where stain protocols are
+matched across sites.
+
+Implications for collaborators: the catalog still has the `stain_type`
+column on Image — keep populating it (it's correct curation), just
+don't pipe it into models without a multi-site dataset.
+```
+
+## Worked example — Mode A firing on a proposed action
+
+**User**: "Add a 'blurry' term to the Image_Annotation vocabulary so we can mark unusable slides."
+
+**Response** *(before adding, the skill consults `experiment-decisions.md` and finds the QC entry above)*:
+
+> Before adding, I checked `experiment-decisions.md` and found:
+>
+> > ### QC status feature added to Image table (feature 9PQ4)
+> > Kept QC concerns separate from diagnostic concerns rather than extending Image_Annotation with a "blurry" diagnosis term: the two review workflows have different reviewers, criteria, and consumers, so collapsing them would entangle the queues.
+>
+> Adding `blurry` to `Image_Annotation` would reverse that decision. Two options: (a) add the term to the existing `Image_QC_Status` vocabulary (feature 9PQ4, vocabulary 9PR0), which preserves the separation, or (b) revisit the original rationale if the constraints have changed (e.g., the two review pools have merged, or you're explicitly opting into a single combined queue). Which do you want?
+
+Three things this example demonstrates:
+1. **Consult before act** — the skill fires on the proposed action, not on a "why" question.
+2. **Quote, don't paraphrase** — the user can see the original entry and judge its weight themselves.
+3. **Hand decision back with concrete options** — don't block, don't auto-proceed; the user may know the original constraints no longer hold.
 
 ## Commit prompting
 
