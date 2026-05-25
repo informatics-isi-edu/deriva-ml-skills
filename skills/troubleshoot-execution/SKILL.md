@@ -28,6 +28,10 @@ Jump straight to the right section if you already know what's wrong:
 | Execution status shows `Running` but the process has crashed or ended | "Execution Stuck in Running" |
 | Error mentions a missing `Workflow_Type`, `Dataset_Type`, or `Asset_Type` term | "ML Vocabulary Term Not Found" |
 | Training ran for hours, failed partway, and you need to recover survivors | "Salvage a Failed Execution" |
+| `DerivaMLSchemaPinned` raised on `refresh_schema()` | "Schema Pinned Errors" |
+| `DerivaMLSchemaRefreshBlocked` raised on `refresh_schema()` | "Schema Pinned Errors" |
+| `DerivaMLOfflineError` raised on `refresh_schema()` / `diff_schema()` / catalog read | "Offline Mode Errors" |
+| `DerivaMLConfigurationError: offline mode requires a cached schema...` | "Offline Mode Errors" |
 | "Tool not found" / "unknown parameter" / docs and behavior disagree | "Versioning and updates" |
 
 If your situation isn't in the table, read top to bottom — the sections are short.
@@ -175,6 +179,56 @@ If the execution is already in a non-`Running` state (`Stopped`, `Failed`, `Pend
 - For other vocabularies (custom domain vocabs), use `add_term` with the appropriate schema and table.
 - **If the vocabulary table itself doesn't exist yet**, create it with `deriva_ml_create_vocabulary(hostname=..., catalog_id=..., vocab_name=..., comment=...)` — the ML-aware tool applies the deriva-ml project curie prefix and refreshes the navbar. The generic `create_vocabulary` from deriva-mcp-core skips both. See `deriva-ml-context` for the steering rationale.
 - For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the `/deriva:troubleshoot-deriva-errors` skill *(deriva-skills)*.
+
+---
+
+## Problem: "Schema Pinned Errors"
+
+**Symptom 1**: `DerivaMLSchemaPinned` raised when calling `ml.refresh_schema()` (with or without `force=True`).
+
+**Cause**: The local schema cache is pinned — some earlier code called `ml.pin_schema(reason=...)` to freeze the schema view for a long-running run. `force=True` does NOT bypass a pin (intentional — pin is the heavier discipline).
+
+**Solution**:
+- Check who pinned and why: `ml.pin_status()` returns the `pin_reason` and `pinned_at` timestamp.
+- If the pin is no longer needed (the run that motivated it has finished), call `ml.unpin_schema()` then re-attempt the refresh.
+- If the pinned snapshot is still the right view, skip the refresh — the cache is already serving what you want.
+
+**Symptom 2**: `DerivaMLSchemaRefreshBlocked` raised on `ml.refresh_schema()` (without `force=True`).
+
+**Cause**: The workspace has pending rows (staged / leasing / leased / uploading / failed). Refreshing would replace the schema cache, and the pending rows might reference columns or types that no longer exist in the new schema, causing catalog-insert failures on the next upload.
+
+**Solution**:
+- **Preferred:** drain the pending work first with `ml.commit_pending_executions()`, then refresh.
+- Otherwise, pass `force=True` to refresh anyway — but understand that staged rows may now have stale column references.
+
+For background on pinning and the dirty-tree-vs-schema-pin pairing, see `execution-lifecycle/references/concepts.md` → "Schema Pinning for Long Runs".
+
+---
+
+## Problem: "Offline Mode Errors"
+
+**Symptom 1**: `DerivaMLOfflineError` raised on `ml.refresh_schema()`, `ml.diff_schema()`, or any direct catalog read.
+
+**Cause**: The DerivaML instance was constructed with `mode=ConnectionMode.offline`, which forbids network calls. The operation needs the live catalog.
+
+**Solution**:
+- For schema refresh / diff: construct a separate online instance against the same `working_dir` and call from there.
+- For a one-off read: drop back to online mode for that call.
+- For sustained online work: re-construct without `mode=ConnectionMode.offline` (the default is online).
+
+**Symptom 2**: `DerivaMLConfigurationError: offline mode requires a cached schema at <path>; run online once first (with the same working_dir) to populate the cache.`
+
+**Cause**: Offline mode was requested against a workspace that has no schema cache yet. Offline mode reads from the cache and skips all network — it cannot bootstrap from scratch.
+
+**Solution**: run an online `DerivaML(hostname=..., catalog_id=..., working_dir=<same path>)` once to populate the cache, then re-attempt offline.
+
+**Symptom 3**: `DerivaMLConfigurationError: cached schema at <path> is for X/Y, but __init__ was called with A/B.`
+
+**Cause**: The workspace cache belongs to a different `(hostname, catalog_id)`. DerivaML refuses to serve a mismatched cache because table / column names that match by string may have completely different meanings across catalogs.
+
+**Solution**: use a different `working_dir` per catalog (the simplest discipline — one workspace per catalog), or run online against the new catalog with the same `working_dir` to overwrite the cache.
+
+For the full offline-mode contract — what operations stage to SQLite, what triggers the upload drain — see `execution-lifecycle/references/concepts.md` → "Offline Mode".
 
 ---
 

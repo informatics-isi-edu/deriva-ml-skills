@@ -21,6 +21,10 @@ DerivaML enforces that all code is committed before running catalog-mutating ope
 - This applies to all `deriva-ml-run` and `deriva-ml-run-notebook` invocations.
 - Simple one-off MCP tool operations (adding a vocabulary term, updating a description) are not affected.
 
+> **Schema pinning (the catalog-side counterpart).** Git-clean-tree freezes the *code* the run will see; `ml.pin_schema(reason=...)` freezes the *catalog shape* the run will see. Both should be in place for any production run on a shared catalog where a concurrent migration could change column names or table structure mid-run. See `references/concepts.md` → "Schema Pinning for Long Runs" for when and how.
+
+> **Offline mode (laptop / batch / disconnected work).** `DerivaML(mode=ConnectionMode.offline)` stages every write to local SQLite and drains via `ml.commit_pending_executions()` when you reconnect. Requires a previously-populated schema cache in the same `working_dir`. See `references/concepts.md` → "Offline Mode" for the full pattern.
+
 ## Phase 1: Pre-Flight Validation
 
 Before running an experiment, validate that everything is in place. **Stop and fix any issues.** The full pre-flight walkthrough (Hydra `--info` / `--cfg job` invocations, per-RID validation calls, staging script patterns) lives in `references/workflow.md`; this section names what to validate.
