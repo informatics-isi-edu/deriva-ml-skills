@@ -14,7 +14,7 @@ Background on assets in DerivaML. For the step-by-step guide, see `workflow.md`.
 - [How Assets Are Uploaded](#how-assets-are-uploaded)
 - [Asset Caching](#asset-caching)
 - [Asset Provenance](#asset-provenance)
-- [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)
+- [Creating an Asset Table on a DerivaML catalog](#creating-an-asset-table-on-a-derivaml-catalog)
 - [Built-in Asset Tables](#built-in-asset-tables)
   - [Execution Metadata vs Execution Assets](#execution-metadata-vs-execution-assets)
   - [Notebook Output Assets](#notebook-output-assets)
@@ -124,7 +124,7 @@ add_term(hostname="data.example.org", catalog_id="1",
     description="Pixel-level annotation overlay for an input image")
 ```
 
-When you create a new asset table by hand (see [Creating an Asset Table (Manual Recipe)](#creating-an-asset-table-manual-recipe)), remember to also add the table name as a term in `Asset_Type`.
+When you create a new asset table by hand (see [Creating an Asset Table on a DerivaML catalog](#creating-an-asset-table-on-a-derivaml-catalog)), remember to also add the table name as a term in `Asset_Type`.
 
 > **Creating a separate vocabulary (not just adding a term)?** If your asset table needs a brand-new domain vocabulary as one of its columns (e.g., `Stain_Type` for histology images), use `deriva_ml_create_vocabulary(...)` to create the vocabulary table first, then `add_term` to populate it. See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (curie prefix, default schema, navbar refresh) and the canonical call shape.
 
@@ -224,31 +224,15 @@ matches = [a for a in assets if "Model_Weights" in a.asset_types]
 
 The same rule applies on the MCP side: filters and post-processing of `asset_types` lists returned by `deriva_ml_lookup_asset`, `deriva_ml_list_assets`, `deriva_ml_find_assets`, and the `deriva://catalog/.../ml/asset/{rid}` resource must use membership semantics, not equality.
 
-## Creating an Asset Table (Manual Recipe)
+## Creating an Asset Table on a DerivaML catalog
 
-> **Known gap:** there is no dedicated `create_asset_table` tool. To create a new asset table, use the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK. The recipe is mechanical but multi-step.
+The generic recipe for creating an asset table (the standard hatrac column shape — `URL`, `Filename`, `Length`, `MD5`, `Description` — plus your domain-specific metadata columns) lives in **`/deriva:create-table`** *(deriva-skills)* under "Creating an Asset Table". Read it first; this section adds only the **DerivaML-specific overlay** that turns a generic asset table into one DerivaML can register files against.
 
-The "asset" shape is a regular catalog table whose columns include the standard hatrac file-tracking columns plus a foreign key to `Asset_Type` and any custom metadata columns you need.
+### The DerivaML overlay (two extra steps after the generic recipe)
 
-### Step 1: Create the table with the hatrac column shape
+Once the generic asset table exists (per `/deriva:create-table`), two DerivaML-specific things are needed:
 
-Call the deriva-skills `create_table` tool (see `/deriva:create-table` for full parameter docs) with the standard hatrac columns:
-
-```
-create_table(hostname="data.example.org", catalog_id="1",
-    schema="<your-domain-schema>",
-    table_name="Image",
-    columns=[
-        {"name": "URL",         "type": "text", "nullok": false, "comment": "Object store URL (set on upload)"},
-        {"name": "Filename",    "type": "text", "nullok": false, "comment": "Original filename"},
-        {"name": "Length",      "type": "int8", "nullok": true,  "comment": "File size in bytes"},
-        {"name": "MD5",         "type": "text", "nullok": true,  "comment": "MD5 checksum"},
-        {"name": "Description", "type": "text", "nullok": true,  "comment": "Human-readable description"},
-        # ... add custom metadata columns here (e.g., Width, Height, Format) ...
-    ])
-```
-
-### Step 2: Add the Asset_Type vocabulary term for the new table
+**1. Add an `Asset_Type` vocabulary term that names the new table.** `Asset_Type` is a built-in vocabulary in the `deriva-ml` schema; DerivaML uses it to identify which asset table a file belongs to.
 
 ```
 add_term(hostname="data.example.org", catalog_id="1",
@@ -257,19 +241,25 @@ add_term(hostname="data.example.org", catalog_id="1",
     description="Asset_Type term for the Image asset table")
 ```
 
-### Step 3: Add the Asset_Type FK column on the new table
+**2. Add the `Asset_Type` FK column on the new asset table.** Cleanest path: declare it as part of the `create_table` call in the first place, by adding to the `foreign_keys=` list:
 
-The simplest path is to declare the FK as part of `create_table` at step 1 — `foreign_keys=[{"column": "Asset_Type", "referenced_schema": "deriva-ml", "referenced_table": "Asset_Type"}]`. If you've already created the table without the FK, use `add_column` (deriva-skills) to add the column, then declare the FK via the schema-management surface — there is no standalone `create_foreign_key` MCP tool. See `/deriva:create-table` for the exact `foreign_keys=` shape.
+```
+foreign_keys=[
+    {"column": "Asset_Type",
+     "referenced_schema": "deriva-ml",
+     "referenced_table": "Asset_Type",
+     "comment": "Which Asset_Type vocab term this asset belongs to"},
+    # ... plus any domain FKs (e.g., Image -> Subject) ...
+]
+```
 
-### Step 4 (optional): Add domain FKs
+If the table already exists without the FK, use `add_column` (from deriva-mcp-core) to add the column, then declare the FK via the schema-management surface — there is no standalone `create_foreign_key` MCP tool. See `/deriva:create-table` for the exact `foreign_keys=` shape.
 
-If your asset table should reference a domain table (e.g., `Image` → `Subject`), use the deriva-skills schema tools to add a column and create a foreign key.
+### After this recipe runs
 
-### Step 5: Configure visible columns / display annotations
+You can register files for upload to the new table via the Python API `exe.asset_file_path(asset_name="Image", file_name=..., asset_types=["Image"])` inside an execution context. See `references/workflow.md` for the full upload flow.
 
-Apply any visible-columns / table-display annotations you want for the Chaise UI via the deriva-skills annotation tools (the annotations apply immediately — there is no `apply_annotations()` staging step in the new MCP server).
-
-After this recipe runs, you can register files for upload to the new table via Python API `exe.asset_file_path(asset_name="Image", file_name=..., asset_types=["Image"])`.
+Configure any Chaise display annotations (visible columns, row name patterns, etc.) via `/deriva:customize-display` *(deriva-skills)* — those tools work on any asset table; nothing DerivaML-specific.
 
 ## Built-in Asset Tables
 
