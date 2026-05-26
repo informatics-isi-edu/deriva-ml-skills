@@ -46,6 +46,26 @@ Built-in dimensions: partition role (`Training`, `Testing`, `Validation`, `Compl
 
 For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
 
+### `Dataset_Type` is the primary signal of what a dataset is for
+
+Type definition and type consumption are symmetric. The types you assign in this phase are the catalog's **primary, structured record of what a dataset is for** — and any consumer asking "what should I use this dataset for?" should look at `Dataset_Type` first. A person browsing the catalog, a CLI picking the right bag for an experiment, a notebook deciding which dataset to load, a training-loop dispatching across multiple inputs — all of them are answering the same question, and the catalog's typing mechanism is what they should be answering it from.
+
+The dataset **description** is a legitimate secondary signal — it's the human-readable prose that explains the *why* and the nuance that controlled vocabularies can't encode. A reader can consult the description for context the types don't carry (composition details, curation history, sampling rationale). But description is **advisory**, not authoritative: it's free-text that can drift, that no consumer can reliably dispatch on, and that exists to supplement the typed dimensions, not to replace them. **Prefer modeling purpose with one or more `Dataset_Type` terms.** If a distinction matters enough that code or a person will route on it, it belongs in the vocabulary; if it's only ever read by humans for context, the description is the right home.
+
+The anti-patterns this principle exists to rule out — each is a workaround that the typed vocabulary already covers properly:
+
+- **Dispatching on dataset name.** `if dataset.name.startswith("train"): ...`, or `if "validation" in dataset.name: ...`. Names are human-readable handles, not contracts. Renaming a dataset breaks the consumer; using a non-conforming name silently bypasses it. The catalog's vocabulary exists precisely so name strings don't have to be load-bearing.
+- **Dispatching on a private translation table.** A hand-maintained dict that maps catalog terms into a consumer-local vocabulary (`{"Training": "train_lane", "Testing": "test_lane"}`). The dict ossifies: when someone `add_term`s a new `Dataset_Type` value (e.g., `Validation`, `Calibration`), the consumer silently treats it as unknown and either errors confusingly or — worse — drops the dataset and produces a result that looks fine. The catalog's vocabulary is the only translation table that should exist; add new types by extending it, and the consumer registers handlers against catalog terms directly.
+- **Dispatching on out-of-band metadata.** File path conventions, sidecar JSON, RID-prefix heuristics, position in an input list ("the first bag is training"), the contents of an unrelated config file. These signal that the catalog wasn't trusted to carry the answer; the convention will diverge and a future reader won't know which side is authoritative.
+- **Parsing the description for routing keywords.** Description is human prose — phrasing varies (`"holdout set"`, `"held-out for evaluation"`, `"never seen during training"` all mean the same thing) — and substring or regex matches on it are as brittle as name matching. If purpose needs to drive a decision, lift it into the vocabulary; leave the description for the nuance the types can't capture.
+
+If the type is missing or wrong on a dataset you're trying to consume, the right move is **not** to add a workaround in the consumer — it's to fix the catalog. `deriva_ml_update_dataset(dataset_types=[...])` is cheap; the next reader inherits a correct answer instead of having to reinvent your workaround.
+
+Two implementation conventions that follow from this principle:
+
+- **Separate role terms from qualifiers.** `Training`/`Testing`/`Validation` are role terms; `Labeled`/`Complete`/`Split` are qualifiers (orthogonal dimensions — see `references/type-naming-strategy.md` § "A well-typed dataset reads like a description"). A consumer deciding what to *do* with a dataset is dispatching on the role term; the qualifiers describe properties of the dataset but don't change the decision.
+- **Unknown types should fail loudly, not silently drop.** When a consumer encounters a `Dataset_Type` it has no handler for, the right behavior is a clear error or warning that names the unrecognized type — never a silent skip. A consumer that filters out unknown types without saying so will produce results that look correct but are missing data, and the failure mode is invisible until someone goes looking.
+
 ## Phase 3: Create
 
 **Default: use the script-based workflow** for any dataset creation that adds more than a handful of members. This ensures code provenance — every execution record links to a committed git hash. The MCP-tool path is only for trivial cases (creating an empty dataset, adding 2-3 members manually).
