@@ -8,6 +8,8 @@ user-invocable: false
 
 `experiment-decisions.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*. Entries connect: a follow-up run often references prior runs by RID, so the file reads top-to-bottom as the project's history of how its understanding evolved.
 
+**Don't ask this file for catalog-stored facts.** If the question is *what* — what datasets exist, what vocabulary terms are defined, what assets a workflow produced, which version of a dataset is current — fetch the catalog directly (`deriva://catalog/{host}/{cat}/ml/...` resources first; tools next). If the question is *why* — why this dataset was created, why this hyperparameter was chosen, why a previous approach was abandoned — read this file. Entries reference catalog entities by RID and short link, not by inlining their contents.
+
 This file is also the **cross-domain bridge** on multidisciplinary teams. The ML designer writes entries the domain expert needs to act on; the domain expert writes entries the ML designer needs to act on. Neither writes only for themselves. The entry conventions below name this responsibility explicitly.
 
 ## When to write
@@ -63,6 +65,21 @@ Every entry should answer:
 - **Reference RIDs** for catalog entities; include quantitative evidence (counts, sizes) when known.
 - **Length is set by content.** Long enough to answer 1–5 above; short enough to scan in one pass (~5–15 lines in practice).
 - Past tense — these are settled records, not plans.
+
+## What doesn't belong here
+
+This file records *why*, not *what*. The catalog is the source of record for facts; this file points at facts but doesn't replicate them. Concretely, **don't write**:
+
+- **Vocabulary term lists.** "The `Workflow_Type` vocab has terms X, Y, Z" goes stale the next time a term is added. Link to `deriva://catalog/{host}/{cat}/ml/vocabularies/deriva-ml/Workflow_Type` and let the reader fetch.
+- **Dataset RID / type / description tables.** "13 datasets: 96E (Complete, Labeled, …), 96R (Split, …), …" is catalog data. Link to `deriva://catalog/{host}/{cat}/ml/datasets` instead. (A *short* table mapping the user-facing config name to a stable RID is fine when those names are themselves project decisions — the catalog doesn't store the mapping from `cifar10_small_labeled_split` to `CRR`. That's tacit.)
+- **Schema field types or column lists.** Catalog data; fetch `deriva://catalog/{h}/{c}/schema` or the table resource.
+- **Workflow URLs / checksums / version strings.** Catalog data; live in `Workflow` rows.
+- **Asset MD5s, file sizes, lengths.** Catalog data.
+- **Execution status, start/stop times, lineage edges.** Catalog data; fetch `deriva://catalog/{h}/{c}/ml/execution/{rid}` or `…/ml/lineage/{rid}`.
+
+**Do write**: why the dataset was created, why the workflow's type was chosen, why a hyperparameter was selected, what alternatives were rejected and why, what would invalidate this decision, what a future reader needs to know to evaluate whether the decision still holds. Reference catalog entities by their RID and a single-line link rather than inlining their fields.
+
+The rule of thumb: **if the catalog could go stale and break what you wrote, the catalog should answer the question, not this file.**
 
 ## Examples
 
