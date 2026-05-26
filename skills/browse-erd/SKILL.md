@@ -18,7 +18,7 @@ Launch the Schema Workbench — an interactive visual ERD for a Deriva catalog. 
 
 ### 1. Confirm the catalog is reachable
 
-Pick the hostname and catalog ID for the catalog you want to browse. If the user hasn't named one, look in `experiment-decisions.md`, `src/configs/deriva.py`, or `CLAUDE.md` — those typically record the working catalog. To confirm the catalog responds, do any quick read against it (e.g., `deriva_ml_list_datasets(hostname=..., catalog_id=..., limit=1)`).
+Pick the hostname and catalog ID for the catalog you want to browse. If the user hasn't named one, look in `tacit-knowledge.md`, `src/configs/deriva.py`, or `CLAUDE.md` — those typically record the working catalog. To confirm the catalog responds, do any quick read against it (e.g., `deriva_ml_list_datasets(hostname=..., catalog_id=..., limit=1)`).
 
 ### 2. Launch the app server
 

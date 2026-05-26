@@ -45,8 +45,8 @@
     },
     {
       "id": 10,
-      "prompt": "The project's experiment-decisions.md says we're working with dev.facebase.org catalog 19, and we have a Complete dataset A9-ANT2 and an E15.5 subset A9-D272. Create a 50-element dev sample from the E15.5 data.",
-      "expected_output": "MUST connect to dev.facebase.org catalog 19 (NOT www.facebase.org or any other host). Should read experiment-decisions.md or check project context to find the correct catalog. Should reference the existing E15.5 subset A9-D272 as the source dataset. Should follow Phase 3b template workflow. Should nest the new dataset under A9-D272. Should NOT connect to the source catalog (www.facebase.org) by mistake.",
+      "prompt": "The project's tacit-knowledge.md says we're working with dev.facebase.org catalog 19, and we have a Complete dataset A9-ANT2 and an E15.5 subset A9-D272. Create a 50-element dev sample from the E15.5 data.",
+      "expected_output": "MUST connect to dev.facebase.org catalog 19 (NOT www.facebase.org or any other host). Should read tacit-knowledge.md or check project context to find the correct catalog. Should reference the existing E15.5 subset A9-D272 as the source dataset. Should follow Phase 3b template workflow. Should nest the new dataset under A9-D272. Should NOT connect to the source catalog (www.facebase.org) by mistake.",
       "files": []
     },
     {

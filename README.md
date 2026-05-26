@@ -80,10 +80,10 @@ These are skills that **Claude loads on its own** when the situation calls for t
 | `experiment-lifecycle` | When the user is designing or running an experiment cycle — names the seven phases and the cross-step disciplines |
 | `create-feature` | When the user is creating or working with features — guides through the assess/design/create phases and the feature-vs-column decision |
 | `run-notebook` | When the user is creating, developing, or running a DerivaML Jupyter notebook — guides through the three-stage development cycle and `run_notebook()` provenance machinery (also slash-typable) |
-| `capture-tacit-knowledge` | After significant decisions in any phase — captures rationale to experiment-decisions.md |
+| `capture-tacit-knowledge` | After significant decisions in any phase — captures rationale to tacit-knowledge.md |
 | `generate-descriptions` | When creating any DerivaML entity without a user-supplied description |
 
-You'll see the auto-invoked skills' effects in Claude's behavior (it asks "should we name a hypothesis first?" when starting an experiment; it captures the decision to experiment-decisions.md; it walks the dataset-creation phases in order); you won't see them as commands you can invoke.
+You'll see the auto-invoked skills' effects in Claude's behavior (it asks "should we name a hypothesis first?" when starting an experiment; it captures the decision to tacit-knowledge.md; it walks the dataset-creation phases in order); you won't see them as commands you can invoke.
 
 ## Which plugin's skill to reach for
 

@@ -1,12 +1,12 @@
 ---
 name: capture-tacit-knowledge
-description: "Use whenever an experiment design decision is being made, proposed, or recalled. Three triggers: (1) WRITE — after any action a future teammate would need to understand (running an execution, creating/splitting a dataset, creating a feature or vocabulary, changing schema, choosing hyperparameters, picking an MCP entry-point when multiple paths existed, resolving a problem with a non-obvious fix). Append a short entry to experiment-decisions.md (project root) in the same response. Fire even when the choice felt obvious. (2) GUIDANCE (forward-looking read) — when the user proposes an action (add a feature, create a vocab term, train a model, change a config, split a dataset, run an experiment) and prior project experience may bear on whether it will work. Consult the file BEFORE executing or recommending. The user will not phrase this as a 'why' question — they'll just propose the action. Fire on the action, not on the phrasing. (3) FORENSIC (backward-looking read) — when the user asks 'why was X chosen', 'have we tried Y', 'what did we learn from Z', any indirect variant ('is this config still right?', 'should we still be using this?'), or is being oriented to the project for the first time. Consult before answering. If the file is silent, say so — do not invent rationale."
+description: "Use whenever an experiment design decision is being made, proposed, or recalled. Three triggers: (1) WRITE — after any action a future teammate would need to understand (running an execution, creating/splitting a dataset, creating a feature or vocabulary, changing schema, choosing hyperparameters, picking an MCP entry-point when multiple paths existed, resolving a problem with a non-obvious fix). Append a short entry to tacit-knowledge.md (project root) in the same response. Fire even when the choice felt obvious. (2) GUIDANCE (forward-looking read) — when the user proposes an action (add a feature, create a vocab term, train a model, change a config, split a dataset, run an experiment) and prior project experience may bear on whether it will work. Consult the file BEFORE executing or recommending. The user will not phrase this as a 'why' question — they'll just propose the action. Fire on the action, not on the phrasing. (3) FORENSIC (backward-looking read) — when the user asks 'why was X chosen', 'have we tried Y', 'what did we learn from Z', any indirect variant ('is this config still right?', 'should we still be using this?'), or is being oriented to the project for the first time. Consult before answering. If the file is silent, say so — do not invent rationale."
 user-invocable: false
 ---
 
 # Capture and Consult Tacit Knowledge
 
-`experiment-decisions.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*. Entries connect: a follow-up run often references prior runs by RID, so the file reads top-to-bottom as the project's history of how its understanding evolved.
+`tacit-knowledge.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*. Entries connect: a follow-up run often references prior runs by RID, so the file reads top-to-bottom as the project's history of how its understanding evolved.
 
 **Don't ask this file for catalog-stored facts.** If the question is *what* — what datasets exist, what vocabulary terms are defined, what assets a workflow produced, which version of a dataset is current — fetch the catalog directly (`deriva://catalog/{host}/{cat}/ml/...` resources first; tools next). If the question is *why* — why this dataset was created, why this hyperparameter was chosen, why a previous approach was abandoned — read this file. Entries reference catalog entities by RID and short link, not by inlining their contents.
 
@@ -29,7 +29,7 @@ If you have just made or recorded a decision the file would document, append an 
 
 ### Mode A: Guidance (before you act)
 
-**Before acting on a user request that touches the catalog** — creating a feature, adding a vocab term, changing schema, training with new parameters, splitting a dataset, picking an MCP entry-point — **scan `experiment-decisions.md` for entries about the same entity or the same kind of change**. The user will not phrase this as a "why" question; they'll just propose the action. The skill must fire on the *action*, not on a question keyword.
+**Before acting on a user request that touches the catalog** — creating a feature, adding a vocab term, changing schema, training with new parameters, splitting a dataset, picking an MCP entry-point — **scan `tacit-knowledge.md` for entries about the same entity or the same kind of change**. The user will not phrase this as a "why" question; they'll just propose the action. The skill must fire on the *action*, not on a question keyword.
 
 The bar is low: if the file mentions the entity (by RID) or the change-type ("we tried label smoothing 0.1 on training runs"), surface what it says *before* doing the action. Don't paraphrase — **quote the relevant entry** and let the user decide whether to proceed, adjust, or abandon. The cost of a wasted file-read is seconds; the cost of repeating a documented dead end is hours-to-weeks.
 
@@ -37,45 +37,11 @@ When prior experience contradicts the proposed action, hand the decision back wi
 
 ### Mode B: Forensic (when asked why)
 
-If the user is asking a question the file would answer — *why* did we choose X, *was there a reason* for Y, *have we tried* Z, *what did we learn* from a prior run, *where does the rationale for this configuration live*, or *catch me up on this project* (new collaborator orientation) — consult `experiment-decisions.md` *before* answering from configs, current catalog state, or general reasoning.
+If the user is asking a question the file would answer — *why* did we choose X, *was there a reason* for Y, *have we tried* Z, *what did we learn* from a prior run, *where does the rationale for this configuration live*, or *catch me up on this project* (new collaborator orientation) — consult `tacit-knowledge.md` *before* answering from configs, current catalog state, or general reasoning.
 
 ### Honesty rule (both modes)
 
 **If the file is silent on the question, say so explicitly. Do not invent a rationale to fill the gap.** Frame any reconstruction from current state as exactly that — a reconstruction, not a recalled decision — so the user can choose whether to treat it as authoritative or look further. When the file does have an entry, cite it (entity RID + entry title) so the user can verify and follow back-references.
-
-## What an entry contains
-
-Each entry is a short markdown block describing one decision or run, anchored on the RID of the entity it's about. Entries answer questions like *why* a dataset / feature / split / config was chosen, *what* the goal of a run was, *how* the project arrived at the current configuration, and *where* a non-obvious decision came from.
-
-Every entry should answer:
-
-1. **What was run or decided** — the action.
-2. **Hypothesis or question** the entry was meant to answer. For non-run events (feature creation, schema change, vocabulary addition, dataset construction) this is the *use case the change exists to serve* — what does this enable, what was missing before — rather than a literal hypothesis.
-3. **Reasoning** — what led to this configuration, in plain language. **Spell out one term-of-art per entry that a reader from the other discipline wouldn't know** — either inline ("label smoothing 0.1 — softens hard 0/1 targets to discourage overconfidence") or as a parenthetical. The entry's job is to be readable by the discipline you're *not* in. The catalog has the precise numbers.
-4. **Immediate observations** *when applicable* — cheap-to-record facts that would be awkward to retrieve later (wall-clock time, headline metric the run printed, anomalies). For schema and feature changes there usually are no observations at write-time; skip part 4 rather than padding it.
-5. **Consequences for downstream readers** *when applicable* — factual statements about what this decision means for someone in the *other* discipline, **stated as facts, not as directives**. Past or present tense, never imperative. If an ML run produced something a domain expert should know about, say so factually ("at this accuracy, roughly 8% of slides surface below 0.5 confidence — the queue size the QC team would see if this model were used for triage"). If a schema change affects how ML configs reference the data, say so factually ("after this change, `Subject.age` no longer exists; the equivalent column is `Subject.age_at_intake`"). Skip this part when the change is purely internal to one discipline. The reader decides what to *do* about the consequence; this section's job is to make sure they know.
-6. **Weighed alternatives** *when alternatives were genuinely considered* — what else was on the table, and what ruled them out. This is the **comparative-judgment layer**: a future reader needs to see *what was compared*, not just *what was picked*. **Never fabricate this section.** If the reasoning trace doesn't show alternatives, write nothing here, or write `**Weighed alternatives:** *(none captured — choice was [observed] without an articulated comparison)*`. See "Provenance markers" below and "When to inquire" for how to handle uncertain cases.
-
-**Conclusions are optional and can be deferred.** At write-time you usually have a hypothesis and reasoning, not a settled "what this means." Don't fabricate. Conclusions show up later in whichever entry the reasoning crystallizes in — sometimes the very next run, sometimes much later. A single prior run can spawn multiple follow-ups exploring different angles. Refer back by execution RID so a reader can navigate the chain in either direction.
-
-## Conventions
-
-- **Heading level is `###`.** Each entry is a sibling under the file's top-level `# Experiment Design Decisions` heading.
-- **Append new entries at the bottom.** The file reads top-to-bottom as the project's history; chronology is the structure.
-- **No dates in titles.** The entity RID carries its creation timestamp in the catalog; a date in the entry duplicates that and rots when the entry is later edited.
-- **Title includes the durable handle in parentheses** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts:
-   - Model run → **execution RID** (`### ... (execution 8KG)`)
-   - Feature creation → **feature RID** (`### ... (feature 9PQ4)`)
-   - Vocabulary addition (terms only) → **vocabulary RID** (`### ... (vocabulary 9PR0)`)
-   - Dataset creation or split → **dataset RID with version** (`### ... (dataset 7KE v0.4.0)`)
-   - Schema change → **table RID** (`### ... (table 5-AB12)`)
-
-  Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
-- **Dead ends explored.** When alternatives were weighed, state what was rejected and why. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team — the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. **Standalone dead-end entries are valid** — if you tried something, abandoned it, and there's no successor decision yet, that's still a complete entry. Title it after the dead-end action itself ("### Tried stain_type as model input; abandoned (execution 3-XYZ)").
-- **Recurring patterns are also valid.** Entries of the form *"whenever we do X in this project, we also do Y because Z"* are tacit knowledge about the project's conventions — not directives. They're statements about *what this project's pattern is*, written for a future reader who's about to do X and would benefit from knowing the pattern exists. Example: "### Convention — releasing a dataset bumps `src/configs/datasets.py` (rationale: experiment configs pin by version, so a release that isn't reflected in the config is unreachable from runners)." The reader chooses whether to follow the pattern; the entry explains why the pattern exists.
-- **Reference RIDs** for catalog entities; include quantitative evidence (counts, sizes) when known.
-- **Length is set by content.** Long enough to answer 1–6 above; short enough to scan in one pass (~5–15 lines in practice).
-- Past tense — these are settled records, not plans.
 
 ## Provenance markers
 
@@ -92,13 +58,54 @@ Every claim in an entry should be readable as one of three things: *what was dir
 
 `[observed]` is not failure. The collective tacit often *doesn't* have a verbalizable explanation. "The author created DAP without articulating a comparison" is a valid, complete record — better than a fabricated rationale. Don't be embarrassed by `[observed]`; it's how honest entries about tacit work look.
 
+## What an entry contains
+
+Each entry is a short markdown block describing one decision or run, anchored on the RID of the entity it's about. Entries answer questions like *why* a dataset / feature / split / config was chosen, *what* the goal of a run was, *how* the project arrived at the current configuration, and *where* a non-obvious decision came from.
+
+Every entry should answer:
+
+1. **What was run or decided** — the action.
+2. **Hypothesis or question** the entry was meant to answer. For non-run events (feature creation, schema change, vocabulary addition, dataset construction) this is the *use case the change exists to serve* — what does this enable, what was missing before — rather than a literal hypothesis.
+3. **Reasoning** — what led to this configuration, in plain language. **Spell out one term-of-art per entry that a reader from the other discipline wouldn't know** — either inline ("label smoothing 0.1 — softens hard 0/1 targets to discourage overconfidence") or as a parenthetical. The entry's job is to be readable by the discipline you're *not* in. The catalog has the precise numbers.
+4. **Immediate observations** *when applicable* — cheap-to-record facts that would be awkward to retrieve later (wall-clock time, headline metric the run printed, anomalies). For schema and feature changes there usually are no observations at write-time; skip part 4 rather than padding it.
+5. **Consequences for downstream readers** *when applicable* — factual statements about what this decision means for someone in the *other* discipline, **stated as facts, not as directives**. Past or present tense, never imperative. If an ML run produced something a domain expert should know about, say so factually ("at this accuracy, roughly 8% of slides surface below 0.5 confidence — the queue size the QC team would see if this model were used for triage"). If a schema change affects how ML configs reference the data, say so factually ("after this change, `Subject.age` no longer exists; the equivalent column is `Subject.age_at_intake`"). Skip this part when the change is purely internal to one discipline. The reader decides what to *do* about the consequence; this section's job is to make sure they know.
+6. **Weighed alternatives** *when alternatives were genuinely considered* — what else was on the table, and what ruled them out. This is the **comparative-judgment layer**: a future reader needs to see *what was compared*, not just *what was picked*. **Never fabricate this section.** If the reasoning trace doesn't show alternatives, write nothing here, or write `**Weighed alternatives:** *(none captured — choice was [observed] without an articulated comparison)*`. Use the provenance markers above; ask for confirmation when an `[inferred from pattern]` claim would be load-bearing (see "When to inquire").
+
+**Conclusions are optional and can be deferred.** At write-time you usually have a hypothesis and reasoning, not a settled "what this means." Don't fabricate. Conclusions show up later in whichever entry the reasoning crystallizes in — sometimes the very next run, sometimes much later. A single prior run can spawn multiple follow-ups exploring different angles. Refer back by execution RID so a reader can navigate the chain in either direction.
+
+## Conventions
+
+These are the cross-cutting rules — how entries are titled, ordered, and grounded in the catalog. Entry shape (the six parts above) goes inside; these rules govern the boundaries.
+
+**Structural:**
+
+- **Heading level is `###`.** Each entry is a sibling under the file's top-level `# Tacit Knowledge` heading.
+- **Append new entries at the bottom.** The file reads top-to-bottom as the project's history; chronology is the structure.
+- **No dates in titles.** The entity RID carries its creation timestamp in the catalog; a date in the entry duplicates that and rots when the entry is later edited.
+- **Title includes the durable handle in parentheses** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts:
+   - Model run → **execution RID** (`### ... (execution 8KG)`)
+   - Feature creation → **feature RID** (`### ... (feature 9PQ4)`)
+   - Vocabulary addition (terms only) → **vocabulary RID** (`### ... (vocabulary 9PR0)`)
+   - Dataset creation or split → **dataset RID with version** (`### ... (dataset 7KE v0.4.0)`)
+   - Schema change → **table RID** (`### ... (table 5-AB12)`)
+
+   Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
+- **Length is set by content.** Long enough to answer the six entry parts; short enough to scan in one pass (~5–15 lines in practice).
+- Past tense — these are settled records, not plans.
+
+**Content principles:**
+
+- **Dead ends are valid standalone entries.** When alternatives were weighed and the chosen path didn't pan out, write the dead-end entry on its own — no successor decision required. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team: the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. Title it after the dead-end action itself (`### Tried stain_type as model input; abandoned (execution 3-XYZ)`).
+- **Recurring patterns are also valid.** Entries of the form *"whenever we do X in this project, we also do Y because Z"* are tacit knowledge about the project's conventions — not directives. They're statements about *what this project's pattern is*, written for a future reader who's about to do X and would benefit from knowing the pattern exists. Example: `### Convention — releasing a dataset bumps src/configs/datasets.py (rationale: experiment configs pin by version, so a release that isn't reflected in the config is unreachable from runners)`. The reader chooses whether to follow the pattern; the entry explains why the pattern exists.
+- **Reference RIDs and include quantitative evidence** (counts, sizes) when known — but as evidence for the reasoning, not as a replacement for it. See "What doesn't belong here" below for what's catalog data vs. what's tacit.
+
 ## When to inquire
 
-The skill may raise a clarifying question to the user when writing an entry. The agent is *allowed* to inquire in either interactive or autonomous mode — inquiry is distinct from a checkpoint pause, and the test plan's mode flag governs checkpoints, not inquiry. But inquiry is bounded:
+Inquiry is the agent's tool for sharpening an `[inferred from pattern]` claim — the riskiest provenance class — into a stated one, or for confirming that a guess shouldn't be written at all. Use it when the answer would materially improve a load-bearing claim, and observe these guardrails:
 
-- **At most one question per entry.** If multiple ambiguities exist, the agent picks the highest-leverage one to ask about and uses provenance markers for the rest.
-- **Only when the answer would materially improve a load-bearing claim.** Cosmetic gaps stay gaps. A `[inferred from pattern]` claim that doesn't affect a future decision isn't worth a question.
+- **At most one question per entry.** If multiple ambiguities exist, pick the highest-leverage one and use provenance markers for the rest.
 - **Confirmatory shape only — never interrogative.** The question must be answerable by yes / no / correction, not by open-ended self-attribution. The user often *can't* honestly answer "why did you do X?" — they just did it. Asking the open form invites confabulation, which is worse than `[observed]` honesty.
+- **"I just did it" is a valid answer.** If the user can't articulate a reason, that maps to `[observed]` — it's a complete, honest record, not a failure.
 
 **Inquiry shape:**
 
@@ -242,9 +249,9 @@ The third response is *not failure* — it's the honest tacit-knowledge record. 
 
 **User**: "Add a 'blurry' term to the Image_Annotation vocabulary so we can mark unusable slides."
 
-**Response** *(before adding, the skill consults `experiment-decisions.md` and finds the QC entry above)*:
+**Response** *(before adding, the skill consults `tacit-knowledge.md` and finds the QC entry above)*:
 
-> Before adding, I checked `experiment-decisions.md` and found:
+> Before adding, I checked `tacit-knowledge.md` and found:
 >
 > > ### QC status feature added to Image table (feature 9PQ4)
 > > Kept QC concerns separate from diagnostic concerns rather than extending Image_Annotation with a "blurry" diagnosis term: the two review workflows have different reviewers, criteria, and consumers, so collapsing them would entangle the queues.
@@ -258,8 +265,8 @@ Three things this example demonstrates:
 
 ## Commit prompting
 
-After 3+ entries in a session — or at a natural pause — suggest committing `experiment-decisions.md` on its own with a message like "Record experiment design decisions." Don't bundle with unrelated changes; don't prompt after every entry.
+After 3+ entries in a session — or at a natural pause — suggest committing `tacit-knowledge.md` on its own with a message like "Record tacit knowledge entries." Don't bundle with unrelated changes; don't prompt after every entry.
 
 ## File mechanics
 
-`experiment-decisions.md` lives in the project root and must be tracked in git. See `references/file-mechanics.md` for the gitignore check and first-time-setup details.
+`tacit-knowledge.md` lives in the project root and must be tracked in git. See `references/file-mechanics.md` for the gitignore check and first-time-setup details.

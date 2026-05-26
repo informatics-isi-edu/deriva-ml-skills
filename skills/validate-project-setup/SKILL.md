@@ -1,6 +1,6 @@
 ---
 name: validate-project-setup
-description: "Validate that a DerivaML project repository conforms to the expected shape from deriva-ml-model-template. Use when the user asks 'is my project set up right?', 'does my repo look right?', 'validate my project', 'check project structure', 'why isn't my project working?', or when something is failing in a way that suggests the project structure may not match what DerivaML expects. Walks through the canonical layout (src/configs/, src/models/, src/scripts/, notebooks/, pyproject.toml entry points, experiment-decisions.md, Experiments.md), reports each item as present, partial, or missing, and suggests fixes for gaps. Conceptual checklist only — no bundled script — so the LLM can adapt to template variations and present results contextually. Triggers on: 'validate project', 'validate project setup', 'is my project set up right', 'is my project set up correctly', 'check my project structure', 'check project layout', 'does my repo look right', 'project shape', 'project conforms', 'is this a deriva-ml project', 'project sanity check', 'audit my project', 'verify project setup'."
+description: "Validate that a DerivaML project repository conforms to the expected shape from deriva-ml-model-template. Use when the user asks 'is my project set up right?', 'does my repo look right?', 'validate my project', 'check project structure', 'why isn't my project working?', or when something is failing in a way that suggests the project structure may not match what DerivaML expects. Walks through the canonical layout (src/configs/, src/models/, src/scripts/, notebooks/, pyproject.toml entry points, tacit-knowledge.md, Experiments.md), reports each item as present, partial, or missing, and suggests fixes for gaps. Conceptual checklist only — no bundled script — so the LLM can adapt to template variations and present results contextually. Triggers on: 'validate project', 'validate project setup', 'is my project set up right', 'is my project set up correctly', 'check my project structure', 'check project layout', 'does my repo look right', 'project shape', 'project conforms', 'is this a deriva-ml project', 'project sanity check', 'audit my project', 'verify project setup'."
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -37,12 +37,12 @@ The validation walks five categories. For each item, report **present**, **parti
 | `src/` | present | Python source tree |
 | `notebooks/` | present | Jupyter notebook directory (may be empty if the project doesn't use notebooks) |
 | `tests/` | present | Test suite directory |
-| `experiment-decisions.md` | present | Auto-maintained by `capture-tacit-knowledge`; captures decisions over time |
+| `tacit-knowledge.md` | present | Auto-maintained by `capture-tacit-knowledge`; captures decisions over time |
 | `Experiments.md` | present (optional but strongly recommended) | Human-readable registry of named experiments and multiruns |
 | `README.md` | present | Project description (may be the template's default; flag if so) |
 | `.gitignore` | present | Should ignore `outputs/`, `multirun/`, `.deriva-ml/`, etc. |
 
-**Common gaps:** missing `experiment-decisions.md` (suggest creating an empty file with a one-line header so `capture-tacit-knowledge` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`).
+**Common gaps:** missing `tacit-knowledge.md` (suggest creating an empty file with a one-line header so `capture-tacit-knowledge` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`).
 
 ### 2. The `src/configs/` directory
 
@@ -116,7 +116,7 @@ Top-level layout: 7 of 9 present
   ✅ src/
   ✅ notebooks/
   ✅ tests/
-  ❌ experiment-decisions.md — create an empty file with a header so capture-tacit-knowledge has somewhere to write
+  ❌ tacit-knowledge.md — create an empty file with a header so capture-tacit-knowledge has somewhere to write
   ⚠️ Experiments.md — exists but appears stale (last updated before recent experiments added); regenerate from src/configs/experiments.py and src/configs/multiruns.py
   ✅ README.md
   ✅ .gitignore

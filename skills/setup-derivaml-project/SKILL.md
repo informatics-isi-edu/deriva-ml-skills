@@ -84,7 +84,7 @@ DerivaML projects follow these conventions:
 
 ## Step 5: Verify and move on
 
-After bootstrap, run `/deriva-ml:validate-project-setup` to confirm the project conforms to the expected layout (`src/configs/`, `src/models/`, `src/scripts/`, `notebooks/`, `pyproject.toml` entry points, `experiment-decisions.md`, `Experiments.md`).
+After bootstrap, run `/deriva-ml:validate-project-setup` to confirm the project conforms to the expected layout (`src/configs/`, `src/models/`, `src/scripts/`, `notebooks/`, `pyproject.toml` entry points, `tacit-knowledge.md`, `Experiments.md`).
 
 The next steps are typically:
 

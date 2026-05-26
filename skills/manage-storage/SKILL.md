@@ -194,7 +194,7 @@ report = ml.commit_pending_executions(execution_rids=None, clean_folder=False)
 
 `commit_pending_executions` is idempotent under the same `match_by_columns` dedup as `commit_output_assets()`, so re-running it after a partial failure picks up the failed rows and leaves already-uploaded ones alone. This is the right call when several runs accumulated staged work over a session.
 
-For brand-new work (not resuming), copy `basic_execution.py` and run it; the relationship to the prior run lives in `experiment-decisions.md`, not in the catalog automatically.
+For brand-new work (not resuming), copy `basic_execution.py` and run it; the relationship to the prior run lives in `tacit-knowledge.md`, not in the catalog automatically.
 
 ### After successful upload, clean up
 
