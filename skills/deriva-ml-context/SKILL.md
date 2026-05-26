@@ -18,6 +18,17 @@ Sync") for the full convention. Inheritance-rule rationale: ADR-0001.
 
 DerivaML is a **reproducible-ML layer built on top of Deriva catalogs**. It records the full provenance of every ML run — inputs, code versions, configurations, outputs, and intermediate artifacts — as first-class catalog entities so that experiments can be reproduced, audited, compared across users, and resumed across sessions.
 
+### Experiments live in GitHub repositories
+
+DerivaML organizes ML activities into **experiments**. An experiment is a **GitHub repository** that holds the *executable* and *human-readable* sides of a research project; the catalog stores the *what* (data, RIDs, lineage), the experiment repository stores the *how* and the *why*:
+
+- **Code** — model implementations, data-loading scripts, notebooks.
+- **Configuration** — hydra-zen configs (Python, not YAML) declaring which catalog, which datasets, which workflow, which hyperparameters.
+- **Tacit knowledge** — `tacit-knowledge.md` (project root) capturing the *why* behind decisions, dead ends explored, and the project's conventions. See `/deriva-ml:capture-tacit-knowledge` for the discipline.
+- **Provenance link** — every execution from this repo records the git commit hash on the `Workflow` row, so a result can be traced to the exact code that produced it.
+
+Bootstrap a new experiment from [`deriva-ml-model-template`](https://github.com/informatics-isi-edu/deriva-ml-model-template) — it provides hydra-zen scaffolding, CLI entry points (`deriva-ml-run`, `deriva-ml-run-notebook`), GitHub Actions for versioning and docs, and an example model (CIFAR-10) you can replace with your own.
+
 The DerivaML stack:
 
 - **`deriva-ml`** — the Python library; provides the `DerivaML` class, `Workflow`, `ExecutionConfiguration`, dataset / feature / asset APIs, and the `with ml.create_execution(config) as exe:` context manager pattern.
