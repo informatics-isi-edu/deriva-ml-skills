@@ -342,7 +342,7 @@ Capture the relationship in `experiment-decisions.md`:
 - **What changed**: <code fix, config change, or "nothing — retry of transient failure">
 ```
 
-The `maintain-experiment-notes` skill auto-fires when you do this and will append the entry. The link is your responsibility — `deriva_ml_get_lineage` walks data-flow parents (what produced what) but does not know "execution X is the recovery for execution Y."
+The `capture-tacit-knowledge` skill auto-fires when you do this and will append the entry. The link is your responsibility — `deriva_ml_get_lineage` walks data-flow parents (what produced what) but does not know "execution X is the recovery for execution Y."
 
 **Branch C — Recovery execution that claims the failed run's surviving outputs.** A subtler case: the failed run *did* produce some valid assets (e.g., it generated 80 prediction files before crashing on file 81), and you want to **re-use those 80 in a follow-on execution rather than re-generating them**.
 

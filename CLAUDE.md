@@ -82,7 +82,7 @@ The 27 skills divide into two shapes by invocation model. The split matters when
 - `deriva-ml-context` — always-on plugin context (the precedence principle, the five abstractions, the steering frame)
 - `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle` — auto-fire on broad lifecycle phrasings (dual-mode: also slash-typeable)
 - `model-development-workflow` — auto-fires when starting a project or onboarding
-- `maintain-experiment-notes` — auto-fires after significant decisions
+- `capture-tacit-knowledge` — auto-fires after significant decisions
 - `catalog-operations-workflow` — auto-fires before catalog mutations
 - `api-naming-conventions` — auto-fires when writing DerivaML Python code
 - `ml-data-engineering` — auto-fires when designing data egress for ML pipelines

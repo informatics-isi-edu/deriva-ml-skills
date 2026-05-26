@@ -37,12 +37,12 @@ The validation walks five categories. For each item, report **present**, **parti
 | `src/` | present | Python source tree |
 | `notebooks/` | present | Jupyter notebook directory (may be empty if the project doesn't use notebooks) |
 | `tests/` | present | Test suite directory |
-| `experiment-decisions.md` | present | Auto-maintained by `maintain-experiment-notes`; captures decisions over time |
+| `experiment-decisions.md` | present | Auto-maintained by `capture-tacit-knowledge`; captures decisions over time |
 | `Experiments.md` | present (optional but strongly recommended) | Human-readable registry of named experiments and multiruns |
 | `README.md` | present | Project description (may be the template's default; flag if so) |
 | `.gitignore` | present | Should ignore `outputs/`, `multirun/`, `.deriva-ml/`, etc. |
 
-**Common gaps:** missing `experiment-decisions.md` (suggest creating an empty file with a one-line header so `maintain-experiment-notes` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`).
+**Common gaps:** missing `experiment-decisions.md` (suggest creating an empty file with a one-line header so `capture-tacit-knowledge` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`).
 
 ### 2. The `src/configs/` directory
 
@@ -116,7 +116,7 @@ Top-level layout: 7 of 9 present
   ✅ src/
   ✅ notebooks/
   ✅ tests/
-  ❌ experiment-decisions.md — create an empty file with a header so maintain-experiment-notes has somewhere to write
+  ❌ experiment-decisions.md — create an empty file with a header so capture-tacit-knowledge has somewhere to write
   ⚠️ Experiments.md — exists but appears stale (last updated before recent experiments added); regenerate from src/configs/experiments.py and src/configs/multiruns.py
   ✅ README.md
   ✅ .gitignore
