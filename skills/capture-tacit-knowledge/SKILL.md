@@ -60,11 +60,12 @@ Every claim in an entry should be readable as one of three things: *what was dir
 
 ## Entry header
 
-Every entry starts with a three-line header that gives the entry a stable identifier, places it in time, and names its antecedents. This header lets future entries reference *this* entry, and lets a future reader walk back through the chain of supporting decisions.
+Every entry starts with a four-line header that gives the entry a stable identifier, places it in time, names its author, and names its antecedents. This header lets future entries reference *this* entry, lets a future reader walk back through the chain of supporting decisions, and aligns the file's attribution with the catalog's `RMB` (Row-Modified-By) column so the same human is named the same way in both systems.
 
 ```markdown
 ### tk-NNN — <short descriptive title> (<entity RID if applicable>)
 **When:** <ISO 8601 timestamp with timezone>
+**By:** <display name> (<identity URI>)
 **Supported by:** <list of prior tk-NNN entries, with parenthetical phrases>
 ```
 
@@ -87,6 +88,24 @@ Format: ISO 8601 with timezone, e.g. `2026-05-26T14:32:00-07:00`. The agent popu
 - Same-day decision chains (entries written minutes apart in one session) need ordering finer than dates.
 - Timestamps align with catalog event times — useful when an entry references "execution 8KG that finished at 14:32" and was written "at 14:45" (entry written while the run was fresh, not days later as reconstruction).
 - ISO 8601 sorts lexically as strings; no parsing required to order entries by time.
+
+### `**By:**` — required decision attribution
+
+Every entry has a `**By:**` line naming the human(s) the decision is attributable to. This field is **required** — not optional — because back-attribution is unreliable: once an entry exists without an author, no future reader can recover who made the call, and the file accumulates anonymous entries that can never be properly cited. Making it required at write-time prevents that drift.
+
+**Source priority** for populating the field:
+
+1. **Authenticated catalog identity (preferred).** If the agent has an active catalog session, use the same identity the catalog would record in the `RMB` (Row-Modified-By) column for a write from this session. Format: `<display name> (<Globus identity URI>)`, e.g. `Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)`. This makes the file's author field byte-identical to what the catalog records, so a tooling pass can correlate entries with their corresponding `Workflow` / `Execution` / `Dataset_Version` rows by author.
+2. **Git config fallback.** If no catalog session is active, fall back to `git config user.name` + `git config user.email`. Format: `Carl Kesselman (carl@isi.edu)`.
+3. **Explicit `unknown`.** If neither is available, write `unknown` — and prompt the user to set git config or authenticate. Don't guess.
+
+**Multiple deciders.** When a decision is jointly owned (e.g., a clinical curation choice between an ML developer and a pathologist), name both, comma-separated:
+
+```markdown
+**By:** Dr. Pathologist (https://auth.globus.org/...), Carl Kesselman (https://auth.globus.org/...)
+```
+
+**No author names in titles.** Don't write `### tk-042 — Carl's CIFAR animal subset`. The `**By:**` field is the canonical attribution; embedding the name in the title duplicates the field and forces edits to the title if attribution changes (e.g., a second decider is added later).
 
 ### `**Supported by:**` — optional list of antecedent entries
 
@@ -138,6 +157,7 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 - **Append new entries at the bottom.** The file reads top-to-bottom as the project's history; chronology is the structure.
 - **Title starts with `tk-NNN`**, the entry's unique identifier (see "Entry header" above). The next entry's number is one more than the highest existing `tk-NNN` in the file.
 - **No dates in titles.** Time information lives in the `**When:**` header field, not the title; embedding a date in the title duplicates that field and rots if the entry is later edited.
+- **No author names in titles.** Attribution lives in the `**By:**` header field. Embedding a name in the title (`### tk-042 — Carl's animal subset`) duplicates the field and forces a title edit if attribution changes (e.g., adding a second decider).
 - **Title includes the durable catalog handle in parentheses** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts:
    - Model run → **execution RID** (`### tk-042 — ... (execution 8KG)`)
    - Feature creation → **feature RID** (`### tk-043 — ... (feature 9PQ4)`)
@@ -206,6 +226,7 @@ The rule of thumb: **if the catalog could go stale and break what you wrote, the
 ```markdown
 ### tk-007 — First end-to-end CIFAR-10 run on localhost catalog 1407 (execution 8KG)
 **When:** 2026-04-12T15:22:00-07:00
+**By:** Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
 **Supported by:** tk-003 (created the labeled split this run consumed)
 
 Hypothesis: the cifar10_e2e schema, dataset 7KE, and the deriva-ml-run
@@ -230,6 +251,7 @@ domain-meaningful accuracy comparison starts.
 ```markdown
 ### tk-018 — QC status feature added to Image table (feature 9PQ4)
 **When:** 2026-04-23T10:05:00-07:00
+**By:** Dr. Pathologist (https://auth.globus.org/d4e8f200-9c2b-4a1d-bf3e-1234567890ab), Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
 
 Created `QC_Status` on `Image` (table 5-AB12, ~3,200 rows) backed by a
 new `Image_QC_Status` vocabulary (9PR0) in the `histopath` schema —
@@ -253,6 +275,7 @@ images the pathologists have flagged unusable.
 ```markdown
 ### tk-026 — Tried stain_type as model input; abandoned (execution 3-XYZ)
 **When:** 2026-05-04T09:18:00-07:00
+**By:** Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
 **Supported by:** tk-007 (baseline 8KG run this is compared against), tk-018 (QC_Status feature is the well-typed alternative to stain_type for model input)
 
 Hypothesis: adding the stain_type categorical (H&E vs IHC vs Trichrome)
@@ -281,6 +304,7 @@ User just created an animals-only subset of `cifar10_complete` and didn't articu
 ```markdown
 ### tk-042 — Created cifar10_animals_subset (DAP) at 0.2.0
 **When:** 2026-05-25T16:08:00-07:00
+**By:** Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
 **Supported by:** tk-019 (created cifar10_labeled_split that this filters from), tk-038 [inferred from pattern] (Developer handoff named confusion-matrix work)
 
 300-image filter of cifar10_complete to {bird, cat, deer, dog, frog,
