@@ -1,6 +1,6 @@
 {
   "name": "deriva-ml",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "Skills for DerivaML ML workflows — dataset lifecycle, executions, features, experiments, asset management, and Hydra-zen configs. Requires the deriva-ml-mcp MCP plugin. Auto-installs the companion deriva-skills (deriva) plugin.",
   "author": {
     "name": "ISI Informatics",
