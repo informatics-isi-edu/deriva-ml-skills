@@ -10,7 +10,16 @@ user-invocable: false
 
 **Don't ask this file for catalog-stored facts.** If the question is *what* — what datasets exist, what vocabulary terms are defined, what assets a workflow produced, which version of a dataset is current — fetch the catalog directly (`deriva://catalog/{host}/{cat}/ml/...` resources first; tools next). If the question is *why* — why this dataset was created, why this hyperparameter was chosen, why a previous approach was abandoned — read this file. Entries reference catalog entities by RID and short link, not by inlining their contents.
 
-This file is also the **cross-domain bridge** on multidisciplinary teams. The ML designer writes entries the domain expert needs to act on; the domain expert writes entries the ML designer needs to act on. Neither writes only for themselves. The entry conventions below name this responsibility explicitly.
+This file is also the **cross-domain bridge** on multidisciplinary teams. The ML designer writes entries the domain expert needs to *understand* (and vice versa) — not directives for the other discipline to act on. Each entry captures decisions and their rationale in language the other side can read; what the reader chooses to do with that understanding is their decision, in their own time. Neither side writes only for themselves. The entry conventions below name this responsibility explicitly.
+
+## What this file is not
+
+- **Not a TODO list.** Don't write "Analyst should run roc_analysis next" or "we need to release dataset X." Those are workflow directives aimed at a specific person at a specific time; they belong in handoff sections, issue trackers, or a task tool — not here. This file records what *was* decided, not what *should* be done.
+- **Not a process or workflow specification.** Don't write step-by-step procedures for a future contributor to follow. Skills, README files, and runbooks own that material. The exception is **recurring-pattern entries** — see Conventions: *"whenever we do X, we also do Y because Z"* is tacit knowledge about a project convention, not a directive. The form is observational ("the pattern in this project is..."), not imperative ("you should...").
+- **Not a status board.** Don't write "in progress: training run X." Catalog `Execution_Status` carries that, and it changes; this file's entries don't change once written. If the run finishes, the next entry could reference the *settled outcome*, not a transient state.
+- **Not a replacement for the catalog.** See "What doesn't belong here" below — RIDs, versions, vocab contents, schema shape, lineage edges all live in the catalog. This file links to them, doesn't replicate them.
+
+The unifying rule: **entries are past-tense, settled records.** If something might change tomorrow, it doesn't belong here — it belongs in the system that's actually responsible for that state. This file accumulates; it doesn't track.
 
 ## When to write
 
@@ -44,7 +53,8 @@ Every entry should answer:
 2. **Hypothesis or question** the entry was meant to answer. For non-run events (feature creation, schema change, vocabulary addition, dataset construction) this is the *use case the change exists to serve* — what does this enable, what was missing before — rather than a literal hypothesis.
 3. **Reasoning** — what led to this configuration, in plain language. **Spell out one term-of-art per entry that a reader from the other discipline wouldn't know** — either inline ("label smoothing 0.1 — softens hard 0/1 targets to discourage overconfidence") or as a parenthetical. The entry's job is to be readable by the discipline you're *not* in. The catalog has the precise numbers.
 4. **Immediate observations** *when applicable* — cheap-to-record facts that would be awkward to retrieve later (wall-clock time, headline metric the run printed, anomalies). For schema and feature changes there usually are no observations at write-time; skip part 4 rather than padding it.
-5. **Implications for collaborators** *when applicable* — what this means for someone in the *other* discipline. If an ML run produced something a domain expert should know about ("at this accuracy, roughly 8% of slides would surface below 0.5 confidence — that's the queue the QC team would absorb"), say so. If a schema change affects how ML configs reference the data ("training scripts that read `Subject.age` need to migrate to `Subject.age_at_intake`"), say so. Skip this part when the change is purely internal to one discipline.
+5. **Consequences for downstream readers** *when applicable* — factual statements about what this decision means for someone in the *other* discipline, **stated as facts, not as directives**. Past or present tense, never imperative. If an ML run produced something a domain expert should know about, say so factually ("at this accuracy, roughly 8% of slides surface below 0.5 confidence — the queue size the QC team would see if this model were used for triage"). If a schema change affects how ML configs reference the data, say so factually ("after this change, `Subject.age` no longer exists; the equivalent column is `Subject.age_at_intake`"). Skip this part when the change is purely internal to one discipline. The reader decides what to *do* about the consequence; this section's job is to make sure they know.
+6. **Weighed alternatives** *when alternatives were genuinely considered* — what else was on the table, and what ruled them out. This is the **comparative-judgment layer**: a future reader needs to see *what was compared*, not just *what was picked*. **Never fabricate this section.** If the reasoning trace doesn't show alternatives, write nothing here, or write `**Weighed alternatives:** *(none captured — choice was [observed] without an articulated comparison)*`. See "Provenance markers" below and "When to inquire" for how to handle uncertain cases.
 
 **Conclusions are optional and can be deferred.** At write-time you usually have a hypothesis and reasoning, not a settled "what this means." Don't fabricate. Conclusions show up later in whichever entry the reasoning crystallizes in — sometimes the very next run, sometimes much later. A single prior run can spawn multiple follow-ups exploring different angles. Refer back by execution RID so a reader can navigate the chain in either direction.
 
@@ -62,9 +72,52 @@ Every entry should answer:
 
   Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
 - **Dead ends explored.** When alternatives were weighed, state what was rejected and why. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team — the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. **Standalone dead-end entries are valid** — if you tried something, abandoned it, and there's no successor decision yet, that's still a complete entry. Title it after the dead-end action itself ("### Tried stain_type as model input; abandoned (execution 3-XYZ)").
+- **Recurring patterns are also valid.** Entries of the form *"whenever we do X in this project, we also do Y because Z"* are tacit knowledge about the project's conventions — not directives. They're statements about *what this project's pattern is*, written for a future reader who's about to do X and would benefit from knowing the pattern exists. Example: "### Convention — releasing a dataset bumps `src/configs/datasets.py` (rationale: experiment configs pin by version, so a release that isn't reflected in the config is unreachable from runners)." The reader chooses whether to follow the pattern; the entry explains why the pattern exists.
 - **Reference RIDs** for catalog entities; include quantitative evidence (counts, sizes) when known.
-- **Length is set by content.** Long enough to answer 1–5 above; short enough to scan in one pass (~5–15 lines in practice).
+- **Length is set by content.** Long enough to answer 1–6 above; short enough to scan in one pass (~5–15 lines in practice).
 - Past tense — these are settled records, not plans.
+
+## Provenance markers
+
+Every claim in an entry should be readable as one of three things: *what was directly stated*, *what the agent inferred from evidence*, or *what was observed without articulated reasoning*. Default (unmarked) prose is "stated" — the user said this, or the entry's author wrote it directly. Use the explicit markers below for everything else.
+
+| Marker | When to use |
+|---|---|
+| (none) | The user or author directly stated this. The default reading of unmarked prose. |
+| **`[inferred from action]`** | The agent inferred this *fact* from the user's observable actions during the session (e.g., they opened a feature table, then moved on without curating). The action is the evidence. |
+| **`[inferred from pattern]`** | The agent inferred this *reason* from prior knowledge, prior entries in this file, or general domain pattern-matching — not from anything the current user actually did or said. The riskiest class; reader-beware. |
+| **`[observed]`** | The action happened; no rationale was articulated and none was inferred. The honest "we just did it" record. |
+
+**The `[inferred from pattern]` marker is the riskiest and most fabrication-prone class.** It marks the agent's best guess based on domain knowledge or pattern-matching, not on evidence from this session. A future reader should treat these claims with the same skepticism they'd apply to an LLM's free-form rationalization. Prefer to omit the claim entirely if the pattern-inference is weak; prefer to ask the user to confirm if the claim is load-bearing (see "When to inquire" below).
+
+`[observed]` is not failure. The collective tacit often *doesn't* have a verbalizable explanation. "The author created DAP without articulating a comparison" is a valid, complete record — better than a fabricated rationale. Don't be embarrassed by `[observed]`; it's how honest entries about tacit work look.
+
+## When to inquire
+
+The skill may raise a clarifying question to the user when writing an entry. The agent is *allowed* to inquire in either interactive or autonomous mode — inquiry is distinct from a checkpoint pause, and the test plan's mode flag governs checkpoints, not inquiry. But inquiry is bounded:
+
+- **At most one question per entry.** If multiple ambiguities exist, the agent picks the highest-leverage one to ask about and uses provenance markers for the rest.
+- **Only when the answer would materially improve a load-bearing claim.** Cosmetic gaps stay gaps. A `[inferred from pattern]` claim that doesn't affect a future decision isn't worth a question.
+- **Confirmatory shape only — never interrogative.** The question must be answerable by yes / no / correction, not by open-ended self-attribution. The user often *can't* honestly answer "why did you do X?" — they just did it. Asking the open form invites confabulation, which is worse than `[observed]` honesty.
+
+**Inquiry shape:**
+
+| ✅ Confirmatory | ❌ Interrogative |
+|---|---|
+| "I'm about to write that you chose CS0 over CSA because CS0 carries stratified labels. Is that the characterization, a different one, or no articulated reason?" | "Why did you choose CS0?" |
+| "I'm inferring this split's rationale is variance-control. Confirm, correct, or 'just did it'?" | "What's the rationale for this split?" |
+| "I see traces suggesting you considered the vehicles-only subset. Was that on the table, or was the choice between animals-only and 10-class from the start?" | "What alternatives did you consider?" |
+
+**Response → marker mapping:**
+
+| User response | Marker becomes |
+|---|---|
+| "Yes / correct" | (none — promote to stated) |
+| "Different reason — actually [X]" | (none — record X as stated) |
+| "No reason / I just did it / I don't remember" | `[observed]` for the fact; drop any inferred rationale |
+| "I didn't consider that alternative" | Remove the inferred alternative entirely |
+
+This pairwise confirmation matches the Law of Comparative Judgment: humans can reliably answer "is this the better characterization?" but unreliably answer "what is the absolute reason?" Confirmatory inquiry preserves *"I just did it"* as a valid answer.
 
 ## What doesn't belong here
 
@@ -148,6 +201,42 @@ Implications for collaborators: the catalog still has the `stain_type`
 column on Image — keep populating it (it's correct curation), just
 don't pipe it into models without a multi-site dataset.
 ```
+
+### Example 4 — Confirmatory inquiry promoting an `[inferred from pattern]` claim
+
+User just created an animals-only subset of `cifar10_complete` and didn't articulate alternatives. The agent's reasoning trace shows the user opened the vehicle-class feature values mid-session before moving on. The agent is about to write the entry.
+
+**Agent's draft** *(before inquiry)*:
+
+```markdown
+### Created cifar10_animals_subset (DAP) at 0.2.0
+
+300-image filter of cifar10_complete to {bird, cat, deer, dog, frog,
+horse}, 50/class. Reserved for the Analyst's confusion-matrix work.
+
+Weighed alternatives:
+- Balanced 10-class subset — rejected: doesn't isolate the
+  intra-animal confusion mode.
+- [inferred from action] Vehicles-only subset was considered (author
+  opened the vehicle feature values mid-session) and dropped without
+  an articulated reason. [inferred from pattern] *possibly* because
+  per-class visual variance within vehicles is higher than within
+  animals in CIFAR-10; not confirmed by author.
+```
+
+The agent notices that the second alternative carries an `[inferred from pattern]` claim about *why* vehicles-only was rejected — load-bearing, because a future reader trying to understand the curation strategy would treat the variance-reasoning as a stated principle. Per "When to inquire," it asks (one question, confirmatory shape):
+
+> "I'm about to write that you considered the vehicles-only subset and rejected it because per-class visual variance is higher in vehicles than in animals. Is that the reason, a different reason, or no articulated reason?"
+
+**Three response paths:**
+
+| User response | Agent's entry update |
+|---|---|
+| "Yes, that's right" | Promote `[inferred from pattern]` → unmarked. The variance reasoning is now stated. |
+| "I rejected vehicles-only because the Analyst said the confusion mode they care about is cat-vs-dog, not truck-vs-car" | Drop the variance inference. Record the user's stated reason. |
+| "I don't remember / I just clicked through and went with animals" | Keep `[inferred from action]` on the fact (the action trace shows it was considered). Drop the `[inferred from pattern]` reasoning entirely. Final entry's alternative reads: `[observed]` Vehicles-only subset was considered (author opened the feature table mid-session) and dropped without an articulated reason. |
+
+The third response is *not failure* — it's the honest tacit-knowledge record. A future reader sees "this was on the table; no recorded reason" and can choose to re-open the comparison if relevant. The agent has resisted fabricating a plausible-sounding rationale to fill the gap.
 
 ## Worked example — Mode A firing on a proposed action
 
