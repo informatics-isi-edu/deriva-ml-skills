@@ -34,7 +34,7 @@ The phase no other skill owns. Before writing any config, settle:
 - **What's the success criterion?** A run finishes either confirming the hypothesis, refuting it, or being inconclusive. Knowing in advance which is which prevents post-hoc rationalization.
 - **What's the cost budget?** Roughly how much compute, how many GPU-hours, how many cycles before you stop iterating regardless of result? This bounds the next phases.
 
-**Deliverable:** the hypothesis written down in `experiment-decisions.md`. The `capture-tacit-knowledge` skill auto-fires when you make decisions during this phase and will capture them; the lifecycle's job is to make sure you actually *make* the decision before moving on.
+**Deliverable:** the hypothesis written down in `tacit-knowledge.md`. The `capture-tacit-knowledge` skill auto-fires when you make decisions during this phase and will capture them; the lifecycle's job is to make sure you actually *make* the decision before moving on.
 
 If you can't answer the four questions above, do not advance to phase 2. The most expensive failure mode in ML experimentation is running an experiment that, regardless of result, doesn't tell you anything about your hypothesis. The cost of writing the hypothesis down is small; the cost of finding out you tested the wrong thing after running the cycle is large.
 
@@ -93,12 +93,12 @@ What this phase adds to the catalog: usually nothing new (the run already added 
 
 Compare this cycle's results against the hypothesis from phase 1. Two paths depending on scope:
 
-- **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(hostname=..., catalog_id=..., execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `experiment-decisions.md` (auto-fired by `capture-tacit-knowledge`).
+- **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(hostname=..., catalog_id=..., execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `tacit-knowledge.md` (auto-fired by `capture-tacit-knowledge`).
 - **Multi-run comparison** — comparing this cycle to previous cycles or to a sweep. Hand off to `/deriva-ml:compare-model-runs` for the ranking/aggregation logic.
 
 > **Surfacing prior runs of the same kind:** `deriva_ml_list_executions(hostname=..., catalog_id=..., workflow_type="Training", sort=True)` returns every training execution across every workflow in newest-first order — one call instead of "enumerate workflows of that type, then page each one's executions". Pair with `status="Uploaded"` if you only want successful runs. The same `workflow_type=` filter works for `Inference`, `Evaluation`, `Annotation`, etc. — anything in your `Workflow_Type` vocab.
 
-What this phase adds to the catalog: typically nothing — evaluation reads existing artifacts. The new content goes into `experiment-decisions.md` (your notebook of results-and-interpretations).
+What this phase adds to the catalog: typically nothing — evaluation reads existing artifacts. The new content goes into `tacit-knowledge.md` (your notebook of results-and-interpretations).
 
 **Failure-mode triage** — if the run failed, the cause is usually one of:
 

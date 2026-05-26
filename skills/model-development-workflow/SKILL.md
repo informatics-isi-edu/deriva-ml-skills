@@ -289,7 +289,7 @@ uv run deriva-ml-run +multirun=lr_sweep
 1. Verify all child executions completed (for multiruns)
 2. Check output assets exist and have expected sizes
 3. Record the **execution RID** and a one-line characterization of what the
-   run was for in `experiment-decisions.md` (via the `capture-tacit-knowledge`
+   run was for in `tacit-knowledge.md` (via the `capture-tacit-knowledge`
    skill). The execution RID is the durable anchor — assets, features, status,
    inputs, and the workflow's git commit hash all hang off it. Do not
    enumerate asset RIDs in the notes; they go stale and the catalog already
@@ -328,7 +328,7 @@ ML development is iterative. After each production run:
 Cross-cutting across all phases — applies whenever you're committing code that an execution will eventually run.
 
 - **Use feature branches for all work** — `git checkout -b feature/add-segmentation-model`. Keep `main` clean and passing.
-- **Use pull requests, even solo** — PRs create a permanent record of what changed and why. The PR description becomes part of the project's institutional memory alongside `experiment-decisions.md`. With the [GitHub CLI (`gh`)](https://cli.github.com/) installed, Claude can create PRs, review diffs, and merge directly from the terminal.
+- **Use pull requests, even solo** — PRs create a permanent record of what changed and why. The PR description becomes part of the project's institutional memory alongside `tacit-knowledge.md`. With the [GitHub CLI (`gh`)](https://cli.github.com/) installed, Claude can create PRs, review diffs, and merge directly from the terminal.
 - **Commit before running** — DerivaML enforces git-clean for executions (`DerivaMLDirtyWorkflowError`). Use `--allow-dirty` only for debugging iterations; the resulting execution has degraded provenance. See `/deriva-ml:execution-lifecycle` for the canonical commit-before-running discipline.
 
 ## Extending DerivaML

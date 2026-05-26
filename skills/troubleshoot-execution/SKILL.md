@@ -332,7 +332,7 @@ uv run python src/scripts/<task>.py \
     # any fixes go here ...
 ```
 
-Capture the relationship in `experiment-decisions.md`:
+Capture the relationship in `tacit-knowledge.md`:
 
 ```
 ## Recovery: <new-rid> replaces failed <bad-rid>
@@ -371,7 +371,7 @@ Use this when:
 
 Whichever branch you pick, two follow-ups apply:
 
-1. **Capture the decision in `experiment-decisions.md`.** Even the routine "transient failure → salvage" case is worth a one-line note ("Run X failed at upload due to network blip; salvage succeeded"). For Branches B/C the relationship between the failed execution and the recovery execution lives only in your notes.
+1. **Capture the decision in `tacit-knowledge.md`.** Even the routine "transient failure → salvage" case is worth a one-line note ("Run X failed at upload due to network blip; salvage succeeded"). For Branches B/C the relationship between the failed execution and the recovery execution lives only in your notes.
 2. **Verify the result.** Call `deriva_ml_get_execution` on the failed execution to confirm its terminal state — `Uploaded` if you salvaged it (Branch A), unchanged `Failed`/`Aborted` if you left it as-is. Then call `deriva_ml_get_execution` on the recovery execution (Branches B/C) and confirm it's progressing normally. Use `deriva_ml_get_lineage` on a recovery output to confirm the provenance chain looks right.
 
 **What you should NOT do:**

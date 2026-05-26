@@ -182,7 +182,7 @@ git push -u origin feature/my-model
 gh pr create --title "Add my_model training pipeline" --body "..."
 ```
 
-**Use a PR even if you're the only developer.** PRs create a permanent record of what changed and why — this is especially valuable for ML projects where you may need to trace back why a model was structured a certain way months later. The PR description becomes part of the project's institutional memory alongside `experiment-decisions.md`.
+**Use a PR even if you're the only developer.** PRs create a permanent record of what changed and why — this is especially valuable for ML projects where you may need to trace back why a model was structured a certain way months later. The PR description becomes part of the project's institutional memory alongside `tacit-knowledge.md`.
 
 The PR should include:
 - Model function (`src/models/`)
