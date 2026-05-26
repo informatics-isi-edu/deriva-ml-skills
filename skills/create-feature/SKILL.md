@@ -261,6 +261,8 @@ print(f"Total values: {len(all_values)}, from {len(executions)} execution(s): {e
 
 If multiple executions contributed, present only the relevant selector options based on the provenance check (e.g., offer "by workflow type" only if executions span different workflow types; offer "majority vote" only if multiple annotators have the same target).
 
+> **Heads-up for analysts asking for "a wide table with the labels inlined".** If a feature has been written by multiple executions, including its feature table in `Dataset.get_denormalized_as_dataframe(include_tables=[...])` produces one row per *annotation*, not one row per anchor — the join's correct relational semantics, but almost never what the caller wanted. The right pattern is to denormalize the anchor on its own, fetch feature values via `ml.feature_values(...)`, apply a selector to collapse to one row per anchor, and join in pandas. See `/deriva-ml:ml-data-engineering` denormalize-guide "Decisions Before Calling Denormalize" → Shape C.
+
 ## Integration with Datasets
 
 - **In dataset bags** — feature values for dataset members are automatically included in BDBag exports

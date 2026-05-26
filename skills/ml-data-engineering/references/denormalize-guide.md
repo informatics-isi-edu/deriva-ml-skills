@@ -67,6 +67,82 @@ Returns `columns`, `join_path`, `tables` (with `row_count`, `is_asset`, `asset_b
 | Catalog (MCP tool, `Dataset.denormalize_as_dataframe`) | `Table_Column` | `Image_Filename`, `Subject_Age` |
 | Bag (`DatasetBag.denormalize_as_dataframe`) | `Table.Column` | `Image.Filename`, `Subject.Age` |
 
+## Decisions Before Calling Denormalize
+
+**Denormalize is a relational join.** It emits one row for every matching combination across the joined tables — there is no "row per anchor" knob. If you ask for a wide table joining `Image` to a feature table that has 7 feature values per image, you get 7 × (image count) rows, with image columns repeated. That's a correct denormalize result, but it's almost never the shape an analyst actually wants for a per-anchor wide table. Decide which of the three shapes below you want **before** calling, then pick the corresponding pattern.
+
+### Shape A — One row per anchor, anchor + child columns inlined
+
+Use when you want one row per Image/Subject/whatever with values from related tables in extra columns — the classic "wide DataFrame for analysis."
+
+**Works cleanly only when each related table has at most one row per anchor.** Examples that fit: `Image ⋈ Acquisition_Metadata` (one acquisition row per image), `Subject ⋈ Demographics` (one demographics row per subject). The join emits one row per anchor naturally.
+
+**Doesn't work for multi-write features.** If `Image_Classification` has been written by multiple Executions (e.g. 1 ground-truth + 6 prediction executions = 7 rows per image), don't include that feature table in `include_tables`. Use Shape C instead — denormalize the anchor, fetch features separately, then join in pandas.
+
+```python
+# Shape A — cross-sectional analysis frame
+df = dataset.get_denormalized_as_dataframe(
+    include_tables=["Image", "Acquisition_Metadata"],
+)
+# Row count == number of Image members. Acquisition_Metadata columns
+# inlined; image columns appear once per image.
+```
+
+### Shape B — One row per child entity (e.g. one row per annotation event)
+
+Use when you want every annotation, prediction, or measurement event as its own row — the "provenance browse" or "every-write-as-a-row" shape. Each child row carries the anchor's columns, repeated.
+
+This is **the default `row_per` auto-inference for multi-write features**, and it's the correct call when you want to see all writes side by side.
+
+```python
+# Shape B — one row per annotation
+df = dataset.get_denormalized_as_dataframe(
+    include_tables=["Image", "Execution_Image_Image_Classification"],
+)
+# For a feature with 7 writers per image, this is 7 × image_count rows.
+# Each row carries image columns + one feature value + its producing Execution.
+# Group/pivot in pandas if you want a wide-per-anchor view.
+```
+
+### Shape C — One row per anchor, features fetched separately
+
+Use when you want Shape A's shape but you need data from a multi-write feature. Don't ask denormalize to inline it — call `feature_values()` separately, select/aggregate to one row per anchor in your code, then join.
+
+```python
+# Step 1: anchor-only wide frame (Shape A pattern)
+anchors = dataset.get_denormalized_as_dataframe(
+    include_tables=["Image"],
+)
+
+# Step 2: fetch the feature values via the feature API
+labels = pd.DataFrame(
+    r.model_dump() for r in ml.feature_values("Image", "Image_Classification")
+)
+
+# Step 3: select / aggregate / pivot to one row per anchor
+gt_only = labels[labels["Confidence"].isna()]  # ground truth (no predicting model)
+# or:  latest = labels.sort_values("RCT").drop_duplicates("Image", keep="last")
+# or:  pivoted = labels.pivot(index="Image", columns="Execution", values="Image_Class")
+
+# Step 4: join
+df = anchors.merge(gt_only, left_on="Image_RID", right_on="Image", how="left")
+```
+
+The `feature_values()` API is the right tool for "give me the values of this feature." The `create-feature` skill documents selection patterns (by execution, by latest write, by confidence threshold) — reuse those for step 3.
+
+### Decision summary
+
+| Question | Answer | Shape |
+|---|---|---|
+| Do you want one row per anchor (Image, Subject, etc.)? | Yes; child tables have ≤1 row per anchor | A |
+| Do you want one row per annotation/measurement event? | Yes | B |
+| Do you want one row per anchor but feature has multiple writers per anchor? | Use feature_values() and join in pandas | C |
+| Do you want longitudinal columns (`obs_t1`, `obs_t2`)? | Pivot in pandas after Shape B | C |
+| Just need the column list, no data? | `denormalize_columns()` | (any) |
+| Just need size estimates? | `describe()` / `deriva_ml_bag_info` | (any) |
+
+The cost of mis-picking is silent count inflation (Shape A used on multi-write data emits N × anchor rows; analysts who don't sanity-check anchor counts get wrong denominators). When in doubt, run `dataset.list_dataset_members()` to anchor your expected count, then check the denormalize row count matches.
+
 ## Discovering Columns Before Denormalizing
 
 Call `deriva_ml_denormalize_dataset` with just `include_tables` (no dataset RID, no limit) to preview the schema shape without fetching any data. This is fast and helps you:
