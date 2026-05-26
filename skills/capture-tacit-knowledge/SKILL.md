@@ -58,6 +58,61 @@ Every claim in an entry should be readable as one of three things: *what was dir
 
 `[observed]` is not failure. The collective tacit often *doesn't* have a verbalizable explanation. "The author created DAP without articulating a comparison" is a valid, complete record — better than a fabricated rationale. Don't be embarrassed by `[observed]`; it's how honest entries about tacit work look.
 
+## Entry header
+
+Every entry starts with a three-line header that gives the entry a stable identifier, places it in time, and names its antecedents. This header lets future entries reference *this* entry, and lets a future reader walk back through the chain of supporting decisions.
+
+```markdown
+### tk-NNN — <short descriptive title> (<entity RID if applicable>)
+**When:** <ISO 8601 timestamp with timezone>
+**Supported by:** <list of prior tk-NNN entries, with parenthetical phrases>
+```
+
+### `tk-NNN` — entry identifier
+
+Every entry gets a unique sequential identifier of the form `tk-NNN`, where `NNN` is a three-digit zero-padded integer (`tk-001`, `tk-002`, ..., `tk-042`, ...). The next entry's number is *one more than the highest existing `tk-NNN` in the file* — count from the file, not from the catalog.
+
+The identifier is stable because the file is append-only: nothing is ever renumbered, and `tk-042` always refers to the same decision. This stability is what makes the **Supported by** chain possible.
+
+`tk-NNN` is *the entry's* identifier — distinct from the catalog RID in the title. The title's RID identifies the *catalog artifact* the entry is about; `tk-NNN` identifies *the decision record itself*. Both coexist because they serve different lookup needs: `tk-019` lets entries point at other entries; `8KG` lets entries point at catalog artifacts.
+
+Three digits gives 999 entries before extending to four — more than enough headroom for any project. If a project ever reaches `tk-999`, the next entry is `tk-1000` and the file just gets a bit wider in that column.
+
+### `**When:**` — required ISO 8601 timestamp with timezone
+
+Every entry has a `**When:**` line giving the timestamp the decision was made (not the entry was last edited — subsequent edits to fix a typo don't update this field).
+
+Format: ISO 8601 with timezone, e.g. `2026-05-26T14:32:00-07:00`. The agent populates this from the system clock — no need to ask the user. Use full precision (date + time of day + timezone) because:
+
+- Same-day decision chains (entries written minutes apart in one session) need ordering finer than dates.
+- Timestamps align with catalog event times — useful when an entry references "execution 8KG that finished at 14:32" and was written "at 14:45" (entry written while the run was fresh, not days later as reconstruction).
+- ISO 8601 sorts lexically as strings; no parsing required to order entries by time.
+
+### `**Supported by:**` — optional list of antecedent entries
+
+When this decision was built on prior decisions captured in earlier entries, name them. Format: `tk-NNN (short parenthetical phrase naming what's being relied on)`, comma-separated for multiple. Example:
+
+```markdown
+**Supported by:** tk-019 (created the labeled split this filtered from), tk-038 (Developer handoff named confusion-matrix work)
+```
+
+Three things to know about this field:
+
+1. **Direction is backward only.** This field lists entries *this one was built on*, looking backward in time. The reverse direction ("what entries built on this one?") is recoverable by walking the graph — any entry that names `tk-019` in its `Supported by:` is a descendant of `tk-019`. There's no forward-pointing field.
+
+2. **Provenance markers apply.** A `Supported by:` reference can be `[stated]` (the author told me), `[inferred from action]` (the agent saw them read the prior entry before writing), or `[inferred from pattern]` (the agent guessed based on topic adjacency). Mark each reference if its provenance differs from the default (stated).
+
+3. **Optional, not required.** Not every entry has antecedents. The first few entries in a fresh project, conventions about external constraints, dead-end discoveries — these often have no prior entries to lean on. Write the entry without the `**Supported by:**` line in those cases.
+
+### Walking the chain
+
+Together, `tk-NNN` + `Supported by:` give every entry a place in a directed acyclic graph: nodes are entries, edges run from each entry to the ones it was built on. Tracing back from any entry yields a tree of support. The shape mirrors `deriva_ml_get_lineage` on a catalog artifact (which walks producing-execution back to root datasets) — this is the same idea applied to decisions.
+
+Practical uses of the chain:
+- "Why did we make this decision?" — walk `Supported by:` back to find the original constraint.
+- "What did we abandon?" — find dead-end entries that no later entry lists as `Supported by:`.
+- "What's the root cause of this project's current state?" — find entries no other entry supports.
+
 ## What an entry contains
 
 Each entry is a short markdown block describing one decision or run, anchored on the RID of the entity it's about. Entries answer questions like *why* a dataset / feature / split / config was chosen, *what* the goal of a run was, *how* the project arrived at the current configuration, and *where* a non-obvious decision came from.
@@ -81,22 +136,25 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 
 - **Heading level is `###`.** Each entry is a sibling under the file's top-level `# Tacit Knowledge` heading.
 - **Append new entries at the bottom.** The file reads top-to-bottom as the project's history; chronology is the structure.
-- **No dates in titles.** The entity RID carries its creation timestamp in the catalog; a date in the entry duplicates that and rots when the entry is later edited.
-- **Title includes the durable handle in parentheses** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts:
-   - Model run → **execution RID** (`### ... (execution 8KG)`)
-   - Feature creation → **feature RID** (`### ... (feature 9PQ4)`)
-   - Vocabulary addition (terms only) → **vocabulary RID** (`### ... (vocabulary 9PR0)`)
-   - Dataset creation or split → **dataset RID with version** (`### ... (dataset 7KE v0.4.0)`)
-   - Schema change → **table RID** (`### ... (table 5-AB12)`)
+- **Title starts with `tk-NNN`**, the entry's unique identifier (see "Entry header" above). The next entry's number is one more than the highest existing `tk-NNN` in the file.
+- **No dates in titles.** Time information lives in the `**When:**` header field, not the title; embedding a date in the title duplicates that field and rots if the entry is later edited.
+- **Title includes the durable catalog handle in parentheses** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts:
+   - Model run → **execution RID** (`### tk-042 — ... (execution 8KG)`)
+   - Feature creation → **feature RID** (`### tk-043 — ... (feature 9PQ4)`)
+   - Vocabulary addition (terms only) → **vocabulary RID** (`### tk-044 — ... (vocabulary 9PR0)`)
+   - Dataset creation or split → **dataset RID with version** (`### tk-045 — ... (dataset 7KE v0.4.0)`)
+   - Schema change → **table RID** (`### tk-046 — ... (table 5-AB12)`)
 
    Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
+
+   For entries that don't correspond to a single catalog artifact (conventions, recurring patterns, cross-cutting reasoning entries), the parenthetical handle can be omitted — the `tk-NNN` is sufficient identifier on its own.
 - **Length is set by content.** Long enough to answer the six entry parts; short enough to scan in one pass (~5–15 lines in practice).
 - Past tense — these are settled records, not plans.
 
 **Content principles:**
 
-- **Dead ends are valid standalone entries.** When alternatives were weighed and the chosen path didn't pan out, write the dead-end entry on its own — no successor decision required. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team: the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. Title it after the dead-end action itself (`### Tried stain_type as model input; abandoned (execution 3-XYZ)`).
-- **Recurring patterns are also valid.** Entries of the form *"whenever we do X in this project, we also do Y because Z"* are tacit knowledge about the project's conventions — not directives. They're statements about *what this project's pattern is*, written for a future reader who's about to do X and would benefit from knowing the pattern exists. Example: `### Convention — releasing a dataset bumps src/configs/datasets.py (rationale: experiment configs pin by version, so a release that isn't reflected in the config is unreachable from runners)`. The reader chooses whether to follow the pattern; the entry explains why the pattern exists.
+- **Dead ends are valid standalone entries.** When alternatives were weighed and the chosen path didn't pan out, write the dead-end entry on its own — no successor decision required. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team: the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. Title it after the dead-end action itself (`### tk-026 — Tried stain_type as model input; abandoned (execution 3-XYZ)`).
+- **Recurring patterns are also valid.** Entries of the form *"whenever we do X in this project, we also do Y because Z"* are tacit knowledge about the project's conventions — not directives. They're statements about *what this project's pattern is*, written for a future reader who's about to do X and would benefit from knowing the pattern exists. Example: `### tk-031 — Convention — releasing a dataset bumps src/configs/datasets.py` (rationale: experiment configs pin by version, so a release that isn't reflected in the config is unreachable from runners). The reader chooses whether to follow the pattern; the entry explains why the pattern exists. Convention entries usually have no catalog-RID handle in the parenthetical — the `tk-NNN` is sufficient identifier.
 - **Reference RIDs and include quantitative evidence** (counts, sizes) when known — but as evidence for the reasoning, not as a replacement for it. See "What doesn't belong here" below for what's catalog data vs. what's tacit.
 
 ## When to inquire
@@ -146,7 +204,9 @@ The rule of thumb: **if the catalog could go stale and break what you wrote, the
 ### Example 1 — A model run with cross-domain implications
 
 ```markdown
-### First end-to-end CIFAR-10 run on localhost catalog 1407 (execution 8KG)
+### tk-007 — First end-to-end CIFAR-10 run on localhost catalog 1407 (execution 8KG)
+**When:** 2026-04-12T15:22:00-07:00
+**Supported by:** tk-003 (created the labeled split this run consumed)
 
 Hypothesis: the cifar10_e2e schema, dataset 7KE, and the deriva-ml-run
 pipeline wired together cleanly against a freshly-seeded localhost
@@ -168,7 +228,8 @@ domain-meaningful accuracy comparison starts.
 ### Example 2 — A non-run event (no part-4 observations because nothing to observe at write-time)
 
 ```markdown
-### QC status feature added to Image table (feature 9PQ4)
+### tk-018 — QC status feature added to Image table (feature 9PQ4)
+**When:** 2026-04-23T10:05:00-07:00
 
 Created `QC_Status` on `Image` (table 5-AB12, ~3,200 rows) backed by a
 new `Image_QC_Status` vocabulary (9PR0) in the `histopath` schema —
@@ -190,7 +251,9 @@ images the pathologists have flagged unusable.
 ### Example 3 — A dead end (no successor decision)
 
 ```markdown
-### Tried stain_type as model input; abandoned (execution 3-XYZ)
+### tk-026 — Tried stain_type as model input; abandoned (execution 3-XYZ)
+**When:** 2026-05-04T09:18:00-07:00
+**Supported by:** tk-007 (baseline 8KG run this is compared against), tk-018 (QC_Status feature is the well-typed alternative to stain_type for model input)
 
 Hypothesis: adding the stain_type categorical (H&E vs IHC vs Trichrome)
 as a one-hot model input would let the network learn stain-specific
@@ -216,7 +279,9 @@ User just created an animals-only subset of `cifar10_complete` and didn't articu
 **Agent's draft** *(before inquiry)*:
 
 ```markdown
-### Created cifar10_animals_subset (DAP) at 0.2.0
+### tk-042 — Created cifar10_animals_subset (DAP) at 0.2.0
+**When:** 2026-05-25T16:08:00-07:00
+**Supported by:** tk-019 (created cifar10_labeled_split that this filters from), tk-038 [inferred from pattern] (Developer handoff named confusion-matrix work)
 
 300-image filter of cifar10_complete to {bird, cat, deer, dog, frog,
 horse}, 50/class. Reserved for the Analyst's confusion-matrix work.
@@ -253,10 +318,10 @@ The third response is *not failure* — it's the honest tacit-knowledge record. 
 
 > Before adding, I checked `tacit-knowledge.md` and found:
 >
-> > ### QC status feature added to Image table (feature 9PQ4)
+> > ### tk-018 — QC status feature added to Image table (feature 9PQ4)
 > > Kept QC concerns separate from diagnostic concerns rather than extending Image_Annotation with a "blurry" diagnosis term: the two review workflows have different reviewers, criteria, and consumers, so collapsing them would entangle the queues.
 >
-> Adding `blurry` to `Image_Annotation` would reverse that decision. Two options: (a) add the term to the existing `Image_QC_Status` vocabulary (feature 9PQ4, vocabulary 9PR0), which preserves the separation, or (b) revisit the original rationale if the constraints have changed (e.g., the two review pools have merged, or you're explicitly opting into a single combined queue). Which do you want?
+> Adding `blurry` to `Image_Annotation` would reverse the decision in **tk-018**. Two options: (a) add the term to the existing `Image_QC_Status` vocabulary (feature 9PQ4, vocabulary 9PR0), which preserves the separation, or (b) revisit the original rationale if the constraints have changed (e.g., the two review pools have merged, or you're explicitly opting into a single combined queue). Which do you want?
 
 Three things this example demonstrates:
 1. **Consult before act** — the skill fires on the proposed action, not on a "why" question.
