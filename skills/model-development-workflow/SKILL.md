@@ -289,7 +289,7 @@ uv run deriva-ml-run +multirun=lr_sweep
 1. Verify all child executions completed (for multiruns)
 2. Check output assets exist and have expected sizes
 3. Record the **execution RID** and a one-line characterization of what the
-   run was for in `experiment-decisions.md` (via the `maintain-experiment-notes`
+   run was for in `experiment-decisions.md` (via the `capture-tacit-knowledge`
    skill). The execution RID is the durable anchor — assets, features, status,
    inputs, and the workflow's git commit hash all hang off it. Do not
    enumerate asset RIDs in the notes; they go stale and the catalog already
@@ -361,5 +361,5 @@ This keeps the project-specific logic in your repository (versioned, reviewable)
 | Restructure data for PyTorch/TF | `ml-data-engineering` | this plugin |
 | Write hydra-zen configs | `configure-experiment`; `write-hydra-config` for syntax | this plugin |
 | Run notebooks with tracking | `run-notebook` | this plugin |
-| Document decisions | `maintain-experiment-notes` | this plugin |
+| Document decisions | `capture-tacit-knowledge` | this plugin |
 | **Iterate on an existing pipeline** (cycle 2 onward — once cycle zero, this skill, is done) | **`experiment-lifecycle`** | this plugin |

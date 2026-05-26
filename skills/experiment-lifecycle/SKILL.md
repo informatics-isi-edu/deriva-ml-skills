@@ -1,13 +1,13 @@
 ---
 name: experiment-lifecycle
-description: "ALWAYS use when ITERATING on an already-working DerivaML pipeline — designing the next experiment cycle, deciding what hypothesis is worth testing, planning what to change between runs, or evaluating whether a cycle's result answers the question that motivated it. Names the seven-phase arc (identify hypothesis → create configuration → identify assets → run model → update assets → evaluate → repeat) and owns the design step (the 'what question are we testing, how will we know we have an answer?' content no other skill covers) plus the cross-step disciplines (inter-phase gates, failure-mode triage when a run breaks). Assumes the pipeline already exists and produces real results; for cycle-zero bootstrap (schema design through first production run) use `/deriva-ml:model-development-workflow`. Routes mechanics to specialists: configure-experiment + write-hydra-config for configs, work-with-assets for asset registration, execution-lifecycle for runs, compare-model-runs for evaluation, maintain-experiment-notes for documentation. Triggers on: 'design / plan the next experiment', 'what hypothesis should I test', 'I want to compare X vs Y', 'next iteration', 'between runs', 'evaluate my model', 'should I run another cycle', 'is this result conclusive', 'reproducible experiment'."
+description: "ALWAYS use when ITERATING on an already-working DerivaML pipeline — designing the next experiment cycle, deciding what hypothesis is worth testing, planning what to change between runs, or evaluating whether a cycle's result answers the question that motivated it. Names the seven-phase arc (identify hypothesis → create configuration → identify assets → run model → update assets → evaluate → repeat) and owns the design step (the 'what question are we testing, how will we know we have an answer?' content no other skill covers) plus the cross-step disciplines (inter-phase gates, failure-mode triage when a run breaks). Assumes the pipeline already exists and produces real results; for cycle-zero bootstrap (schema design through first production run) use `/deriva-ml:model-development-workflow`. Routes mechanics to specialists: configure-experiment + write-hydra-config for configs, work-with-assets for asset registration, execution-lifecycle for runs, compare-model-runs for evaluation, capture-tacit-knowledge for documentation. Triggers on: 'design / plan the next experiment', 'what hypothesis should I test', 'I want to compare X vs Y', 'next iteration', 'between runs', 'evaluate my model', 'should I run another cycle', 'is this result conclusive', 'reproducible experiment'."
 ---
 
 # Experiment Lifecycle in DerivaML (cycle N for any N ≥ 1)
 
 A DerivaML experiment isn't a one-shot script run — it's a cycle. You identify what you want to test, set up the configuration, identify the assets your run will consume, run the model, register the assets the run produces, evaluate the result, and decide whether to iterate. The data-centric framing matters here: **the cycle is the unit of evolution; each cycle adds artifacts (more configs, more assets, more executions, more feature values) to the catalog; "repeat until done" means add more cycles to the same catalog, not start over.**
 
-This skill names the arc and walks you through it. The mechanics of each phase live in specialist skills (this skill routes to them); what *this* skill carries is the design step (phase 1, the gap with no other home), the cross-step disciplines that prevent waste (inter-phase gates, failure-mode triage), and the documentation loop (`maintain-experiment-notes` auto-fires anyway, but the lifecycle calls out where it should hit).
+This skill names the arc and walks you through it. The mechanics of each phase live in specialist skills (this skill routes to them); what *this* skill carries is the design step (phase 1, the gap with no other home), the cross-step disciplines that prevent waste (inter-phase gates, failure-mode triage), and the documentation loop (`capture-tacit-knowledge` auto-fires anyway, but the lifecycle calls out where it should hit).
 
 > **This skill assumes the pipeline already exists and works.** If you're standing up a new pipeline from scratch — schema design, first dev dataset, first dry run, first small-data run, first production run — that's cycle-zero work and belongs in `/deriva-ml:model-development-workflow`. Come back here for cycle 2 onward, once "does the plumbing run" has been answered and the next question is "what would teach us something we don't already know?"
 
@@ -34,7 +34,7 @@ The phase no other skill owns. Before writing any config, settle:
 - **What's the success criterion?** A run finishes either confirming the hypothesis, refuting it, or being inconclusive. Knowing in advance which is which prevents post-hoc rationalization.
 - **What's the cost budget?** Roughly how much compute, how many GPU-hours, how many cycles before you stop iterating regardless of result? This bounds the next phases.
 
-**Deliverable:** the hypothesis written down in `experiment-decisions.md`. The `maintain-experiment-notes` skill auto-fires when you make decisions during this phase and will capture them; the lifecycle's job is to make sure you actually *make* the decision before moving on.
+**Deliverable:** the hypothesis written down in `experiment-decisions.md`. The `capture-tacit-knowledge` skill auto-fires when you make decisions during this phase and will capture them; the lifecycle's job is to make sure you actually *make* the decision before moving on.
 
 If you can't answer the four questions above, do not advance to phase 2. The most expensive failure mode in ML experimentation is running an experiment that, regardless of result, doesn't tell you anything about your hypothesis. The cost of writing the hypothesis down is small; the cost of finding out you tested the wrong thing after running the cycle is large.
 
@@ -93,7 +93,7 @@ What this phase adds to the catalog: usually nothing new (the run already added 
 
 Compare this cycle's results against the hypothesis from phase 1. Two paths depending on scope:
 
-- **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(hostname=..., catalog_id=..., execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `experiment-decisions.md` (auto-fired by `maintain-experiment-notes`).
+- **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(hostname=..., catalog_id=..., execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `experiment-decisions.md` (auto-fired by `capture-tacit-knowledge`).
 - **Multi-run comparison** — comparing this cycle to previous cycles or to a sweep. Hand off to `/deriva-ml:compare-model-runs` for the ranking/aggregation logic.
 
 > **Surfacing prior runs of the same kind:** `deriva_ml_list_executions(hostname=..., catalog_id=..., workflow_type="Training", sort=True)` returns every training execution across every workflow in newest-first order — one call instead of "enumerate workflows of that type, then page each one's executions". Pair with `status="Uploaded"` if you only want successful runs. The same `workflow_type=` filter works for `Inference`, `Evaluation`, `Annotation`, etc. — anything in your `Workflow_Type` vocab.
@@ -132,12 +132,12 @@ The catalog state at the end of one cycle is the starting state of the next: mor
 | 6. Evaluate | `/deriva-ml:compare-model-runs`, `/deriva-ml:troubleshoot-execution` |
 | 7. Repeat | This skill (back to phase 1) |
 
-Auto-fires alongside this lifecycle: `maintain-experiment-notes` (captures decisions throughout); `dataset-lifecycle` (if new datasets get created mid-cycle); `generate-scripts` (if catalog mutations are needed mid-cycle).
+Auto-fires alongside this lifecycle: `capture-tacit-knowledge` (captures decisions throughout); `dataset-lifecycle` (if new datasets get created mid-cycle); `generate-scripts` (if catalog mutations are needed mid-cycle).
 
 ## Related skills
 
 - **`/deriva-ml:dataset-lifecycle`** — sibling lifecycle skill for the dataset side; the experiment cycle frequently depends on dataset versioning decisions named in that lifecycle.
 - **`/deriva-ml:execution-lifecycle`** — sibling lifecycle skill for the run mechanics; phase 4 hands off here for the state machine and upload discipline.
 - **`/deriva-ml:model-development-workflow`** — the cycle-zero counterpart. Use it before this skill applies — for standing up a new pipeline from schema design through the first production run. Once that first real result lands, switch over to this skill for cycle-2-onward iteration.
-- **`/deriva-ml:maintain-experiment-notes`** (auto-fires) — captures the decisions made in phases 1, 4, 5, 6, 7. The lifecycle skill names *when* to make a decision; this one captures *what was decided*.
+- **`/deriva-ml:capture-tacit-knowledge`** (auto-fires) — captures the decisions made in phases 1, 4, 5, 6, 7. The lifecycle skill names *when* to make a decision; this one captures *what was decided*.
 - **`/deriva:troubleshoot-deriva-errors`** (deriva-skills) — first stop for catalog-state errors during any phase that touches the catalog.

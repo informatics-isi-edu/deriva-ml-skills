@@ -89,7 +89,7 @@ After approval: `uv run deriva-ml-run +experiment=<name>`
 
 ### Step 8: Log the decision
 
-Use the `maintain-experiment-notes` skill to record what was created, the filter criteria, why those criteria were chosen, and the resulting dataset RID.
+Use the `capture-tacit-knowledge` skill to record what was created, the filter criteria, why those criteria were chosen, and the resulting dataset RID.
 
 ## How this relates to `split_dataset`
 

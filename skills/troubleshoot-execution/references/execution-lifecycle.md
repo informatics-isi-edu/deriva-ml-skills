@@ -370,7 +370,7 @@ For the full recovery decision tree (salvage vs recovery-from-inputs vs claim-su
 - An execution in `Aborted` keeps its staged work for inspection — `ml.resume_execution(rid)` followed by `commit_output_assets()` will commit it, or you can leave it as a permanent provenance row.
 - A "recovery execution" is a new execution that consumes the failed run's inputs (Branch B) or its surviving outputs (Branch C); set `ExecutionConfiguration(assets=[...])` in the recovery script to claim existing asset RIDs as inputs.
 
-The one piece that does NOT live in this guide: the failed execution's row stays in the catalog as a permanent provenance record, but the catalog does not auto-link it to its recovery successor. That linkage is your responsibility — capture both RIDs in `experiment-decisions.md` (the `maintain-experiment-notes` skill auto-fires when you do this).
+The one piece that does NOT live in this guide: the failed execution's row stays in the catalog as a permanent provenance record, but the catalog does not auto-link it to its recovery successor. That linkage is your responsibility — capture both RIDs in `experiment-decisions.md` (the `capture-tacit-knowledge` skill auto-fires when you do this).
 
 ## Nested Executions
 

@@ -81,7 +81,7 @@ print(labels["Diagnosis_Type"].value_counts())
 
 - **MUST be committed to the repo** before running (code provenance).
 - **MUST open an execution** via the `with ml.create_execution(...) as exe:` context manager (provenance tracking).
-- **MUST be documented** in `experiment-decisions.md` (via `maintain-experiment-notes`).
+- **MUST be documented** in `experiment-decisions.md` (via `capture-tacit-knowledge`).
 - Save to `src/scripts/` in the project.
 
 **Don't reinvent the lifecycle pattern.** This plugin ships ready-to-edit templates that already implement the canonical context manager, argparse, dry-run, and commit shape. Copy the one matching your task, customize the work block, commit, and run:
@@ -203,7 +203,7 @@ Then follow Develop, Test, Commit, Run.
 
 ## Related skills
 
-- [`maintain-experiment-notes`](../maintain-experiment-notes/SKILL.md) — Document catalog-modifying scripts in `experiment-decisions.md`.
+- [`capture-tacit-knowledge`](../capture-tacit-knowledge/SKILL.md) — Document catalog-modifying scripts in `experiment-decisions.md`.
 - [`execution-lifecycle`](../execution-lifecycle/SKILL.md) — The full context-manager lifecycle, salvage flows, status state machine, and the bundled templates linked above.
 - [`setup-derivaml-project`](../setup-derivaml-project/SKILL.md) — Project bootstrap and coding conventions (Google docstrings, type hints, ruff).
 - [`work-with-assets`](../work-with-assets/SKILL.md) — Asset upload patterns (Python API).

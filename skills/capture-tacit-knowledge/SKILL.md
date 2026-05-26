@@ -1,10 +1,10 @@
 ---
-name: maintain-experiment-notes
+name: capture-tacit-knowledge
 description: "Use whenever an experiment design decision is being made, proposed, or recalled. Three triggers: (1) WRITE — after any action a future teammate would need to understand (running an execution, creating/splitting a dataset, creating a feature or vocabulary, changing schema, choosing hyperparameters, picking an MCP entry-point when multiple paths existed, resolving a problem with a non-obvious fix). Append a short entry to experiment-decisions.md (project root) in the same response. Fire even when the choice felt obvious. (2) GUIDANCE (forward-looking read) — when the user proposes an action (add a feature, create a vocab term, train a model, change a config, split a dataset, run an experiment) and prior project experience may bear on whether it will work. Consult the file BEFORE executing or recommending. The user will not phrase this as a 'why' question — they'll just propose the action. Fire on the action, not on the phrasing. (3) FORENSIC (backward-looking read) — when the user asks 'why was X chosen', 'have we tried Y', 'what did we learn from Z', any indirect variant ('is this config still right?', 'should we still be using this?'), or is being oriented to the project for the first time. Consult before answering. If the file is silent, say so — do not invent rationale."
 user-invocable: false
 ---
 
-# Capture and Consult Experiment Design Decisions
+# Capture and Consult Tacit Knowledge
 
 `experiment-decisions.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*. Entries connect: a follow-up run often references prior runs by RID, so the file reads top-to-bottom as the project's history of how its understanding evolved.
 
