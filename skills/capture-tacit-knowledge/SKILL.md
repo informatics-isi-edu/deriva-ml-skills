@@ -12,6 +12,10 @@ user-invocable: false
 
 This file is also the **cross-domain bridge** on multidisciplinary teams. The ML designer writes entries the domain expert needs to *understand* (and vice versa) — not directives for the other discipline to act on. Each entry captures decisions and their rationale in language the other side can read; what the reader chooses to do with that understanding is their decision, in their own time. Neither side writes only for themselves. The entry conventions below name this responsibility explicitly.
 
+## Relationship to catalog semantic awareness
+
+This file and the catalog's **semantic-awareness layer** (controlled vocabularies, table/column descriptions, RIDs, synonyms, and the `rag_search` index over them — see `/deriva:semantic-awareness`) are complementary halves of the same problem. Semantic awareness answers *what exists and what is it called*; tacit knowledge answers *why does it exist*. Each makes the other usable: the catalog's stable canonical names and RIDs are what let `tk-042` still resolve to a real entity five years from now, and a tacit entry recording *"we considered and rejected the vehicles-only subset because variance dominated the signal"* is what stops a future `rag_search` for `"vehicle subset"` from triggering a duplicate creation. When you find yourself reaching for a name that semantic awareness should have resolved, fix it in the catalog (better description, add a synonym, rename a term) — don't paper over it with a tacit entry. When you find yourself drafting a tacit entry that's really just restating a catalog fact, link the catalog instead. The two layers stay sharp by keeping their jobs distinct.
+
 ## What this file is not
 
 - **Not a TODO list.** Don't write "Analyst should run roc_analysis next" or "we need to release dataset X." Those are workflow directives aimed at a specific person at a specific time; they belong in handoff sections, issue trackers, or a task tool — not here. This file records what *was* decided, not what *should* be done.
