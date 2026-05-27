@@ -86,6 +86,22 @@ These are the surface DerivaML adds on top of plain Deriva. Each is stored as on
 | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | **Define the feature** (MCP): `deriva_ml_create_feature`. **Add feature values** (bundled template): `create-feature/scripts/populate_feature_values.py` (or `exe.add_features(records)` inside another execution template). |
 | **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and committed by `exe.commit_output_assets()`. | `work-with-assets` | `deriva_ml_list_assets`, `deriva_ml_lookup_asset`, `deriva_ml_update_asset` |
 
+### Use direct attribute access on these domain objects
+
+The five abstractions above are returned as **typed records** (Pydantic models / DerivaML domain objects), not as raw dicts or row-tuples. Read their fields with the dot operator:
+
+- A `Dataset` exposes `.dataset_rid`, `.current_version`, `.dataset_types`, `.description`.
+- An `Execution` exposes `.execution_rid`, `.status`, `.workflow`, `.description`.
+- A `Workflow` exposes `.workflow_rid`, `.workflow_type`, `.url`, `.checksum`.
+- A `FeatureRecord` exposes one named attribute per feature column (`.Diagnosis_Type`, `.Confidence`, etc.) plus `.Execution`, `.Feature_Name`, `.RCT`.
+- An `Asset` exposes `.asset_rid`, `.filename`, `.length`, `.md5`, `.asset_types`.
+
+The `repr()` of any domain object spells out its field names — `print(obj)` is faster than guessing.
+
+**Do not use `getattr(obj, "name", default)` on these objects.** The attributes either exist by contract or they don't; a wrong name is an `AttributeError` you *want* to see. `getattr`-with-default converts API ignorance into a silent fallback — `getattr(d, "version", "?")` quietly returns `"?"` when the real field is `current_version`, and the bug ships. Dot directly into the object, let `AttributeError` tell you what's wrong, and fix the call. Reach for `getattr` only when reflecting over genuinely unknown attribute names (e.g. iterating a list of column names a user supplied at runtime, debug-printing arbitrary records). That is rare; the normal case is `obj.field_name`.
+
+This is the mechanical follow-through on "treat them as DerivaML domain objects, not as raw tables" — the override rule says *use the domain object*, this paragraph says *and once you have it, use its named attributes*.
+
 ## The rule: inheritance with override
 
 The deriva-ml plugin **extends** the deriva plugin. Everything that applies in a Deriva catalog applies in a deriva-ml catalog by default. **Override:** if a deriva-ml surface exists for an operation, prefer it over the equivalent deriva surface. This applies symmetrically on all three planes:

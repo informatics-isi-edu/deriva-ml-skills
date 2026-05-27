@@ -97,12 +97,17 @@ Every `FeatureRecord` has:
 
 ### Example: highest confidence
 
+Direct attribute access on the Pydantic record — `r.Confidence` raises `AttributeError` if applied to a feature without that column, which is the right failure mode (use a selector matched to the feature):
+
 ```python
 from deriva_ml.feature import FeatureRecord
 
 def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
-    """Pick the annotation with the highest confidence score."""
-    return max(records, key=lambda r: getattr(r, "Confidence", 0) or 0)
+    """Pick the annotation with the highest confidence score.
+
+    Requires the feature to have a Confidence column.
+    """
+    return max(records, key=lambda r: r.Confidence or 0)
 ```
 
 ### Example: specific annotator workflow
@@ -122,10 +127,13 @@ def select_expert_annotation(records: list[FeatureRecord]) -> FeatureRecord:
 from datetime import datetime
 
 def select_weighted(records: list[FeatureRecord]) -> FeatureRecord:
-    """Score by 70% confidence + 30% recency."""
-    max_conf = max(getattr(r, "Confidence", 0) or 0 for r in records)
+    """Score by 70% confidence + 30% recency.
+
+    Requires the feature to have a Confidence column.
+    """
+    max_conf = max((r.Confidence or 0) for r in records)
     def score(r):
-        conf = (getattr(r, "Confidence", 0) or 0) / max(max_conf, 1e-9)
+        conf = (r.Confidence or 0) / max(max_conf, 1e-9)
         rct = r.RCT or "1970-01-01"
         recency = len(rct)  # rough proxy — longer timestamps are more recent
         return 0.7 * conf + 0.3 * (recency / 30)

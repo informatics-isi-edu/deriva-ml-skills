@@ -292,9 +292,11 @@ bag.restructure_assets(
 
 # Other built-ins: FeatureRecord.select_newest, .select_first, .select_latest
 
-# Custom selector:
+# Custom selector — specific to features with a Confidence column.
+# Direct attribute access fails loud (AttributeError) on features
+# without one, which is the right failure mode.
 def select_highest_confidence(records):
-    return max(records, key=lambda r: getattr(r, "Confidence", 0))
+    return max(records, key=lambda r: r.Confidence or 0)
 
 bag.restructure_assets(
     output_dir="./ml_data",

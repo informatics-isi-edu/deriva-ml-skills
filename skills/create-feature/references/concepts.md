@@ -375,11 +375,11 @@ selected = [ml.select_by_workflow(group, "Training") for group in grouped.values
 
 The MCP tool's `workflow` parameter handles this grouping automatically.
 
-**Custom selectors** can implement any logic:
+**Custom selectors** can implement any logic. The example below is specific to features that have a `Confidence` column — direct attribute access fails loudly (`AttributeError`) if applied to a feature without one, which is what you want:
 
 ```python
 def select_best(records):
-    return max(records, key=lambda r: getattr(r, "Confidence", 0))
+    return max(records, key=lambda r: r.Confidence or 0)
 
 features = ml.fetch_table_features("Image", selector=select_best)
 ```
@@ -420,12 +420,14 @@ from deriva_ml.feature import FeatureRecord
 
 When the predefined selectors don't fit, write a Python callable with signature `(list[FeatureRecord]) -> FeatureRecord`. The same signature works for both catalog queries and bag Python API `bag.restructure_assets()`.
 
+`FeatureRecord` is a Pydantic model — its column names are attributes, accessed with the dot operator. The example below is **specific to features that have a `Confidence` column**; if applied to a feature without one, `r.Confidence` raises `AttributeError`, which is the right failure mode (use the right selector for the feature, don't paper over the mismatch).
+
 ```python
 from deriva_ml.feature import FeatureRecord
 
 # Custom selector: highest confidence
 def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
-    return max(records, key=lambda r: getattr(r, "Confidence", 0))
+    return max(records, key=lambda r: r.Confidence or 0)
 
 # Works with catalog queries
 features = ml.fetch_table_features(
