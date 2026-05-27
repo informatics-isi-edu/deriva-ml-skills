@@ -8,7 +8,7 @@ user-invocable: false
 
 `tacit-knowledge.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*. Entries connect: a follow-up run often references prior runs by RID, so the file reads top-to-bottom as the project's history of how its understanding evolved.
 
-**Don't ask this file for catalog-stored facts.** If the question is *what* — what datasets exist, what vocabulary terms are defined, what assets a workflow produced, which version of a dataset is current — fetch the catalog directly (`deriva://catalog/{host}/{cat}/ml/...` resources first; tools next). If the question is *why* — why this dataset was created, why this hyperparameter was chosen, why a previous approach was abandoned — read this file. Entries reference catalog entities by RID and short link, not by inlining their contents.
+**Don't ask this file for catalog-stored facts.** If the question is *what* — what datasets exist, what vocabulary terms are defined, what assets a workflow produced, which version of a dataset is current — fetch the catalog directly (`deriva://catalog/{host}/{cat}/ml/...` resources first; tools next). If the question is *why* — why this dataset was created, why this hyperparameter was chosen, why a previous approach was abandoned — read this file. Entries reference catalog entities by RID rendered as a `ml.cite(rid)` markdown link (click-through, snapshot-pinned), not by inlining their contents.
 
 This file is also the **cross-domain bridge** on multidisciplinary teams. The ML designer writes entries the domain expert needs to *understand* (and vice versa) — not directives for the other discipline to act on. Each entry captures decisions and their rationale in language the other side can read; what the reader chooses to do with that understanding is their decision, in their own time. Neither side writes only for themselves. The entry conventions below name this responsibility explicitly.
 
@@ -67,14 +67,19 @@ Every claim in an entry should be readable as one of three things: *what was dir
 
 ## Entry header
 
-Every entry starts with a four-line header that gives the entry a stable identifier, places it in time, names its author, and names its antecedents. This header lets future entries reference *this* entry, lets a future reader walk back through the chain of supporting decisions, and aligns the file's attribution with the catalog's `RMB` (Row-Modified-By) column so the same human is named the same way in both systems.
+Every entry starts with an HTML anchor line and a four-line header. The anchor gives the entry a stable, link-target identifier; the header places it in time, names its author, and names its antecedents. Together they let future entries reference *this* entry with a click-through markdown link, let a future reader walk back through the chain of supporting decisions, and align the file's attribution with the catalog's `RMB` (Row-Modified-By) column so the same human is named the same way in both systems.
 
 ```markdown
-### tk-NNN — <short descriptive title> (<entity RID if applicable>)
+<a id="tk-NNN"></a>
+### tk-NNN — <short descriptive title> ([<entity-kind RID>](<citation URL>))
 **When:** <ISO 8601 timestamp with timezone>
 **By:** <display name> (<identity URI>)
-**Supported by:** <list of prior tk-NNN entries, with parenthetical phrases>
+**Supported by:** [tk-NNN](#tk-NNN) (parenthetical), [tk-MMM](#tk-MMM) (parenthetical)
 ```
+
+The `<a id="tk-NNN"></a>` line is what makes `[tk-NNN](#tk-NNN)` references elsewhere in the file (and in `**Supported by:**`) click-through in any markdown viewer that follows the HTML anchor (GitHub, IDE preview, mdbook, browser-rendered Markdown). The explicit anchor is stable even if the title text gets edited later — the link target doesn't depend on slugged heading text.
+
+The parenthetical RID in the title is itself a markdown link to a deriva-ml **citation URL** (see "Title includes the durable catalog handle" below) — clicking it opens the snapshot-pinned record for that catalog entity. Every RID reference in an entry, anywhere, is rendered the same way.
 
 ### `tk-NNN` — entry identifier
 
@@ -116,11 +121,13 @@ Every entry has a `**By:**` line naming the human(s) the decision is attributabl
 
 ### `**Supported by:**` — optional list of antecedent entries
 
-When this decision was built on prior decisions captured in earlier entries, name them. Format: `tk-NNN (short parenthetical phrase naming what's being relied on)`, comma-separated for multiple. Example:
+When this decision was built on prior decisions captured in earlier entries, name them. Format: `[tk-NNN](#tk-NNN) (short parenthetical phrase naming what's being relied on)`, comma-separated for multiple. Each reference is a **markdown link to the antecedent entry's anchor** (the `<a id="tk-NNN"></a>` line that precedes its header) — never bare text. Example:
 
 ```markdown
-**Supported by:** tk-019 (created the labeled split this filtered from), tk-038 (Developer handoff named confusion-matrix work)
+**Supported by:** [tk-019](#tk-019) (created the labeled split this filtered from), [tk-038](#tk-038) (Developer handoff named confusion-matrix work)
 ```
+
+The same linking convention applies to **every** `tk-NNN` mentioned anywhere in an entry's body prose — not just the `**Supported by:**` line. If body prose says "compared against the 8KG baseline established in tk-007," write it as `compared against the 8KG baseline established in [tk-007](#tk-007)` so a reader can click through to the antecedent.
 
 Three things to know about this field:
 
@@ -142,6 +149,8 @@ Practical uses of the chain:
 ## What an entry contains
 
 Each entry is a short markdown block describing one decision or run, anchored on the RID of the entity it's about. Entries answer questions like *why* a dataset / feature / split / config was chosen, *what* the goal of a run was, *how* the project arrived at the current configuration, and *where* a non-obvious decision came from.
+
+**Every RID mentioned in an entry is rendered as a click-through markdown link** using the deriva-ml citation API — `[execution 8KG](https://localhost/id/96/8KG@2P-XYZW)`, where the URL comes from `ml.cite("8KG")`. This applies in the title parenthetical, in body prose ("compared against the 8KG baseline"), in the `**Supported by:**` field's parentheticals — anywhere a RID appears. Bare-text RIDs don't navigate from a markdown viewer; citation links do, and they stay valid because they pin the catalog snapshot at write-time. See "Title includes the durable catalog handle" under Conventions for the full rule and the distinction from resource URIs.
 
 Every entry should answer:
 
@@ -165,14 +174,20 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 - **Title starts with `tk-NNN`**, the entry's unique identifier (see "Entry header" above). The next entry's number is one more than the highest existing `tk-NNN` in the file.
 - **No dates in titles.** Time information lives in the `**When:**` header field, not the title; embedding a date in the title duplicates that field and rots if the entry is later edited.
 - **No author names in titles.** Attribution lives in the `**By:**` header field. Embedding a name in the title (`### tk-042 — Carl's animal subset`) duplicates the field and forces a title edit if attribution changes (e.g., adding a second decider).
-- **Title includes the durable catalog handle in parentheses** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts:
-   - Model run → **execution RID** (`### tk-042 — ... (execution 8KG)`)
-   - Feature creation → **feature RID** (`### tk-043 — ... (feature 9PQ4)`)
-   - Vocabulary addition (terms only) → **vocabulary RID** (`### tk-044 — ... (vocabulary 9PR0)`)
-   - Dataset creation or split → **dataset RID with version** (`### tk-045 — ... (dataset 7KE v0.4.0)`)
-   - Schema change → **table RID** (`### tk-046 — ... (table 5-AB12)`)
+- **Title includes the durable catalog handle in parentheses, written as a click-through markdown link** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts, then render it via the deriva-ml citation API so the link is browser-openable and snapshot-pinned:
+   - Model run → **execution RID** (`### tk-042 — ... ([execution 8KG](https://localhost/id/96/8KG@2P-XYZW))`)
+   - Feature creation → **feature RID** (`### tk-043 — ... ([feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW))`)
+   - Vocabulary addition (terms only) → **vocabulary RID** (`### tk-044 — ... ([vocabulary 9PR0](https://localhost/id/96/9PR0@2P-XYZW))`)
+   - Dataset creation or split → **dataset RID with version** (`### tk-045 — ... ([dataset 7KE v0.4.0](https://localhost/id/96/7KE@2P-XYZW))`)
+   - Schema change → **table RID** (`### tk-046 — ... ([table 5-AB12](https://localhost/id/96/5-AB12@2P-XYZW))`)
 
-   Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
+   The URL inside the markdown link comes from `ml.cite(rid)` — the deriva-ml citation API. The persona writing the entry already has a `ml = DerivaML(...)` instance in scope (the same one being used for the action this entry records); call `ml.cite("8KG")` and it returns `https://{host}/id/{catalog}/8KG@{snapshot_time}` — a **permanent citation URL** that pins the catalog snapshot at write-time so the link still resolves to the same record years later, even after subsequent catalog writes. Default behavior is the permanent (snapshot-pinned) URL; `ml.cite(rid, current=True)` returns the current-state URL without a snapshot suffix, but the snapshot-pinned form is what you want for tacit-knowledge entries.
+
+   The link is markdown — `[execution 8KG](url-from-cite)` — not bare text. This is the **durable** way to reference catalog entities from a markdown-rendered document: a reader in any viewer (GitHub, IDE preview, mdbook, browser-rendered Markdown) can click through and land on the catalog record.
+
+   This is distinct from `deriva://catalog/{host}/{cat}/ml/...` **resource URIs**: those are for *queryable* resource references (MCP tools, programmatic fetches against a live catalog). Citation URLs from `ml.cite(rid)` are for *click-through navigation by a human reader*. Both have their place; this section's title-handle convention uses the citation URL because the audience is a future reader, not a tool.
+
+   Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Every RID mentioned anywhere in the entry — title parenthetical, body prose, `**Supported by:**` parentheticals — is rendered as `[label](ml.cite(rid))`, never as bare text. Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
 
    For entries that don't correspond to a single catalog artifact (conventions, recurring patterns, cross-cutting reasoning entries), the parenthetical handle can be omitted — the `tk-NNN` is sufficient identifier on its own.
 - **Length is set by content.** Long enough to answer the six entry parts; short enough to scan in one pass (~5–15 lines in practice).
@@ -180,7 +195,7 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 
 **Content principles:**
 
-- **Dead ends are valid standalone entries.** When alternatives were weighed and the chosen path didn't pan out, write the dead-end entry on its own — no successor decision required. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team: the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. Title it after the dead-end action itself (`### tk-026 — Tried stain_type as model input; abandoned (execution 3-XYZ)`).
+- **Dead ends are valid standalone entries.** When alternatives were weighed and the chosen path didn't pan out, write the dead-end entry on its own — no successor decision required. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team: the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. Title it after the dead-end action itself (`### tk-026 — Tried stain_type as model input; abandoned ([execution 3-XYZ](url-from-ml.cite))`).
 - **Recurring patterns are also valid.** Entries of the form *"whenever we do X in this project, we also do Y because Z"* are tacit knowledge about the project's conventions — not directives. They're statements about *what this project's pattern is*, written for a future reader who's about to do X and would benefit from knowing the pattern exists. Example: `### tk-031 — Convention — releasing a dataset bumps src/configs/datasets.py` (rationale: experiment configs pin by version, so a release that isn't reflected in the config is unreachable from runners). The reader chooses whether to follow the pattern; the entry explains why the pattern exists. Convention entries usually have no catalog-RID handle in the parenthetical — the `tk-NNN` is sufficient identifier.
 - **Reference RIDs and include quantitative evidence** (counts, sizes) when known — but as evidence for the reasoning, not as a replacement for it. See "What doesn't belong here" below for what's catalog data vs. what's tacit.
 
@@ -222,7 +237,7 @@ This file records *why*, not *what*. The catalog is the source of record for fac
 - **Asset MD5s, file sizes, lengths.** Catalog data.
 - **Execution status, start/stop times, lineage edges.** Catalog data; fetch `deriva://catalog/{h}/{c}/ml/execution/{rid}` or `…/ml/lineage/{rid}`.
 
-**Do write**: why the dataset was created, why the workflow's type was chosen, why a hyperparameter was selected, what alternatives were rejected and why, what would invalidate this decision, what a future reader needs to know to evaluate whether the decision still holds. Reference catalog entities by their RID and a single-line link rather than inlining their fields.
+**Do write**: why the dataset was created, why the workflow's type was chosen, why a hyperparameter was selected, what alternatives were rejected and why, what would invalidate this decision, what a future reader needs to know to evaluate whether the decision still holds. Reference catalog entities by their RID rendered as a `ml.cite(rid)` markdown link rather than inlining their fields.
 
 The rule of thumb: **if the catalog could go stale and break what you wrote, the catalog should answer the question, not this file.**
 
@@ -231,21 +246,23 @@ The rule of thumb: **if the catalog could go stale and break what you wrote, the
 ### Example 1 — A model run with cross-domain implications
 
 ```markdown
-### tk-007 — First end-to-end CIFAR-10 run on localhost catalog 1407 (execution 8KG)
+<a id="tk-007"></a>
+### tk-007 — First end-to-end CIFAR-10 run on localhost catalog 1407 ([execution 8KG](https://localhost/id/96/8KG@2P-XYZW))
 **When:** 2026-04-12T15:22:00-07:00
 **By:** Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
-**Supported by:** tk-003 (created the labeled split this run consumed)
+**Supported by:** [tk-003](#tk-003) (created the labeled split this run consumed)
 
-Hypothesis: the cifar10_e2e schema, dataset 7KE, and the deriva-ml-run
-pipeline wired together cleanly against a freshly-seeded localhost
-catalog. Ran cifar10_quick (small image classifier, fewest training
-passes, smallest network) because the question was "does the plumbing
-work," not "does the model perform." Picked the labeled split as input
-because it was the smallest dataset with ground-truth labels on both
-partitions (80 train, 20 test), so a real test number was reachable
-at this scale. Run finished in ~30s on CPU; held-out accuracy 20% on
-20 images vs a 10% guess-one-of-ten baseline — a learning signal but
-within noise at this sample size. Outputs linked to execution 8KG.
+Hypothesis: the cifar10_e2e schema, dataset [7KE](https://localhost/id/96/7KE@2P-XYZW),
+and the deriva-ml-run pipeline wired together cleanly against a
+freshly-seeded localhost catalog. Ran cifar10_quick (small image
+classifier, fewest training passes, smallest network) because the
+question was "does the plumbing work," not "does the model perform."
+Picked the labeled split as input because it was the smallest dataset
+with ground-truth labels on both partitions (80 train, 20 test), so a
+real test number was reachable at this scale. Run finished in ~30s on
+CPU; held-out accuracy 20% on 20 images vs a 10% guess-one-of-ten
+baseline — a learning signal but within noise at this sample size.
+Outputs linked to execution [8KG](https://localhost/id/96/8KG@2P-XYZW).
 
 Implications for collaborators: this is a pipeline-validation run, not a
 performance baseline — don't cite the 20% number as a model capability
@@ -256,20 +273,23 @@ domain-meaningful accuracy comparison starts.
 ### Example 2 — A non-run event (no part-4 observations because nothing to observe at write-time)
 
 ```markdown
-### tk-018 — QC status feature added to Image table (feature 9PQ4)
+<a id="tk-018"></a>
+### tk-018 — QC status feature added to Image table ([feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW))
 **When:** 2026-04-23T10:05:00-07:00
 **By:** Dr. Pathologist (https://auth.globus.org/d4e8f200-9c2b-4a1d-bf3e-1234567890ab), Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
 
-Created `QC_Status` on `Image` (table 5-AB12, ~3,200 rows) backed by a
-new `Image_QC_Status` vocabulary (9PR0) in the `histopath` schema —
-three terms (pass, blurry, tissue_fold) plus a confidence_score column.
-Use case: blurry slides have been silently degrading downstream model
-accuracy with no first-class way to mark them. Kept QC concerns separate
-from diagnostic concerns rather than extending Image_Annotation with a
-"blurry" diagnosis term: the two review workflows have different
-reviewers, criteria, and consumers, so collapsing them would entangle
-the queues. Values not populated yet — annotator workflow is the next
-step.
+Created `QC_Status` on `Image`
+([table 5-AB12](https://localhost/id/96/5-AB12@2P-XYZW), ~3,200 rows)
+backed by a new `Image_QC_Status`
+[vocabulary 9PR0](https://localhost/id/96/9PR0@2P-XYZW) in the
+`histopath` schema — three terms (pass, blurry, tissue_fold) plus a
+confidence_score column. Use case: blurry slides have been silently
+degrading downstream model accuracy with no first-class way to mark
+them. Kept QC concerns separate from diagnostic concerns rather than
+extending Image_Annotation with a "blurry" diagnosis term: the two
+review workflows have different reviewers, criteria, and consumers,
+so collapsing them would entangle the queues. Values not populated
+yet — annotator workflow is the next step.
 
 Implications for collaborators: ML training configs that currently filter
 on `Image_Annotation` should also start filtering on
@@ -280,22 +300,24 @@ images the pathologists have flagged unusable.
 ### Example 3 — A dead end (no successor decision)
 
 ```markdown
-### tk-026 — Tried stain_type as model input; abandoned (execution 3-XYZ)
+<a id="tk-026"></a>
+### tk-026 — Tried stain_type as model input; abandoned ([execution 3-XYZ](https://localhost/id/96/3-XYZ@2P-XYZW))
 **When:** 2026-05-04T09:18:00-07:00
 **By:** Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
-**Supported by:** tk-007 (baseline 8KG run this is compared against), tk-018 (QC_Status feature is the well-typed alternative to stain_type for model input)
+**Supported by:** [tk-007](#tk-007) (baseline 8KG run this is compared against), [tk-018](#tk-018) (QC_Status feature is the well-typed alternative to stain_type for model input)
 
 Hypothesis: adding the stain_type categorical (H&E vs IHC vs Trichrome)
 as a one-hot model input would let the network learn stain-specific
 diagnostic patterns. Trained the cifar10_quick architecture with the
-extra input channel on dataset 7KE v0.4.0; held-out accuracy actually
-dropped 4 points vs the baseline run (execution 8KG) that didn't use
-stain_type. Walking the model's gradient attributions showed the network
-was using stain_type as a shortcut to predict scanner site, not disease
-class — staining variance (which is operator- and lab-specific) was
-dominating the signal we wanted. Abandoned this input channel. Not
-revisiting unless we get a multi-site dataset where stain protocols are
-matched across sites.
+extra input channel on dataset [7KE v0.4.0](https://localhost/id/96/7KE@2P-XYZW);
+held-out accuracy actually dropped 4 points vs the baseline run
+([execution 8KG](https://localhost/id/96/8KG@2P-XYZW), recorded in
+[tk-007](#tk-007)) that didn't use stain_type. Walking the model's
+gradient attributions showed the network was using stain_type as a
+shortcut to predict scanner site, not disease class — staining variance
+(which is operator- and lab-specific) was dominating the signal we
+wanted. Abandoned this input channel. Not revisiting unless we get a
+multi-site dataset where stain protocols are matched across sites.
 
 Implications for collaborators: the catalog still has the `stain_type`
 column on Image — keep populating it (it's correct curation), just
@@ -309,7 +331,8 @@ A Curator auditing a freshly-bootstrapped catalog runs a direct query against th
 **Draft that ages out (don't write this):**
 
 ```markdown
-### tk-NNN — Image_Classification ground-truth audit clean (feature 7AB)
+<a id="tk-NNN"></a>
+### tk-NNN — Image_Classification ground-truth audit clean ([feature 7AB](https://localhost/id/96/7AB@2P-XYZW))
 ... 1500 rows in Execution_Image_Image_Classification covering 1500
 distinct images — no missing labels, no duplicate labels (no need for
 the `newest` selector when reading this feature).
@@ -320,16 +343,17 @@ The audit is correct *at this instant*, but `Image_Classification` is the same t
 **Durable rewrite — capture the convention, not the snapshot:**
 
 ```markdown
+<a id="tk-NNN"></a>
 ### tk-NNN — Convention — Image_Classification is dual-purpose (ground truth + predictions)
 **When:** ...
 **By:** ...
 
-`Image_Classification` (feature 7AB) is written by two distinct kinds of
-execution and the rows are not distinguishable by table membership alone:
-the loader execution writes ground-truth rows with `Confidence IS NULL`;
-training executions write prediction rows with `Confidence` populated.
-After any training run, the same image will carry multiple rows in this
-feature.
+`Image_Classification` ([feature 7AB](https://localhost/id/96/7AB@2P-XYZW))
+is written by two distinct kinds of execution and the rows are not
+distinguishable by table membership alone: the loader execution writes
+ground-truth rows with `Confidence IS NULL`; training executions write
+prediction rows with `Confidence` populated. After any training run,
+the same image will carry multiple rows in this feature.
 
 Implications for collaborators: when reading this feature as ground
 truth, filter by execution (the loader exec RID) or by `Confidence IS
@@ -351,10 +375,11 @@ User just created an animals-only subset of `cifar10_complete` and didn't articu
 **Agent's draft** *(before inquiry)*:
 
 ```markdown
-### tk-042 — Created cifar10_animals_subset (DAP) at 0.2.0
+<a id="tk-042"></a>
+### tk-042 — Created cifar10_animals_subset ([dataset DAP v0.2.0](https://localhost/id/96/DAP@2P-XYZW))
 **When:** 2026-05-25T16:08:00-07:00
 **By:** Carl Kesselman (https://auth.globus.org/abc12345-67ef-8901-2345-67890abcdef0)
-**Supported by:** tk-019 (created cifar10_labeled_split that this filters from), tk-038 [inferred from pattern] (Developer handoff named confusion-matrix work)
+**Supported by:** [tk-019](#tk-019) (created cifar10_labeled_split that this filters from), [tk-038](#tk-038) [inferred from pattern] (Developer handoff named confusion-matrix work)
 
 300-image filter of cifar10_complete to {bird, cat, deer, dog, frog,
 horse}, 50/class. Reserved for the Analyst's confusion-matrix work.
@@ -391,10 +416,10 @@ The third response is *not failure* — it's the honest tacit-knowledge record. 
 
 > Before adding, I checked `tacit-knowledge.md` and found:
 >
-> > ### tk-018 — QC status feature added to Image table (feature 9PQ4)
+> > ### tk-018 — QC status feature added to Image table ([feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW))
 > > Kept QC concerns separate from diagnostic concerns rather than extending Image_Annotation with a "blurry" diagnosis term: the two review workflows have different reviewers, criteria, and consumers, so collapsing them would entangle the queues.
 >
-> Adding `blurry` to `Image_Annotation` would reverse the decision in **tk-018**. Two options: (a) add the term to the existing `Image_QC_Status` vocabulary (feature 9PQ4, vocabulary 9PR0), which preserves the separation, or (b) revisit the original rationale if the constraints have changed (e.g., the two review pools have merged, or you're explicitly opting into a single combined queue). Which do you want?
+> Adding `blurry` to `Image_Annotation` would reverse the decision in [**tk-018**](#tk-018). Two options: (a) add the term to the existing `Image_QC_Status` [vocabulary 9PR0](https://localhost/id/96/9PR0@2P-XYZW) (backing [feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW)), which preserves the separation, or (b) revisit the original rationale if the constraints have changed (e.g., the two review pools have merged, or you're explicitly opting into a single combined queue). Which do you want?
 
 Three things this example demonstrates:
 1. **Consult before act** — the skill fires on the proposed action, not on a "why" question.
