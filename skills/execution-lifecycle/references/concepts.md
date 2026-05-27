@@ -84,6 +84,36 @@ print(record.workflow_rid)    # "1-WXYZ"
 
 `ExecutionRecord` is also what you get back from provenance queries like `asset.list_executions()` and `ml.find_workflow_executions()`.
 
+### Enumerating outputs of a past execution (developer/01)
+
+The 2026-05-27 e2e Developer persona reached for the obvious-looking call when cross-verifying their training-run outputs:
+
+```python
+ex = ml.lookup_execution("2-YYYY")
+ex.execution_assets()   # AttributeError — ExecutionRecord doesn't have this
+```
+
+`ExecutionRecord` is read-only and exposes the metadata fields above (`execution_rid`, `status`, `description`, `workflow_rid`, etc.), but **not** the asset/dataset/feature link methods that the *live* `Execution` handle (returned by `ml.create_execution(...)` and threaded through training code) carries. After the live handle has gone out of scope, the way to enumerate outputs is the path-builder:
+
+```python
+pb = ml.catalog.getPathBuilder()
+ml_schema = pb.schemas["deriva-ml"]
+ex_table = ml_schema.tables["Execution"]
+link    = ml_schema.tables["Execution_Asset_Execution"]
+assets  = ml_schema.tables["Execution_Asset"]
+
+rows = list(
+    ex_table.filter(ex_table.RID == "2-YYYY")
+            .link(link)
+            .link(assets)
+            .entities().fetch()
+)
+```
+
+The MCP equivalent is one tool call: `deriva_ml_list_assets(hostname=..., catalog_id=..., execution_rid="2-YYYY")`. **Prefer the MCP path for one-shot lookups**; the path-builder is for code that needs to enumerate at scale or join further.
+
+The naming overlap (`Execution` the *live* class vs `ExecutionRecord` the *summary* model) is a known friction point — when you see `lookup_execution` in autocomplete, remember it gives you the read-only summary, not the asset-walking handle.
+
 ## Execution Statuses
 
 | Status | Meaning |
