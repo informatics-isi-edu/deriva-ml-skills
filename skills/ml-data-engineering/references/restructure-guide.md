@@ -141,12 +141,17 @@ bag.restructure_assets(
 
 A selector receives a list of `FeatureRecord` objects and returns one. `FeatureRecord` is a Pydantic model with named attributes for each column:
 
+The selector below is specific to features that have a `Confidence` column. Direct attribute access on the Pydantic record fails loud (`AttributeError`) if applied to a feature without one — that's the contract being made explicit:
+
 ```python
 from deriva_ml.feature import FeatureRecord
 
 def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
-    """Pick the annotation with the highest confidence score."""
-    return max(records, key=lambda r: getattr(r, "Confidence", 0))
+    """Pick the annotation with the highest confidence score.
+
+    Requires the feature to have a Confidence column.
+    """
+    return max(records, key=lambda r: r.Confidence or 0)
 
 bag.restructure_assets(
     output_dir="./ml_data",

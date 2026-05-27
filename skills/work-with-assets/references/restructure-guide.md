@@ -82,11 +82,13 @@ targets={
 
 Receives a list of `FeatureRecord` objects, returns one:
 
+Specific to features with a `Confidence` column — direct attribute access raises `AttributeError` on features without one (the right failure mode):
+
 ```python
 from deriva_ml.feature import FeatureRecord
 
 def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
-    return max(records, key=lambda r: getattr(r, "Confidence", 0))
+    return max(records, key=lambda r: r.Confidence or 0)
 
 bag.restructure_assets(
     output_dir="./ml_data",

@@ -52,7 +52,7 @@
     {
       "id": 9,
       "prompt": "I need a custom selector that picks the annotation with the highest confidence score. The built-in selectors don't cover this. How do I do it?",
-      "expected_output": "Should explain that custom selectors use signature (list[FeatureRecord]) -> FeatureRecord. Should show a Python script example using getattr(r, 'Confidence', 0). Should explain that the same selector works for both catalog queries (selector= param) and bag restructuring (value_selector= param). Should mention that custom selectors can't be passed as MCP string names — must use Python API. Should reference feature-selectors.md for more examples.",
+      "expected_output": "Should explain that custom selectors use signature (list[FeatureRecord]) -> FeatureRecord. Should show a Python script example using direct attribute access on the record (e.g., max(records, key=lambda r: r.Confidence or 0)) and note that the selector is specific to features that have a Confidence column. Should NOT recommend getattr-with-default on FeatureRecord — domain objects use direct attribute access so a wrong column name surfaces as AttributeError instead of silent fallback. Should explain that the same selector works for both catalog queries (selector= param) and bag restructuring (value_selector= param). Should mention that custom selectors can't be passed as MCP string names — must use Python API. Should reference feature-selectors.md for more examples.",
       "files": []
     },
     {
