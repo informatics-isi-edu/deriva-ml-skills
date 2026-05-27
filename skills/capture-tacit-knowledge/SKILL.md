@@ -152,6 +152,16 @@ Each entry is a short markdown block describing one decision or run, anchored on
 
 **Every RID mentioned in an entry is rendered as a click-through markdown link** using the deriva-ml citation API — `[execution 8KG](https://localhost/id/96/8KG@2P-XYZW)`, where the URL comes from `ml.cite("8KG")`. This applies in the title parenthetical, in body prose ("compared against the 8KG baseline"), in the `**Supported by:**` field's parentheticals — anywhere a RID appears. Bare-text RIDs don't navigate from a markdown viewer; citation links do, and they stay valid because they pin the catalog snapshot at write-time. See "Title includes the durable catalog handle" under Conventions for the full rule and the distinction from resource URIs.
 
+**`ml.cite()` applies to every RID type, not just datasets.** Executions, assets, workflows, features, vocabularies, vocabulary terms, tables — every RID rendered in an entry is routed through `ml.cite(rid)`. The partial-adoption failure mode is to snapshot-pin Dataset RIDs (because the worked examples happen to use them) and hand-write bare-URL links for the others; the convention is uniform. A mixed entry referencing a dataset and the execution that consumed it looks like:
+
+```markdown
+Trained cifar10_quick on [dataset 7KE v0.4.0](https://localhost/id/96/7KE@2P-XYZW)
+in [execution 8KG](https://localhost/id/96/8KG@2P-XYZW); both URLs come from
+ml.cite("7KE") and ml.cite("8KG") respectively.
+```
+
+If you find yourself typing `https://.../id/<cat>/<rid>` by hand, you've left the convention — call `ml.cite(rid)` instead and paste the returned URL.
+
 Every entry should answer:
 
 1. **What was run or decided** — the action.
@@ -236,6 +246,17 @@ This file records *why*, not *what*. The catalog is the source of record for fac
 - **Workflow URLs / checksums / version strings.** Catalog data; live in `Workflow` rows.
 - **Asset MD5s, file sizes, lengths.** Catalog data.
 - **Execution status, start/stop times, lineage edges.** Catalog data; fetch `deriva://catalog/{h}/{c}/ml/execution/{rid}` or `…/ml/lineage/{rid}`.
+- **PR numbers, commit SHAs, issue IDs.** Git/forge coordinates are *archaeology*, not behaviour — they tell a reader *where the change landed*, not *what the change actually does*. The thing future readers need is the durable behavioural claim ("auto-composed Execution descriptions only fire when a Hydra experiment preset is in use"); the PR number is incidental and rots when the repo is mirrored, renumbered, or migrated. Name the behaviour. If git traceability genuinely adds value, the catalog's `Workflow.URL` column already pins the commit SHA — link to that, not to a PR.
+
+  **Wrong** (cites a transient PR coordinate as the thing being said):
+
+  > "PR #46 makes auto-composed Execution descriptions only fire for `+experiment=` overrides; bare `model_config=` runs default to 'Simple model run'."
+
+  **Right** (the durable behaviour is the subject; the PR number is gone):
+
+  > "Auto-composed `Execution.description` strings only fire when a Hydra experiment preset is in use (`+experiment=...`). Bare `model_config=` / `datasets=` overrides without an experiment preset fall back to the literal string 'Simple model run'. Workaround: define a one-line experiment preset for the variation you want a meaningful description for; don't try to pass `description=` directly, which Hydra's grammar rejects for free-form strings."
+
+  The shape to learn: PR numbers describe the *change*; tacit entries describe the *behaviour the change left in place*. Always write the behaviour.
 
 **Do write**: why the dataset was created, why the workflow's type was chosen, why a hyperparameter was selected, what alternatives were rejected and why, what would invalidate this decision, what a future reader needs to know to evaluate whether the decision still holds. Reference catalog entities by their RID rendered as a `ml.cite(rid)` markdown link rather than inlining their fields.
 
