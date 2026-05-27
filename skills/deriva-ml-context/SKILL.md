@@ -102,6 +102,25 @@ The `repr()` of any domain object spells out its field names — `print(obj)` is
 
 This is the mechanical follow-through on "treat them as DerivaML domain objects, not as raw tables" — the override rule says *use the domain object*, this paragraph says *and once you have it, use its named attributes*.
 
+### Carry structure, don't decay it
+
+The dot-access rule above is the local case. The broader principle is: **when data has a known shape, carry it in a container that knows the shape**, end-to-end through the analysis. The shape doesn't have to be one row — it can be a table, a table of tables, or a free-form mapping. Pick the container that matches the shape you've actually got:
+
+| Shape | Right container | Why |
+|---|---|---|
+| **One record** (a row, a config, a ranking entry you're building up) | `@dataclass` or Pydantic `BaseModel` | Named fields, typo-checked at definition, `repr()` is readable. |
+| **Many records of the same shape** (a query result, a denormalized dataset, a per-image prediction table) | `pandas.DataFrame` (or `polars.DataFrame`) | Columns are named, dtypes are tracked, indexing/joining/aggregation are first-class. **A DataFrame returned by `Dataset.denormalize_dataset()` is exactly this — keep it as a DataFrame.** |
+| **A few labeled tables that belong together** (e.g., one DataFrame per model run, joined on image RID) | `@dataclass` whose fields are DataFrames, or `dict[str, DataFrame]` if names are dynamic | The outer container makes the relationships obvious; the inner DataFrames keep their column schemas. |
+| **Genuinely schemaless** (config blobs from arbitrary YAML, MCP responses you're inspecting interactively) | `dict` — and reach for `.get(key, default)` here, *only* here | When there's no contract, defensive lookup is correct. Outside this row, it's an anti-pattern. |
+
+The reason this matters: when structure decays — when a typed `Execution` becomes a `dict`, a DataFrame becomes a `list[dict]`, a `@dataclass` becomes a tuple — you lose the named-field check at every downstream call site. `getattr(d, "version", "?")` returning `"?"` instead of erroring is the symptom; the disease is that `d` should never have been treated as if its fields were optional in the first place. Same disease shows up as `row["confidence"]` silently returning `None` because the real column is `Confidence`, or `result.get("status")` masking a renamed field.
+
+**Worked example.** You're ranking three executions by top-1 accuracy. Wrong: build a `list[dict]` where each entry is `{"rid": ..., "accuracy": ..., "epochs": ...}` and access via `entry.get("accuracy", 0)`. Right: define `@dataclass class RankingEntry: rid: str; accuracy: float; epochs: int` and access via `entry.accuracy`. The dataclass version catches a typo at the point of construction; the dict version ships a silent zero into your sorted list.
+
+**Worked example 2.** `denormalize_dataset()` hands you a DataFrame with columns like `Image_RID`, `Diagnosis_Type`, `Confidence`. Wrong: `df.to_dict(orient="records")` and iterate with `row.get("Confidence", 0)`. Right: stay in DataFrame land — `df["Confidence"].fillna(0)`, `df.groupby("Diagnosis_Type")`, `df.merge(predictions_df, on="Image_RID")`. You only leave the DataFrame when you need a scalar (a final summary number) or when the shape genuinely changes (one row out of many).
+
+The rule is not "avoid DataFrames" — DataFrames *are* the typed container for table-of-records. The rule is **don't downgrade**: don't turn a DataFrame into a list-of-dicts, don't turn a Pydantic record into a dict, don't turn a `@dataclass` into a tuple. Each downgrade trades a real schema for stringly-typed lookups, and every downstream call site pays the cost.
+
 ## The rule: inheritance with override
 
 The deriva-ml plugin **extends** the deriva plugin. Everything that applies in a Deriva catalog applies in a deriva-ml catalog by default. **Override:** if a deriva-ml surface exists for an operation, prefer it over the equivalent deriva surface. This applies symmetrically on all three planes:
