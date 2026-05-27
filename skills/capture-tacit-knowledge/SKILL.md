@@ -21,9 +21,12 @@ This file and the catalog's **semantic-awareness layer** (controlled vocabularie
 - **Not a TODO list.** Don't write "Analyst should run roc_analysis next" or "we need to release dataset X." Those are workflow directives aimed at a specific person at a specific time; they belong in handoff sections, issue trackers, or a task tool — not here. This file records what *was* decided, not what *should* be done.
 - **Not a process or workflow specification.** Don't write step-by-step procedures for a future contributor to follow. Skills, README files, and runbooks own that material. The exception is **recurring-pattern entries** — see Conventions: *"whenever we do X, we also do Y because Z"* is tacit knowledge about a project convention, not a directive. The form is observational ("the pattern in this project is..."), not imperative ("you should...").
 - **Not a status board.** Don't write "in progress: training run X." Catalog `Execution_Status` carries that, and it changes; this file's entries don't change once written. If the run finishes, the next entry could reference the *settled outcome*, not a transient state.
+- **Not a snapshot of mutable catalog state.** A claim that's true *at audit time* but becomes false the next time the catalog is normally written is not a durable entry — even if the audit itself was correct. The most common shape is a count, a distinctness claim, or a shape claim about a table other personas will write to ("1500 rows, no duplicates, no need for the `newest` selector"). On the next normal write, the claim silently rots and a future reader who quotes it in good faith is misled. If the audit produced a useful finding, record either the **scoped** version of the claim (the partition or filter that *will* remain true — "the loader-execution rows form a clean GT layer") or the **convention** that explains why the snapshot was that shape ("this feature table is dual-purpose; filter by execution or by `Confidence IS NULL` for GT-only"). The convention is what doesn't age; the raw count is what does.
 - **Not a replacement for the catalog.** See "What doesn't belong here" below — RIDs, versions, vocab contents, schema shape, lineage edges all live in the catalog. This file links to them, doesn't replicate them.
 
 The unifying rule: **entries are past-tense, settled records.** If something might change tomorrow, it doesn't belong here — it belongs in the system that's actually responsible for that state. This file accumulates; it doesn't track.
+
+The companion rule for audits: **before writing a numerical or distinctness claim, ask whether the next normal catalog write will keep it true.** If the table will be written to by another persona's routine work (predictions into a shared GT+predictions feature, new members into a dataset, new terms into a vocab), scope the claim or capture the convention instead of the snapshot.
 
 ## When to write
 
@@ -299,7 +302,49 @@ column on Image — keep populating it (it's correct curation), just
 don't pipe it into models without a multi-site dataset.
 ```
 
-### Example 4 — Confirmatory inquiry promoting an `[inferred from pattern]` claim
+### Example 4 — Snapshot vs convention: recording the durable shape, not the audit-time count
+
+A Curator auditing a freshly-bootstrapped catalog runs a direct query against the `Image_Classification` feature table and verifies: 1500 rows, 1500 distinct images, every image labeled exactly once. The temptation is to write that finding as a clean, quotable fact for downstream readers.
+
+**Draft that ages out (don't write this):**
+
+```markdown
+### tk-NNN — Image_Classification ground-truth audit clean (feature 7AB)
+... 1500 rows in Execution_Image_Image_Classification covering 1500
+distinct images — no missing labels, no duplicate labels (no need for
+the `newest` selector when reading this feature).
+```
+
+The audit is correct *at this instant*, but `Image_Classification` is the same table the Modeler's prediction-recording step writes into. The moment the next training execution runs, the table contains both ground-truth rows (written by the loader execution, `Confidence IS NULL`) and prediction rows (written by training executions, `Confidence` populated). The unfiltered count goes to 1800+, the same image carries multiple label rows, and a reader who quotes "no need for `newest` selector" in good faith gets the wrong result. The entry didn't lie when it was written; the catalog moved underneath it.
+
+**Durable rewrite — capture the convention, not the snapshot:**
+
+```markdown
+### tk-NNN — Convention — Image_Classification is dual-purpose (ground truth + predictions)
+**When:** ...
+**By:** ...
+
+`Image_Classification` (feature 7AB) is written by two distinct kinds of
+execution and the rows are not distinguishable by table membership alone:
+the loader execution writes ground-truth rows with `Confidence IS NULL`;
+training executions write prediction rows with `Confidence` populated.
+After any training run, the same image will carry multiple rows in this
+feature.
+
+Implications for collaborators: when reading this feature as ground
+truth, filter by execution (the loader exec RID) or by `Confidence IS
+NULL`. An unfiltered `ml.feature_values("Image", "Image_Classification")`
+returns GT + every recorded prediction interleaved, which is rarely
+what an analysis wants. The `newest` selector is also not a safe
+substitute — "newest" is whichever execution last wrote, not "ground
+truth."
+```
+
+If the audit-time snapshot still feels worth recording, scope it explicitly to the partition that *will* remain stable — e.g. "the loader-execution rows form a 1500-of-1500 clean GT layer; this scope doesn't grow with subsequent training runs." That framing makes the durability boundary visible to a future reader.
+
+The shape to learn: **audits surface conventions.** When an audit finds a clean count or a clean shape, the count is the symptom; the convention that explains *why* the table has that shape (and what about it will or won't survive the next write) is the entry.
+
+### Example 5 — Confirmatory inquiry promoting an `[inferred from pattern]` claim
 
 User just created an animals-only subset of `cifar10_complete` and didn't articulate alternatives. The agent's reasoning trace shows the user opened the vehicle-class feature values mid-session before moving on. The agent is about to write the entry.
 
