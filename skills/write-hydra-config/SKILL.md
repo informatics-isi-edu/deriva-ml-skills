@@ -43,7 +43,7 @@ After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_creat
 - `version` is **required** — always a **released** PEP 440 string like `"0.9.0"`, not an integer, not a dev label (no `.devN` suffix). Dev labels are mutable; pinning a config to one defeats reproducibility.
 - Use `with_description()` for non-default configs
 - Default configs use plain lists (no `with_description`) for merge compatibility
-- Find the current released version via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid="<rid>")` or read the `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}` MCP resource
+- Find the current released version via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid="<rid>")` or read the `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{rid}` MCP resource
 - If `current_version` comes back as a dev label (`<release>.post1.devN`), the dataset is mid-mutation. Call `deriva_ml_release(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")` to promote the dev period to a released version, then pin the config to the new release.
 
 ### Assets
@@ -98,7 +98,7 @@ Two mechanisms exist — use the right one for the context:
 | Multiruns | `description=` param on `multirun_config()` | `multirun_config("name", ..., description="...")` |
 | Notebooks | `description=` param on `notebook_config()` | `notebook_config("name", ..., description="...")` |
 
-Descriptions are recorded in execution metadata and make experiments self-documenting. Before writing descriptions, look up catalog details via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (or the resource `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}`) and `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid=...)`.
+Descriptions are recorded in execution metadata and make experiments self-documenting. Before writing descriptions, look up catalog details via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (or the resource `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{rid}`) and `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid=...)`.
 
 ### Good Descriptions
 
@@ -190,7 +190,7 @@ The Python-API generators below produce the exact string to paste into the confi
 | Entry kind | Generator | Why prefer it over hand-typing |
 |---|---|---|
 | `DatasetSpecConfig` | `deriva_ml_get_dataset_spec(hostname=..., catalog_id=..., dataset_rid=..., version=...)` | Only call that guarantees the version segment is PEP-440 released-only (no `.devN` suffix would silently slip past pin-the-version reproducibility) |
-| `AssetSpecConfig` | Read the asset details first via `deriva://catalog/{h}/{c}/ml/asset/{rid}` or `deriva_ml_lookup_asset(...)`, then write `AssetSpecConfig(rid="<rid>", cache=<True\|False>, asset_role="<Input\|Output>")`. Choose `cache=True` for large immutable files (model weights, reference images); leave default for small files that may evolve. Choose `asset_role` per the table above |
+| `AssetSpecConfig` | Read the asset details first via `deriva://catalog/{h}/{c}/deriva-ml/asset/{rid}` or `deriva_ml_lookup_asset(...)`, then write `AssetSpecConfig(rid="<rid>", cache=<True\|False>, asset_role="<Input\|Output>")`. Choose `cache=True` for large immutable files (model weights, reference images); leave default for small files that may evolve. Choose `asset_role` per the table above |
 
 ### File structure conventions
 
@@ -231,7 +231,7 @@ The offer is *one prompt*. If the user declines, **acknowledge plainly** so futu
 - `deriva://config/model-template` — Starter template for model configs with `zen_partial`
 - `deriva://config/experiment-template` — Starter template for experiment presets
 - `deriva://config/multirun-template` — Starter template for multirun sweeps
-- `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{rid}` — Look up dataset details including current version (or call `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)`)
+- `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{rid}` — Look up dataset details including current version (or call `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)`)
 - Browse available `Workflow_Type` vocabulary terms with `list_vocabulary_terms(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type")`
 
 ## Bootstrap Configs from a Catalog
@@ -254,7 +254,7 @@ The connection group. You need a `hostname` + `catalog_id` and ideally a sanity-
 
 ```
 # Discovery — prefer the resource form (one round trip, no pagination)
-# Read deriva://catalog/{hostname}/{catalog_id}/ml/datasets
+# Read deriva://catalog/{hostname}/{catalog_id}/deriva-ml/datasets
 # Look for non-zero datasets; any error here means the bootstrap can't proceed.
 
 # Equivalent tool form if you need filters or paginated browsing:
@@ -288,7 +288,7 @@ deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")
 # Returns RID, description, types, current_version, members per dataset.
 
 # Or the resource form (one round trip):
-# Read deriva://catalog/{hostname}/{catalog_id}/ml/datasets
+# Read deriva://catalog/{hostname}/{catalog_id}/deriva-ml/datasets
 
 # Per-dataset spec string (canonical, version-correct):
 deriva_ml_get_dataset_spec(hostname=..., catalog_id=..., dataset_rid="2-B4C8")
@@ -316,7 +316,7 @@ The asset group. One entry per asset (or asset group) experiments will pin as in
 
 ```
 # Browse assets in a schema
-# Read deriva://catalog/{hostname}/{catalog_id}/ml/assets/{schema}
+# Read deriva://catalog/{hostname}/{catalog_id}/deriva-ml/assets/{schema}
 # Or paginated:
 deriva_ml_list_assets(hostname="data.example.org", catalog_id="1")
 
@@ -345,7 +345,7 @@ The workflow group. Typically one entry per script the project runs.
 
 ```
 # Browse existing workflows — prefer the resource form (one round trip)
-# Read deriva://catalog/{hostname}/{catalog_id}/ml/workflows
+# Read deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflows
 
 # Equivalent tool form if you need pagination or filters:
 deriva_ml_list_workflows(hostname="data.example.org", catalog_id="1")
@@ -386,7 +386,7 @@ Project code, not catalog state. Bootstrap doesn't apply.
 
 Scenario: someone hands you a catalog id (`localhost`, catalog `19`) and asks you to populate the model template's `src/configs/` from scratch.
 
-> Each tool call below has a resource-form equivalent (`deriva://catalog/{h}/{c}/ml/datasets`, `…/ml/assets/{schema}`, `…/ml/workflows`) — one round trip, no pagination cost. The tool form is shown here for readability; either works. See `deriva-ml-context` → "Read-side questions: fetch the resource first."
+> Each tool call below has a resource-form equivalent (`deriva://catalog/{h}/{c}/deriva-ml/datasets`, `…/ml/assets/{schema}`, `…/ml/workflows`) — one round trip, no pagination cost. The tool form is shown here for readability; either works. See `deriva-ml-context` → "Read-side questions: fetch the resource first."
 
 ```python
 # Step 1: confirm the catalog answers and capture inventory.
@@ -523,7 +523,7 @@ Walking every config file in `src/configs/` against the catalog is the right gat
 
 4. **Loop `deriva_ml_get_workflow` over each workflow RID** if your `workflow.py` pins RIDs (most projects let workflows mint at first-run, in which case skip this).
 
-5. **For each connection group**, run a heartbeat — read `deriva://catalog/{hostname}/{catalog_id}/ml/datasets` (resource form, one round trip) or call `deriva_ml_list_datasets(...)` if you need filters. Either proves the catalog answers.
+5. **For each connection group**, run a heartbeat — read `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/datasets` (resource form, one round trip) or call `deriva_ml_list_datasets(...)` if you need filters. Either proves the catalog answers.
 
 6. **Aggregate the per-tool reports** into one summary the user reviews. For each entry, surface:
    - File + line where the entry lives

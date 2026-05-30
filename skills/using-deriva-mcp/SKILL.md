@@ -11,7 +11,7 @@ You are about to make a call against a Deriva catalog via the deriva MCP server 
 This skill is the trigger; the upstream prompts/resources are the rules. The conceptual frame for resource-vs-tool routing lives in the always-on `/deriva-ml:deriva-ml-context` skill — this skill makes sure you've actually read the server's own cold-start material before relying on that frame.
 
 > **Stop before calling a list-style tool: check the resource templates table first.**
-> Almost every read-shaped question against a catalog ("what datasets are in 46?", "what workflow types are available?", "what features exist on Image?") has a matching `deriva://catalog/{hostname}/{catalog_id}/ml/...` resource URI. The resource is **cached, page-free, returns a leaner payload, and produces no audit-log entries** — strictly preferable for read-only questions. The resource templates table in the Reference section at the end of this skill enumerates the ~15 templates the deriva-ml MCP plugin registers. If you find yourself reaching for `deriva_ml_list_datasets`, `deriva_ml_list_executions`, `deriva_ml_list_features`, `list_vocabulary_terms`, etc., pause and confirm there isn't a resource that would answer the same question. Reach for a tool only when the resource shape genuinely doesn't fit (e.g. you need a filter the resource doesn't expose, or pagination beyond what the resource page returns).
+> Almost every read-shaped question against a catalog ("what datasets are in 46?", "what workflow types are available?", "what features exist on Image?") has a matching `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/...` resource URI. The resource is **cached, page-free, returns a leaner payload, and produces no audit-log entries** — strictly preferable for read-only questions. The resource templates table in the Reference section at the end of this skill enumerates the ~15 templates the deriva-ml MCP plugin registers. If you find yourself reaching for `deriva_ml_list_datasets`, `deriva_ml_list_executions`, `deriva_ml_list_features`, `list_vocabulary_terms`, etc., pause and confirm there isn't a resource that would answer the same question. Reach for a tool only when the resource shape genuinely doesn't fit (e.g. you need a filter the resource doesn't expose, or pagination beyond what the resource page returns).
 
 ## The two-minute cold-start
 
@@ -25,7 +25,7 @@ ReadMcpResourceTool(server="<server-name>", uri="deriva://deriva-ml/getting-star
 Replace `<server-name>` with whatever the user's MCP server is registered as — commonly `deriva`, sometimes `dev-localhost`, sometimes something project-specific. If `ListMcpResourcesTool({server: "<name>"})` returns successfully, that's the right name.
 
 > **`ListMcpResourcesTool` only enumerates concrete URIs, not templates.**
-> Claude Code's `ListMcpResourcesTool` calls MCP's `resources/list` endpoint, which by protocol returns only resources with concrete URIs (no `{param}` placeholders). The deriva MCP server registers ~15 resource templates whose URIs *do* have placeholders (`deriva://catalog/{hostname}/{catalog_id}/ml/datasets`, etc.) — those are served via the separate `resources/templates/list` endpoint, which Claude Code does **not** surface. If `ListMcpResourcesTool` returns only 2–3 entries (the static orientation resources), that is the gap — **don't conclude that nothing else is available.** The full template inventory is in the "Reference" section at the end of this skill and inside the `deriva://deriva-ml/getting-started` resource. Read either to know what URIs you can `ReadMcpResourceTool` against.
+> Claude Code's `ListMcpResourcesTool` calls MCP's `resources/list` endpoint, which by protocol returns only resources with concrete URIs (no `{param}` placeholders). The deriva MCP server registers ~15 resource templates whose URIs *do* have placeholders (`deriva://catalog/{hostname}/{catalog_id}/deriva-ml/datasets`, etc.) — those are served via the separate `resources/templates/list` endpoint, which Claude Code does **not** surface. If `ListMcpResourcesTool` returns only 2–3 entries (the static orientation resources), that is the gap — **don't conclude that nothing else is available.** The full template inventory is in the "Reference" section at the end of this skill and inside the `deriva://deriva-ml/getting-started` resource. Read either to know what URIs you can `ReadMcpResourceTool` against.
 
 - `deriva://deriva-ml/concepts` — the five core abstractions (Dataset, Workflow, Execution, Feature, Asset), the provenance principle, the vocabulary-extension pattern. Read **first** if you don't already have a DerivaML mental model.
 - `deriva://deriva-ml/getting-started` — the `(hostname, catalog_id)` rule (mandatory on every call), the pagination contract (preflight → page → advance), the resource-vs-tool decision, error envelope conventions, the discovery-via-resources orientation.
@@ -56,15 +56,15 @@ You can invoke the slash command by typing `/` and selecting from the menu Claud
 
 - Shell-only invocations (`load-cifar10` CLI, `deriva-ml-run`, custom scripts that use the `deriva-ml` Python API directly). Those bypass the MCP server entirely and have their own orientation in the relevant skill (`/deriva-ml:setup-ml-catalog`, `/deriva-ml:execution-lifecycle`).
 - Repeat MCP calls in the same conversation. Once you've read the orientation material, you've read it — don't re-fetch.
-- Read-only catalog *resource* fetches against URIs you already understand (e.g., re-reading `deriva://catalog/<h>/<c>/ml/datasets` after you've done it once). The resource shape is established; no re-orientation needed.
+- Read-only catalog *resource* fetches against URIs you already understand (e.g., re-reading `deriva://catalog/<h>/<c>/deriva-ml/datasets` after you've done it once). The resource shape is established; no re-orientation needed.
 
 ## The MCP / local-Python boundary
 
 The deriva-ml MCP surface is **observation + catalog-state mutation**, not execution authorship. Two whole classes of operation belong in user-local Python, not on the wire:
 
-1. **Execution lifecycle.** Creating an Execution, opening its context manager, staging feature values, and committing output assets all require the user's git checkout (for workflow URL + commit hash), the local filesystem (for staged output files), and a per-process SQLite manifest (for feature-value staging). An MCP server can't participate in any of that. The pattern is `with ml.create_execution(config) as exe:` in a committed script, run via `deriva-ml-run`. The MCP surface still exposes read-only execution tools (`deriva_ml_list_executions`, `deriva_ml_get_execution`, `deriva_ml_get_lineage`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_find_workflow_executions`) and the matching `deriva://catalog/{h}/{c}/ml/execution/...` resources for post-run observation — those stay on the wire. See `/deriva-ml:execution-lifecycle` for the script-template pattern.
+1. **Execution lifecycle.** Creating an Execution, opening its context manager, staging feature values, and committing output assets all require the user's git checkout (for workflow URL + commit hash), the local filesystem (for staged output files), and a per-process SQLite manifest (for feature-value staging). An MCP server can't participate in any of that. The pattern is `with ml.create_execution(config) as exe:` in a committed script, run via `deriva-ml-run`. The MCP surface still exposes read-only execution tools (`deriva_ml_list_executions`, `deriva_ml_get_execution`, `deriva_ml_get_lineage`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_find_workflow_executions`) and the matching `deriva://catalog/{h}/{c}/deriva-ml/execution/...` resources for post-run observation — those stay on the wire. See `/deriva-ml:execution-lifecycle` for the script-template pattern.
 
-2. **Bag materialization.** Downloading a dataset bag writes bytes to the caller's local cache directory. The MCP server has no shared filesystem with the caller, so any "warm the cache" MCP call would produce inaccessible bytes on the server's disk. The pattern is `ml.cache_dataset(spec)` in a committed script — see the `skills/manage-storage/scripts/warm_cache.py` template. The MCP surface keeps the **preview** path (`deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` resource and `deriva_ml_bag_info` tool) because both return bounded inline rows the wire is good for. The denormalized-bag tool (`deriva_ml_denormalize_dataset`) stays too — its output is bounded inline rows; the cache_dataset it uses internally is an implementation detail the caller never sees.
+2. **Bag materialization.** Downloading a dataset bag writes bytes to the caller's local cache directory. The MCP server has no shared filesystem with the caller, so any "warm the cache" MCP call would produce inaccessible bytes on the server's disk. The pattern is `ml.cache_dataset(spec)` in a committed script — see the `skills/manage-storage/scripts/warm_cache.py` template. The MCP surface keeps the **preview** path (`deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` resource and `deriva_ml_bag_info` tool) because both return bounded inline rows the wire is good for. The denormalized-bag tool (`deriva_ml_denormalize_dataset`) stays too — its output is bounded inline rows; the cache_dataset it uses internally is an implementation detail the caller never sees.
 
 The rule of thumb: if an operation needs **bytes on the caller's machine** or **the caller's git commit hash**, it's local Python.
 
@@ -105,32 +105,32 @@ the matching docstring in `deriva-ml-mcp/src/deriva_ml_mcp/resources/ml.py`.
 
 | URI | Returns |
 |---|---|
-| `deriva://catalog/{hostname}/{catalog_id}/ml/datasets` | all datasets (paginated) |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}` | single dataset summary + version history |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}/spec` | dataset specification (element types, etc.) |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}/bag-preview` | bag-download preview without materializing |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/dataset/{dataset_rid}/members` | dataset members (paginated) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/datasets` | all datasets (paginated) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{dataset_rid}` | single dataset summary + version history |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{dataset_rid}/spec` | dataset specification (element types, etc.) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{dataset_rid}/bag-preview` | bag-download preview without materializing |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{dataset_rid}/members` | dataset members (paginated) |
 
 **Workflows & Executions**
 
 | URI | Returns |
 |---|---|
-| `deriva://catalog/{hostname}/{catalog_id}/ml/workflows` | all workflows (paginated) |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/workflow/{workflow_rid}` | single workflow (source URL, checksum, type) |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/executions` | all executions (paginated) |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{execution_rid}` | execution detail (inputs, outputs, durations, experiment) |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/lineage/{rid}` | full provenance walk from any Dataset / Execution / Asset RID |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflows` | all workflows (paginated) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflow/{workflow_rid}` | single workflow (source URL, checksum, type) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/executions` | all executions (paginated) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{execution_rid}` | execution detail (inputs, outputs, durations, experiment) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/lineage/{rid}` | full provenance walk from any Dataset / Execution / Asset RID |
 
 **Features, Assets, Vocabularies**
 
 | URI | Returns |
 |---|---|
-| `deriva://catalog/{hostname}/{catalog_id}/ml/features/{table_name}` | features defined on `{table_name}` |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/asset/{asset_rid}` | single asset metadata + download URL |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/assets/{schema}` | all assets in a schema |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/assets/{schema}/{asset_table}` | assets in one specific asset table |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/{schema}` | all vocabulary tables in a schema |
-| `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/{schema}/{vocab_name}` | all terms in one vocabulary |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/features/{table_name}` | features defined on `{table_name}` |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/asset/{asset_rid}` | single asset metadata + download URL |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/assets/{schema}` | all assets in a schema |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/assets/{schema}/{asset_table}` | assets in one specific asset table |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/vocabularies/{schema}` | all vocabulary tables in a schema |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/vocabularies/{schema}/{vocab_name}` | all terms in one vocabulary |
 
 These templates are the read-side of the resource-vs-tool decision documented in `/deriva-ml:deriva-ml-context` — when a question is "what is the current state of X," prefer the resource over the equivalent list / get tool. Resources are cached, page-free, and produce no audit-log entries.
 

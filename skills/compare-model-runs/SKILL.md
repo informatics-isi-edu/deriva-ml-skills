@@ -93,7 +93,7 @@ Use this path when metrics are scalar columns on a Feature.
 
 ### Step 1: Find the recent N executions of the workflow
 
-The tool is right here because the query is filtered (by workflow + status) and you want pagination control. For a quick "what executions exist?" snapshot without filters, prefer `ReadMcpResourceTool(server="<name>", uri="deriva://catalog/{h}/{c}/ml/executions")` — one round trip, no preflight.
+The tool is right here because the query is filtered (by workflow + status) and you want pagination control. For a quick "what executions exist?" snapshot without filters, prefer `ReadMcpResourceTool(server="<name>", uri="deriva://catalog/{h}/{c}/deriva-ml/executions")` — one round trip, no preflight.
 
 ```
 deriva_ml_list_executions(
@@ -175,7 +175,7 @@ deriva_ml_get_execution(
 
 The response includes the execution's metadata + output assets. Look for entries where `"Metrics_File" in asset_types` (membership, not equality — DerivaML auto-adds `Output_File` to the list when assets are uploaded via `commit_output_assets()`, so an equality check would silently miss every match; see `work-with-assets` → "Asset_Type auto-tags"). Capture the asset RID for each execution.
 
-You can also use the `deriva://catalog/{h}/{c}/ml/execution/{rid}` resource — same data, no pagination cost.
+You can also use the `deriva://catalog/{h}/{c}/deriva-ml/execution/{rid}` resource — same data, no pagination cost.
 
 ### Step 3: Generate the local Python script
 
@@ -410,7 +410,7 @@ So the lineage tells you "asset `2-PRED1` was produced by execution `2-EXE1`, wh
 
 ```
 # Step 2 — fetch the workflow record(s) named in the lineage
-ReadMcpResourceTool(server="<name>", uri="deriva://catalog/data.example.org/1/ml/workflow/2-WF01")
+ReadMcpResourceTool(server="<name>", uri="deriva://catalog/data.example.org/1/deriva-ml/workflow/2-WF01")
 ```
 
 The workflow resource returns the full record including `url` (the source-code URL, typically a GitHub blob URL pinned to a commit, e.g. `https://github.com/org/repo/blob/abc123/train.py`) and `checksum` (the git commit hash). The URL is the reproducible-code reference; the checksum is the integrity check.

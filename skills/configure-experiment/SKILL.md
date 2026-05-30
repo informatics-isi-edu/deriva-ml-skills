@@ -208,7 +208,7 @@ cache_dir="/scratch/ml-work/cache"  # ❌ Cache dir INSIDE working dir
 
 - `deriva://config/experiment-template` — Experiment config template
 - `deriva://config/multirun-template` — Multirun config template
-- `deriva://catalog/{hostname}/{catalog_id}/ml/workflows` — Available workflows and types (or call `deriva_ml_list_workflows(hostname=..., catalog_id=...)`)
+- `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflows` — Available workflows and types (or call `deriva_ml_list_workflows(hostname=..., catalog_id=...)`)
 
 ## Related Skills
 

@@ -29,11 +29,11 @@ rag_search("image assets files", doc_type="catalog-schema")
 rag_search("model weights checkpoints", doc_type="catalog-schema")
 ```
 
-For a schema-scoped list, read the resource `deriva://catalog/{h}/{c}/ml/assets/{schema}` (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain schema). Same-named asset tables in different schemas are disambiguated by the schema segment. To survey across schemas, enumerate the schemas with `list_schemas` (deriva-mcp-core) and read this resource per schema — there is no single all-schemas asset-table tool or resource.
+For a schema-scoped list, read the resource `deriva://catalog/{h}/{c}/deriva-ml/assets/{schema}` (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain schema). Same-named asset tables in different schemas are disambiguated by the schema segment. To survey across schemas, enumerate the schemas with `list_schemas` (deriva-mcp-core) and read this resource per schema — there is no single all-schemas asset-table tool or resource.
 
 ### Browsing assets in a table
 
-For a bounded snapshot of one asset table, read `deriva://catalog/{h}/{c}/ml/assets/{schema}/{asset_table}` — returns up to the resource limit of assets in that table with `truncated` and `next_after_rid` set when the table exceeds the cap.
+For a bounded snapshot of one asset table, read `deriva://catalog/{h}/{c}/deriva-ml/assets/{schema}/{asset_table}` — returns up to the resource limit of assets in that table with `truncated` and `next_after_rid` set when the table exceeds the cap.
 
 For a paginated, filterable browse, call `deriva_ml_list_assets(hostname="data.example.org", catalog_id="1", asset_table="Image")` to see all assets in a specific table with their RIDs, filenames, sizes, types, and descriptions.
 
@@ -273,7 +273,7 @@ Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to see an ex
 
 End-to-end MCP workflow: find assets, inspect one, check its provenance. Substitute your hostname (e.g. `"data.example.org"`) and catalog ID (e.g. `"1"`).
 
-**Step 1:** Read `deriva://catalog/data.example.org/1/ml/assets/{schema}` (your domain schema, or `deriva-ml` for the built-ins) to find what asset tables exist in that schema.
+**Step 1:** Read `deriva://catalog/data.example.org/1/deriva-ml/assets/{schema}` (your domain schema, or `deriva-ml` for the built-ins) to find what asset tables exist in that schema.
 
 **Step 2:** Call `deriva_ml_list_assets(hostname="data.example.org", catalog_id="1", asset_table="Image")` to browse images.
 

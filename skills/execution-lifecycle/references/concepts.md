@@ -68,7 +68,7 @@ The input and output links are tracked through association tables with role info
 
 **Querying executions:**
 - Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` for full details (workflow, status, datasets, assets, timestamps).
-- Read `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{execution_rid}` for the same content as a resource.
+- Read `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{execution_rid}` for the same content as a resource.
 - Call `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)` then inspect its `executions` field to find all executions that used a dataset.
 - Call `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)` to find the producer execution; use `deriva_ml_find_workflow_executions(...)` for the broader query.
 - Call `deriva_ml_list_assets(hostname, catalog_id, execution_rid=...)` to enumerate the output assets a past execution produced (the `Execution_Asset` rows it owns). This is the one-shot equivalent of walking `Execution → Execution_Asset_Execution → Execution_Asset` in the path-builder — prefer the MCP tool for lookups, use the path-builder when you need to join further.
@@ -278,7 +278,7 @@ Each child is its own execution with its own inputs and outputs; the parent's `a
 
 | Resource | What it returns |
 |----------|----------------|
-| `deriva://catalog/{h}/{c}/ml/execution/{rid}` | Execution details including status, workflow, timing, inputs, outputs |
+| `deriva://catalog/{h}/{c}/deriva-ml/execution/{rid}` | Execution details including status, workflow, timing, inputs, outputs |
 
 **Python API:**
 

@@ -283,7 +283,7 @@ Use this checklist when data is missing from a bag:
 ## Reference Resources
 
 - `deriva://docs/datasets` — Full guide to bag export traversal, FK paths, and troubleshooting. Read this for detailed examples and edge cases beyond what this skill covers.
-- `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` — Preview bag contents before downloading
+- `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` — Preview bag contents before downloading
 - `deriva_ml_list_dataset_element_types(hostname, catalog_id)` — Check which element types are registered
 
 ## Related Tools

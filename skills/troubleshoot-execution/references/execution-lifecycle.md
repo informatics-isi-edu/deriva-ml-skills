@@ -450,7 +450,7 @@ Use the Python API: `exe.working_dir` returns the local filesystem path for the 
 | Resource / Tool | Purpose |
 |-----------------|---------|
 | `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` | Execution details, status, inputs, outputs, metadata |
-| `deriva://catalog/{h}/{c}/ml/execution/{rid}` | Resource form of the same content |
+| `deriva://catalog/{h}/{c}/deriva-ml/execution/{rid}` | Resource form of the same content |
 | `deriva://storage/execution-dirs` | Local execution working directories |
 | Python API `exe.working_dir` | Local filesystem path for the execution |
 | `skills/execution-lifecycle/scripts/salvage_execution.py` | Drive `commit_output_assets()` on a `Stopped`/`Failed` execution. Idempotent under `match_by_columns` dedup. The canonical salvage entry point. |

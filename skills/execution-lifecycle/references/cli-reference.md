@@ -197,7 +197,7 @@ After the run completes, verify the execution was recorded. Use the MCP tools:
 - `deriva_ml_list_executions(hostname="data.example.org", catalog_id="1")` to list recent executions.
 - `deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="...")` for details on a specific execution.
 
-The same content is available via the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}`.
+The same content is available via the resource `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{rid}`.
 
 ### View in Chaise
 

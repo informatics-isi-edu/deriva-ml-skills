@@ -32,14 +32,14 @@ Bootstrap a new experiment from [`deriva-ml-model-template`](https://github.com/
 The DerivaML stack:
 
 - **`deriva-ml`** — the Python library; provides the `DerivaML` class, `Workflow`, `ExecutionConfiguration`, dataset / feature / asset APIs, and the `with ml.create_execution(config) as exe:` context manager pattern.
-- **`deriva_ml_*` MCP tools** — e.g., `deriva_ml_create_dataset`, `deriva_ml_create_feature`, `deriva_ml_release`, plus the `deriva://catalog/{h}/{c}/ml/...` resource family. MCP is the **observation + catalog-state-mutation** surface; execution authorship (creating + running executions, staging feature values, committing output assets) lives in user-local Python via bundled script templates — see the `execution-lifecycle` skill.
+- **`deriva_ml_*` MCP tools** — e.g., `deriva_ml_create_dataset`, `deriva_ml_create_feature`, `deriva_ml_release`, plus the `deriva://catalog/{h}/{c}/deriva-ml/...` resource family. MCP is the **observation + catalog-state-mutation** surface; execution authorship (creating + running executions, staging feature values, committing output assets) lives in user-local Python via bundled script templates — see the `execution-lifecycle` skill.
 - **`deriva-ml-skills`** — this Claude Code plugin; ~28 skills that drive the above two layers through Claude.
 
 All `deriva_ml_*` tools take `hostname=` and `catalog_id=` arguments explicitly — see `/deriva:deriva-context` for the stateless-model framing that applies to the whole stack.
 
 ## Read-side questions: fetch the resource first
 
-For **read-side questions about an existing entity** — "show me X by RID," "what's in Y," "what did Z produce / consume," "what's the current version of W" — fetch the matching `deriva://catalog/{hostname}/{catalog_id}/ml/...` resource *before* reaching for `deriva_ml_*` tools or generic catalog CRUD (`get_entities`, `query_attribute`, `list_foreign_keys`). The resource family is purpose-built for these lookups: a single fetch returns the entity's summary plus its associated children (a dataset's members and version, an execution's inputs/outputs/metadata, a workflow's executions, etc.) in a stable bundled shape, while the equivalent tool path typically takes 2–7 round trips of fetch + filter + join.
+For **read-side questions about an existing entity** — "show me X by RID," "what's in Y," "what did Z produce / consume," "what's the current version of W" — fetch the matching `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/...` resource *before* reaching for `deriva_ml_*` tools or generic catalog CRUD (`get_entities`, `query_attribute`, `list_foreign_keys`). The resource family is purpose-built for these lookups: a single fetch returns the entity's summary plus its associated children (a dataset's members and version, an execution's inputs/outputs/metadata, a workflow's executions, etc.) in a stable bundled shape, while the equivalent tool path typically takes 2–7 round trips of fetch + filter + join.
 
 | URI | Returns |
 |---|---|

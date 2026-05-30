@@ -31,7 +31,7 @@ Then use the typed tools for full structured details. For "all features on a tar
 
 ```
 # Snapshot all features defined on the Image table (one round trip)
-ReadMcpResourceTool(server="<name>", uri="deriva://catalog/{h}/{c}/ml/features/Image")
+ReadMcpResourceTool(server="<name>", uri="deriva://catalog/{h}/{c}/deriva-ml/features/Image")
 
 # Or paginated equivalents — use the tool when you need to drill or filter:
 deriva_ml_list_features(hostname, catalog_id)                                                    # All features (paginated)
@@ -276,7 +276,7 @@ If multiple executions contributed, present only the relevant selector options b
 - `references/workflow.md` — Step-by-step MCP and Python API examples for create / add-values / query
 - `references/feature-selectors.md` — Complete guide to writing and using feature selectors
 - `deriva://docs/features` — Full user guide to features in DerivaML
-- `deriva://catalog/{h}/{c}/ml/features/{table}` — Snapshot of features defined on a target table (one round trip; preferred for "what features exist on X?")
+- `deriva://catalog/{h}/{c}/deriva-ml/features/{table}` — Snapshot of features defined on a target table (one round trip; preferred for "what features exist on X?")
 - `deriva_ml_list_features(hostname, catalog_id)` — Paginated browse across all target tables (use when you need to filter or drill beyond the per-table snapshot)
 - `deriva_ml_get_feature(hostname, catalog_id, target_table, feature_name)` — Feature details and column schema
 - `deriva_ml_list_feature_values(hostname, catalog_id, target_table, feature_name, selector=...)` — Feature values with selectors and per-execution / per-workflow filtering (no resource equivalent; values are too large/selector-driven for a snapshot)

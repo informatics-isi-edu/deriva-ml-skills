@@ -50,7 +50,7 @@ rag_search("your purpose here", doc_type="catalog-data")
 deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")
 
 # Equivalent resource URI
-Read resource: deriva://catalog/{h}/{c}/ml/datasets
+Read resource: deriva://catalog/{h}/{c}/deriva-ml/datasets
 
 # Get details about a specific dataset
 deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")

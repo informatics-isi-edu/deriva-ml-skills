@@ -91,9 +91,9 @@ Asset tables also get automatically created **association tables**:
 
 The plugin exposes schema-scoped resources for asset discovery:
 
-- `deriva://catalog/{h}/{c}/ml/assets/{schema}` — list asset tables in one schema (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain).
-- `deriva://catalog/{h}/{c}/ml/assets/{schema}/{asset_table}` — snapshot of assets in one asset table. The snapshot is bounded; large tables surface a `truncated` flag and a `next_after_rid` cursor — at that point, switch to the paginated `deriva_ml_list_assets` tool for the full traversal.
-- `deriva://catalog/{h}/{c}/ml/asset/{rid}` — one asset by RID (singular; same shape as `deriva_ml_lookup_asset`).
+- `deriva://catalog/{h}/{c}/deriva-ml/assets/{schema}` — list asset tables in one schema (e.g., `ml/assets/deriva-ml` for the built-ins, `ml/assets/myproject` for your domain).
+- `deriva://catalog/{h}/{c}/deriva-ml/assets/{schema}/{asset_table}` — snapshot of assets in one asset table. The snapshot is bounded; large tables surface a `truncated` flag and a `next_after_rid` cursor — at that point, switch to the paginated `deriva_ml_list_assets` tool for the full traversal.
+- `deriva://catalog/{h}/{c}/deriva-ml/asset/{rid}` — one asset by RID (singular; same shape as `deriva_ml_lookup_asset`).
 
 ## Asset RIDs
 
@@ -222,7 +222,7 @@ matches = [a for a in assets if a.asset_types == ["Model_Weights"]]
 matches = [a for a in assets if "Model_Weights" in a.asset_types]
 ```
 
-The same rule applies on the MCP side: filters and post-processing of `asset_types` lists returned by `deriva_ml_lookup_asset`, `deriva_ml_list_assets`, `deriva_ml_find_assets`, and the `deriva://catalog/.../ml/asset/{rid}` resource must use membership semantics, not equality.
+The same rule applies on the MCP side: filters and post-processing of `asset_types` lists returned by `deriva_ml_lookup_asset`, `deriva_ml_list_assets`, `deriva_ml_find_assets`, and the `deriva://catalog/.../deriva-ml/asset/{rid}` resource must use membership semantics, not equality.
 
 ## Creating an Asset Table on a DerivaML catalog
 

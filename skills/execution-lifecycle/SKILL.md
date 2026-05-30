@@ -29,7 +29,7 @@ Before running an experiment, validate that everything is in place. **Stop and f
 
 1. **Resolve the configuration.** For CLI runs, dump the resolved config with `uv run deriva-ml-run +experiment=<name> --info` (or `--cfg job` for the full YAML). Extract dataset RIDs, asset RIDs, and versions from the resolved `datasets` and `assets` groups. For MCP-tool / Python-API runs, collect the RIDs from the call site.
 2. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for pinned dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
-3. **Check data readiness.** For the dataset's **current** version, the lead path is the bag-preview resource `deriva://catalog/{h}/{c}/ml/dataset/{rid}/bag-preview` (one round trip, no parameters). For a **pinned version** or to **exclude tables**, use the tool: `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`. Both return size info AND cache status:
+3. **Check data readiness.** For the dataset's **current** version, the lead path is the bag-preview resource `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` (one round trip, no parameters). For a **pinned version** or to **exclude tables**, use the tool: `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`. Both return size info AND cache status:
 
    | Status | Meaning |
    |---|---|
@@ -93,7 +93,7 @@ After a run, check the execution:
 deriva_ml_get_execution(hostname, catalog_id, execution_rid="<rid>")
 ```
 
-Or read the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}`, or `cite(hostname, catalog_id, rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Uploaded`, correct inputs linked, output assets attached, git hash matches.
+Or read the resource `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{rid}`, or `cite(hostname, catalog_id, rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Uploaded`, correct inputs linked, output assets attached, git hash matches.
 
 ### Proactively offer to wire output assets into `src/configs/assets.py`
 
@@ -133,11 +133,11 @@ Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/d
 - `references/cli-reference.md` — `deriva-ml-run` CLI commands, Hydra overrides, multirun syntax
 - `rag_search("training experiments", doc_type="catalog-data")` — find executions by workflow or status
 - `rag_search("workflow types", doc_type="catalog-schema")` — discover available workflow types
-- `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{rid}` — Execution details and status
-- `deriva://catalog/{hostname}/{catalog_id}/ml/executions` — Browse recent executions
-- `deriva://catalog/{hostname}/{catalog_id}/ml/workflows` — Available workflows
-- `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/deriva-ml/Workflow_Type` — Workflow type vocabulary terms
-- `deriva://catalog/{hostname}/{catalog_id}/ml/vocabularies/deriva-ml/Dataset_Type` — Dataset type vocabulary terms
+- `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{rid}` — Execution details and status
+- `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/executions` — Browse recent executions
+- `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflows` — Available workflows
+- `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/vocabularies/deriva-ml/Workflow_Type` — Workflow type vocabulary terms
+- `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/vocabularies/deriva-ml/Dataset_Type` — Dataset type vocabulary terms
 
 Prefer typed tool calls: `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_list_workflows`.
 

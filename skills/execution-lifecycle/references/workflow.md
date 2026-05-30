@@ -79,7 +79,7 @@ rag_search("training workflows", doc_type="catalog-data")
 rag_search("workflow types", doc_type="catalog-schema")
 ```
 
-For the full structured list, call `deriva_ml_list_workflows(hostname, catalog_id)` or read `deriva://catalog/{hostname}/{catalog_id}/ml/workflows`.
+For the full structured list, call `deriva_ml_list_workflows(hostname, catalog_id)` or read `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflows`.
 
 ### Find a workflow by URL
 
@@ -340,7 +340,7 @@ For the full notebook development and running workflow, see the `run-notebook` s
 
 Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` to get an execution's workflow, status, description, timing, linked datasets/assets, Hydra config, and input/output summaries.
 
-The same content is also available via the resource `deriva://catalog/{hostname}/{catalog_id}/ml/execution/{execution_rid}`.
+The same content is also available via the resource `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{execution_rid}`.
 
 ### Browse executions
 
@@ -462,6 +462,6 @@ uv run deriva-ml-run +experiment=cifar_baseline
 deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="<rid>")
 ```
 
-Or read `deriva://catalog/data.example.org/1/ml/execution/<rid>`.
+Or read `deriva://catalog/data.example.org/1/deriva-ml/execution/<rid>`.
 
 Verify the status is `Uploaded`, the inputs are linked, output assets are attached, and the git hash matches your commit.

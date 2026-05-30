@@ -72,7 +72,7 @@ Returns every cached bag, execution directory, and other artifact.
 For the **current released version** of a dataset, the lead path is the bag-preview resource (one round trip, no parameters):
 
 ```
-deriva://catalog/data.example.org/1/ml/dataset/28CT/bag-preview
+deriva://catalog/data.example.org/1/deriva-ml/dataset/28CT/bag-preview
 ```
 
 For a **pinned version** or to **exclude tables** from the preview, use the `deriva_ml_bag_info` tool:
