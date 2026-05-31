@@ -47,7 +47,7 @@ Now express the hypothesis as a hydra-zen configuration. The mechanics are owned
 
 What this phase adds to the catalog: nothing yet. Configs live in your repo; they reference catalog entities by RID and version. The catalog is unchanged until you run.
 
-**Inter-phase gate:** before advancing to phase 3, run `uv run deriva-ml-run --info` to verify the config tree composes. Hydra config errors are easier to fix when you haven't yet identified the assets and rolled the version forward.
+**Inter-phase gate:** before advancing to phase 3, verify the config composes — `uv run deriva-ml-run --list-configs` lists the registered groups/options, and `uv run deriva-ml-run +experiment=<name> --cfg job` renders the *resolved* config for your experiment without running it (Hydra's native `--cfg`; far cheaper than a `dry_run` here since it touches no catalog). Hydra config errors are easier to fix when you haven't yet identified the assets and rolled the version forward.
 
 ### Phase 3 — Identify assets
 

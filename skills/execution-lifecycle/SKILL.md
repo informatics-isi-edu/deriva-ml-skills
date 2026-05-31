@@ -25,9 +25,9 @@ DerivaML enforces that all code is committed before running catalog-mutating ope
 
 ## Phase 1: Pre-Flight Validation
 
-Before running an experiment, validate that everything is in place. **Stop and fix any issues.** The full pre-flight walkthrough (Hydra `--info` / `--cfg job` invocations, per-RID validation calls, staging script patterns) lives in `references/workflow.md`; this section names what to validate.
+Before running an experiment, validate that everything is in place. **Stop and fix any issues.** The full pre-flight walkthrough (`--list-configs` / `--cfg job` invocations, per-RID validation calls, staging script patterns) lives in `references/workflow.md`; this section names what to validate.
 
-1. **Resolve the configuration.** For CLI runs, dump the resolved config with `uv run deriva-ml-run +experiment=<name> --info` (or `--cfg job` for the full YAML). Extract dataset RIDs, asset RIDs, and versions from the resolved `datasets` and `assets` groups. For MCP-tool / Python-API runs, collect the RIDs from the call site.
+1. **Resolve the configuration.** For CLI runs, dump the resolved config with `uv run deriva-ml-run +experiment=<name> --cfg job` (use `--list-configs` first if you need the menu of registered options). Extract dataset RIDs, asset RIDs, and versions from the resolved `datasets` and `assets` groups. For MCP-tool / Python-API runs, collect the RIDs from the call site.
 2. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for pinned dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
 3. **Check data readiness.** For the dataset's **current** version, the lead path is the bag-preview resource `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` (one round trip, no parameters). For a **pinned version** or to **exclude tables**, use the tool: `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`. Both return size info AND cache status:
 

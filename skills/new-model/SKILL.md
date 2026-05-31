@@ -148,8 +148,8 @@ experiment_store(
 ### 5. Test locally
 
 ```bash
-# Check config resolves
-uv run deriva-ml-run +experiment=my_model_quick --info
+# Inspect the resolved config (no execution)
+uv run deriva-ml-run +experiment=my_model_quick --cfg job
 
 # Dry run (downloads data, runs model, no catalog writes)
 uv run deriva-ml-run +experiment=my_model_quick dry_run=true

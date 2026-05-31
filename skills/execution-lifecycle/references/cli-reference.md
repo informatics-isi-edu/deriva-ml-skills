@@ -72,14 +72,34 @@ Do not run without confirmation for production (non-dry-run) experiments.
 
 Before running, inspect the resolved configuration. There are several ways to view the config without executing anything:
 
-### deriva-ml-run --info
+### deriva-ml-run --list-configs (the config menu)
 
 ```bash
-uv run deriva-ml-run --info
-uv run deriva-ml-run +experiment=baseline --info
+uv run deriva-ml-run --list-configs
 ```
 
-This prints a formatted summary of the resolved config.
+This prints the *menu* of registered `group=value` options (the named
+experiments, datasets, assets, model configs, workflows, multiruns the
+project has registered). It ignores any overrides on the command line —
+it answers "what can I select?", not "what does *this* selection resolve
+to?". Use it to discover valid override values.
+
+### deriva-ml-run +experiment=X --cfg job (the resolved config)
+
+```bash
+uv run deriva-ml-run +experiment=baseline --cfg job
+```
+
+This renders the fully *resolved* config that the given overrides compose
+to — all defaults, overrides, and interpolations applied — without
+executing the run. This is Hydra's native `--cfg`; see the `--cfg`
+section below for `--package` scoping. Use it to confirm a specific
+experiment resolves the way you expect before running.
+
+`deriva-ml-run` forwards every Hydra command-line flag to Hydra, so the
+full Hydra surface is available (`--cfg job|hydra|all`, `--info
+config|defaults|searchpath|...`, `--resolve`, `--package`, etc.). See
+<https://hydra.cc/docs/advanced/hydra-command-line-flags/>.
 
 ### Standard Hydra --cfg (full resolved YAML)
 
@@ -141,7 +161,8 @@ uv run deriva-ml-run +experiment=baseline dry_run=False
 |---|---|---|
 | `--host` | Override the Deriva host | `--host ml-dev.derivacloud.org` |
 | `--catalog` | Override the catalog ID | `--catalog 99` |
-| `--info` | Print resolved config and exit | `--info` |
+| `--list-configs` | Print the menu of registered config groups/options and exit | `--list-configs` |
+| `--cfg job` | Print the resolved config (no execution) | `+experiment=baseline --cfg job` |
 | `--multirun` | Enable multirun mode for sweeps | `--multirun` |
 
 ### Hydra Overrides
@@ -228,4 +249,4 @@ Verify:
 | `Lock file out of date` | `uv.lock` does not match `pyproject.toml` | Run `uv lock` and commit |
 | `ModuleNotFoundError` | Dependencies not installed | Run `uv sync` |
 | `Multirun requires --multirun flag` | Ad-hoc sweep without the flag | Add `--multirun` for ad-hoc sweeps; named multiruns (`+multirun=X`) don't need it |
-| `dry_run output looks wrong` | Config resolution issue | Use `--info` to inspect the resolved config |
+| `dry_run output looks wrong` | Config resolution issue | Use `--cfg job` to inspect the resolved config |

@@ -529,7 +529,7 @@ All of these can be caught before the execution context manager opens.
 | Check cache | `deriva_ml_bag_info` | Dataset sizes, cache status (`not_cached`, `cached_metadata_only`, `cached_materialized`, `cached_incomplete`); also doubles as a version-existence check |
 | Warm cache | `skills/manage-storage/scripts/warm_cache.py` | Pre-fetches bags into local cache (no execution row) |
 | Git clean | `git status` | No uncommitted changes (for CLI runs) |
-| Config check | `--info` | Resolved Hydra config is correct (for CLI runs) |
+| Config check | `--cfg job` | Resolved Hydra config is correct (for CLI runs) |
 
 ### Cache status values
 
