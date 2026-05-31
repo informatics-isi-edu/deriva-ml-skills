@@ -502,8 +502,8 @@ dependencies = [
 
 [[package]]
 name = "deriva-ml"
-version = "1.40.2.post16+g8c744045c"
-source = { git = "https://github.com/informatics-isi-edu/deriva-ml.git#8c744045ce18eefeb9540cfbcd0c2f837d321d62" }
+version = "1.41.1"
+source = { git = "https://github.com/informatics-isi-edu/deriva-ml.git#5377f999161da0dd15d2c3c965389da825e09561" }
 dependencies = [
     { name = "bdbag" },
     { name = "bump-my-version" },
