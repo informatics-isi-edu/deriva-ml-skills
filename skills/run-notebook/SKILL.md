@@ -157,8 +157,8 @@ fig.savefig(plot_path)
 ### Step 3: Run
 
 ```bash
-# List the available named configs and override groups for this notebook
-uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb --info
+# List the available named configs and override groups for this notebook (the menu)
+uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb --list-configs
 
 # Run with defaults
 uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb
@@ -170,12 +170,13 @@ uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb assets=different_a
 uv run deriva-ml-run-notebook notebooks/<notebook_name>.ipynb deriva_ml=localhost_1407
 ```
 
-**Always start with `--info`.** It prints the registered named configs and the
+**Always start with `--list-configs`.** It prints the registered named configs and the
 options for each Hydra group (`assets=`, `datasets=`, `deriva_ml=`, plus any
-custom groups the project has added). Reading the `--info` output is faster
+custom groups the project has added). Reading the `--list-configs` output is faster
 and more reliable than guessing override values from filenames; an agent that
 guesses a name that isn't registered gets a Hydra error rather than the
-expected behavior.
+expected behavior. To inspect the *resolved* config a given set of overrides
+produces (without running the notebook), use `--cfg job`.
 
 ### The `--config*` trap
 

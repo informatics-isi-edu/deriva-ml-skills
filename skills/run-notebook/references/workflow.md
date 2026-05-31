@@ -245,8 +245,8 @@ uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb \
 # Dry run
 uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb dry_run=true
 
-# Show available configs
-uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb --info
+# Show available configs (the menu of registered config groups/options)
+uv run deriva-ml-run-notebook notebooks/roc_analysis.ipynb --list-configs
 ```
 
 **Important:** `--config` does NOT override the config name inside the `run_notebook()` call. Use positional Hydra overrides to change specific values.

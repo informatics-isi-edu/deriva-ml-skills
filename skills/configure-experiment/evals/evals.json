@@ -28,7 +28,7 @@
     {
       "id": 5,
       "prompt": "I ran uv run deriva-ml-run +experiment=baseline but the wrong dataset was used. How do I debug which config values were actually resolved?",
-      "expected_output": "Should show --info to see the full resolved config. Should show --cfg job for the complete YAML. Should show --cfg job --package datasets to inspect just the datasets group. Should explain the composition order: base defaults → experiment overrides → CLI overrides.",
+      "expected_output": "Should show --cfg job to see the full resolved config as YAML. Should show --cfg job --package datasets to inspect just the datasets group. May mention --list-configs for the menu of registered config groups. Should explain the composition order: base defaults → experiment overrides → CLI overrides.",
       "files": []
     }
   ]

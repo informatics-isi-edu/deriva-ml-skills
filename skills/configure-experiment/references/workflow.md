@@ -151,11 +151,11 @@ Work through the config groups in order. For each one, see the `write-hydra-conf
 ### Step 3: Verify
 
 ```bash
-# Check config resolves correctly
-uv run deriva-ml-run --info
+# List the registered config groups/options (the menu)
+uv run deriva-ml-run --list-configs
 
-# Check a specific experiment
-uv run deriva-ml-run +experiment=my_experiment --info
+# Inspect the resolved config for a specific experiment (no execution)
+uv run deriva-ml-run +experiment=my_experiment --cfg job
 
 # Dry run (downloads data, runs model, doesn't persist)
 uv run deriva-ml-run +experiment=my_experiment dry_run=True
@@ -169,7 +169,8 @@ See the `execution-lifecycle` skill for the full pre-flight checklist, CLI comma
 uv run deriva-ml-run +experiment=baseline              # Single experiment
 uv run deriva-ml-run +multirun=lr_sweep                # Named multirun
 uv run deriva-ml-run +experiment=quick,extended --multirun  # Ad-hoc multirun
-uv run deriva-ml-run --info                            # Inspect resolved config
+uv run deriva-ml-run --list-configs                    # List registered config groups (the menu)
+uv run deriva-ml-run +experiment=baseline --cfg job    # Inspect the resolved config (no execution)
 ```
 
 ## Multiruns
@@ -257,4 +258,4 @@ Overrides use Hydra's syntax. Comma-separated values create the sweep:
 - **Add descriptions everywhere** — they're recorded in execution metadata
 - **Test with `dry_run=True`** before production runs
 - **Commit before running** — git state is recorded in the execution
-- **Use `--info`** to inspect resolved config without running
+- **Use `--cfg job`** to inspect the resolved config without running (and `--list-configs` for the menu of registered options)

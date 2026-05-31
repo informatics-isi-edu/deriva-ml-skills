@@ -201,8 +201,9 @@ exe.commit_output_assets()
 The CLI runner handles the full lifecycle automatically — creates execution, downloads data, runs the model function, commits outputs, sets status.
 
 ```bash
-# Inspect resolved config without running
-uv run deriva-ml-run +experiment=baseline --info
+# List the registered config groups/options (the menu)
+uv run deriva-ml-run --list-configs
+# Inspect the resolved config without running
 uv run deriva-ml-run +experiment=baseline --cfg job
 
 # Dry run (downloads data, runs model, does NOT commit to catalog)

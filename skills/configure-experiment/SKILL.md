@@ -36,7 +36,11 @@ Example: `uv run deriva-ml-run +experiment=cifar10_quick` loads base defaults, t
 1. **Every group needs a default** — `default_deriva`, `default_dataset`, `default_asset`, `default_workflow`, `default_model`
 2. **Pin dataset versions** — Use `DatasetSpecConfig(rid="...", version="...")` for reproducibility
 3. **Use meaningful names** — `resnet50_extended` not `config2`
-4. **Test with `--info`** — `uv run deriva-ml-run +experiment=X --info` to inspect resolved config
+4. **Inspect before running** — three distinct commands (don't confuse them):
+   - `uv run deriva-ml-run --list-configs` — the *menu* of registered `group=value` options (ignores overrides; deriva-ml-specific)
+   - `uv run deriva-ml-run +experiment=X --cfg job` — the fully *resolved* config that experiment composes to, without executing (Hydra's native `--cfg`)
+   - `uv run deriva-ml-run +experiment=X dry_run=true` — resolve *and* validate every referenced RID/term against the live catalog, then stop before training
+   Every Hydra command-line flag is forwarded to Hydra; see <https://hydra.cc/docs/advanced/hydra-command-line-flags/> and the override grammar at <https://hydra.cc/docs/advanced/override_grammar/basic/>.
 5. **Write goal-oriented experiment descriptions** — The `description` field on experiments and multiruns should state what question the experiment answers or what hypothesis it tests, not just list technical parameters. Technical details belong in the config; the description explains *why* the experiment exists.
 
 **Good experiment descriptions:**
@@ -52,7 +56,7 @@ Example: `uv run deriva-ml-run +experiment=cifar10_quick` loads base defaults, t
 
 1. Clone the model template or create `configs/` directory
 2. Configure each group in order: `deriva.py` → `datasets.py` → `assets.py` → `workflow.py` → `<model>.py` → `base.py` → `experiments.py`
-3. Verify: `uv run deriva-ml-run --info`
+3. Verify the config tree composes: `uv run deriva-ml-run --list-configs` (the menu of registered options), then `uv run deriva-ml-run +experiment=<name> --cfg job` to confirm a specific experiment resolves
 
 For the full project structure, `base.py` template, and setup walkthrough, read `references/workflow.md`.
 
