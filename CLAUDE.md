@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working with the deriva-ml-skill
 
 Claude Code plugin providing 27 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
 
-The plugin assumes the [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin is also loaded — the README's install procedure brings in both — and assumes a `deriva-mcp-core` server with the [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) plugin loaded is reachable. Cross-references to `/deriva:<skill>` are written as if those skills are present; `deriva_ml_*` MCP tools assume the server is up. (The plugin-level `dependencies` field that would enforce the deriva-skills assumption at install time is a planned follow-up.) See [`deriva-skills/docs/superpowers/plans/2026-04-27-skills-restructure.md`](https://github.com/informatics-isi-edu/deriva-skills/blob/main/docs/superpowers/plans/2026-04-27-skills-restructure.md) for the rationale behind the two-plugin split.
+The plugin assumes the [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin is also loaded — the README's install procedure brings in both — and assumes a `deriva-mcp-core` server with the [`deriva-ml-mcp-plugin`](https://github.com/informatics-isi-edu/deriva-ml-mcp-plugin) plugin loaded is reachable. Cross-references to `/deriva:<skill>` are written as if those skills are present; `deriva_ml_*` MCP tools assume the server is up. (The plugin-level `dependencies` field that would enforce the deriva-skills assumption at install time is a planned follow-up.) See [`deriva-skills/docs/superpowers/plans/2026-04-27-skills-restructure.md`](https://github.com/informatics-isi-edu/deriva-skills/blob/main/docs/superpowers/plans/2026-04-27-skills-restructure.md) for the rationale behind the two-plugin split.
 
 ## Commands
 
@@ -30,7 +30,7 @@ claude --plugin-dir /path/to/deriva-ml-skills
 
 ```
 
-Versioning and updates are documented in `skills/troubleshoot-execution/SKILL.md` ("Versioning and updates" section). The three DerivaML components — deriva-ml, deriva-ml-mcp, the deriva-ml plugin — each have their own update path; there is no unified version-checker tool in the plugin (the previous `check-deriva-ml-versions` skill was deleted because its bash examples referenced a deleted script in the deriva plugin, and `autoUpdate: true` for plugins / `server_status` for the server / `uv pip show` for the library all became reliable enough that wrapping them in a custom skill no longer earned its weight). The deriva-skills equivalent is `skills/troubleshoot-deriva-errors/SKILL.md` for the foundation (deriva-py, deriva-mcp-core, deriva plugin); check the foundation first since the DerivaML stack depends on it.
+Versioning and updates are documented in `skills/troubleshoot-execution/SKILL.md` ("Versioning and updates" section). The three DerivaML components — deriva-ml, deriva-ml-mcp-plugin, the deriva-ml plugin — each have their own update path; there is no unified version-checker tool in the plugin (the previous `check-deriva-ml-versions` skill was deleted because its bash examples referenced a deleted script in the deriva plugin, and `autoUpdate: true` for plugins / `server_status` for the server / `uv pip show` for the library all became reliable enough that wrapping them in a custom skill no longer earned its weight). The deriva-skills equivalent is `skills/troubleshoot-deriva-errors/SKILL.md` for the foundation (deriva-py, deriva-mcp-core, deriva plugin); check the foundation first since the DerivaML stack depends on it.
 
 **Release mechanics:** `bump-version` triggers GitHub Actions, which
 bumps version in `plugin.json`, commits back to main, and creates the
@@ -191,7 +191,7 @@ Practical implications for this repo:
 
 The `skills/deriva-ml-context/SKILL.md` file in this repo and the
 `_CONCEPTS_GUIDE` constant in
-`../deriva-ml-mcp/src/deriva_ml_mcp/prompts.py` (rendered as the
+`../deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/prompts.py` (rendered as the
 `deriva_ml_concepts` MCP prompt) share their conceptual content
 DELIBERATELY. Both must explain:
 
@@ -208,7 +208,7 @@ clients with different invocation models:
   `deriva-ml-context` skill (the audit-named "load-bearing" path).
 - **Non-Claude-Code clients** (Cursor, SDK-based agents, raw FastMCP
   clients, etc.) pull the same frame in via the `deriva_ml_concepts`
-  prompt over the MCP wire from `deriva-ml-mcp`.
+  prompt over the MCP wire from `deriva-ml-mcp-plugin`.
 
 This skill is RICHER than the prompt — it adds tool-selection
 guidance, cross-references to other skills (`/deriva-ml:dataset-lifecycle`,
@@ -221,16 +221,16 @@ Claude-Code value-add.
 update BOTH:
 
 1. `skills/deriva-ml-context/SKILL.md` (this repo)
-2. `_CONCEPTS_GUIDE` in `../deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`
+2. `_CONCEPTS_GUIDE` in `../deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/prompts.py`
 
 Both files carry an inline comment block at their top pointing at the
 other side. The matching cross-repo note lives in
-`../deriva-ml-mcp/CLAUDE.md` under the same section heading so the
+`../deriva-ml-mcp-plugin/CLAUDE.md` under the same section heading so the
 constraint is visible from either repo.
 
-### v3.x update: deriva-ml-mcp prompts went from 4 to 2
+### v3.x update: deriva-ml-mcp-plugin prompts went from 4 to 2
 
-The deriva-ml-mcp plugin originally shipped four MCP prompts; v3.x
+The deriva-ml-mcp-plugin originally shipped four MCP prompts; v3.x
 removed two of them when the [Round 2 audit cleanup](docs/superpowers/plans/2026-05-02-tier-2-audit-cleanup-plan-round-2-refinement.md)
 identified them as architecturally mis-shaped per FastMCP guidance.
 The conceptual frame (`_CONCEPTS_GUIDE` ↔ this skill) and the
