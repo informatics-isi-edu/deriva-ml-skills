@@ -1,6 +1,6 @@
 ---
 name: dataset-lifecycle
-description: "Use for ALL DerivaML dataset operations — creating, populating, splitting (train/test/validation, stratified), versioning, browsing (deriva_ml_denormalize_dataset), navigating parent/child hierarchies, downloading BDBags (timeouts, exclude_tables, bag_info), restructuring assets for ML frameworks, and wiring resulting RIDs into src/configs/datasets.py. After any operation that produces a RID + version downstream code may consume, proactively offer to add it to src/configs/datasets.py — this skill owns that offer. Triggers include 'create / split / stratify / browse / download / denormalize a dataset', 'dataset version', 'training data setup', 'curated subset', 'filter by class / by feature', 'BDBag', 'DatasetSpecConfig', 'wire dataset into config'. Do NOT use for: creating features/labels (use create-feature), creating tables (use create-table), running experiments (use execution-lifecycle), uploading assets (use work-with-assets), or managing vocabularies (use manage-vocabulary)."
+description: "Use for ALL DerivaML dataset operations — creating, populating, splitting (train/test/validation, stratified, predicate-based via selection_fn), subsampling (stratified single-output sample of a dataset, peer to split_dataset), versioning, browsing (deriva_ml_denormalize_dataset), navigating parent/child hierarchies, downloading BDBags (timeouts, exclude_tables, bag_info), restructuring assets for ML frameworks, and wiring resulting RIDs into src/configs/datasets.py. Also covers the three-axis Dataset_Type framing (role / content / origin) and the Split_Partition / Subsample origin tags. After any operation that produces a RID + version downstream code may consume, proactively offer to add it to src/configs/datasets.py — this skill owns that offer. Triggers include 'create / split / stratify / subsample / browse / download / denormalize a dataset', 'smaller variant of a dataset', 'stratified subset', 'partition by element vs row', 'Split_Partition tag', 'dataset version', 'training data setup', 'curated subset', 'filter by class / by feature', 'BDBag', 'DatasetSpecConfig', 'wire dataset into config'. Do NOT use for: creating features/labels (use create-feature), creating tables (use create-table), running experiments (use execution-lifecycle), uploading assets (use work-with-assets), or managing vocabularies (use manage-vocabulary)."
 ---
 
 # Dataset Lifecycle
@@ -24,7 +24,8 @@ Before creating a dataset, determine whether an existing one can be reused, exte
 | Existing dataset covers your need | Reuse it — reference its RID + version in config |
 | Existing dataset needs more members | `deriva_ml_add_dataset_members` to extend it |
 | Need a different split of existing data | Write a script that calls the Python API `split_dataset(ml, source_rid, exe, ...)` — see `references/workflow.md` § "Splitting Datasets" |
-| Need a focused subset for an experiment | Create a new dataset (curated subset — see below) |
+| Need a smaller variant of an existing dataset (rapid dev iteration, baseline runs) | Script that calls the Python API `subsample(ml, source_rid, exe, size=, ...)` — stratified random subset, single output. See `references/workflow.md` § "Subsampling Datasets" |
+| Need a focused subset filtered by data values | Create a new dataset (curated subset — see below) |
 | Building from scratch | Bootstrap a new dataset from raw table data |
 
 ## Phase 2: Plan
@@ -34,17 +35,24 @@ Before creating a dataset, determine whether an existing one can be reused, exte
 | Pattern | When to use | How |
 |---------|-------------|-----|
 | Standalone | Building a new collection from scratch | `deriva_ml_create_dataset` |
-| Split children | Need train/test/val partitions | Script that opens an execution and calls `split_dataset(ml, source_rid, exe, ...)`. See `references/workflow.md` § "Splitting Datasets" |
+| Split children | Need train/test/val partitions | Script that opens an execution and calls `split_dataset(ml, source_rid, exe, ...)`. Children auto-tagged with role + `Split_Partition`. See `references/workflow.md` § "Splitting Datasets" |
+| Subsample | Need a smaller stratified variant of one dataset (single output) | Script that calls `subsample(ml, source_rid, exe, size=, stratify_by_column=, ...)`. Output auto-tagged `Subsample`. See `references/workflow.md` § "Subsampling Datasets" |
 | Curated subset | Focused set filtered by data values | Generate from template — see `references/curated-subsets.md` |
 | Manual nesting | Grouping related datasets together | `deriva_ml_create_dataset` + `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` |
 
 ### Choose dataset types
 
-Types describe **independent dimensions** of a dataset — orthogonal tags, not a hierarchy. A dataset gets one or more tags from each relevant dimension.
+Types describe **three orthogonal axes** of a dataset — role, content, and origin. A dataset gets one or more tags from each relevant axis.
 
-Built-in dimensions: partition role (`Training`, `Testing`, `Validation`, `Complete`, `Split`) and annotation status (`Labeled`, `Unlabeled`). Apply at least one type — untyped datasets are hard to discover. Compose types freely across dimensions (`Training` + `Labeled` + `Fundus`); never compound them (`TrainingLabeled` is wrong).
+Built-in terms by axis:
 
-For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
+- **Role** — `Training`, `Testing`, `Validation`, `Complete`, `Split`. What the dataset is *for* in its immediate context. **Not inherited from parent, not propagated to children** — `split_dataset` assigns each partition's role from its position in the split, not from the source.
+- **Content** — `Labeled`, `Unlabeled` (built-in); domain-specific tags like `Fundus`, `OCT`, `CIFAR_10` (user-added). What *kind of data* the dataset contains. May propagate when the partitioning operation preserves the property (pass `training_types=["Labeled"]` etc. to make propagation explicit).
+- **Origin** — `Split`, `Split_Partition`, `Subsample`. How the dataset *came to exist*. **Always set by the producing operation**, never inherited. `split_dataset` auto-applies `Split` to the parent and `Split_Partition` to each child; `subsample` auto-applies `Subsample` to its output.
+
+Apply at least one type per relevant axis — untyped datasets are hard to discover. Compose freely across axes (`Training` + `Labeled` + `Fundus` + `Split_Partition`); never compound them into one tag (`TrainingLabeled` is wrong).
+
+For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, the role/origin distinction that lets you filter partition-role datasets vs corpus-role datasets, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the canonical three-axis framing with the full inheritance/propagation rules, see `references/concepts.md` § "The three axes of `Dataset_Type`". For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
 
 ### `Dataset_Type` is the primary signal of what a dataset is for
 
@@ -77,6 +85,7 @@ Choose the script path based on whether a source dataset already exists:
 | **No source dataset** — first dataset from raw table data (bootstrap) | Standalone script via `generate-scripts` patterns | `references/workflow.md` → "Bootstrap dataset (no source dataset)" |
 | **Source dataset exists** — filtering, subsetting, or selecting from existing | Subset template via `scripts/generate_subset_template.py` | `references/curated-subsets.md` |
 | **Source dataset exists** — partition into train/val/test | Script (Base Template from `generate-scripts` + `split_dataset` Python API) | `references/workflow.md` → "Splitting Datasets" |
+| **Source dataset exists** — smaller stratified variant (single output, no partitioning) | Script (Base Template + `subsample` Python API) | `references/workflow.md` → "Subsampling Datasets" |
 | **Trivial case** — empty dataset or 2-3 known RIDs | MCP-tool path | `references/workflow.md` → "MCP-tool-only path (trivial cases)" |
 
 ### Description guidance

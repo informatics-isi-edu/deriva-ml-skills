@@ -9,12 +9,13 @@ Step-by-step MCP tool examples for creating and managing datasets. For backgroun
 1. [Creating a Dataset](#creating-a-dataset) — Check resources, create execution, add members
 2. [Managing Types](#managing-types) — Add, remove, create custom types
 3. [Managing Members](#managing-members) — Add, remove, validate, list
-4. [Splitting Datasets](#splitting-datasets) — Random, stratified, labeled, dry run, navigation
-5. [Versioning](#versioning) — When and how to increment
-6. [Downloading](#downloading) — Preview and download
-7. [Provenance](#provenance) — Track dataset lineage
-8. [Deleting](#deleting) — Remove datasets
-9. [Complete Example](#complete-example) — End-to-end workflow
+4. [Splitting Datasets](#splitting-datasets) — Random, stratified, labeled, predicate-based, partition_by, dry run, navigation
+5. [Subsampling Datasets](#subsampling-datasets) — Stratified single-output sample, peer to split_dataset
+6. [Versioning](#versioning) — When and how to increment
+7. [Downloading](#downloading) — Preview and download
+8. [Provenance](#provenance) — Track dataset lineage
+9. [Deleting](#deleting) — Remove datasets
+10. [Complete Example](#complete-example) — End-to-end workflow
 
 ---
 
@@ -145,7 +146,7 @@ When `deriva_ml_denormalize_dataset` (or `split_dataset`'s internal stratificati
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `ml` | `DerivaML` | *(required)* | Connected DerivaML instance |
-| `source_dataset_rid` | `str` | *(required)* | RID of the dataset to split |
+| `source_dataset_rid` | `str` | *(required)* | RID of the dataset to split. Recorded as an **input of `execution`**; the Split is NOT a Dataset_Dataset child of the source. |
 | `execution` | `Execution` | *(required, positional)* | A live Execution the script has opened |
 | `test_size` | `float \| int` | `0.2` | Fraction or absolute count for testing |
 | `train_size` | `float \| int \| None` | `None` | Fraction or count for training. Default: complement of test + val |
@@ -156,12 +157,20 @@ When `deriva_ml_denormalize_dataset` (or `split_dataset`'s internal stratificati
 | `stratify_missing` | `str` | `"error"` | Policy for nulls in stratify column: `"error"`, `"drop"`, `"include"` |
 | `element_table` | `str \| None` | `None` | Table to split. Auto-detected if dataset has one element type |
 | `include_tables` | `list[str] \| None` | `None` | Tables for denormalization. Required with `stratify_by_column` |
-| `selection_fn` | callable \| `None` | `None` | Custom selection callable (not crossable through MCP — Python only) |
-| `training_types` | `list[str] \| None` | `None` | Additional types for training set (e.g., `["Labeled"]`) |
-| `testing_types` | `list[str] \| None` | `None` | Additional types for testing set |
-| `validation_types` | `list[str] \| None` | `None` | Additional types for validation set |
+| `selection_fn` | callable \| `None` | `None` | Predicate-based selector for custom partition logic. Takes the denormalized DataFrame, returns partition assignments. Python-only (not crossable through MCP). The built-in `random_split` selector is the default. |
+| `partition_by` | `Literal["element", "row"] \| None` | `None` | Partition granularity. `"element"` dedupes to one row per `element_table` RID before partitioning (asserts element-RID disjointness after); `"row"` partitions denormalized rows directly (same element RID may legitimately land in multiple partitions). Auto-resolves when unambiguous; required when `row_per != element_table`. |
+| `row_per` | `str \| None` | `None` | Explicit leaf table for denormalization. Pass-through to the denormalizer. |
+| `via` | `list[str] \| None` | `None` | Tables forced into the join chain without contributing columns. Pass-through to the denormalizer. |
+| `ignore_unrelated_anchors` | `bool` | `False` | Pass-through to the denormalizer. |
+| `training_types` | `list[str] \| None` | `None` | Additional content-axis types for training set (e.g., `["Labeled"]`). `Training` + `Split_Partition` are auto-assigned — don't list them here. |
+| `testing_types` | `list[str] \| None` | `None` | Additional content-axis types for testing set |
+| `validation_types` | `list[str] \| None` | `None` | Additional content-axis types for validation set |
 | `split_description` | `str` | `""` | Description for the parent Split dataset |
 | `dry_run` | `bool` | `False` | Preview without modifying catalog (returns `SplitResult` with `(dry run)` RIDs) |
+
+**Source / split lineage:** `split_dataset` does NOT create a `Dataset_Dataset` edge from source to Split. The source is recorded as an *input of `execution`* via `Execution.add_input_dataset`; the Split + its Training/Testing/Validation children are recorded as outputs of the same execution. Reach the source from a Split child via `child.producing_execution.list_input_datasets()`. See `concepts.md` § "Source recorded as execution input, not as `Dataset_Dataset` parent" for the full rationale.
+
+**`Split_Partition` auto-tag:** Every child of the Split (Training / Testing / Validation) is auto-tagged with `Split_Partition` on the origin axis, in addition to its role tag and any caller-supplied `*_types`. The discriminator that lets you distinguish a partition-role `Training` dataset from a corpus-role `Training` dataset via a 1-hop filter.
 
 ### Navigating split results
 
@@ -172,6 +181,68 @@ To **list relations** of a dataset (both children and parents in one call), call
 To **list members across nested datasets**, call `deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", recurse=true)` (optionally with `limit`).
 
 To create parent-child relationships manually (e.g., grouping pre-existing datasets without running a split), use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members of the parent's `Dataset` element type. See `concepts.md` for background on nested dataset hierarchies.
+
+## Subsampling Datasets
+
+`subsample(ml, source_dataset_rid, exe, size=N, ...)` is the peer primitive to `split_dataset` — same script-based pattern, same execution-input lineage shape, but produces a **single output** that's a stratified random subset of the source's members. Mirrors sklearn's `resample(stratify=y, replace=False, n_samples=N)` semantics. See `concepts.md` § "Subsampling Datasets" for when to reach for `subsample` vs `split_dataset`.
+
+### Script pattern (same shape as `split_dataset`)
+
+The script body adds these steps on top of the Base Template (see `generate-scripts`):
+
+1. **Connect.** `ml = DerivaML(hostname=args.hostname, catalog_id=args.catalog_id)`.
+2. **Ensure vocabulary terms.** Both `Subsample` and any other `Dataset_Type` terms the script references — `_ensure_dataset_types` runs idempotently inside `subsample`, but tags you pass via `dataset_types=` must exist.
+3. **Register a workflow.** `ml.create_workflow(name="…", workflow_type="Data Management", description="…")`.
+4. **Open an execution.** `with ml.create_execution(ExecutionConfiguration(workflow=workflow, description="…")) as exe:`.
+5. **Call `subsample(ml, source_rid, exe, size=, ...)`** for each subsample. Reuse the same `exe` across related subsamples so the lineage stays coherent.
+6. **Commit.** `exe.commit_output_assets(clean_folder=True)` after the `with` block.
+
+```python
+from deriva_ml.dataset.split import subsample
+
+with ml.create_execution(config) as exe:
+    small = subsample(
+        ml, training_rid, exe,
+        size=400,
+        stratify_by_column="Image_Class.Name",
+        element_table="Image",
+        include_tables=["Image", "Image_Class"],
+        dataset_types=["Training", "Labeled"],
+        description="Quick dev sample of training set (400 stratified, seed=42)",
+    )
+    print(f"Subsample: {small.rid} @ {small.version}, n={small.size}")
+
+exe.commit_output_assets(clean_folder=True)
+```
+
+### Parameter reference (Python API)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ml` | `DerivaML` | *(required)* | Connected DerivaML instance |
+| `source_dataset_rid` | `str` | *(required)* | RID of the dataset to sample. Recorded as an **input of `execution`**; the subsample is NOT a Dataset_Dataset child of the source. |
+| `execution` | `Execution` | *(required, positional)* | A live Execution the script has opened |
+| `size` | `int \| float` | *(required)* | If `float ∈ (0, 1)`, fraction of source to sample. If `int`, absolute count. |
+| `seed` | `int` | `42` | Random seed for reproducibility |
+| `stratify_by_column` | `str \| None` | `None` | Denormalized column name for stratified sampling (preserves class proportions). Requires `include_tables`. When `None`, uniform random sample. |
+| `stratify_missing` | `Literal["error", "drop", "include"]` | `"error"` | Policy for nulls in stratify column, same semantics as `split_dataset`. |
+| `element_table` | `str \| None` | `None` | Element table to sample. Auto-detected from the source dataset's members if unambiguous. |
+| `include_tables` | `list[str] \| None` | `None` | Tables for denormalization. Required when `stratify_by_column` is set. |
+| `via` | `list[str] \| None` | `None` | Tables forced into the join chain without contributing columns. Pass-through to the denormalizer. |
+| `row_per` | `str \| None` | `None` | Explicit leaf table for denormalization. When `row_per != element_table`, `partition_by` must be set explicitly. |
+| `ignore_unrelated_anchors` | `bool` | `False` | Pass-through to the denormalizer. |
+| `partition_by` | `Literal["element", "row"] \| None` | `None` | Sample granularity. `"element"` (the default when unambiguous) dedupes to one row per `element_table` RID before sampling; `"row"` samples denormalized rows directly. Same trade-off as `split_dataset`'s `partition_by`. |
+| `dataset_types` | `list[str] \| None` | `None` | Caller-supplied additional tags (typically a role tag like `"Training"` and content tags like `"Labeled"`). `Subsample` is always appended automatically; duplicates are de-duped defensively. |
+| `description` | `str \| None` | `None` | Description for the output dataset. When `None`, an auto-description is generated. |
+| `dry_run` | `bool` | `False` | Preview without modifying catalog (returns `SubsampleResult` with `"(dry run)"` placeholders). |
+
+**`Subsample` auto-tag:** The output dataset always carries `Subsample` on the origin axis. Caller can pass any role-axis tag (`Training`, `Testing`) and content-axis tags (`Labeled`, `Fundus`) via `dataset_types=` — those are NOT inherited from the source. Choose the role tag based on what the subsample is *for*, not from what the source was.
+
+**Source / subsample lineage:** Same shape as `split_dataset` — source is an *input of `execution`*, subsample is an *output*. No `Dataset_Dataset` edge. There is intentionally no `subsample_split` primitive; if you need parallel subsamples of each child of a Split, loop over the children and call `subsample` once per child in the same execution.
+
+### Subsample return value
+
+`subsample` returns a `SubsampleResult` carrying `.rid`, `.version`, and `.size` (member count). On `dry_run=True`, `.rid` and `.version` are `"(dry run)"` placeholders and `.size` reflects the planned count.
 
 ## Versioning (ADR-0003 dev/release model)
 

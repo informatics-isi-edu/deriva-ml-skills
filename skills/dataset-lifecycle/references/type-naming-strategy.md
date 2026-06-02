@@ -22,11 +22,9 @@ This file covers what the deriva-skills reference can't: the specific terms `Dat
 
 ## The Built-in Dimensions
 
-DerivaML ships `Dataset_Type` pre-populated with terms covering two independent dimensions.
+DerivaML ships `Dataset_Type` pre-populated with terms covering **three orthogonal axes** — role, content, and origin. The canonical framing lives in `concepts.md` § "The three axes of `Dataset_Type`"; this file expands on what the axes mean for ML workflows in practice.
 
-### Dimension: Partition Role
-
-What role does this dataset play in an ML workflow?
+### Axis: Role (what is this dataset *for* in its immediate context?)
 
 | Type | Meaning |
 |------|---------|
@@ -38,16 +36,40 @@ What role does this dataset play in an ML workflow?
 
 `Training`/`Testing`/`Validation` are mutually exclusive within a record — a dataset is one of these, not several. `Complete` and `Split` describe structural roles distinct from partitions: `Complete` means "the full dataset before splitting"; `Split` means "the parent container that holds split children." A dataset that is `Complete` is usually neither `Training` nor `Testing` — it predates the partition.
 
-### Dimension: Annotation Status
+**Role tags do not inherit from a parent and do not propagate to children.** A source dataset tagged `Testing` (because it is a testing corpus) produces a Training partition tagged `Training` — `split_dataset` assigns the partition's role from its position in the split, not from the source's role. Role is a property of the dataset's *immediate context*, not something the operation preserves.
 
-Does this dataset have ground truth labels?
+### Axis: Content (what *kind of data* does it contain?)
 
 | Type | Meaning |
 |------|---------|
 | `Labeled` | Records have ground truth feature annotations |
 | `Unlabeled` | Records lack feature annotations |
 
-This dimension is genuinely independent of partition role. A training set can be labeled (supervised learning) or unlabeled (self-supervised learning). Don't assume `Training` implies `Labeled` — many real workflows need the unlabeled-training combination, and the built-in vocabulary deliberately allows it.
+This axis is genuinely independent of role. A training set can be labeled (supervised learning) or unlabeled (self-supervised learning). Don't assume `Training` implies `Labeled` — many real workflows need the unlabeled-training combination, and the built-in vocabulary deliberately allows it.
+
+Domain-specific tags also belong on this axis: `Fundus`, `OCT`, `CIFAR_10`, `Eye_Image_Fundus` — anything that describes a property of the data itself rather than what the dataset is for or how it was produced.
+
+**Content tags may propagate** when the partitioning operation preserves them. A stratified sample of a `Labeled` dataset is still `Labeled`; pass `training_types=["Labeled"]` to `split_dataset` (or `dataset_types=["Labeled"]` to `subsample`) to make the propagation explicit.
+
+### Axis: Origin (how did this dataset *come to exist*?)
+
+| Type | Meaning |
+|------|---------|
+| `Split` | Parent dataset of a split hierarchy. Auto-applied by `split_dataset` to its parent output. Holds the Training/Testing/Validation children as `Dataset_Dataset` members. |
+| `Split_Partition` | Auto-applied by `split_dataset` to every Training/Testing/Validation child. The discriminator that distinguishes a **corpus-role** `Training` dataset from a **partition-role** `Training` dataset. Tag hand-built split children with this too if you want them discoverable through the same filters. |
+| `Subsample` | Auto-applied by `subsample()` to its single output. Distinguishes a subsampled dataset from a hand-curated dataset of the same role and content. |
+
+**Origin tags are never inherited.** They are always set by the producing operation, never copied from another dataset. The source relationship for split outputs and subsample outputs lives in **execution provenance** (the source is an input of the producing execution), not in `Dataset_Dataset` edges.
+
+### Why three axes matter
+
+Without the origin axis, the queries *"find every training partition"* and *"find every training corpus that isn't a partition"* are indistinguishable — both return everything tagged `Training`. The three axes make these 1-hop filters:
+
+- *partition-role training* — `Training` ∧ `Split_Partition`
+- *corpus-role training* — `Training` ∧ ¬`Split_Partition` ∧ ¬`Subsample`
+- *subsampled training data* — `Training` ∧ `Subsample`
+
+The vocabulary deliberately denormalizes a fact that's also reachable through the execution graph — the origin tag is a fast, denormalized signal for filters and discovery, not the truth. The truth lives in `producing_execution.list_input_datasets()`.
 
 ## When to Add Custom Types to Dataset_Type
 
@@ -79,15 +101,30 @@ Types: [Testing, Augmented]           → "an augmented testing set"
 
 If the type list doesn't read as coherent, that's a signal something is wrong — either the dataset is under-tagged (a relevant dimension is missing) or one of the types is encoding a hierarchy (the `TrainingLabeled` anti-pattern surfacing as a single tag that *sounds* coherent but should have been two independent tags).
 
-### Let `split_dataset` handle partition types automatically
+### Let `split_dataset` and `subsample` handle the role + origin tags automatically
 
-The Python API `split_dataset(ml, source_rid, exe, ...)` assigns `Training`, `Testing`, `Validation`, and `Split` to the children it creates — you don't apply those tags manually. Pass *additional* types via the `*_types` parameters:
+The Python API auto-assigns role-axis and origin-axis tags. Pass *content-axis* additions via the `*_types` / `dataset_types` parameters:
 
-- `training_types=["Labeled"]` → tag the training child with `Labeled` on top of the auto-assigned `Training`
-- `testing_types=["Unlabeled"]` → tag the testing child with `Unlabeled`
-- `validation_types=["Labeled"]` → tag the validation child with `Labeled`
+**`split_dataset(ml, source_rid, exe, ...)`** assigns:
 
-Manually adding `Training` to a split-produced child would create a duplicate. Manually adding `Labeled` is exactly what the `*_types` parameters are for.
+- **Parent dataset**: `Split` (origin axis).
+- **Each child** (Training / Testing / Validation): the role tag corresponding to its position, plus `Split_Partition` (origin axis).
+
+Pass *content-axis* additions via `training_types=` / `testing_types=` / `validation_types=`:
+
+- `training_types=["Labeled"]` → tag the training child with `Labeled` on top of the auto-assigned `Training` + `Split_Partition`.
+- `testing_types=["Unlabeled"]` → tag the testing child with `Unlabeled`.
+- `validation_types=["Labeled"]` → tag the validation child with `Labeled`.
+
+Manually adding `Training`, `Split_Partition`, or `Subsample` to a `*_types` list is a no-op (deduplicated defensively). Manually adding `Labeled` (or any content-axis tag) is exactly what these parameters are for.
+
+**`subsample(ml, source_rid, exe, size=, ...)`** assigns:
+
+- The output dataset: `Subsample` (origin axis), always.
+
+Pass role and content-axis additions via `dataset_types=`:
+
+- `dataset_types=["Training", "Labeled"]` → tag the subsample with `Training` + `Labeled` + the auto-applied `Subsample`. Choose the role tag based on what the subsample is *for* in your workflow; it does **not** inherit from the source.
 
 ## Examples
 

@@ -12,6 +12,8 @@ Background on datasets in DerivaML. For the step-by-step guide to creating and m
 - [Dataset Element Types](#dataset-element-types)
 - [Dataset Structure: Standalone, Nested, and Splits](#dataset-structure-standalone-nested-and-splits)
 - [Splitting Datasets](#splitting-datasets)
+- [Subsampling Datasets](#subsampling-datasets)
+- [Characterization & validation (roadmap)](#characterization--validation-roadmap-not-yet-implemented)
 - [Dataset Versioning](#dataset-versioning)
 - [Identifying a Dataset: RID + Version](#identifying-a-dataset-rid--version)
 - [Exploring and Navigating Datasets](#exploring-and-navigating-datasets)
@@ -81,19 +83,37 @@ dataset = ml.lookup_dataset("1-ABC4")
 
 Dataset types are labels from the `Dataset_Type` controlled vocabulary. They describe the dataset along independent dimensions and are used for organizing, filtering, and discovery. A dataset can have multiple types simultaneously.
 
-### Standard types
+### The three axes of `Dataset_Type`
 
-These types are available by default in every DerivaML catalog:
+Built-in `Dataset_Type` terms fall along **three orthogonal axes**. A dataset typically carries one tag from each relevant axis. The axes mean different things to readers and operations.
 
-| Type | Purpose |
-|------|---------|
-| Training | Data for model training |
-| Testing | Data for model evaluation |
-| Validation | Data for hyperparameter tuning |
-| Complete | Full dataset before splitting |
-| Split | Parent container created by `split_dataset` |
-| Labeled | Data with ground truth feature annotations |
-| Unlabeled | Data without feature annotations |
+| Axis | What it answers | Built-in terms | Inheritance & propagation |
+|------|-----------------|----------------|---------------------------|
+| **Role** | What is this dataset *for* in its immediate context? | `Training`, `Testing`, `Validation`, `Complete`, `Split` | **Not inherited** from a parent dataset, **not propagated** to children. `split_dataset` assigns role tags to its children based on each child's position in the split, **regardless** of the source dataset's role. A source tagged `Testing` produces a Training partition tagged `Training`, not `Testing`. |
+| **Content** | What *kind of data* does it contain? | `Labeled`, `Unlabeled` (built-in); domain types like `Fundus`, `CIFAR_10`, `Genomic` (user-added) | **May propagate** when the partitioning operation preserves the property — a stratified sample of a `Labeled` dataset is still `Labeled`. Propagation is a caller decision, expressed via `training_types=`, `testing_types=`, `validation_types=` on `split_dataset` and `dataset_types=` on `subsample`. |
+| **Origin** | How did this dataset *come to exist*? | `Split` (parent of a split hierarchy), `Split_Partition` (child of a Split), `Subsample` (output of `subsample()`) | **Never inherited.** Always set by the producing operation, never copied. |
+
+### Built-in terms by axis
+
+| Term | Axis | Meaning |
+|------|------|---------|
+| `Training` | Role | Data for model training |
+| `Testing` | Role | Data for model evaluation |
+| `Validation` | Role | Data for hyperparameter tuning |
+| `Complete` | Role | Full dataset before any splitting |
+| `Split` | Role + Origin | The parent container produced by `split_dataset`; holds the Training/Testing/Validation children as `Dataset_Dataset` members. A Split is *not* itself a `Split_Partition` — it is the container. |
+| `Split_Partition` | Origin | Auto-applied by `split_dataset` to *every* Training/Testing/Validation child. The discriminator that distinguishes a **corpus-role** `Training` dataset (a training corpus, hand-built or imported) from a **partition-role** `Training` dataset (the training half of a split). Tag hand-built split children with `Split_Partition` too if you want them discoverable through the same filters. |
+| `Subsample` | Origin | Auto-applied to the output of `subsample()`. Distinguishes a subsampled dataset from a hand-curated dataset of the same role and content. The source relationship lives in execution provenance, not in `Dataset_Dataset` edges — there is no parent/child hierarchy between a subsample and its source. |
+| `Labeled` | Content | Records have ground truth feature annotations |
+| `Unlabeled` | Content | Records lack feature annotations |
+
+### Why the role/origin distinction matters in practice
+
+Without the origin axis, the query *"find every training partition of a split"* and the query *"find every training corpus that isn't a partition"* are indistinguishable — both return everything tagged `Training`. With `Split_Partition` and `Subsample` available, the filters become 1-hop:
+
+- *partition-role training* — `Training` ∧ `Split_Partition`
+- *corpus-role training* — `Training` ∧ ¬`Split_Partition` ∧ ¬`Subsample`
+- *subsampled training data* — `Training` ∧ `Subsample`
 
 ### Types are orthogonal tags
 
@@ -128,12 +148,22 @@ For DerivaML-specific guidance on `Dataset_Type` (built-in dimensions, composing
 
 The Python API `split_dataset(ml, source_rid, exe, ...)` automatically assigns types to the datasets it creates:
 
-- **Parent dataset** gets type `Split`
-- **Training partition** gets `Training` + any additional `training_types`
-- **Testing partition** gets `Testing` + any additional `testing_types`
-- **Validation partition** gets `Validation` + any additional `validation_types` (if three-way split)
+- **Parent dataset** gets type `Split` (origin axis).
+- **Training partition** gets `Training` (role) + `Split_Partition` (origin) + any additional `training_types` (content axis, caller-supplied).
+- **Testing partition** gets `Testing` (role) + `Split_Partition` (origin) + any additional `testing_types`.
+- **Validation partition** gets `Validation` (role) + `Split_Partition` (origin) + any additional `validation_types` (if three-way split).
 
-To mark partitions as having ground truth labels, pass `training_types=["Labeled"]`, etc. This makes splits easy to discover and distinguish from unlabeled ones.
+To mark partitions as having ground truth labels, pass `training_types=["Labeled"]`, etc. — those are content-axis types that propagate from the source's data properties. **Don't** manually pass `Training` / `Testing` / `Validation` in `*_types` — those are auto-assigned and duplicates are de-duped defensively.
+
+### How `subsample` assigns types
+
+The Python API `subsample(ml, source_rid, exe, size=N, ...)` produces a single output dataset:
+
+- The output gets `Subsample` (origin axis), always — applied even if the caller passes `Subsample` in `dataset_types=` (deduplicated defensively).
+- The output gets any caller-supplied `dataset_types=` on top — typically a role tag (`Training`, `Testing`) and any content-axis tags worth propagating (`Labeled` if the source is labeled and the stratification preserves that).
+- Role-axis tags do **not** inherit from the source. A `Testing` source produces a subsample tagged only with what the caller specifies.
+
+The source/subsample relationship is **not** a `Dataset_Dataset` edge — the source is recorded as an *input of the producing execution*, mirroring `split_dataset`'s design. Reach the source via `subsample_output.producing_execution.list_input_datasets()`, not via `list_dataset_parents()`.
 
 ## Dataset Element Types
 
@@ -251,19 +281,94 @@ Split (parent, type: "Split")
 
 ### Splitting strategies
 
-- **Random** (default): Shuffles members and splits at the boundary. Fast for any size.
+- **Random** (default): Shuffles members and splits at the boundary. Fast for any size. Dispatches to the built-in `random_split` selector.
 - **Stratified**: Maintains class distribution across partitions. Requires `stratify_by_column` and `include_tables`.
-- **Custom**: Provide a `selection_fn` for advanced logic (balanced sampling, filtered subsets).
+- **Predicate-based** (custom `selection_fn`): A callable that takes the denormalized DataFrame and returns the partition assignment for each row. Use this when the train/test boundary is defined by a value in the data — e.g., "CIFAR's canonical split: rows where `Image.Split == 'train'` go to training, the rest to testing." The `_cifar10_datasets.py` worked example in `deriva-ml-model-template` uses this path.
 
 ### Key parameters
 
-- `dry_run=true` — preview the split plan without modifying the catalog
-- `seed` — random seed for reproducibility (default: 42)
-- `*_types=["Labeled"]` — mark partitions as having ground truth labels
-- `stratify_by_column` — denormalized column name format: `{TableName}_{ColumnName}`
-- `stratify_missing` — how to handle nulls in the stratify column: `"error"` (default), `"drop"`, or `"include"`
+- `dry_run=true` — preview the split plan without modifying the catalog.
+- `seed` — random seed for reproducibility (default: 42).
+- `*_types=["Labeled"]` — content-axis types to propagate to each partition. `Training`/`Testing`/`Validation` plus `Split_Partition` are auto-assigned — don't list them here.
+- `stratify_by_column` — denormalized column name format: `{TableName}_{ColumnName}`.
+- `stratify_missing` — how to handle nulls in the stratify column: `"error"` (default), `"drop"`, or `"include"`.
+- `selection_fn` — caller-supplied callable for predicate-based splits. Python-only (not crossable through MCP).
+- `partition_by` — `"element"` or `"row"`. Controls the granularity at which the split partitions rows across Training/Testing/Validation. See "Partition unit" below.
 
-For the full parameter reference, MCP tool examples, and Python API, see `workflow.md`.
+### Partition unit (`partition_by`)
+
+`split_dataset` and `subsample` both partition along one of two granularities, selected by `partition_by`:
+
+| `partition_by` | What it does | Element-RID disjointness |
+|----------------|--------------|--------------------------|
+| `"element"` | Dedupes the denormalized DataFrame to one row per `element_table` RID **before** partitioning. Every member is assigned to exactly one partition. | **Asserted after partitioning.** A failure indicates a bug. |
+| `"row"` | Partitions denormalized rows directly. The same element RID may legitimately appear in multiple partitions when the denormalization fans out per-element (e.g., one Image with three Annotator features produces three rows). | **Not asserted** — fan-out is the point of `"row"`. |
+
+When `row_per` equals (or auto-resolves to) `element_table`, the two modes are equivalent and `partition_by` can be omitted (it's auto-resolved). Pass it explicitly when `row_per != element_table` — the call will error otherwise, because the two modes give materially different partitions and the right answer is caller-specific.
+
+### Source recorded as execution input, not as `Dataset_Dataset` parent
+
+`split_dataset` does NOT create a `Dataset_Dataset` edge from `source_dataset_rid` to the Split (or to any of its Training/Testing/Validation children). The source is recorded as an **input of the producing execution** via `Execution.add_input_dataset`, and the Split + partitions are recorded as that execution's outputs.
+
+The walkable provenance path is therefore:
+
+```
+source --[input of]--> execution --[output]--> Split / Training / Testing / Validation
+```
+
+This means:
+
+- `source.list_dataset_children()` and `list_dataset_relations(source)` will **NOT** list the Split.
+- `execution.list_input_datasets()` returns the source.
+- `dataset.producing_execution.list_input_datasets()` reaches the source from any Split child.
+- A lineage walk (`deriva_ml_get_lineage`) reaches splits from the source and vice versa.
+
+The same design applies to `subsample` — source is an execution input, subsample is an execution output, no `Dataset_Dataset` edge.
+
+This matches [ADR-0001](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0001-lineage-walks-data-flow-not-orchestration.md) — *lineage walks data flow, not orchestration*. Nesting a split under its source would re-partition the source's own members and flip the source's version every time someone re-splits it, which is the wrong cardinality for a "the source is an input I consumed" relationship.
+
+For the full parameter reference, MCP tool examples, and Python API, see `workflow.md`. The `subsample` primitive (stratified subsampling of a single dataset, no partitioning) is documented in the same place.
+
+## Subsampling Datasets
+
+`subsample(ml, source_dataset_rid, exe, size=, ...)` is the **peer primitive** to `split_dataset`. Where `split_dataset` partitions a source into two or three non-overlapping children, `subsample` produces **one output dataset** whose member set is a stratified random subset of the source's members. Mirrors sklearn's `resample(stratify=y, replace=False, n_samples=N)` semantics: stratified sample without replacement.
+
+### When to use `subsample` vs `split_dataset`
+
+| Goal | Reach for | Why |
+|------|-----------|-----|
+| Train / test / validation partitions of a source | `split_dataset` | Multiple non-overlapping outputs; partition assignment by position, predicate, or stratification |
+| Smaller variant of a single dataset (for rapid dev iteration, debugging, baseline runs) | `subsample` | One output; stratified random subset; no partition role assigned by the operation itself |
+| "Quick dev subset" of an existing Training dataset | `subsample(training_rid, exe, size=400, dataset_types=["Training", "Labeled"])` | Caller propagates role and content tags; `Subsample` origin tag is auto-added |
+| Pre-existing labeled / unlabeled split, want a smaller mirror for debugging | Call `subsample` once per child of the existing Split | Each call produces an independent subsample; the source/subsample relationship lives in execution provenance, not in a `Dataset_Dataset` hierarchy |
+
+There is intentionally **no `subsample_split` primitive** that parallel-subsamples each child of an existing Split and returns a mirror Split hierarchy — `subsample` is the more fundamental operation; composing it across the children of a Split is a few lines of caller code. (Documented as an explicit non-goal in the deriva-ml `2026-06-01-split-partition-tag-and-subsample-design` spec.)
+
+### Key parameters
+
+- `size` — `int` for an absolute count, `float ∈ (0, 1)` for a fraction of the source's size.
+- `stratify_by_column` — optional; when set, preserves class proportions. Requires `include_tables`.
+- `stratify_missing` — `"error"` (default), `"drop"`, or `"include"`, same semantics as `split_dataset`.
+- `dataset_types` — caller-supplied additional tags. `Subsample` is always appended automatically (deduplicated defensively if the caller also passes it). Typical pattern: `dataset_types=["Training", "Labeled"]` to keep the role + content axes coherent with the source.
+- `partition_by` — same `"element"` / `"row"` choice as `split_dataset`. Most subsamples should be `"element"` (one row per element RID); `"row"` is for unusual cases where per-element fan-out matters.
+- `dry_run` — preview without mutating the catalog.
+
+The full parameter table is in `workflow.md` § "Subsampling Datasets".
+
+## Characterization & validation (roadmap, not yet implemented)
+
+> **Status:** The four operations below — `characterize_dataset`, `compare_datasets`, `validate_split`, `validate_subsample` — are **specified but not yet implemented** in deriva-ml as of v1.42.0. The validation layer is a follow-up PR to the v1.42.0 `Split_Partition` + `subsample` work; the design is sketched in [deriva-ml spec `2026-06-01-split-partition-tag-and-subsample-design.md` §10](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/superpowers/specs/2026-06-01-split-partition-tag-and-subsample-design.md).
+>
+> Until those land, the validation that *does* exist is `split_dataset`'s built-in write-time disjointness assertion (for `partition_by="element"`) and the `is_dirty()` / `release_diff()` / `compare_versions()` drift-detection methods documented above. This section will be filled in when the upstream APIs ship; do not pre-emptively use names like `characterize_dataset(...)` in scripts until then.
+
+When the follow-up PR lands, this section will document:
+
+- **`characterize_dataset(dataset_rid, version=...)`** — class-distribution summary, member counts per element type, per-feature value distributions. Useful for sanity-checking what a dataset actually contains before training.
+- **`compare_datasets(dataset_rid_a, dataset_rid_b, ...)`** — diff two datasets (or two versions of the same dataset) along the same dimensions. Detects class-distribution drift, member-set drift, and feature-value drift.
+- **`validate_split(split_rid)`** — post-hoc validation of a Split hierarchy: confirms disjointness, checks fraction targets, surfaces stratification drift between partitions.
+- **`validate_subsample(subsample_rid)`** — confirms a subsample's relationship to its source, including stratification fidelity.
+
+All four are read-shaped operations and are good fits for MCP tool wrappers (no live `Execution` context required) — once the Python API ships, the deriva-ml-mcp-plugin will likely expose them as `deriva_ml_characterize_dataset`, etc. Track [deriva-ml task #48](https://github.com/informatics-isi-edu/deriva-ml/) for status.
 
 ## Dataset Versioning (ADR-0003 dev/release model)
 
@@ -717,7 +822,8 @@ Deletion removes the dataset container and member associations, not the member r
 | Register element type | `deriva_ml_add_dataset_element_type` | `ml.add_dataset_element_type()` | Catalog-level, idempotent |
 | Add members | `deriva_ml_add_dataset_members` | `dataset.add_dataset_members()` | Auto-increments version |
 | Remove members | `deriva_ml_delete_dataset_members` | `dataset.delete_dataset_members()` | |
-| Split | *(script only)* | `split_dataset(ml, source_rid, exe, ...)` | Run from a script that opens an execution; auto-increments version |
+| Split | *(script only)* | `split_dataset(ml, source_rid, exe, ...)` | Run from a script that opens an execution. Children auto-tagged with `Split_Partition` + role; source recorded as execution input, not Dataset_Dataset parent |
+| Subsample | *(script only)* | `subsample(ml, source_rid, exe, size=, ...)` | Single output; stratified by `stratify_by_column`. Output auto-tagged `Subsample`; source recorded as execution input |
 | Nest datasets | `deriva_ml_add_dataset_members(parent, members={"Dataset": [child_rid]})` | `parent.add_dataset_members()` | Children are members of element-type Dataset |
 | Release a dev period | `deriva_ml_release` | `dataset.release(bump, description)` | Promotes dev → released; errors if no dev row |
 | Update description | `deriva_ml_update_dataset(rid, description=...)` | — | Single setter for any updatable field |
