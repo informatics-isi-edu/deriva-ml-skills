@@ -57,6 +57,15 @@ need them separately); future deriva-ml guides will additionally appear in
 the manifest with the `deriva-ml` source. **Fetch each guide once per
 conversation** — they are stable references, not per-call context.
 
+> The four generic-catalog guides above (`query_guide` / `entity_guide` /
+> `annotation_guide` / `catalog_guide`) belong to the `deriva-mcp-core`
+> server, and the foundation `deriva-skills` plugin carries the same cold-start
+> discipline for them in `/deriva:using-deriva-mcp-core`. This skill is the
+> DerivaML entry point that builds on it: it adds the `deriva_ml_primer`
+> bootstrap and the `deriva://...deriva-ml/...` resource-first reads on top of
+> the generic guide-before-tool-group routing. When both plugins are loaded,
+> start here — you do not need to invoke the foundation skill separately.
+
 ## When this skill applies, and when it doesn't
 
 **Applies** to any conversation that involves reading or mutating a Deriva catalog via the MCP surface — even if the user didn't explicitly say "use MCP":
