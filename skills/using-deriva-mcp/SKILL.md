@@ -113,7 +113,7 @@ Substitute concrete values into the `{...}` placeholders before reading.
 The `{hostname}` is the deriva server (e.g. `localhost`, `dev.eye-ai.org`),
 `{catalog_id}` is the numeric catalog id (or alias / `id@snaptime`).
 For an authoritative description of each resource's payload shape, see
-the matching docstring in `deriva-ml-mcp/src/deriva_ml_mcp/resources/ml.py`.
+the matching docstring in `deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/resources/ml.py`.
 
 **Datasets**
 
