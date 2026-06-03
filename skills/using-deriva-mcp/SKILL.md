@@ -1,47 +1,59 @@
 ---
 name: using-deriva-mcp
-description: "ALWAYS load before the first deriva MCP call in any conversation. Read the deriva_ml_getting_started and deriva_ml_concepts orientation resources from the deriva MCP server before reaching for tools, and the relevant deriva-mcp-core guide prompt (query_guide / entity_guide / annotation_guide / catalog_guide) before first use of each generic catalog tool group. The deriva-ml-context skill teaches the resource-vs-tool rule; this skill enforces the cold-start discipline of reading the upstream MCP server's own orientation material so pagination, (hostname, catalog_id) conventions, error envelopes, and resource URI patterns are correctly understood before tools fire. Triggers on: first-time use of mcp__deriva__ tools/resources, any catalog inspection request ('list / show / browse / verify / inspect catalog', 'check schema', 'check feature values'), AND read-shaped questions that don't look like 'browse' on their face ('what X are in catalog N', 'what X are available', 'how many X', 'which workflows / features / vocabularies / datasets / executions / assets exist') — these are exactly the questions a resource URI is the right answer to, and the failure mode this skill exists to catch is reflexively reaching for a list-style tool before checking the resource templates table. Do NOT trigger for shell-only workflows (load-cifar10 CLI, deriva-ml Python API only, deriva-ml-run) that bypass MCP entirely."
+description: "ALWAYS load before the first deriva MCP call in any conversation. Call the deriva_ml_primer tool first -- it returns the DerivaML agent guidelines (concepts + operating contract: (hostname, catalog_id) rule, pagination, error envelope) plus a one-line manifest of on-demand guides. Then fetch an individual guide only when you first reach the tool group it covers: get_guide(name) for deriva-ml guides, or the /<server>:<name> slash-command prompt for the generic-catalog tier-1 guides (query_guide / entity_guide / annotation_guide / catalog_guide). Triggers on: first-time use of mcp__deriva__ tools/resources, any catalog inspection request ('list / show / browse / verify / inspect catalog', 'check schema', 'check feature values'), AND read-shaped questions that don't look like 'browse' on their face ('what X are in catalog N', 'what X are available', 'how many X', 'which workflows / features / vocabularies / datasets / executions / assets exist'). Do NOT trigger for shell-only workflows (load-cifar10 CLI, deriva-ml Python API only, deriva-ml-run) that bypass MCP entirely."
 disable-model-invocation: false
 ---
 
-# Reading the deriva MCP Server's Orientation Material First
+# Bootstrapping the deriva MCP Server: call the primer first
 
-You are about to make a call against a Deriva catalog via the deriva MCP server (`mcp__deriva__*` tools or `deriva://...` resources, or under whatever name the connecting MCP server is registered). **Before the first such call in a conversation, read the upstream MCP server's own orientation material.** This skill exists because the MCP server's `initialize` instruction asks every client to do this, but Claude Code does not automatically inject those orientation prompts into your context — you have to fetch them yourself.
-
-This skill is the trigger; the upstream prompts/resources are the rules. The conceptual frame for resource-vs-tool routing lives in the always-on `/deriva-ml:deriva-ml-context` skill — this skill makes sure you've actually read the server's own cold-start material before relying on that frame.
+You are about to make a call against a Deriva catalog via the deriva MCP
+server (`mcp__deriva__*` tools or `deriva://...` resources, or under
+whatever name the connecting MCP server is registered). **Before the first
+such call in a conversation, call the `deriva_ml_primer` tool.** One call
+returns the DerivaML agent guidelines and a manifest of the guides
+available for deeper tool groups. This skill is the trigger; the primer is
+the bootstrap.
 
 > **Stop before calling a list-style tool: check the resource templates table first.**
-> Almost every read-shaped question against a catalog ("what datasets are in 46?", "what workflow types are available?", "what features exist on Image?") has a matching `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/...` resource URI. The resource is **cached, page-free, returns a leaner payload, and produces no audit-log entries** — strictly preferable for read-only questions. The resource templates table in the Reference section at the end of this skill enumerates the ~15 templates the deriva-ml MCP plugin registers. If you find yourself reaching for `deriva_ml_list_datasets`, `deriva_ml_list_executions`, `deriva_ml_list_features`, `list_vocabulary_terms`, etc., pause and confirm there isn't a resource that would answer the same question. Reach for a tool only when the resource shape genuinely doesn't fit (e.g. you need a filter the resource doesn't expose, or pagination beyond what the resource page returns).
+> Almost every read-shaped question against a catalog ("what datasets are in 46?", "what workflow types are available?", "what features exist on Image?") has a matching `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/...` resource URI. The resource is **cached, page-free, returns a leaner payload, and produces no audit-log entries** -- strictly preferable for read-only questions. The resource templates table in the Reference section at the end of this skill enumerates the templates the deriva-ml MCP plugin registers. If you find yourself reaching for `deriva_ml_list_datasets`, `deriva_ml_list_executions`, `deriva_ml_list_features`, `list_vocabulary_terms`, etc., pause and confirm there isn't a resource that would answer the same question.
 
-## The two-minute cold-start
+## The one-call cold-start
 
-**Step 1 — Read the DerivaML domain orientation.** Two resources, exposed by the deriva-ml-mcp plugin:
+**Step 1 -- call the primer.** It is exposed three ways; use whichever your
+client surfaces:
 
-```
-ReadMcpResourceTool(server="<server-name>", uri="deriva://deriva-ml/concepts")
-ReadMcpResourceTool(server="<server-name>", uri="deriva://deriva-ml/getting-started")
-```
+- As a **tool**: `deriva_ml_primer()` (agents that auto-call tools should
+  call it on the first turn -- the docstring is self-directing).
+- As a **prompt / slash command**: `/<server>:deriva_ml_primer` for manual
+  invocation.
+- As a **resource**: `ReadMcpResourceTool(server="<name>", uri="deriva://deriva-ml/primer")`.
 
-Replace `<server-name>` with whatever the user's MCP server is registered as — commonly `deriva`, sometimes `dev-localhost`, sometimes something project-specific. If `ListMcpResourcesTool({server: "<name>"})` returns successfully, that's the right name.
+All three return identical text: the concepts frame, the getting-started
+operating contract (the `(hostname, catalog_id)` rule, the pagination
+preflight->page->advance contract, the error envelope), and a one-line
+manifest of on-demand guides.
 
-> **`ListMcpResourcesTool` only enumerates concrete URIs, not templates.**
-> Claude Code's `ListMcpResourcesTool` calls MCP's `resources/list` endpoint, which by protocol returns only resources with concrete URIs (no `{param}` placeholders). The deriva MCP server registers ~15 resource templates whose URIs *do* have placeholders (`deriva://catalog/{hostname}/{catalog_id}/deriva-ml/datasets`, etc.) — those are served via the separate `resources/templates/list` endpoint, which Claude Code does **not** surface. If `ListMcpResourcesTool` returns only 2–3 entries (the static orientation resources), that is the gap — **don't conclude that nothing else is available.** The full template inventory is in the "Reference" section at the end of this skill and inside the `deriva://deriva-ml/getting-started` resource. Read either to know what URIs you can `ReadMcpResourceTool` against.
+Replace `<server>` / `<name>` with whatever the user's MCP server is
+registered as -- commonly `deriva`, sometimes `dev-localhost`, sometimes
+project-specific. If `ListMcpResourcesTool({server: "<name>"})` returns
+successfully, that's the right name.
 
-- `deriva://deriva-ml/concepts` — the five core abstractions (Dataset, Workflow, Execution, Feature, Asset), the provenance principle, the vocabulary-extension pattern. Read **first** if you don't already have a DerivaML mental model.
-- `deriva://deriva-ml/getting-started` — the `(hostname, catalog_id)` rule (mandatory on every call), the pagination contract (preflight → page → advance), the resource-vs-tool decision, error envelope conventions, the discovery-via-resources orientation.
+**Step 2 -- fetch a guide on demand, only when you reach its tool group.**
+The primer's manifest names the available guides but does not inline their
+bodies. Fetch a guide the first time you are about to use the tools it
+covers, and not before:
 
-Both are the same text the MCP server exposes as the `deriva_ml_concepts` and `deriva_ml_getting_started` **prompts** — the resource form was added explicitly so resource-walking clients (like the agent here) discover them without going through the prompt subsystem. Either path delivers the same canonical content.
-
-**Step 2 — Read the relevant tier-1 catalog guide before first use.** The generic catalog operations (in `deriva-mcp-core`, distinct from the deriva-ml plugin above) ship four guide prompts. These have **no resource equivalent**; they must be invoked as slash commands. Read whichever applies to the tool group you're about to use:
-
-| If your first call uses... | Read this slash command first |
+| If your first call uses... | Fetch this guide |
 |----|----|
-| `query_attribute`, `query_aggregate`, `count_table` | `/mcp__<server-name>__query_guide` |
-| `get_entities`, `insert_entities`, `update_entities`, `delete_entities` | `/mcp__<server-name>__entity_guide` |
-| `get_table_annotations`, `get_column_annotations`, `set_*_display`, `set_visible_columns`, `add_visible_column`, etc. | `/mcp__<server-name>__annotation_guide` |
-| `create_catalog`, `clone_catalog`, `delete_catalog`, `get_catalog_info`, `get_schema` | `/mcp__<server-name>__catalog_guide` |
+| `query_attribute`, `query_aggregate`, `count_table` | `/<server>:query_guide` |
+| `get_entities`, `insert_entities`, `update_entities`, `delete_entities` | `/<server>:entity_guide` |
+| `get_table_annotations`, `set_*_display`, `set_visible_columns`, etc. | `/<server>:annotation_guide` |
+| `create_catalog`, `clone_catalog`, `get_schema`, `get_catalog_info` | `/<server>:catalog_guide` |
 
-You can invoke the slash command by typing `/` and selecting from the menu Claude Code surfaces, or by writing it directly into the conversation. **You only need to read each guide once per conversation** — they describe stable conventions, not per-call context.
+For guides this plugin owns (none beyond the primer today, but future
+deriva-ml guides will appear in the manifest with the `deriva-ml` source),
+use `get_guide(name)` instead of the slash command. **Fetch each guide once
+per conversation** -- they are stable references, not per-call context.
 
 ## When this skill applies, and when it doesn't
 
@@ -70,7 +82,7 @@ The rule of thumb: if an operation needs **bytes on the caller's machine** or **
 
 ## What you should NOT do
 
-- **Skip the orientation and hit a tool directly.** This is the failure mode this skill exists to prevent. Without `deriva_ml_getting_started`'s pagination contract, you will mis-paginate. Without `query_guide`, you will pass `schema` + `table` + `filter` to `query_attribute` instead of a `path` expression. Without `deriva_ml_concepts`, you will treat Datasets / Workflows / Executions as raw tables and mutate them with `insert_entities` (bypassing the lifecycle machinery — see the inheritance-with-override rule in `/deriva-ml:deriva-ml-context`).
+- **Skip the primer and hit a tool directly.** This is the failure mode this skill exists to prevent. Without the primer's getting-started contract, you will mis-paginate. Without `query_guide`, you will pass `schema` + `table` + `filter` to `query_attribute` instead of a `path` expression. Without the concepts frame, you will treat Datasets / Workflows / Executions as raw tables and mutate them with `insert_entities` (bypassing the lifecycle machinery -- see the inheritance-with-override rule in `/deriva-ml:deriva-ml-context`).
 - **Treat slash-command guide prompts as required for every call.** Read each one once per conversation. They are stable references, not per-call setup.
 - **Confuse the slash-command guides (tier-1, no resource equivalent) with the deriva-ml prompts (tier-2, also exposed as resources).** The tier-1 guides have prompt-only delivery; the tier-2 ones have a resource fallback because clients sometimes don't surface prompts.
 - **Re-read the orientation when nothing changes.** If you've read `getting-started` and `concepts` once this conversation, you've covered the cold-start. Don't refetch.
@@ -87,11 +99,11 @@ The upstream MCP server's prompts and resources are the **canonical source of tr
 
 ## Reference
 
-### Orientation resources (concrete URIs, enumerated by `ListMcpResourcesTool`)
+### Orientation surface (the primer)
 
-- `deriva://deriva-ml/concepts` — same content as the `deriva_ml_concepts` MCP prompt; resource form for resource-walking clients
-- `deriva://deriva-ml/getting-started` — same content as the `deriva_ml_getting_started` MCP prompt; resource form for resource-walking clients
-- `deriva://server/status` — server health / version info
+- `deriva_ml_primer` -- tool, prompt (`/<server>:deriva_ml_primer`), and resource (`deriva://deriva-ml/primer`); all three return the same primer text (agent guidelines + on-demand guide manifest). This supersedes reading `deriva://deriva-ml/concepts` and `deriva://deriva-ml/getting-started` separately -- the primer inlines both.
+- `deriva://deriva-ml/concepts`, `deriva://deriva-ml/getting-started` -- still available individually if you want one without the other, but the primer is the preferred single entry point.
+- `deriva://server/status` -- server health / version info
 
 ### Catalog-scoped resource templates (NOT enumerated by `ListMcpResourcesTool` — read directly with `ReadMcpResourceTool`)
 
