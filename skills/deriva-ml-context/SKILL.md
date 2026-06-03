@@ -68,11 +68,23 @@ Example: a one-row asset summary should render as `[8N4](https://localhost/id/14
 
 When `cite_url` is `None` on a row (best-effort failure or a thinly-built ref), fall back to displaying the bare RID — but flag the gap rather than fabricating a URL.
 
-### Cold-start orientation: load `using-deriva-mcp` before the first MCP call
+### Cold-start orientation: call the primer before the first MCP call
 
-The deriva MCP server itself ships orientation material — a "getting started" prompt with the pagination contract and error envelope conventions, a "concepts" prompt with the abstractions and provenance principle, and four guide prompts for the tier-1 generic catalog tool groups (`query_guide`, `entity_guide`, `annotation_guide`, `catalog_guide`). Claude Code does not automatically inject those into context — the agent has to fetch them. The `/deriva-ml:using-deriva-mcp` skill encodes the cold-start discipline: read the server's own orientation before the first tool call so pagination, `(hostname, catalog_id)` conventions, and resource URI patterns are correctly understood.
+The deriva MCP server ships its orientation material as a single primer:
+`deriva_ml_primer` (a tool, a `/<server>:deriva_ml_primer` prompt, and a
+`deriva://deriva-ml/primer` resource -- all returning the same text). It
+inlines the concepts frame and the getting-started operating contract (the
+pagination contract, error-envelope conventions, the `(hostname,
+catalog_id)` rule) and advertises a manifest of on-demand guides for the
+generic-catalog tool groups. Claude Code does not auto-inject this -- the
+agent calls the primer (or the `using-deriva-mcp` skill prompts it to).
 
-This skill (`deriva-ml-context`) teaches the resource-vs-tool *rule*; the `using-deriva-mcp` skill makes sure you have read the server-side material the rule is grounded in. Both should be active before the first MCP call. Skip `using-deriva-mcp` only when the entire interaction stays on the shell/Python side (`load-cifar10`, `deriva-ml-run`, direct `deriva-ml` library calls in a script) and never crosses the MCP boundary.
+This skill (`deriva-ml-context`) teaches the resource-vs-tool *rule*; the
+`/deriva-ml:using-deriva-mcp` skill makes sure you have called the primer
+the rule is grounded in. Both should be active before the first MCP call.
+Skip `using-deriva-mcp` only when the entire interaction stays on the
+shell/Python side (`load-cifar10`, `deriva-ml-run`, direct `deriva-ml`
+library calls in a script) and never crosses the MCP boundary.
 
 ## The five core abstractions
 
