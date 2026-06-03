@@ -155,4 +155,4 @@ These templates are the read-side of the resource-vs-tool decision documented in
 
 ### Discovery helpers
 
-- `ListMcpResourcesTool({server: "<name>"})` — confirm the server name and list **concrete** resources. **Does not list templates** — see the warning in the cold-start section above.
+- `ListMcpResourcesTool({server: "<name>"})` — confirm the server name and list **concrete** resources. **Does not list templates** — the catalog-scoped resource templates above (the `deriva://catalog/.../deriva-ml/...` table) are served via `resources/templates/list`, which Claude Code does not surface; read them directly with `ReadMcpResourceTool`. If `ListMcpResourcesTool` returns only the 2-3 static orientation entries, that is this gap, not an empty catalog.
