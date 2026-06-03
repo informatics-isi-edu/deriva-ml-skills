@@ -128,10 +128,10 @@ def test_render_primer_contains_both_guide_bodies():
     assert "five core abstractions" in body or "Dataset" in body
 
 
-def test_render_primer_lists_all_core_guide_names():
-    """Every core guide name from the manifest appears in the primer text."""
+def test_render_primer_lists_all_guide_names():
+    """Every guide name from the manifest appears in the primer text."""
     body = prompts._render_primer()
-    for name, source, _ in prompts._GUIDE_MANIFEST:
+    for name, _, _ in prompts._GUIDE_MANIFEST:
         assert name in body, f"{name} missing from primer"
 
 
@@ -190,7 +190,7 @@ def _render_primer() -> str:
 
     # Block 2 -- manifest of on-demand guides.
     parts.append("=== ON-DEMAND GUIDES ===")
-    if ml_guides:
+    if ml_guides:  # empty today; activates when _GUIDE_MANIFEST gains "deriva-ml" rows
         parts.append(
             "DerivaML domain guides (this plugin) -- fetch with "
             "get_guide(name) when you first need them:"
@@ -204,12 +204,16 @@ def _render_primer() -> str:
     for name, summary in core_guides:
         parts.append(f"  - {name}: {summary}")
 
-    # Block 3 -- closing directive.
+    # Block 3 -- closing directive. NOTE: the get_guide reference lives here
+    # (not only in the ml_guides block) so the on-demand fetch mechanism is
+    # always named, even while the ml_guides list is empty.
     parts.append(
         "When you reach an unfamiliar tool covered by a guide above, fetch "
-        "that guide once and proceed; do not re-fetch a guide already loaded "
-        "this conversation. For read-side questions about existing entities "
-        "(show X, what is in Y, what did Z produce), prefer the "
+        "that guide once (get_guide(name) for the domain guides above, or "
+        "the matching /<server>:<name> prompt for the core guides) and "
+        "proceed; do not re-fetch a guide already loaded this conversation. "
+        "For read-side questions about existing entities (show X, what is in "
+        "Y, what did Z produce), prefer the "
         "deriva://catalog/<host>/<cat>/deriva-ml/... resources over the "
         "equivalent list/get tools -- they are cached, page-free, and emit "
         "no audit entries."
