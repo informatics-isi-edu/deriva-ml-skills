@@ -74,9 +74,11 @@ Each `add_dataset_members` call auto-increments the dataset version; the descrip
 
 ## Managing Types
 
-To **add a type** to a dataset, call `deriva_ml_update_dataset` with `dataset_rid` and `dataset_types=["Training", ...]` (the existing types plus your additions).
+`deriva_ml_update_dataset`'s `dataset_types` argument is **set-style**: pass the full list you want the dataset to end up with, and the tool diffs against the current types, adding and removing as needed (and auto-bumps the dataset to a dev version). Both add and remove go through this one tool.
 
-To **remove a type**, call `update_entities` on the dataset's type-association table and remove the row that links the dataset to the type.
+To **add a type**, call `deriva_ml_update_dataset` with `dataset_rid` and `dataset_types=["Training", ...]` (the existing types plus your additions).
+
+To **remove a type**, call `deriva_ml_update_dataset` with the reduced list (the existing types minus the one you're dropping). Do not edit the type-association table with raw `update_entities` — that bypasses the Dataset abstraction's version-flip and audit machinery (see the inheritance-with-override rule in `/deriva-ml:deriva-ml-context`).
 
 To **create a new custom type**, call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed", description="...")`.
 

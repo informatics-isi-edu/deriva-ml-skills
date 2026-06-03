@@ -121,7 +121,7 @@ Adds an item to an existing entity.
 
 **Behavior**: Modifies an existing entity. Returns None.
 
-> **Extending built-in DerivaML vocabularies** (`Workflow_Type`, `Asset_Type`, `Dataset_Type`): use the generic `add_term` with `schema="deriva-ml"` and `table=` set to the vocabulary table. To tag a specific asset with an Asset_Type, use `update_entities` on the asset's row.
+> **Extending built-in DerivaML vocabularies** (`Workflow_Type`, `Asset_Type`, `Dataset_Type`): use the generic `add_term` with `schema="deriva-ml"` and `table=` set to the vocabulary table. To tag a specific asset, use `deriva_ml_update_asset(asset_rid, asset_types=[...])` (set-style); to tag a dataset, use `deriva_ml_update_dataset(dataset_rid, dataset_types=[...])` (set-style). Do not tag via raw `update_entities` on the entity row — that bypasses the abstraction's provenance/version/audit machinery.
 
 > **Dataset hierarchy**: to make a dataset a child of another dataset, use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members with element-type `Dataset`.
 
@@ -141,7 +141,7 @@ Removes entities or relationships.
 
 **Behavior**: Removes the specified entity or relationship. Returns None.
 
-> **Removing terms or type associations**: use `delete_term` for vocab-term deletion (with `schema="deriva-ml"` for built-ins), or `update_entities` on the dataset/asset row to clear a type association.
+> **Removing terms or type associations**: use `delete_term` for vocab-term deletion (with `schema="deriva-ml"` for built-ins). To remove a *type association* from an entity, do not use raw `update_entities` — the `asset_types` / `dataset_types` arguments on `deriva_ml_update_asset` / `deriva_ml_update_dataset` are set-style, so pass the reduced list (the dropped term is removed) through the abstraction's own tool.
 
 ### `set_*` -- Set/Update Properties
 

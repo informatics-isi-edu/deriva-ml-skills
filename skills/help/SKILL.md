@@ -85,6 +85,7 @@ When the user asks what's possible or needs orientation, present the following g
 
 ## Tips
 
+- **This is the DerivaML front door.** For ML work (datasets, workflows, executions, features, experiments) you're in the right place. If your task is pure generic-catalog onboarding with no ML layer — first connection, schema exploration, a safe first mutation, loading rows — the foundation's `/deriva:getting-started` *(deriva-skills)* is the more focused walkthrough. When both plugins are loaded, start here; this guide routes you out to the `/deriva:` skills for the generic steps.
 - **Start with `rag_search`** for any "what is" or "what exists" question — it searches schema, data, and docs in one call
 - **You don't need to know command names** — just describe what you want in plain language
 - **I'll guide you through the steps** — each capability includes best practices and common pitfalls
