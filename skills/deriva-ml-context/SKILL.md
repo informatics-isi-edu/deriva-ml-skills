@@ -72,11 +72,11 @@ When `cite_url` is `None` on a row (best-effort failure or a thinly-built ref), 
 
 The deriva MCP server ships its orientation material as a single primer:
 `deriva_ml_primer` (a tool, a `/<server>:deriva_ml_primer` prompt, and a
-`deriva://deriva-ml/primer` resource -- all returning the same text). It
+`deriva://deriva-ml/primer` resource — all returning the same text). It
 inlines the concepts frame and the getting-started operating contract (the
 pagination contract, error-envelope conventions, the `(hostname,
 catalog_id)` rule) and advertises a manifest of on-demand guides for the
-generic-catalog tool groups. Claude Code does not auto-inject this -- the
+generic-catalog tool groups. Claude Code does not auto-inject this — the
 agent calls the primer (or the `using-deriva-mcp` skill prompts it to).
 
 This skill (`deriva-ml-context`) teaches the resource-vs-tool *rule*; the
