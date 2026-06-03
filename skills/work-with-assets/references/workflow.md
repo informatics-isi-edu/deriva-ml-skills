@@ -227,27 +227,32 @@ with ml.create_execution(config) as exe:
 
 Call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Asset_Type", name=..., description=...)`.
 
-### Add a type to an asset
+### Add or remove asset types
 
-> **Known gap:** there is no dedicated tool. Use `update_entities` on the asset row's `Asset_Type` column.
+Use `deriva_ml_update_asset` — its `asset_types` argument is **set-style**: pass the full list of terms you want the asset to end up tagged with, and the tool diffs against the asset's current tags, adding and removing as needed (it calls `Asset.add_asset_type` / `remove_asset_type` under the hood). This handles both the single-type and multiple-types-via-association-table cases; you never touch the `<AssetTable>_Asset_Type` association table directly.
 
-```
-update_entities(hostname="data.example.org", catalog_id="1",
-    schema="<asset_schema>", table="<asset_table>",
-    entities=[{"RID": "2-IMG1", "Asset_Type": "Segmentation_Mask"}])
-```
-
-For tables that allow multiple types via an association table, insert into the `<AssetTable>_Asset_Type` association table directly with `insert_entities(...)`.
-
-### Remove a type from an asset
-
-> **Known gap:** there is no dedicated tool. Use `update_entities` to clear the `Asset_Type` column (or delete the association row).
+To **add** `Segmentation_Mask` to an asset that currently has no caller-supplied tags:
 
 ```
-update_entities(hostname="data.example.org", catalog_id="1",
-    schema="<asset_schema>", table="<asset_table>",
-    entities=[{"RID": "2-IMG1", "Asset_Type": null}])
+deriva_ml_update_asset(hostname="data.example.org", catalog_id="1",
+    asset_rid="2-IMG1", asset_types=["Segmentation_Mask"])
 ```
+
+To **add a second type**, pass both (fetch the current list first via `deriva_ml_lookup_asset` if you don't know it):
+
+```
+deriva_ml_update_asset(hostname="data.example.org", catalog_id="1",
+    asset_rid="2-IMG1", asset_types=["Segmentation_Mask", "Reviewed"])
+```
+
+To **remove** a type, pass the reduced list (the term you drop is removed); pass `[]` to clear all caller-supplied tags:
+
+```
+deriva_ml_update_asset(hostname="data.example.org", catalog_id="1",
+    asset_rid="2-IMG1", asset_types=["Segmentation_Mask"])  # drops "Reviewed"
+```
+
+Do **not** mutate `Asset_Type` with raw `update_entities` / `insert_entities` on the asset or association row — that bypasses the Asset abstraction's provenance, version-flip, RAG-reindex, and audit machinery (see the inheritance-with-override rule in `/deriva-ml:deriva-ml-context`). The directional auto-tags (`Output_File` / `Input_File`) are managed by DerivaML and preserved across `deriva_ml_update_asset` calls — don't pass them yourself.
 
 ### View asset types
 

@@ -817,7 +817,7 @@ Deletion removes the dataset container and member associations, not the member r
 |-----------|----------|------------|-------|
 | Create dataset | `deriva_ml_create_dataset` | `exe.create_dataset()` | Within an execution for provenance |
 | Add types | `deriva_ml_update_dataset(dataset_rid, dataset_types=[...])` | `dataset.add_dataset_type()` | Additive labels |
-| Remove types | `update_entities` on the type-association table | `dataset.remove_dataset_type()` | Manual via update_entities |
+| Remove types | `deriva_ml_update_dataset(dataset_rid, dataset_types=[...])` | `dataset.remove_dataset_type()` | Set-style: pass the reduced list |
 | Create custom type | `add_term(schema="deriva-ml", table="Dataset_Type", ...)` | `ml.add_term(MLVocab.dataset_type, ...)` | Generic add_term |
 | Register element type | `deriva_ml_add_dataset_element_type` | `ml.add_dataset_element_type()` | Catalog-level, idempotent |
 | Add members | `deriva_ml_add_dataset_members` | `dataset.add_dataset_members()` | Auto-increments version |
