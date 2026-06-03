@@ -6,7 +6,7 @@ disable-model-invocation: false
 
 <!--
 SYNC: this skill mirrors `_CONCEPTS_GUIDE` in
-`deriva-ml-mcp/src/deriva_ml_mcp/prompts.py`. When the conceptual
+`deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/prompts.py`. When the conceptual
 core changes (the five abstractions, the inheritance rule, the
 vocabulary-extension pattern), update both. See CLAUDE.md ("Cross-Repo
 Sync") for the full convention. Inheritance-rule rationale: ADR-0001.
