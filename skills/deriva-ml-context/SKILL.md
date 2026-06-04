@@ -149,7 +149,7 @@ The five abstractions above are where the override mostly lands. Going around th
 - **FK validation across the Dataset / Workflow / Execution graph** — DerivaML enforces invariants (every Execution links to a Workflow, every output Dataset links to its producing Execution); raw inserts can create dangling references.
 - **Provenance tracking** — each mutation links back to the active Execution; raw inserts have no Execution context.
 - **Version management** — Datasets carry a two-state PEP 440 version (released / dev) per ADR-0003. The mutation tools (`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, dataset-type changes) flip the dataset to a dev label; `deriva_ml_release` promotes a dev period to a released version. Raw inserts skip the version flip entirely, leaving consumers pointed at stale data.
-- **RAG re-indexing** — the `deriva_ml_*` tools fire surgical re-index hooks so freshly mutated rows are searchable on the next `rag_search`. Raw inserts do not.
+- **RAG re-indexing** — Dataset/Workflow/Execution rows are indexed **read-through**: the `deriva_ml_*` mutation tools fire a surgical re-index so freshly mutated rows are searchable on the next `rag_search`, and the read tools (`deriva_ml_list_*` / `deriva_ml_get_*`) warm each row they return, so listing/fetching a row also makes it searchable (`deriva_ml_resync_indexes` warms a whole catalog's rows on demand). Raw inserts fire none of this, so the row never enters the index.
 - **Audit emission** — every `deriva_ml_*` mutation emits an audit event with the operation name, hostname, catalog, and result; raw inserts use the generic core audit which lacks DerivaML-specific context.
 
 ## What DerivaML adds on top
@@ -227,6 +227,15 @@ When the user mentions an entity by name, OR when the user asks to create a new 
    - `catalog-schema` for tables, columns, features, vocabulary terms
    - `catalog-data` for datasets, workflows, executions
    - `ml-docs` / `user-guide` for documentation references
+
+   **Read-through caveat for Dataset / Workflow / Execution rows.** These three are indexed **read-through** — a row enters the `catalog-data` index only once it has been listed or fetched (the `deriva_ml_list_*` / `deriva_ml_get_*` tools warm each row they return), or after a mutation (surgical reindex), or via `deriva_ml_resync_indexes(hostname, catalog_id)` to warm a whole catalog's rows on demand. So a bare `rag_search(doc_type="catalog-data")` can miss rows nobody has touched since the server started. Prefer the **structured path first** — it's deterministic *and* warms the index:
+
+   - **"find Training datasets"** → `deriva_ml_list_datasets(dataset_type="Training")` (exact type filter; no fuzzy needed).
+   - **executions by status / workflow type** → `deriva_ml_list_executions(status=..., workflow_type=...)`.
+   - **workflow dedup / "is this workflow already here?"** → `deriva_ml_find_workflow_by_url` — workflows are content-addressed (same URL + git commit = same row), so this is the exact, deterministic match, strictly better than fuzzy `rag_search`.
+   - **hybrid** ("Training datasets matching `<description text>`") → structured `deriva_ml_list_datasets(dataset_type=...)` to narrow, then `rag_search` to rank within the warmed result.
+
+   (Vocabulary terms and schema are indexed catalog-wide and searchable immediately — the read-through caveat applies only to the Dataset/Workflow/Execution data rows.)
 
 3. **Present a picker when multiple options appear.** If RAG returns more than one plausible candidate, list 3-5 of them with their canonical name + one-line description + RID (or `table.column` for column hits) and ask the user to pick. Don't choose blindly when reasonable people might disagree. If RAG returns ONE clear top hit (significantly above runners-up), use it but tell the user what you resolved it to in one sentence (`"I'm using the Training Dataset_Type."`). If RAG returns NO useful hits, ask a clarifying question. **Do NOT fabricate a name; do NOT call `create_*` with a guessed identifier.**
 
