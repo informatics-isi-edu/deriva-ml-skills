@@ -93,7 +93,7 @@ print(labels["Diagnosis_Type"].value_counts())
 | [`skills/execution-lifecycle/scripts/salvage_execution.py`](../execution-lifecycle/scripts/salvage_execution.py) | Commit staged outputs from a `Stopped` / `Pending_Upload` execution |
 | [`skills/execution-lifecycle/scripts/crash_recovery.py`](../execution-lifecycle/scripts/crash_recovery.py) | `Running → Pending_Upload` direct transition after a hard crash; `--abort` to discard |
 | [`skills/create-feature/scripts/populate_feature_values.py`](../create-feature/scripts/populate_feature_values.py) | Bulk-load feature values from a CSV |
-| [`skills/manage-storage/scripts/warm_cache.py`](../manage-storage/scripts/warm_cache.py) | Pre-fetch a dataset bag into local cache (no execution needed) |
+| [`skills/manage-deriva-storage/scripts/warm_cache.py`](../manage-deriva-storage/scripts/warm_cache.py) | Pre-fetch a dataset bag into local cache (no execution needed) |
 | [`skills/work-with-assets/scripts/upload_asset.py`](../work-with-assets/scripts/upload_asset.py), [`download_asset.py`](../work-with-assets/scripts/download_asset.py) | Per-asset file I/O with execution provenance |
 
 For dataset-shaped operations (bootstrap a dataset, split, ETL, generic feature population without a CSV), see `references/script-patterns.md` — Base Template plus four patterns (Dataset Creation, Dataset Splitting, Feature Creation and Population, ETL / Data Loading).

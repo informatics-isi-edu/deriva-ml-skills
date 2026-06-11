@@ -46,7 +46,7 @@ Step-by-step recipes for authoring and running DerivaML executions. For backgrou
 | `execution-lifecycle/scripts/salvage_execution.py` | Drive `commit_output_assets()` on a `Stopped`/`Failed` execution with staged outputs |
 | `execution-lifecycle/scripts/crash_recovery.py` | `Running → Pending_Upload` direct transition after a hard crash; `--abort` mode to discard |
 | `create-feature/scripts/populate_feature_values.py` | Bulk-load feature values from a CSV |
-| `manage-storage/scripts/warm_cache.py` | Pre-fetch a dataset bag into local cache |
+| `manage-deriva-storage/scripts/warm_cache.py` | Pre-fetch a dataset bag into local cache |
 | `work-with-assets/scripts/upload_asset.py` | Register local files as catalog assets |
 | `work-with-assets/scripts/download_asset.py` | Pull catalog assets with execution-input provenance |
 

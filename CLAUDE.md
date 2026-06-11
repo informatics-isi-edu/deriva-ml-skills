@@ -68,7 +68,7 @@ The 29 skills divide into two shapes by invocation model. The split matters when
 - Lifecycle (also auto-fires): `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle`
 - Datasets: `debug-bag-contents`
 - Features: `create-feature`, `compare-model-runs`
-- Assets: `work-with-assets`, `manage-storage`
+- Assets: `work-with-assets`, `manage-deriva-storage`
 - Experiments / configs: `configure-experiment`, `write-hydra-config`
 - Models: `new-model`, `model-development-workflow`
 - Notebooks: `setup-notebook-environment`, `run-notebook`

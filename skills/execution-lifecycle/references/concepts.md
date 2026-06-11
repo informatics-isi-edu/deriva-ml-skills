@@ -527,7 +527,7 @@ All of these can be caught before the execution context manager opens.
 |------|------|---------------|
 | Validate RIDs | `deriva_ml_get_dataset` / `get_entities` | All dataset and asset RIDs exist (check by typed lookup) |
 | Check cache | `deriva_ml_bag_info` | Dataset sizes, cache status (`not_cached`, `cached_metadata_only`, `cached_materialized`, `cached_incomplete`); also doubles as a version-existence check |
-| Warm cache | `skills/manage-storage/scripts/warm_cache.py` | Pre-fetches bags into local cache (no execution row) |
+| Warm cache | `skills/manage-deriva-storage/scripts/warm_cache.py` | Pre-fetches bags into local cache (no execution row) |
 | Git clean | `git status` | No uncommitted changes (for CLI runs) |
 | Config check | `--cfg job` | Resolved Hydra config is correct (for CLI runs) |
 
@@ -544,7 +544,7 @@ The `deriva_ml_bag_info` tool returns a `cache_status` field:
 
 ### Prefetching strategy
 
-For large datasets (>1 GB), warm the cache ahead of time rather than downloading during the execution. The bundled `skills/manage-storage/scripts/warm_cache.py` template handles this:
+For large datasets (>1 GB), warm the cache ahead of time rather than downloading during the execution. The bundled `skills/manage-deriva-storage/scripts/warm_cache.py` template handles this:
 
 ```bash
 uv run python src/scripts/warm_cache.py \

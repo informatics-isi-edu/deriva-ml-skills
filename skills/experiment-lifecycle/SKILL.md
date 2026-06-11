@@ -105,7 +105,7 @@ What this phase adds to the catalog: typically nothing — evaluation reads exis
 - **Config error** — the dry run should have caught this in phase 3. If it didn't, there's a config-validation gap worth fixing.
 - **Catalog state error** (vocabulary term missing, FK violation, asset RID stale) — check `/deriva-ml:troubleshoot-execution` and `/deriva:troubleshoot-deriva-errors` for the diagnostic patterns.
 - **Model code bug** (NaN loss, OOM, dataloader hang) — the small-data run from phase 4 should have caught this. If it didn't, expand what small-data tests cover.
-- **Resource exhaustion** (disk full, OOM, GPU unavailable) — usually reproducible at small scale; if not, see `/deriva-ml:manage-storage` for cache cleanup.
+- **Resource exhaustion** (disk full, OOM, GPU unavailable) — usually reproducible at small scale; if not, see `/deriva-ml:manage-deriva-storage` for cache cleanup.
 
 The right diagnostic action depends on *which phase* the failure happened in, which is why the lifecycle skill names the phases and the gates between them.
 
