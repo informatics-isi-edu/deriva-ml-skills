@@ -1,6 +1,6 @@
 ---
 name: manage-deriva-storage
-description: "ALWAYS use this skill when managing DerivaML local storage — checking disk usage, cleaning up cached datasets or execution directories, pre-fetching datasets into cache, diagnosing what's using space, or understanding cache vs working directory. Triggers on: 'disk full', 'clean up cache', 'what's cached', 'storage', 'free space', 'delete old data', 'cache management', 'prefetch dataset', 'warm cache', 'working directory', 'cache directory', '~/.deriva-ml'."
+description: "Use when managing DerivaML local storage — checking disk usage, listing or cleaning up cached dataset bags and execution directories, pre-fetching datasets into cache, diagnosing what's using space, or understanding the cache vs working directory distinction. Covers: 'disk full', 'clean up cache', 'what's cached', 'storage', 'free space', 'delete old data', 'cache management', 'prefetch dataset', 'warm cache', 'working directory', 'cache directory', '~/.deriva-ml'."
 disable-model-invocation: true
 ---
 
