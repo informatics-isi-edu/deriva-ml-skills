@@ -411,7 +411,7 @@ The "every mutation lands on dev" rule:
 
 - Execution-output assets (model weights, prediction CSVs, training logs, plots) — linked to the producing execution, not to dataset members.
 - Reads (`deriva_ml_get_dataset`, `deriva_ml_list_dataset_members`, `deriva_ml_bag_info`).
-- Cache warm-ups via the bundled `skills/manage-storage/scripts/warm_cache.py` template — it only populates the local cache directory and never touches catalog state.
+- Cache warm-ups via the bundled `skills/manage-deriva-storage/scripts/warm_cache.py` template — it only populates the local cache directory and never touches catalog state.
 
 ### Drift detection (Python API only)
 

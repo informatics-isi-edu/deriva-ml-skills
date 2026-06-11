@@ -1,6 +1,6 @@
 ---
 name: configure-experiment
-description: "ALWAYS use this skill when setting up a DerivaML experiment project, adding config groups, or understanding how experiments compose. Triggers on: 'set up experiment', 'config groups', 'project structure', 'hydra defaults', 'DerivaModelConfig', 'experiment preset', 'new project from template'."
+description: "Use when setting up a DerivaML experiment project, adding config groups, or understanding how experiments compose. Triggers on: 'set up experiment', 'config groups', 'project structure', 'hydra defaults', 'DerivaModelConfig', 'experiment preset', 'new project from template'."
 disable-model-invocation: true
 ---
 
@@ -139,7 +139,7 @@ Generated from `src/configs/experiments.py` and `src/configs/multiruns.py`.
 
 DerivaML uses two distinct storage locations — a **working directory** (per-execution inputs/outputs/logs, ephemeral) and a **cache directory** (downloaded dataset bags and assets that persist across executions). The defaults work for most users, but you can override both in your hydra-zen config when needed.
 
-For the conceptual difference, the on-disk layout, and the management commands (cleanup, garbage-collection, incomplete-execution recovery), see **`/deriva-ml:manage-storage`** — that skill owns the storage surface.
+For the conceptual difference, the on-disk layout, and the management commands (cleanup, garbage-collection, incomplete-execution recovery), see **`/deriva-ml:manage-deriva-storage`** — that skill owns the storage surface.
 
 This skill owns only the **config-authorship** side: how to set `working_dir` and `cache_dir` in `configs/deriva.py`.
 

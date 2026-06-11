@@ -38,7 +38,7 @@ Before running an experiment, validate that everything is in place. **Stop and f
    | `cached_materialized` | Ready to go |
    | `cached_incomplete` | Needs re-materialization |
 
-4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — use the bundled `skills/manage-storage/scripts/warm_cache.py` template to pre-fetch into the local cache before the execution starts. Individual assets (model weights) — `skills/work-with-assets/scripts/download_asset.py`. Staging populates the local cache without creating execution records.
+4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — use the bundled `skills/manage-deriva-storage/scripts/warm_cache.py` template to pre-fetch into the local cache before the execution starts. Individual assets (model weights) — `skills/work-with-assets/scripts/download_asset.py`. Staging populates the local cache without creating execution records.
 5. **Code and environment checks (CLI runs).** `git status` clean (`DerivaMLDirtyWorkflowError` if not — use `--allow-dirty` only for debugging). Version current (`bump_version("patch")` or `uv run bump-version patch|minor`). Lock file valid (`uv lock --check`).
 6. **User confirmation.** Present commit hash + version + branch + experiment name + key parameters + dataset versions and cache status. Get explicit approval before production runs.
 
@@ -67,7 +67,7 @@ This skill ships ready-to-edit templates under `skills/execution-lifecycle/scrip
 Companion task templates live under other skills' `scripts/` directories:
 
 - `skills/create-feature/scripts/populate_feature_values.py` — bulk-load feature values from a CSV
-- `skills/manage-storage/scripts/warm_cache.py` — pre-fetch a dataset bag into local cache
+- `skills/manage-deriva-storage/scripts/warm_cache.py` — pre-fetch a dataset bag into local cache
 - `skills/work-with-assets/scripts/upload_asset.py` / `download_asset.py` — per-asset file I/O with execution provenance
 
 **Key rule:** Always dry run first — `--dry-run` on the script (or `dry_run=true` Hydra override on `deriva-ml-run`).

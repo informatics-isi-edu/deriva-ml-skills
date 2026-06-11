@@ -215,7 +215,7 @@ Run a real execution against your development dataset. This creates catalog reco
 ### Pre-flight checklist
 1. Validate the full config with `deriva_ml_validate_execution_configuration(hostname=..., catalog_id=..., config={...})` — one call confirms every dataset RID, every dataset version, every asset RID, the workflow, and surfaces cross-spec issues (duplicate RIDs, version conflicts, role conflicts). Cheap metadata-only pre-flight; doesn't pay the bag-download cost that `dry_run=True` does.
 2. `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid="...", version="...")` — check cache status
-3. `uv run python src/scripts/warm_cache.py --hostname ... --catalog-id ... --dataset-rid ... --version ...` — pre-fetch via the bundled `manage-storage` template if anything reads `not_cached`
+3. `uv run python src/scripts/warm_cache.py --hostname ... --catalog-id ... --dataset-rid ... --version ...` — pre-fetch via the bundled `manage-deriva-storage` template if anything reads `not_cached`
 4. Code committed and version bumped (`bump_version(bump_type="patch")`)
 
 ### Run with small data
@@ -260,7 +260,7 @@ If you don't already have one, see the `dataset-lifecycle` skill for:
 |------|------|---------|
 | 1 | `deriva_ml_validate_execution_configuration(hostname=..., catalog_id=..., config={...})` | Confirms all dataset RIDs + versions exist, all asset RIDs exist, workflow is valid, no cross-spec conflicts — single metadata-only call (cheaper than dry_run, which downloads bags) |
 | 2 | `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=...)` | Check dataset sizes and cache status |
-| 3 | `uv run python src/scripts/warm_cache.py --hostname ... --catalog-id ... --dataset-rid ...` | Pre-fetch large datasets via the `manage-storage` template |
+| 3 | `uv run python src/scripts/warm_cache.py --hostname ... --catalog-id ... --dataset-rid ...` | Pre-fetch large datasets via the `manage-deriva-storage` template |
 | 4 | `uv run bump-version <type>` (or `bump_version("<type>")` MCP) | Tag the code version — see decision matrix below for `<type>` |
 | 5 | `git status` | Confirm clean working tree |
 | 6 | Verify experiment description | Will be recorded in execution |

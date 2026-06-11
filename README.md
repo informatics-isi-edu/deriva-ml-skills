@@ -54,7 +54,7 @@ Invoke directly with `/deriva-ml:<skill-name>`, or by asking Claude something th
 | **Features** | `/deriva-ml:create-feature` | Create features with vocabulary or scalar value domains; add per-row values |
 | | `/deriva-ml:compare-model-runs` | Rank/compare metrics across model training executions |
 | **Assets** | `/deriva-ml:work-with-assets` | File assets — upload, download, provenance, types |
-| | `/deriva-ml:manage-storage` | Storage Manager (a built-in Deriva-ML-Apps app) |
+| | `/deriva-ml:manage-deriva-storage` | Storage Manager (a built-in Deriva-ML-Apps app) |
 | **Experiments / configs** | `/deriva-ml:configure-experiment` | Set up DerivaML experiment project structure |
 | | `/deriva-ml:write-hydra-config` | Write and validate hydra-zen config files |
 | **Models** | `/deriva-ml:new-model` | Scaffold a new model function and wire it into configs/workflows |
