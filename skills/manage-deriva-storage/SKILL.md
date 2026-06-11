@@ -18,8 +18,9 @@ All DerivaML local data lives under a **working directory**, typically `~/.deriv
 
 | Directory | Contents | Grows from |
 |-----------|----------|------------|
-| `cache/` | Downloaded dataset bags (BDBags), keyed by RID + checksum | Python API `dataset.download_dataset_bag(version)`, `exe.download_dataset_bag(spec)`, or the bundled `scripts/warm_cache.py` |
-| `cache/assets/` | Individually cached assets (model weights, etc.), keyed by RID + MD5 | `AssetSpec(cache=True)` |
+| `cache/bags/{checksum}/Dataset_{RID}/` | Downloaded dataset bags (BDBags), content-addressed by checksum | Python API `dataset.download_dataset_bag(version)`, `exe.download_dataset_bag(spec)`, or the bundled `scripts/warm_cache.py` |
+| `cache/index.sqlite` | The bag-cache index — maps dataset RIDs to cached bags. **Never edit or delete by hand**; the deletion APIs below keep it in sync with the disk | Maintained automatically |
+| `cache/assets/{RID}_{md5}/` | Individually cached assets (model weights, etc.), keyed by RID + MD5 | `AssetSpec(cache=True)` |
 | `execution_{RID}/` | Execution working directories — staged output files, logs | Created when the `with ml.create_execution(...) as exe:` context manager opens (see `execution-lifecycle/scripts/`) |
 | Other dirs | Hydra configs, client exports, temporary files | Various |
 
@@ -52,20 +53,48 @@ default_deriva(hostname="...", catalog_id="...", cache_dir="/fast-ssd/deriva-cac
 
 ## Phase 1: Assess — What's Using Space
 
-### Browse all storage
+### List everything by species (Python API, deriva-ml ≥ 1.46)
+
+The lead path is the typed introspection API — one call per storage
+species, no directory spelunking:
+
+```python
+ml = DerivaML(hostname, catalog_id)
+
+# Every cached bag, newest first — CachedBag records
+for bag in ml.list_cached_bags():
+    print(bag.dataset_rid, bag.version, bag.status.value, bag.size_bytes, bag.path)
+
+# Every cached asset — CachedAsset records
+for asset in ml.list_cached_assets():
+    print(asset.rid, asset.md5, asset.size_bytes, asset.path)
+
+# Execution working directories
+for d in ml.list_execution_dirs():
+    print(d["execution_rid"], d["size_mb"], d["path"])
+
+# One summary across all three species
+summary = ml.get_storage_summary()
+print(summary["bag_count"], summary["bag_size_mb"])      # cached bags
+print(summary["asset_count"], summary["asset_size_mb"])  # cached assets
+print(summary["execution_dir_count"], summary["execution_size_mb"])
+print(summary["total_size_mb"])
+```
+
+(`bag_size_mb` / `asset_size_mb` break down `cache_size_mb` by
+species — they are subsets of it, not additive with it.)
+
+### Browse all storage (bash fallback)
 
 ```
 # Bash: ls -la ~/.deriva-ml/
-```
-
-Returns every cached bag, execution directory, and other artifact.
-
-**Filter by category:**
-
-```
-# Bash: du -sh ~/.deriva-ml/*/cache/      # Only cached dataset bags
+# Bash: du -sh ~/.deriva-ml/*/cache/      # Only the cache
 # Bash: du -sh ~/.deriva-ml/*/execution_*  # Only execution working directories
 ```
+
+Fine for a quick visual scan, but bash can't tell you which bag
+belongs to which dataset/version or whether it's fully materialized —
+use `list_cached_bags()` for that.
 
 ### Check a specific dataset's cache status
 
@@ -82,7 +111,7 @@ deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="28C
 ```
 
 Both return the same shape:
-- `cache_status`: one of `not_cached`, `cached_metadata_only`, `cached_materialized`, `cached_incomplete`
+- `cache_status`: one of `not_cached`, `cached_metadata_only`, `cached_materialized`, `cached_holey` (a bag whose asset bytes are partly missing; older releases called this `cached_incomplete`, which remains a compatible alias)
 - `total_asset_bytes` / `total_asset_size`: how much space the bag uses
 - `tables`: per-table row counts and asset sizes
 - `cache_path`: where it lives on disk
@@ -96,21 +125,49 @@ Either the bag-preview resource (current version) or `deriva_ml_bag_info` tool (
 
 ## Phase 2: Clean Up — Free Disk Space
 
-> **Note:** The cleanup methods below (`ml.clean_storage()`) are **Python API methods** on the `DerivaML` class, not MCP tools. They must be called from Python scripts or notebooks. For MCP-based storage inspection, use the resources `deriva://storage/summary`, `deriva://storage/cache`, and `deriva://storage/execution-dirs`.
+> **Note:** The cleanup methods below are **Python API methods** on the `DerivaML` class (deriva-ml ≥ 1.46), not MCP tools. They must be called from Python scripts or notebooks. For MCP-based storage inspection, use the resources `deriva://storage/summary`, `deriva://storage/cache`, and `deriva://storage/execution-dirs`.
 
-### Preview what would be deleted (dry run)
+### Preview what would be deleted
 
+List first, delete second — the listing calls from Phase 1 are the
+dry run:
+
+```python
+# What would delete_cached_bag("28CT") remove?
+[b for b in ml.list_cached_bags() if b.dataset_rid == "28CT"]
 ```
-# Python API: ml.clean_storage(rids=["28CT"], confirm=false)
+
+A single dataset RID may match multiple cached bags (one per version).
+
+### Delete cached data (targeted)
+
+```python
+ml.delete_cached_bag("28CT")                   # every cached version of a dataset
+ml.delete_cached_bag("28CT", version="1.2.0")  # one version only
+ml.delete_cached_asset("3WSE")                 # every cached copy of an asset
+ml.delete_cached_asset("3WSE", md5="<md5>")    # one specific copy
 ```
 
-Returns a preview of matching entries without deleting anything. A single RID may match multiple entries (e.g., a dataset cached at several versions, or an execution working directory).
+All return `{"…_removed": n, "bytes_freed": n}` and are idempotent —
+deleting something that isn't cached returns zeros rather than
+raising. Deletion is purely local and never touches the catalog.
 
-### Delete cached data
+### Delete cached data (bulk, by age)
 
+```python
+ml.clear_cache()                    # everything in the cache
+ml.clear_cache(older_than_days=30)  # only old entries
 ```
-# Python API: ml.clean_storage(rids=["28CT", "3WSE"], confirm=true)
-```
+
+Bags age by their recorded build time; assets by directory mtime.
+
+> **Don't `rm -rf` inside `cache/` by hand.** Bags are tracked in
+> `cache/index.sqlite`; raw deletion under `cache/bags/` leaves stale
+> index entries that misreport cache status until the next
+> `clear_cache()` repairs them. The deletion APIs above remove the
+> index entry and the on-disk directory together. (Deleting the
+> *entire* `~/.deriva-ml/{host}/{catalog}/cache/` directory is safe —
+> index and bags leave together.)
 
 **What's safe to delete:**
 - Cached dataset bags — can always be re-downloaded from the catalog
@@ -120,12 +177,11 @@ Returns a preview of matching entries without deleting anything. A single RID ma
 **What's NOT safe to delete:**
 - Execution directories where `exe.commit_output_assets()` (Python API) was never called — those outputs are **only** on local disk
 
-### Bulk cleanup workflow
+### Clean execution working directories
 
-1. Bash: `ls -la ~/.deriva-ml/` — see everything
-2. Identify old or large entries
-3. Bash: `du -sh ~/.deriva-ml/cache/*` — check sizes
-4. Bash: `rm -rf ~/.deriva-ml/cache/...` — delete
+```python
+ml.clean_execution_dirs(older_than_days=30, exclude_rids=["<active-rid>"])
+```
 
 ### Bulk garbage-collect old executions
 
@@ -198,11 +254,16 @@ For brand-new work (not resuming), copy `basic_execution.py` and run it; the rel
 
 ### After successful upload, clean up
 
-Once outputs are safely in the catalog, the local execution directory can be deleted:
+Once outputs are safely in the catalog, the local execution
+directory and registry row can be removed with `gc_executions`
+(scoped to uploaded executions so staged-but-uncommitted work is
+never touched):
 
 ```python
 # Python API — not an MCP tool
-ml.clean_storage(rids=["<execution_rid>"], confirm=True)
+from deriva_ml.execution.state_store import ExecutionStatus
+
+ml.gc_executions(status=ExecutionStatus.Uploaded, delete_working_dir=True)
 ```
 
 ## Phase 3: Pre-fetch — Warm the Cache
@@ -280,8 +341,10 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 
 ## Reference Resources
 
-- Bash `ls -la ~/.deriva-ml/` — Browse all local storage
-- Bash `rm -rf ~/.deriva-ml/...` — Remove cached items by RID
+- `ml.list_cached_bags()` / `ml.list_cached_assets()` / `ml.get_storage_summary()` — Typed inspection of every storage species (Python API, deriva-ml ≥ 1.46)
+- `ml.delete_cached_bag(rid, version=None)` / `ml.delete_cached_asset(rid, md5=None)` — Targeted, index-coherent deletion
+- `ml.clear_cache(older_than_days=None)` / `ml.clean_execution_dirs(...)` / `ml.gc_executions(...)` — Bulk cleanup
+- Bash `ls -la ~/.deriva-ml/` — Quick visual scan (don't `rm -rf` inside `cache/` — use the deletion APIs)
 - `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version
 - `scripts/warm_cache.py` — Bundled template for pre-fetching a dataset bag into the local cache (no execution required)
 
