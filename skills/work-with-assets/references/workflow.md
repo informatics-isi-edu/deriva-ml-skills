@@ -119,15 +119,12 @@ Call Python API `exe.working_dir` to find the local path where downloaded assets
 
 ## Creating Asset Tables
 
-> **Known gap:** there is no dedicated `create_asset_table` tool. Build the table by hand using the deriva-skills `create_table` tool plus the standard hatrac column shape, plus an Asset_Type FK, plus the necessary association tables.
+Use the dedicated tool (`deriva-ml-mcp-plugin` v0.7+). See `concepts.md` → "Creating an Asset Table on a DerivaML catalog" for the full recipe. Summary:
 
-See `concepts.md` → "Creating an Asset Table (Manual Recipe)" for the full step-by-step recipe. Summary:
-
-1. Call `create_table(hostname, catalog_id, schema=..., table_name=..., columns=[...])` with the standard hatrac columns (`URL`, `Filename`, `Length`, `MD5`, `Description`) plus any custom metadata columns. *(`create_table` is a `deriva-mcp-core` tool — see `/deriva:create-table`.)*
+1. Call `deriva_ml_create_asset_table(hostname, catalog_id, asset_name=..., additional_columns=[...], comment=...)` — one call creates the hatrac columns, the `Asset_Type` tag association, the `Execution` association with `Asset_Role`, and the standard Chaise annotations.
 2. Add the new table name as a term in the `Asset_Type` vocabulary: `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name="<TableName>", description=...)`.
-3. Declare an `Asset_Type` foreign-key column on the new table — there is no standalone `create_foreign_key` MCP tool, so include the FK in `create_table`'s `foreign_keys=[...]` list at step 1, OR (if the table already exists) use `add_column` and then declare the FK via the schema-management surface. See `/deriva:create-table` for the FK definition shape.
-4. Optionally add domain FK columns (e.g., `Image` → `Subject`).
-5. Apply visible-columns / table-display annotations as needed (immediate-apply — there is no `apply_annotations()` staging step in the new MCP server).
+3. Optionally add domain FK columns (e.g., `Image` → `Subject`) via the schema-management surface.
+4. Display annotations are applied by the tool; tweak visible-columns further only if the defaults don't fit.
 
 Once those steps are done you can register files for upload via Python API `exe.asset_file_path(asset_name="<TableName>", ...)`.
 

@@ -226,13 +226,31 @@ The same rule applies on the MCP side: filters and post-processing of `asset_typ
 
 ## Creating an Asset Table on a DerivaML catalog
 
-The generic recipe for creating an asset table (the standard hatrac column shape — `URL`, `Filename`, `Length`, `MD5`, `Description` — plus your domain-specific metadata columns) lives in **`/deriva:create-table`** *(deriva-skills)* under "Creating an Asset Table". Read it first; this section adds only the **DerivaML-specific overlay** that turns a generic asset table into one DerivaML can register files against.
+Use the dedicated tool — one call creates the full canonical shape:
 
-### The DerivaML overlay (two extra steps after the generic recipe)
+```
+deriva_ml_create_asset_table(hostname="data.example.org", catalog_id="1",
+    asset_name="Image",
+    additional_columns=[{"name": "Width", "type": "int4"},
+                        {"name": "Height", "type": "int4"}],
+    comment="Fundus photographs")
+```
 
-Once the generic asset table exists (per `/deriva:create-table`), two DerivaML-specific things are needed:
+This builds the five standard hatrac columns (`URL`, `Filename`, `Length`,
+`MD5`, `Description`), your `additional_columns` (dicts of
+`{"name", "type", "nullok", "comment"}` — `type` is a BuiltinTypes name like
+`text` / `int4` / `float8` / `boolean` / `timestamptz` / `markdown`), the
+`<name>_Asset_Type` **tag association** (multi-tag — an asset can carry e.g.
+`Model_File` + `Output_File`; no manual FK declaration needed), the
+`<name>_Execution` association carrying the `Asset_Role` FK, and the standard
+Chaise display annotations. The result always satisfies `model.is_asset` —
+validation-by-construction. Do NOT hand-build asset tables with the generic
+`create_table`; that recipe is only for non-DerivaML catalogs (see
+`/deriva:create-table`).
 
-**1. Add an `Asset_Type` vocabulary term that names the new table.** `Asset_Type` is a built-in vocabulary in the `deriva-ml` schema; DerivaML uses it to identify which asset table a file belongs to.
+### One follow-up step
+
+**Add an `Asset_Type` vocabulary term that names the new table.** `Asset_Type` is a built-in vocabulary in the `deriva-ml` schema; DerivaML uses it to identify which asset table a file belongs to. The tool creates the association plumbing but not the term itself.
 
 ```
 add_term(hostname="data.example.org", catalog_id="1",
@@ -241,19 +259,7 @@ add_term(hostname="data.example.org", catalog_id="1",
     description="Asset_Type term for the Image asset table")
 ```
 
-**2. Add the `Asset_Type` FK column on the new asset table.** Cleanest path: declare it as part of the `create_table` call in the first place, by adding to the `foreign_keys=` list:
-
-```
-foreign_keys=[
-    {"column": "Asset_Type",
-     "referenced_schema": "deriva-ml",
-     "referenced_table": "Asset_Type",
-     "comment": "Which Asset_Type vocab term this asset belongs to"},
-    # ... plus any domain FKs (e.g., Image -> Subject) ...
-]
-```
-
-If the table already exists without the FK, use `add_column` (from deriva-mcp-core) to add the column, then declare the FK via the schema-management surface — there is no standalone `create_foreign_key` MCP tool. See `/deriva:create-table` for the exact `foreign_keys=` shape.
+Domain FKs (e.g., `Image` → `Subject`) are not part of the canonical shape; add them afterward via the schema-management surface if needed.
 
 ### After this recipe runs
 
