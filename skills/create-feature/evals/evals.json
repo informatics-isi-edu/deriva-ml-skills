@@ -22,7 +22,7 @@
     {
       "id": 4,
       "prompt": "I just added diagnosis labels to 5,000 images in my dataset (RID 28EA, version 0.4.0). But when I download the dataset bag, the labels aren't there. What's going on?",
-      "expected_output": "Should explain that released dataset versions are frozen snapshots. Per ADR-0003, adding feature values to dataset members does NOT auto-flip the dataset to dev — feature drift is not detected by the dataset-mutation tools. To record the drift and produce a citable release: call dataset.mark_dev(description) from the Python API to declare a dev period (which flips current_version to a `<release>.post1.devN` label), then deriva_ml_release(bump='minor', description='...') to mint a release that captures the new feature values. Then update the DatasetSpecConfig to the new released version. Should reference the dataset-lifecycle skill for versioning details.",
+      "expected_output": "Should explain that released dataset versions are frozen snapshots. Per ADR-0003, adding feature values to dataset members does NOT auto-flip the dataset to dev — feature drift is not detected by the dataset-mutation tools. To record the drift and produce a citable release: call dataset.mark_dev(description) from the Python API to declare a dev period (which flips current_version to a `<release>.post1.devN` label), then deriva_ml_release_dataset(bump='minor', description='...') to mint a release that captures the new feature values. Then update the DatasetSpecConfig to the new released version. Should reference the dataset-lifecycle skill for versioning details.",
       "files": []
     },
     {

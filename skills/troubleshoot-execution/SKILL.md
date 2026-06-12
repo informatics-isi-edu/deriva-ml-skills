@@ -103,7 +103,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 
 **Solution**:
 - Check the dataset's version history with `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`.
-- Per ADR-0003, dataset mutations flip `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release(hostname, catalog_id, dataset_rid, bump="minor", description="...")` to promote the dev period to a released version that experiments can pin to.
+- Per ADR-0003, dataset mutations flip `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release_dataset(hostname, catalog_id, dataset_rid, bump="minor", description="...")` to promote the dev period to a released version that experiments can pin to.
 - When referencing datasets in workflow configs, **always pin to a released version** (no `.devN` suffix) — dev labels are mutable and break reproducibility.
 - Use `deriva_ml_get_dataset_spec(hostname, catalog_id, dataset_rid)` to see the current dataset specification and version.
 

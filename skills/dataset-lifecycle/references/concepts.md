@@ -374,7 +374,7 @@ All four are read-shaped operations and are good fits for MCP tool wrappers (no 
 
 Per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md), datasets carry a **two-state PEP 440 version** at any moment:
 
-- **Released** (`0.4.0`) — frozen catalog snapshot, citable, reproducible. Created by `deriva_ml_release`.
+- **Released** (`0.4.0`) — frozen catalog snapshot, citable, reproducible. Created by `deriva_ml_release_dataset`.
 - **Dev** (`0.4.0.post1.dev3`) — mutable working state between releases. The PEP 440 dev-release suffix marks "drift since the last release"; dev rows have no snapshot, so cite URLs resolve to the live catalog.
 
 PEP 440 release segments (the X.Y.Z portion):
@@ -385,7 +385,7 @@ PEP 440 release segments (the X.Y.Z portion):
 | **Minor** (0.X.0) | New data, new features, non-breaking additions | Members added, new feature annotations, split created |
 | **Patch** (0.0.X) | Bug fixes, metadata corrections | Fixed mislabeled records, corrected metadata, typo fixes |
 
-DerivaML assigns version `0.1.0` (released) when a dataset is created. After that, mutations flip to dev, and `deriva_ml_release` is the only operation that mints a new released version.
+DerivaML assigns version `0.1.0` (released) when a dataset is created. After that, mutations flip to dev, and `deriva_ml_release_dataset` is the only operation that mints a new released version.
 
 ### Released versions are snapshots; dev versions follow live state
 
@@ -393,7 +393,7 @@ Each **released** version is tied to a catalog snapshot timestamp. When you down
 
 **Dev versions have no snapshot.** They resolve to whatever the catalog has right now. Two reads of the same dev label at different times may differ if the catalog drifted between them. Dev labels are notational, not citational.
 
-**If you've modified data since the last release** (added features, updated records, corrected labels via the dataset API), those changes are NOT included in any released version — they live on the dev row. Call `deriva_ml_release` to promote the dev period to a new released version that captures the current state.
+**If you've modified data since the last release** (added features, updated records, corrected labels via the dataset API), those changes are NOT included in any released version — they live on the dev row. Call `deriva_ml_release_dataset` to promote the dev period to a new released version that captures the current state.
 
 ### Mutations land on dev
 
@@ -405,7 +405,7 @@ The "every mutation lands on dev" rule:
 | `deriva_ml_delete_dataset_members` | Flip to dev (advance `.devN`) |
 | `split_dataset` | Flip to dev (advance `.devN`) |
 | Adding a feature value (via `exe.add_features()` from the `populate_feature_values.py` template) | Drift is **not** auto-detected; if you want to record it, call `dataset.mark_dev(description)` from the Python API |
-| `deriva_ml_release(bump, description)` | Promote dev row to released `<bumped>.<from>.<last_release>` |
+| `deriva_ml_release_dataset(bump, description)` | Promote dev row to released `<bumped>.<from>.<last_release>` |
 
 **Things that do NOT flip the dataset to dev:**
 
@@ -425,7 +425,7 @@ These don't appear on the MCP tool surface; reach for them from notebook code or
 
 ### Release descriptions
 
-Always provide a description when calling `deriva_ml_release`. Good release notes explain what changed, why, and the impact:
+Always provide a description when calling `deriva_ml_release_dataset`. Good release notes explain what changed, why, and the impact:
 
 - "Added severity grading feature (mild/moderate/severe) to all 12,450 images. Required for new stratified training pipeline"
 - "Fixed 47 mislabeled pneumonia images identified in audit review. Retraining recommended for any model trained on v1.1.0"
@@ -825,7 +825,7 @@ Deletion removes the dataset container and member associations, not the member r
 | Split | *(script only)* | `split_dataset(ml, source_rid, exe, ...)` | Run from a script that opens an execution. Children auto-tagged with `Split_Partition` + role; source recorded as execution input, not Dataset_Dataset parent |
 | Subsample | *(script only)* | `subsample(ml, source_rid, exe, size=, ...)` | Single output; stratified by `stratify_by_column`. Output auto-tagged `Subsample`; source recorded as execution input |
 | Nest datasets | `deriva_ml_add_dataset_members(parent, members={"Dataset": [child_rid]})` | `parent.add_dataset_members()` | Children are members of element-type Dataset |
-| Release a dev period | `deriva_ml_release` | `dataset.release(bump, description)` | Promotes dev → released; errors if no dev row |
+| Release a dev period | `deriva_ml_release_dataset` | `dataset.release(bump, description)` | Promotes dev → released; errors if no dev row |
 | Update description | `deriva_ml_update_dataset(rid, description=...)` | — | Single setter for any updatable field |
 | Delete | `deriva_ml_delete_dataset` | `ml.delete_dataset()` | Soft delete, optional recurse |
 

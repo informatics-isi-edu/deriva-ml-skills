@@ -255,9 +255,9 @@ Per ADR-0003, datasets are at one of two version states at any moment:
 
 `deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, and the Python `split_dataset` API all flip the affected dataset to a dev label (creating `.dev1` if no dev row exists, advancing `.devN` if one is already present). The returned `new_version` is a dev label.
 
-To mint a **released** version (citable, reproducible), call `deriva_ml_release` with `hostname`, `catalog_id`, `dataset_rid`. Optionally specify `bump` (`"major"`, `"minor"`, or `"patch"`; default `"minor"`), `description` (release notes), and `execution_rid` (optional execution to attribute the release to).
+To mint a **released** version (citable, reproducible), call `deriva_ml_release_dataset` with `hostname`, `catalog_id`, `dataset_rid`. Optionally specify `bump` (`"major"`, `"minor"`, or `"patch"`; default `"minor"`), `description` (release notes), and `execution_rid` (optional execution to attribute the release to).
 
-The release tool errors if the dataset has no dev row to promote — every release must come from a real working state. To mint a release with no actual change (e.g., to attach release notes), use the Python API's `dataset.mark_dev(description)` first to declare a dev period, then `deriva_ml_release` to promote it.
+The release tool errors if the dataset has no dev row to promote — every release must come from a real working state. To mint a release with no actual change (e.g., to attach release notes), use the Python API's `dataset.mark_dev(description)` first to declare a dev period, then `deriva_ml_release_dataset` to promote it.
 
 See the versioning section of `references/concepts.md` for full rules and the pre-experiment checklist.
 

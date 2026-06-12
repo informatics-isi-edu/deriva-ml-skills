@@ -116,10 +116,10 @@ add_term(
 
 ### Pin to a released version
 
-After populating the development subset (which will have flipped `current_version` to a dev label per ADR-0003), call `deriva_ml_release` to mint a citable release that configs can pin to:
+After populating the development subset (which will have flipped `current_version` to a dev label per ADR-0003), call `deriva_ml_release_dataset` to mint a citable release that configs can pin to:
 
 ```
-deriva_ml_release(
+deriva_ml_release_dataset(
     hostname="data.example.org",
     catalog_id="1",
     dataset_rid="<dev_dataset>",
@@ -300,7 +300,7 @@ uv run deriva-ml-run +multirun=lr_sweep
    ADR-0003, feature drift is not auto-detected by the dataset-mutation
    tools — call `dataset.mark_dev(description)` from the Python API to
    declare a dev period (which flips `current_version` to a `.devN`
-   label), then `deriva_ml_release(...)` to mint a release that captures
+   label), then `deriva_ml_release_dataset(...)` to mint a release that captures
    the new feature values. See the `dataset-lifecycle` skill, Phase 4.
 
    Do NOT bump for runs whose outputs are **assets only** (model weights,
