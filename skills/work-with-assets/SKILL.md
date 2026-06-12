@@ -45,7 +45,8 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 
 ### Creating asset tables
 
-1. Use `create_table` (from the deriva plugin) with the standard hatrac column shape and an Asset_Type FK. See `references/concepts.md` for the recipe.
+1. `deriva_ml_create_asset_table(hostname, catalog_id, asset_name, additional_columns=[...], comment=...)` — one call creates the full canonical shape: the five standard hatrac columns, the `<name>_Asset_Type` tag association, the `<name>_Execution` association (with the `Asset_Role` FK the upload machinery writes), and the standard Chaise annotations. Do NOT hand-build asset tables with the generic `create_table`.
+2. Add an `Asset_Type` vocabulary term naming the new table (`add_term(schema="deriva-ml", table="Asset_Type", name="<TableName>", ...)`) so uploads can tag files into it. See `references/concepts.md`.
 
 ### Uploading assets (within an execution)
 
