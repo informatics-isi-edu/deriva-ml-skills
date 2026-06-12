@@ -79,11 +79,11 @@ Each bag is tied to a **catalog snapshot** — the exact catalog state at the ti
 
 - The same dataset RID + **released** version always produces the same data
 - Changes made to the catalog after the version was created (new features, updated records, new members) are **not** included in existing released versions
-- To capture recent changes, mutate the dataset (which lands on a dev version per ADR-0003), then call `deriva_ml_release` to promote the dev period to a new release; download that new released version
+- To capture recent changes, mutate the dataset (which lands on a dev version per ADR-0003), then call `deriva_ml_release_dataset` to promote the dev period to a new release; download that new released version
 
-> **Common mistake:** A bag does NOT contain everything in the catalog — it contains only what was reachable from the dataset's members at the time the released version was created. If you add new members, upload new feature values, or modify records *after* a release, those changes are invisible to that release. The dataset will flip to a dev version (`<last_release>.post1.devN`) on each mutation; call `deriva_ml_release` to mint a new released version that captures the current state, then download that. This is the most common source of "my data is missing from the bag" errors.
+> **Common mistake:** A bag does NOT contain everything in the catalog — it contains only what was reachable from the dataset's members at the time the released version was created. If you add new members, upload new feature values, or modify records *after* a release, those changes are invisible to that release. The dataset will flip to a dev version (`<last_release>.post1.devN`) on each mutation; call `deriva_ml_release_dataset` to mint a new released version that captures the current state, then download that. This is the most common source of "my data is missing from the bag" errors.
 
-> **Dev versions and downloads:** `download_dataset_bag` does not yet accept a dev label (the dev row has no snapshot to pin to). If your code mutates a dataset and then tries to download `current_version` without releasing, you'll hit `ValidationError`. Tracked at [deriva-ml#89](https://github.com/informatics-isi-edu/deriva-ml/issues/89); workaround is to call `deriva_ml_release` between the mutation and the download.
+> **Dev versions and downloads:** `download_dataset_bag` does not yet accept a dev label (the dev row has no snapshot to pin to). If your code mutates a dataset and then tries to download `current_version` without releasing, you'll hit `ValidationError`. Tracked at [deriva-ml#89](https://github.com/informatics-isi-edu/deriva-ml/issues/89); workaround is to call `deriva_ml_release_dataset` between the mutation and the download.
 
 ## Materialization
 

@@ -44,7 +44,7 @@ After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_creat
 - Use `with_description()` for non-default configs
 - Default configs use plain lists (no `with_description`) for merge compatibility
 - Find the current released version via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid="<rid>")` or read the `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{rid}` MCP resource
-- If `current_version` comes back as a dev label (`<release>.post1.devN`), the dataset is mid-mutation. Call `deriva_ml_release(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")` to promote the dev period to a released version, then pin the config to the new release.
+- If `current_version` comes back as a dev label (`<release>.post1.devN`), the dataset is mid-mutation. Call `deriva_ml_release_dataset(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")` to promote the dev period to a released version, then pin the config to the new release.
 
 ### Assets
 - Plain RID strings for simple references: `["3WS6", "3X20"]`
@@ -307,7 +307,7 @@ datasets_store(
 **Heuristics for picking which datasets to bootstrap:**
 
 - Filter by dataset_type — `Training` / `Testing` / `Validation` / `Complete` / `Labeled` are the ones experiments consume. `Split` parents are usually navigated *to* children, not consumed directly.
-- Prefer released versions (no `.devN` suffix). If a dataset only has a dev label, ask whether to skip it or call `deriva_ml_release(...)` first.
+- Prefer released versions (no `.devN` suffix). If a dataset only has a dev label, ask whether to skip it or call `deriva_ml_release_dataset(...)` first.
 - Use `with_description(...)` if the file uses it; pull the description from the dataset record itself for consistency.
 
 #### `assets` (`src/configs/assets.py`)
@@ -566,14 +566,14 @@ This is a generic deriva-skills (`/deriva:`) tool, not a deriva-ml-specific surf
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Dataset not found: RID=...` | RID doesn't exist in target catalog | Verify RID against correct catalog (dev vs prod) |
-| `Version X not found` | Version never created (released) | Find the latest released version via `deriva_ml_get_dataset`. If you need to mint a release from a dev period, call `deriva_ml_release(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")`. |
-| Stale version | Data changed since release was created | Mutate further if needed (lands on dev), then call `deriva_ml_release(...)` to mint a new release and update the config. |
-| Dev label in `current_version` | The dataset is mid-mutation; no release captures the current state | Call `deriva_ml_release(...)` to promote the dev period to a release. Configs must pin to released labels, not dev. |
+| `Version X not found` | Version never created (released) | Find the latest released version via `deriva_ml_get_dataset`. If you need to mint a release from a dev period, call `deriva_ml_release_dataset(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")`. |
+| Stale version | Data changed since release was created | Mutate further if needed (lands on dev), then call `deriva_ml_release_dataset(...)` to mint a new release and update the config. |
+| Dev label in `current_version` | The dataset is mid-mutation; no release captures the current state | Call `deriva_ml_release_dataset(...)` to promote the dev period to a release. Configs must pin to released labels, not dev. |
 | Wrong catalog | Config RIDs are from a different catalog | Check `deriva_ml` config group — are you pointing at the right host/catalog? |
 
 ### Proactive Validation
 
-After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_release`, running a splitting script that calls `split_dataset(ml, source_rid, exe, ...)` from the Python API, etc.), proactively:
+After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_release_dataset`, running a splitting script that calls `split_dataset(ml, source_rid, exe, ...)` from the Python API, etc.), proactively:
 
 1. Note the new RID, version, and description
 2. Check if existing config files reference the affected entity

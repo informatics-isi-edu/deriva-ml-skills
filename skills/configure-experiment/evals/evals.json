@@ -16,7 +16,7 @@
     {
       "id": 3,
       "prompt": "How do I pin a specific dataset version in my experiment config so results are reproducible?",
-      "expected_output": "Should show DatasetSpecConfig(rid='...', version='...') with an explicit released PEP 440 version string (no .devN suffix). Should explain that only released versions are frozen snapshots; dev versions (per ADR-0003) are mutable working state and break reproducibility if pinned. Should warn against using current_version as it can change, and against pinning to a dev label even if it appears in current_version. Should mention get_dataset_spec MCP tool to find the current version, and deriva_ml_release if the current_version is a dev label that needs to be promoted to a release first.",
+      "expected_output": "Should show DatasetSpecConfig(rid='...', version='...') with an explicit released PEP 440 version string (no .devN suffix). Should explain that only released versions are frozen snapshots; dev versions (per ADR-0003) are mutable working state and break reproducibility if pinned. Should warn against using current_version as it can change, and against pinning to a dev label even if it appears in current_version. Should mention get_dataset_spec MCP tool to find the current version, and deriva_ml_release_dataset if the current_version is a dev label that needs to be promoted to a release first.",
       "files": []
     },
     {

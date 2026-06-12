@@ -1,6 +1,6 @@
 ---
 name: using-deriva-mcp
-description: "ALWAYS load before the first deriva MCP call in any conversation. Call the deriva_ml_primer tool first -- it returns the DerivaML agent guidelines (concepts + operating contract: (hostname, catalog_id) rule, pagination, error envelope) plus a one-line manifest of on-demand guides. Then fetch an individual guide only when you first reach the tool group it covers: get_guide(name) for deriva-ml guides, or the /<server>:<name> slash-command prompt for the generic-catalog tier-1 guides (query_guide / entity_guide / annotation_guide / catalog_guide). Triggers on: first-time use of mcp__deriva__ tools/resources, any catalog inspection request ('list / show / browse / verify / inspect catalog', 'check schema', 'check feature values'), AND read-shaped questions that don't look like 'browse' on their face ('what X are in catalog N', 'what X are available', 'how many X', 'which workflows / features / vocabularies / datasets / executions / assets exist'). Do NOT trigger for shell-only workflows (load-cifar10 CLI, deriva-ml Python API only, deriva-ml-run) that bypass MCP entirely."
+description: "ALWAYS load before the first deriva MCP call in any conversation. Call the deriva_ml_primer tool first -- it returns the DerivaML agent guidelines (concepts + operating contract: (hostname, catalog_id) rule, pagination, error envelope) plus a one-line manifest of on-demand guides. Then fetch an individual guide only when you first reach the tool group it covers: deriva_ml_get_guide(name) for deriva-ml guides, or the /<server>:<name> slash-command prompt for the generic-catalog tier-1 guides (query_guide / entity_guide / annotation_guide / catalog_guide). Triggers on: first-time use of mcp__deriva__ tools/resources, any catalog inspection request ('list / show / browse / verify / inspect catalog', 'check schema', 'check feature values'), AND read-shaped questions that don't look like 'browse' on their face ('what X are in catalog N', 'what X are available', 'how many X', 'which workflows / features / vocabularies / datasets / executions / assets exist'). Do NOT trigger for shell-only workflows (load-cifar10 CLI, deriva-ml Python API only, deriva-ml-run) that bypass MCP entirely."
 disable-model-invocation: false
 ---
 
@@ -28,10 +28,13 @@ client surfaces:
   invocation.
 - As a **resource**: `ReadMcpResourceTool(server="<name>", uri="deriva://deriva-ml/primer")`.
 
-All three return identical text: the concepts frame, the getting-started
-operating contract (the `(hostname, catalog_id)` rule, the pagination
-preflight→page→advance contract, the error envelope), and a one-line
-manifest of on-demand guides.
+All three return identical text: a compact operating contract (the five
+abstractions, the `(hostname, catalog_id)` rule, the query-strategy
+ladder summary, the pagination preflight→page→advance contract, the
+error envelope, the local-Python mutation boundary) plus a one-line
+manifest of on-demand guides. The primer is deliberately small (~1K
+tokens); the full conceptual and operational guides are fetched on
+demand (Step 2), not inlined.
 
 Replace `<server>` / `<name>` with whatever the user's MCP server is
 registered as — commonly `deriva`, sometimes `dev-localhost`, sometimes
@@ -50,12 +53,16 @@ covers, and not before:
 | `get_table_annotations`, `set_*_display`, `set_visible_columns`, etc. | `/<server>:annotation_guide` |
 | `create_catalog`, `clone_catalog`, `get_schema`, `get_catalog_info` | `/<server>:catalog_guide` |
 
-For guides this plugin owns, use `get_guide(name)` instead of the slash
-command. `get_guide` already serves `deriva_ml_concepts` and
-`deriva_ml_getting_started` directly (the primer inlines both, so you rarely
-need them separately); future deriva-ml guides will additionally appear in
-the manifest with the `deriva-ml` source. **Fetch each guide once per
-conversation** — they are stable references, not per-call context.
+For guides this plugin owns, use `deriva_ml_get_guide(name)` instead of the slash
+command. `deriva_ml_get_guide` serves `deriva_ml_concepts` and
+`deriva_ml_getting_started` directly — the primer does NOT inline them
+(it carries only the compact contract), so fetch whichever you need:
+`deriva_ml_getting_started` before sustained tool use (pagination
+details, the full query-strategy ladder + anti-patterns, curation
+patterns), `deriva_ml_concepts` for the deeper conceptual frame. Both
+appear in the primer's manifest with the `deriva-ml` source. **Fetch
+each guide once per conversation** — they are stable references, not
+per-call context.
 
 > The four generic-catalog guides above (`query_guide` / `entity_guide` /
 > `annotation_guide` / `catalog_guide`) belong to the `deriva-mcp-core`
