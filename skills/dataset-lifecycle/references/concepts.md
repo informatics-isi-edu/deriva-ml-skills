@@ -368,7 +368,7 @@ When the follow-up PR lands, this section will document:
 - **`validate_split(split_rid)`** — post-hoc validation of a Split hierarchy: confirms disjointness, checks fraction targets, surfaces stratification drift between partitions.
 - **`validate_subsample(subsample_rid)`** — confirms a subsample's relationship to its source, including stratification fidelity.
 
-All four are read-shaped operations and are good fits for MCP tool wrappers (no live `Execution` context required) — once the Python API ships, the deriva-ml-mcp-plugin will likely expose them as `deriva_ml_characterize_dataset`, etc. Track [deriva-ml task #48](https://github.com/informatics-isi-edu/deriva-ml/) for status.
+All four are read-shaped operations and are good fits for MCP tool wrappers (no live `Execution` context required) — once the Python API ships, the deriva-ml-mcp-plugin will likely expose them as `characterize_dataset` etc. under the usual `deriva_ml_` tool prefix. Track [deriva-ml task #48](https://github.com/informatics-isi-edu/deriva-ml/) for status.
 
 ## Dataset Versioning (ADR-0003 dev/release model)
 

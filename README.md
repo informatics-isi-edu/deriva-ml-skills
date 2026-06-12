@@ -1,6 +1,6 @@
 # DerivaML Skills Plugin
 
-[Claude Code](https://claude.ai/claude-code) skills plugin for [DerivaML](https://github.com/informatics-isi-edu/deriva-ml) ML workflows. Provides 27 skills covering the full ML development cycle on top of Deriva catalogs: dataset / execution / experiment lifecycles, features, asset management, Hydra-zen configs, model development, project setup validation, and execution-specific troubleshooting.
+[Claude Code](https://claude.ai/claude-code) skills plugin for [DerivaML](https://github.com/informatics-isi-edu/deriva-ml) ML workflows. Provides 30 skills covering the full ML development cycle on top of Deriva catalogs: dataset / execution / experiment lifecycles, features, asset management, Hydra-zen configs, model development, project setup validation, and execution-specific troubleshooting.
 
 The plugin requires the [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin (for generic Deriva catalog operations the DerivaML skills cross-reference) and a [`deriva-mcp-core`](https://github.com/informatics-isi-edu/deriva-mcp-core) server with the [`deriva-ml-mcp`](https://github.com/informatics-isi-edu/deriva-ml-mcp) plugin loaded (for the `deriva_ml_*` MCP tools). The install procedure below brings in both plugins; the MCP server you set up separately.
 
@@ -55,6 +55,7 @@ Invoke directly with `/deriva-ml:<skill-name>`, or by asking Claude something th
 | | `/deriva-ml:compare-model-runs` | Rank/compare metrics across model training executions |
 | **Assets** | `/deriva-ml:work-with-assets` | File assets — upload, download, provenance, types |
 | | `/deriva-ml:manage-deriva-storage` | Storage Manager (a built-in Deriva-ML-Apps app) |
+| **Schema / curation** | `/deriva-ml:schema-evolution-impact` | Impact analysis before schema or data changes — which datasets, features, executions reference the target |
 | **Experiments / configs** | `/deriva-ml:configure-experiment` | Set up DerivaML experiment project structure |
 | | `/deriva-ml:write-hydra-config` | Write and validate hydra-zen config files |
 | **Models** | `/deriva-ml:new-model` | Scaffold a new model function and wire it into configs/workflows |

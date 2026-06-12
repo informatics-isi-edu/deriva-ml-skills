@@ -9,7 +9,7 @@ Three checks against the skills tree:
    ``../deriva-skills/skills/<name>/``. (SOFT — warn-only when the
    tier-1 repo is unavailable; HARD when it is.)
 3. ``deriva_ml_<name>`` mentions correspond to a **tool or prompt**
-   registered in ``../deriva-ml-mcp``. Both ``@ctx.tool(...)`` and
+   registered in ``../deriva-ml-mcp-plugin``. Both ``@ctx.tool(...)`` and
    ``@ctx.prompt(...)`` count as valid registrations — they share the
    ``deriva_ml_*`` naming convention and are equally addressable by
    clients (tools via direct invocation, prompts via the
@@ -43,7 +43,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = REPO_ROOT / "skills"
 TIER1_REPO = REPO_ROOT.parent / "deriva-skills"
-MCP_REPO = REPO_ROOT.parent / "deriva-ml-mcp"
+MCP_REPO = REPO_ROOT.parent / "deriva-ml-mcp-plugin"
 
 # Match `/deriva-ml:<name>` and `/deriva:<name>`. The trailing
 # negative-lookahead on `-` distinguishes `/deriva:foo` from
@@ -56,8 +56,9 @@ TOOL_RE = re.compile(r"\bderiva_ml_([a-z][a-z0-9_]*)")
 # but are NOT tool names. Excluded so they don't trip the drift
 # detector when documented in skill bodies.
 TOOL_NAME_EXCLUDES = frozenset({
-    "apps",   # `deriva_ml_apps` — companion app package
-    "mcp",    # `deriva_ml_mcp` — the MCP server package itself
+    "apps",        # `deriva_ml_apps` — companion app package
+    "mcp",         # `deriva_ml_mcp` — the legacy MCP server package name
+    "mcp_plugin",  # `deriva_ml_mcp_plugin` — the MCP plugin package itself
 })
 
 
@@ -101,8 +102,13 @@ def check_tools(text: str) -> tuple[set[str], list[str], bool]:
     after PRs #17 and #18 — this function unions both registries to
     avoid that.
     """
-    mentions = set(TOOL_RE.findall(text)) - TOOL_NAME_EXCLUDES
-    src_dir = MCP_REPO / "src" / "deriva_ml_mcp"
+    # Drop wildcard-style prose mentions (`deriva_ml_get_*`,
+    # `deriva_ml_list_...`) whose capture ends at the underscore — they
+    # name a tool FAMILY, not a registered tool.
+    mentions = {
+        m for m in set(TOOL_RE.findall(text)) if not m.endswith("_")
+    } - TOOL_NAME_EXCLUDES
+    src_dir = MCP_REPO / "src" / "deriva_ml_mcp_plugin"
     if not src_dir.is_dir():
         return mentions, [], False
     registered: set[str] = set()
@@ -129,7 +135,7 @@ def check_tools(text: str) -> tuple[set[str], list[str], bool]:
         registered.update(tool_re.findall(src))
         registered.update(prompt_re.findall(src))
     stale = sorted(f"deriva_ml_{m}" for m in mentions if f"deriva_ml_{m}" not in registered)
-    return mentions, [f"{n} → not registered in deriva-ml-mcp" for n in stale], True
+    return mentions, [f"{n} → not registered in deriva-ml-mcp-plugin" for n in stale], True
 
 
 def main() -> int:

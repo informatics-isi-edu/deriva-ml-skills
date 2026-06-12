@@ -111,7 +111,9 @@ The right diagnostic action depends on *which phase* the failure happened in, wh
 
 ### Phase 7 — Repeat (or stop)
 
-The cycle either terminates or feeds back into phase 1 with an updated hypothesis. Decide deliberately:
+The cycle either terminates or feeds back into phase 1 with an updated hypothesis. For a multirun sweep, confirm the sweep actually finished before deciding: `deriva_ml_multirun_status(hostname=..., catalog_id=..., workflow_rid=...)` returns status counts across every execution of the workflow in one call (`{"counts": {"Uploaded": 18, "Running": 2, "Failed": 1}, "total": 21}`) — lingering `Running` runs mean the evaluation in phase 6 was premature, and `Failed` counts feed the failure-mode triage above. Don't page `deriva_ml_list_executions` and count client-side.
+
+Decide deliberately:
 
 - **Stop if** the hypothesis is answered (confirmed, refuted, or shown inconclusive in a way that closes the question).
 - **Stop if** the cost budget from phase 1 is exhausted, regardless of result. Document what you learned and why you're stopping; revisit later if useful.

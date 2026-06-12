@@ -95,6 +95,8 @@ Use this path when metrics are scalar columns on a Feature.
 
 The tool is right here because the query is filtered (by workflow + status) and you want pagination control. For a quick "what executions exist?" snapshot without filters, prefer `ReadMcpResourceTool(server="<name>", uri="deriva://catalog/{h}/{c}/deriva-ml/executions")` — one round trip, no preflight.
 
+> **Comparing a sweep? Confirm it finished first.** `deriva_ml_multirun_status(hostname, catalog_id, workflow_rid)` returns status counts across every execution of the workflow in one aggregation call — `{"counts": {"Uploaded": 18, "Running": 2, "Failed": 1}, "total": 21}`. Lingering `Running` runs mean the ranking below would be premature; a non-zero `Failed` count tells you how many runs to expect missing from the comparison. (Resource form: `deriva://catalog/{h}/{c}/deriva-ml/workflow/{workflow_rid}/multirun-status`.)
+
 ```
 deriva_ml_list_executions(
     hostname="data.example.org",

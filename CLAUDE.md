@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with the deriva-ml-skill
 
 ## Project Overview
 
-Claude Code plugin providing 29 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
+Claude Code plugin providing 30 skills for the **DerivaML** domain layer (datasets, workflows, executions, features, assets, experiments, model development). Skills are organized as Markdown documents with optional Python scripts — no package build step required.
 
 The plugin assumes the [`deriva-skills`](https://github.com/informatics-isi-edu/deriva-skills) plugin is also loaded — the README's install procedure brings in both — and assumes a `deriva-mcp-core` server with the [`deriva-ml-mcp-plugin`](https://github.com/informatics-isi-edu/deriva-ml-mcp-plugin) plugin loaded is reachable. Cross-references to `/deriva:<skill>` are written as if those skills are present; `deriva_ml_*` MCP tools assume the server is up. (The plugin-level `dependencies` field that would enforce the deriva-skills assumption at install time is a planned follow-up.) See [`deriva-skills/docs/superpowers/plans/2026-04-27-skills-restructure.md`](https://github.com/informatics-isi-edu/deriva-skills/blob/main/docs/superpowers/plans/2026-04-27-skills-restructure.md) for the rationale behind the two-plugin split.
 
@@ -45,7 +45,7 @@ meta-marketplace's `marketplace.json` is **not** auto-bumped — see
 ```
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest (name, version, description) — read by Claude Code after install
-├── skills/                   # 29 skills, each in its own directory; auto-discovered by Claude Code from `skills/*/SKILL.md`
+├── skills/                   # 30 skills, each in its own directory; auto-discovered by Claude Code from `skills/*/SKILL.md`
 │   ├── {skill-name}/
 │   │   ├── SKILL.md          # Frontmatter (YAML) + skill content (Markdown)
 │   │   ├── scripts/          # Optional Python helper scripts
@@ -61,7 +61,7 @@ meta-marketplace's `marketplace.json` is **not** auto-bumped — see
 
 ### Skill Organization
 
-The 29 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
+The 30 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
 
 **User commands (`/deriva-ml:<name>`)** — `user-invocable: true` or unset; the user types the command or asks a question that maps to it:
 

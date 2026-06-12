@@ -284,6 +284,7 @@ DerivaML domain workflows (this plugin):
 - `/deriva-ml:execution-lifecycle` — Pre-flight validation, running experiments, execution provenance
 - `/deriva-ml:create-feature` — Features, labels, annotations, selectors
 - `/deriva-ml:work-with-assets` — File assets — upload, download, provenance, types
+- `/deriva-ml:schema-evolution-impact` — Impact analysis before changing/deleting tables, columns, vocabularies, datasets, or assets ("what breaks if...", "safe to delete?")
 - `/deriva-ml:configure-experiment` — DerivaML experiment project structure (Hydra-zen configs)
 - `/deriva-ml:write-hydra-config` — Hydra-zen config files for experiments
 - `/deriva-ml:new-model` — Scaffold a new model function
