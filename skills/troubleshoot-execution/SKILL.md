@@ -323,6 +323,8 @@ Use this when:
 
 If the execution is in `Failed`, OR if the staged outputs are wrong (model bug, wrong hyperparameters, corrupted training data), the failed execution's outputs can't be salvaged — but the **inputs** it consumed are still valid. The pattern: leave the bad execution in its terminal state, then re-run the committed script with the same inputs (and any fixes) to create a fresh recovery execution.
 
+Before re-running, check the blast radius: if the bad run DID upload outputs and downstream executions already consumed them, those runs inherit the problem. `deriva_ml_find_executions_consuming(hostname, catalog_id, rid=<output-rid>)` on each uploaded output answers it in one call per artifact (see "Check downstream consumption" below).
+
 ```bash
 # Re-run the script that produced the failed execution. New RID; same inputs.
 uv run python src/scripts/<task>.py \
@@ -403,6 +405,17 @@ Whichever branch you pick, two follow-ups apply:
 - **Tool**: `deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid)` to find ancestors if this is a nested step.
 
 > **Orchestration vs data-flow:** the `list_execution_children` / `list_execution_parents` calls above walk the **orchestration** graph (which Execution called which — `Execution_Execution` table). For the **data-flow** graph (what produced this output? which dataset trained the model?), use `deriva_ml_get_lineage(hostname, catalog_id, rid=...)` instead — see `/deriva-ml:compare-model-runs` → "Trace an artifact's provenance" for the worked end-to-end pattern (lineage walk → workflow URL + git commit).
+
+### Check sweep health in one call
+
+When the question is "how is my multirun doing?" — N runs of one workflow, some finished, some not — don't page `deriva_ml_list_executions` and count statuses client-side. `deriva_ml_multirun_status(hostname, catalog_id, workflow_rid)` aggregates server-side and returns `{"counts": {"Uploaded": 18, "Running": 2, "Failed": 1}, "total": 21}`. A non-zero `Failed` count routes you back to the Symptom → Section table above for the failing runs; lingering `Running` entries hours after the sweep should have finished route to "Execution Stuck in Running".
+
+### Check downstream consumption (forward lineage)
+
+`deriva_ml_get_lineage` walks **backward** (what produced this?). The forward question — "did any execution CONSUME this artifact as an input?" — is `deriva_ml_find_executions_consuming(hostname, catalog_id, rid)` with a Dataset or asset RID. Two triage uses:
+
+- **Blast radius of a bad run.** If a failed/buggy execution's outputs were already consumed by downstream runs, those runs are built on bad inputs and need recovery too. Check each output asset/dataset of the bad run before declaring the incident closed.
+- **"Safe to delete?"** An empty `consumers` list means no execution ever recorded consuming the artifact — reasonable green light for cleanup. Non-empty means it is upstream of real runs; prefer deprecation over deletion. (Empty means no *recorded* consumption — ad-hoc reads outside an execution context leave no edge.) The impact-analysis recipes live in `/deriva-ml:schema-evolution-impact`.
 
 ### Compare feature values across recent executions
 
