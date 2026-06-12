@@ -125,7 +125,7 @@ Either the bag-preview resource (current version) or `deriva_ml_bag_info` tool (
 
 ## Phase 2: Clean Up — Free Disk Space
 
-> **Note:** The cleanup methods below are **Python API methods** on the `DerivaML` class (deriva-ml ≥ 1.46), not MCP tools. They must be called from Python scripts or notebooks. For MCP-based storage inspection, use the resources `deriva://storage/summary`, `deriva://storage/cache`, and `deriva://storage/execution-dirs`.
+> **Note:** Every storage-management operation in this skill is a **Python API method** on the `DerivaML` class (deriva-ml ≥ 1.46), run **on the local machine** — from scripts, notebooks, or `uv run python`. There are deliberately **no MCP tools or resources** for local storage: the MCP server does not share this machine's filesystem, so an MCP surface would manage the wrong host's disk. See `deriva-ml-mcp-plugin/docs/adr/0001-local-storage-management-out-of-mcp-scope.md` for the decision record.
 
 ### Preview what would be deleted
 
