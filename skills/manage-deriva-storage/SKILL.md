@@ -1,7 +1,7 @@
 ---
 name: manage-deriva-storage
-description: "Use when managing DerivaML local storage — checking disk usage, listing or cleaning up cached dataset bags and execution directories, pre-fetching datasets into cache, diagnosing what's using space, or understanding the cache vs working directory distinction. Covers: 'disk full', 'clean up cache', 'what's cached', 'storage', 'free space', 'delete old data', 'cache management', 'prefetch dataset', 'warm cache', 'working directory', 'cache directory', '~/.deriva-ml'."
-disable-model-invocation: true
+description: "Use whenever the user asks about DerivaML LOCAL storage — listing or finding which datasets/bags are cached on disk, checking local disk usage, cleaning up or deleting cached bags and execution working directories, pre-fetching (warming) datasets into the local cache, or understanding the cache-dir vs working-dir distinction (including a relocated cache_dir that is not under ~/.deriva-ml). Fire even on read-only phrasings the user won't word as 'manage storage' — 'what datasets are cached', 'list my cached bags', 'what's in my cache', 'how much disk is DerivaML using', 'free up space', 'is dataset X cached', 'where is my cache'. Triggers on: 'disk full', 'clean up cache', 'what's cached', 'cached datasets', 'storage', 'free space', 'delete old data', 'cache management', 'prefetch dataset', 'warm cache', 'working directory', 'cache directory', 'cache_dir', '~/.deriva-ml'. Do NOT trigger for: catalog-side object storage / hatrac, downloading a bag for the first time (that's dataset-lifecycle), or a git/OS 'working directory' unrelated to DerivaML's local cache."
+disable-model-invocation: false
 ---
 
 # Managing DerivaML Local Storage
