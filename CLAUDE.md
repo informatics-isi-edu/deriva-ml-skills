@@ -68,7 +68,7 @@ The 30 skills divide into two shapes by invocation model. The split matters when
 - Lifecycle (also auto-fires): `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle`
 - Datasets: `debug-bag-contents`
 - Features: `create-feature`, `compare-model-runs`
-- Assets: `work-with-assets`, `manage-deriva-storage`
+- Assets: `work-with-assets`, `manage-deriva-storage` (also auto-fires — see below)
 - Experiments / configs: `configure-experiment`, `write-hydra-config`
 - Models: `new-model`, `model-development-workflow`
 - Notebooks: `setup-notebook-environment`, `run-notebook`
@@ -86,6 +86,7 @@ The 30 skills divide into two shapes by invocation model. The split matters when
 - `using-deriva-mcp` — auto-fires before the first deriva MCP call (cold-start: call the `deriva_ml_primer` tool, then fetch guides on demand)
 - `api-naming-conventions` — auto-fires when writing DerivaML Python code
 - `ml-data-engineering` — auto-fires when designing data egress for ML pipelines
+- `manage-deriva-storage` — auto-fires on local-storage / cache questions (dual-mode: also slash-typeable). Read-shaped asks ("what datasets are cached", "disk usage") surface it without the user knowing the command; destructive cleanup ops stay behind their own confirm discipline.
 - `generate-scripts` — auto-fires when generating Python scripts for catalog operations
 - `generate-descriptions` — auto-fires when creating any DerivaML entity without a description
 
