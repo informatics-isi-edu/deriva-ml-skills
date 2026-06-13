@@ -53,13 +53,51 @@ default_deriva(hostname="...", catalog_id="...", cache_dir="/fast-ssd/deriva-cac
 
 ## Phase 1: Assess — What's Using Space
 
+### First: resolve where the cache actually is
+
+**Before listing or deleting anything, establish the cache location — do
+not assume `~/.deriva-ml`.** The cache directory is configurable
+(`DerivaML(..., cache_dir=...)`, or `cache_dir=` in a hydra-zen
+`default_deriva(...)`), and a relocated cache is common: shared clusters
+where home is a small partition, a fast local SSD, or a shared multi-user
+cache. If you operate on the default location while the real cache is
+elsewhere, you will confidently report an empty or wrong cache — a silent,
+plausible-looking error. **Only `deriva-ml` knows the real location** (it
+reads `cache/index.sqlite` at the configured `cache_dir`); a hand-run
+`ls ~/.deriva-ml` is a guess that breaks the moment the cache is relocated.
+
+Resolve in this order:
+
+1. **The user named it** (in the request, e.g. "my cache is on
+   `/fast-ssd/deriva-cache`") → use that `cache_dir`.
+2. **The project config sets it** — check `src/configs/` for a
+   `default_deriva(...)` / `DerivaML(...)` call with `cache_dir=`. Use that.
+3. **Neither, and it's ambiguous** → ask: *"Is your cache in the default
+   `~/.deriva-ml`, or did you set a custom `cache_dir`?"* Don't ask when the
+   default is clearly in use (no custom config, no signal otherwise) — only
+   when a wrong guess would mislead.
+
+Then pass the resolved location as `cache_dir=` on every call below (omit it
+only when you've confirmed the default). The bundled
+`scripts/inspect_storage.py` takes `--cache-dir` for exactly this.
+
 ### List everything by species (Python API, deriva-ml ≥ 1.46)
 
 The lead path is the typed introspection API — one call per storage
-species, no directory spelunking:
+species, no directory spelunking. The fastest way to run it is the bundled
+read-only script:
+
+```bash
+uv run python src/scripts/inspect_storage.py \
+    --hostname dev.eye-ai.org --catalog-id 5 \
+    --cache-dir /fast-ssd/deriva-cache   # omit --cache-dir for the default location
+```
+
+Or call the API directly (pass `cache_dir=` when the cache is relocated;
+omit it for the default):
 
 ```python
-ml = DerivaML(hostname, catalog_id)
+ml = DerivaML(hostname, catalog_id, cache_dir="/fast-ssd/deriva-cache")  # omit cache_dir for default
 
 # Every cached bag, newest first — CachedBag records
 for bag in ml.list_cached_bags():
@@ -341,6 +379,7 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 
 ## Reference Resources
 
+- `scripts/inspect_storage.py` — Bundled read-only script: lists cached bags / assets / execution dirs + summary; takes `--hostname --catalog-id [--cache-dir] [--species]`. Resolves a relocated cache via `--cache-dir`.
 - `ml.list_cached_bags()` / `ml.list_cached_assets()` / `ml.get_storage_summary()` — Typed inspection of every storage species (Python API, deriva-ml ≥ 1.46)
 - `ml.delete_cached_bag(rid, version=None)` / `ml.delete_cached_asset(rid, md5=None)` — Targeted, index-coherent deletion
 - `ml.clear_cache(older_than_days=None)` / `ml.clean_execution_dirs(...)` / `ml.gc_executions(...)` — Bulk cleanup

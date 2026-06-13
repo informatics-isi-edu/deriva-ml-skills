@@ -48,9 +48,17 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the bag preview (row counts, asset sizes "
                              "per table) without downloading.")
+    parser.add_argument("--cache-dir", default=None,
+                        help="Local cache directory, if not the default "
+                             "~/.deriva-ml. Pass the same value your DerivaML(...) "
+                             "/ hydra default_deriva(...) config uses, or the bag "
+                             "warms into the wrong (default) location.")
     args = parser.parse_args()
 
-    ml = DerivaML(args.hostname, args.catalog_id)
+    # cache_dir is only passed when supplied, so the library applies its own
+    # default when the user did not relocate the cache.
+    kwargs = {"cache_dir": args.cache_dir} if args.cache_dir else {}
+    ml = DerivaML(args.hostname, args.catalog_id, **kwargs)
 
     spec = DatasetSpec(
         rid=args.dataset_rid,
