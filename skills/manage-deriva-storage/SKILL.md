@@ -316,6 +316,16 @@ Download datasets or assets into the local cache **without creating an execution
 
 ### Cache a dataset bag
 
+> **Use the `warm_cache.py` template — do NOT hand-write inline cache-warming Python.** This is the one bypass to actively resist here: warming is reproducible, parameterized project work (it gets committed and re-run), so it belongs in the copied script, not a one-off `ml.cache_dataset(...)` snippet. (Read-only *inspection* — `inspect_storage.py` / a quick `ml.list_cached_bags()` — is the opposite: run in place, inline is fine. The prohibition below applies to *warming*, not listing.)
+>
+> | Rationalization (STOP — you're about to bypass) | Reality |
+> |---|---|
+> | "I already know how to call `ml.cache_dataset()`" | Knowing the API is exactly the trap. The template adds `--dry-run`, `--metadata-only`, `--cache-dir`, and a stable CLI you don't have to reconstruct each time. |
+> | "Inline Python is faster / fewer steps" | A copied-and-committed script is reproducible and citable; an inline snippet leaves no trace and can't be re-run by the next person (or the next run of the matrix). |
+> | "It's just a one-liner, copying a file is overkill" | Warming is pre-flight infrastructure that runs repeatedly (before training, in CI, across an experiment matrix). One-off-ness is the illusion. |
+>
+> If you catch yourself reaching for inline `cache_dataset` / `download_dataset_bag` to warm the cache: stop, copy the template, run it.
+
 Unlike `inspect_storage.py` (run in place), `warm_cache.py` is a **template you copy into the user's project** so it can be committed for reproducibility. Copy it from this skill's directory — `${skill_base_dir}/scripts/warm_cache.py` — into `src/scripts/`, then run:
 
 ```bash
@@ -339,13 +349,15 @@ uv run python src/scripts/warm_cache.py \
 
 Useful for inspecting schema and row counts before committing to a full download.
 
-For ad-hoc Python use without the template:
+The template wraps this underlying call — `ml.cache_dataset(spec, materialize=True)`:
 
 ```python
 from deriva_ml.dataset.aux_classes import DatasetSpec
 spec = DatasetSpec(rid="28CT", version="0.9.0")
 ml.cache_dataset(spec, materialize=True)
 ```
+
+Shown so you recognize what the template runs — **not as an invitation to skip it.** Per the red-flags table above, warming for an actual project goes through the copied `warm_cache.py` (committed, parameterized, re-runnable). The only time the bare call is appropriate is a genuinely throwaway exploration in a notebook you will not commit — and even then, prefer the template the moment the warm step becomes something you'd run twice.
 
 ### Cache an individual asset
 
