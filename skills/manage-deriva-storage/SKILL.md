@@ -18,7 +18,7 @@ All DerivaML local data lives under a **working directory**, typically `~/.deriv
 
 | Directory | Contents | Grows from |
 |-----------|----------|------------|
-| `cache/bags/{checksum}/Dataset_{RID}/` | Downloaded dataset bags (BDBags), content-addressed by checksum | Python API `dataset.download_dataset_bag(version)`, `exe.download_dataset_bag(spec)`, or the bundled `scripts/warm_cache.py` |
+| `cache/bags/{checksum}/Dataset_{RID}/` | Downloaded dataset bags (BDBags), content-addressed by checksum | Python API `dataset.download_dataset_bag(version)`, `exe.download_dataset_bag(spec)`, or the bundled `${skill_base_dir}/scripts/warm_cache.py` template |
 | `cache/index.sqlite` | The bag-cache index — maps dataset RIDs to cached bags. **Never edit or delete by hand**; the deletion APIs below keep it in sync with the disk | Maintained automatically |
 | `cache/assets/{RID}_{md5}/` | Individually cached assets (model weights, etc.), keyed by RID + MD5 | `AssetSpec(cache=True)` |
 | `execution_{RID}/` | Execution working directories — staged output files, logs | Created when the `with ml.create_execution(...) as exe:` context manager opens (see `execution-lifecycle/scripts/`) |
@@ -78,17 +78,23 @@ Resolve in this order:
    when a wrong guess would mislead.
 
 Then pass the resolved location as `cache_dir=` on every call below (omit it
-only when you've confirmed the default). The bundled
-`scripts/inspect_storage.py` takes `--cache-dir` for exactly this.
+only when you've confirmed the default). The bundled `inspect_storage.py`
+script (below) takes `--cache-dir` for exactly this.
 
 ### List everything by species (Python API, deriva-ml ≥ 1.46)
 
 The lead path is the typed introspection API — one call per storage
 species, no directory spelunking. The fastest way to run it is the bundled
-read-only script:
+read-only script, **`inspect_storage.py`, which ships inside this skill's
+own directory**. Run it in place — do NOT search the user's project for it,
+and do NOT copy it in; it is read-only (it never writes or deletes), so
+there is nothing to customize or commit. Use the script's path from this
+skill's `Base directory` (shown in the skill header when the skill loads):
 
 ```bash
-uv run python src/scripts/inspect_storage.py \
+# ${skill_base_dir} is this skill's directory — the path in the skill's
+# "Base directory:" header, e.g. .../deriva-ml-skills/skills/manage-deriva-storage
+uv run python ${skill_base_dir}/scripts/inspect_storage.py \
     --hostname dev.eye-ai.org --catalog-id 5 \
     --cache-dir /fast-ssd/deriva-cache   # omit --cache-dir for the default location
 ```
@@ -310,7 +316,7 @@ Download datasets or assets into the local cache **without creating an execution
 
 ### Cache a dataset bag
 
-Use the bundled `skills/manage-deriva-storage/scripts/warm_cache.py` template. Copy it into the user's project (typically `src/scripts/`), then run:
+Unlike `inspect_storage.py` (run in place), `warm_cache.py` is a **template you copy into the user's project** so it can be committed for reproducibility. Copy it from this skill's directory — `${skill_base_dir}/scripts/warm_cache.py` — into `src/scripts/`, then run:
 
 ```bash
 uv run python src/scripts/warm_cache.py \
@@ -363,7 +369,7 @@ The recommended pre-flight sequence:
 
 1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filters={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result.
 2. **Check cache** — `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=..., version=...)` — see what's already cached
-3. **Pre-fetch** — run `scripts/warm_cache.py --dataset-rid <rid> --version <version>` to download anything that's `not_cached`
+3. **Pre-fetch** — run your copied `src/scripts/warm_cache.py --dataset-rid <rid> --version <version>` to download anything that's `not_cached`
 4. **Verify** — `deriva_ml_bag_info(...)` — confirm `cached_materialized`
 5. **Run** — copy `skills/execution-lifecycle/scripts/basic_execution.py`, commit it, and run with `deriva-ml-run`. Downloads inside the execution hit cache instantly.
 
@@ -379,13 +385,13 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 
 ## Reference Resources
 
-- `scripts/inspect_storage.py` — Bundled read-only script: lists cached bags / assets / execution dirs + summary; takes `--hostname --catalog-id [--cache-dir] [--species]`. Resolves a relocated cache via `--cache-dir`.
+- `${skill_base_dir}/scripts/inspect_storage.py` — Read-only script bundled **inside this skill's directory**; run it in place (don't copy it into the project). Lists cached bags / assets / execution dirs + summary; takes `--hostname --catalog-id [--cache-dir] [--species]`. Resolves a relocated cache via `--cache-dir`.
 - `ml.list_cached_bags()` / `ml.list_cached_assets()` / `ml.get_storage_summary()` — Typed inspection of every storage species (Python API, deriva-ml ≥ 1.46)
 - `ml.delete_cached_bag(rid, version=None)` / `ml.delete_cached_asset(rid, md5=None)` — Targeted, index-coherent deletion
 - `ml.clear_cache(older_than_days=None)` / `ml.clean_execution_dirs(...)` / `ml.gc_executions(...)` — Bulk cleanup
 - Bash `ls -la ~/.deriva-ml/` — Quick visual scan (don't `rm -rf` inside `cache/` — use the deletion APIs)
 - `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version
-- `scripts/warm_cache.py` — Bundled template for pre-fetching a dataset bag into the local cache (no execution required)
+- `${skill_base_dir}/scripts/warm_cache.py` — Template (in this skill's directory) for pre-fetching a dataset bag into the local cache; **copy into `src/scripts/`** and commit (no execution required). Contrast with `inspect_storage.py`, which is run in place.
 
 ## Related Skills
 
