@@ -217,13 +217,13 @@ values = bag.list_feature_values(target="2-ABCD", feature="Diagnosis")
 
 ```python
 # Flatten to a wide table (DataFrame) — joins across FK paths
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
 
 # Same as dict (memory-efficient streaming)
-rows = bag.denormalize_as_dict(include_tables=["Image", "Subject"])
+rows = bag.get_denormalized_as_dict(include_tables=["Image", "Subject"])
 
 # Multi-hop FK chain — tables don't need to be dataset members
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Observation", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Observation", "Subject"])
 ```
 
 Denormalize follows FK chains automatically, including through intermediate tables. Tables in `include_tables` don't need to be dataset members — they just need to be FK-reachable from a member table. If multiple FK paths exist between two tables (ambiguous), you'll get a `DerivaMLException` asking you to include intermediate tables to disambiguate. See the `ml-data-engineering` skill's `references/denormalize-guide.md` for details.

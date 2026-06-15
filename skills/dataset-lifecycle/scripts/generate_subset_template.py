@@ -33,7 +33,7 @@ it to ``src/scripts/generate_<name>.py`` in the user's project.
 
 - ``dataset.list_dataset_members()`` → ``dict[str, list[dict]]`` keyed by table name
 - ``dataset.download_dataset_bag(version=..., materialize=False, exclude_tables=...)`` → BDBag
-- ``bag.denormalize_as_dataframe(include_tables)`` → pd.DataFrame
+- ``bag.get_denormalized_as_dataframe(include_tables)`` → pd.DataFrame
 - ``execution.create_dataset(description=..., dataset_types=...)`` → Dataset
 - ``dataset.add_dataset_members(members=..., description=...)`` → None
 - ``ml_instance.pathBuilder().schemas["deriva-ml"].tables[...]`` — note pathBuilder() is a method
@@ -156,7 +156,7 @@ def {{FUNCTION_NAME}}(
                 bag = dataset.download_dataset_bag(
                     version=version, materialize=False, exclude_tables=exclude_tables
                 )
-                df = bag.denormalize_as_dataframe(include_tables)
+                df = bag.get_denormalized_as_dataframe(include_tables)
                 print(f"  Denormalized: {len(df)} rows, {len(df.columns)} columns")
                 dataframes[rid] = df
 

@@ -326,10 +326,10 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
 
 ### Tabular ML with denormalization
 
-For non-image tasks, use `denormalize_as_dataframe` instead:
+For non-image tasks, use `get_denormalized_as_dataframe` instead:
 
 ```python
-df = bag.denormalize_as_dataframe(include_tables=["Subject", "Measurement"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Subject", "Measurement"])
 # Returns a flat DataFrame with joined columns
 ```
 
@@ -375,10 +375,10 @@ values = bag.list_feature_values(target="2-ABCD", feature="Diagnosis")
 
 ```python
 # Flatten to wide table — joins across FK paths
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
 
 # Same as dict
-rows = bag.denormalize_as_dict(include_tables=["Image", "Subject"])
+rows = bag.get_denormalized_as_dict(include_tables=["Image", "Subject"])
 ```
 
 ### Dataset hierarchy
@@ -394,7 +394,7 @@ element_types = bag.list_dataset_element_types()
 
 ## Denormalization for Flat DataFrames
 
-The `deriva_ml_denormalize_dataset` MCP tool and `bag.denormalize_as_dataframe()` method join dataset tables into a single flat DataFrame, following FK relationships. This is the fastest path from catalog data to ML-ready tabular features.
+The `deriva_ml_denormalize_dataset` MCP tool and `bag.get_denormalized_as_dataframe()` method join dataset tables into a single flat DataFrame, following FK relationships. This is the fastest path from catalog data to ML-ready tabular features.
 
 ### MCP tool
 
@@ -457,7 +457,7 @@ test_ds = ImageFolder("./data/test", transform=test_transform)
 bag = dataset.download_dataset_bag(version="1.0.0", materialize=False)
 
 # 2. Build flat DataFrame
-df = bag.denormalize_as_dataframe(include_tables=["Subject", "Measurement"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Subject", "Measurement"])
 
 # 3. Split features and labels
 X = df[["Subject_Age", "Subject_Weight", "Measurement_Value"]]

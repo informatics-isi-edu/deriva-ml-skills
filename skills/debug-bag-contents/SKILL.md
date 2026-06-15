@@ -102,7 +102,7 @@ The bag export algorithm uses foreign key (FK) path traversal to determine which
 
 ### Scenario: Denormalize raises "Ambiguous path" error
 
-**Problem**: Calling `denormalize_as_dataframe(include_tables=["Image", "Subject"])` raises a `DerivaMLException` with "Ambiguous path between Image and Subject".
+**Problem**: Calling `get_denormalized_as_dataframe(include_tables=["Image", "Subject"])` raises a `DerivaMLException` with "Ambiguous path between Image and Subject".
 
 **Diagnosis**:
 - The schema has multiple FK paths between Image and Subject.
@@ -114,7 +114,7 @@ The bag export algorithm uses foreign key (FK) path traversal to determine which
 - Add the intermediate table to `include_tables` to select the desired path:
   ```python
   # Use the multi-hop path through Observation
-  df = bag.denormalize_as_dataframe(include_tables=["Image", "Observation", "Subject"])
+  df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Observation", "Subject"])
   ```
 
 ### Scenario: Denormalize returns null for joined columns

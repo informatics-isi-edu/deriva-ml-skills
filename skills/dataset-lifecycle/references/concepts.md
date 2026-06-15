@@ -852,5 +852,5 @@ Deletion removes the dataset container and member associations, not the member r
 | Download in execution | Python API `exe.download_dataset_bag()` | `exe.download_dataset_bag()` | Records provenance |
 | Restructure assets | Python API `bag.restructure_assets()` | `bag.restructure_assets()` | ML-ready directory layout |
 | Validate bag | Python API bag inspection | — | Cross-check bag vs catalog |
-| Schema shape + size | `deriva_ml_denormalize_dataset(include_tables=[...])` | `ml.denormalize_info()` / `dataset.denormalize_info()` | No dataset needed for schema-only |
-| Denormalize with data | `deriva_ml_denormalize_dataset(..., dataset_rid=..., limit=N)` | `dataset.denormalize_as_dataframe()` | Flat DataFrame for analysis |
+| Schema shape + size | `deriva_ml_denormalize_dataset(include_tables=[...])` | `ml.describe_denormalized()` / `dataset.describe_denormalized()` | No dataset needed for schema-only |
+| Denormalize with data | `deriva_ml_denormalize_dataset(..., dataset_rid=..., limit=N)` | `dataset.get_denormalized_as_dataframe()` | Flat DataFrame for analysis |

@@ -86,10 +86,10 @@ deriva_ml_denormalize_dataset(
 **From a downloaded bag (Python API):**
 ```python
 # Preview columns without data
-columns = bag.denormalize_columns(include_tables=["Image", "Subject"])
+columns = bag.list_denormalized_columns(include_tables=["Image", "Subject"])
 
 # Fetch the data
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
 ```
 
 Denormalized columns follow the pattern `TableName_ColumnName`:
@@ -191,7 +191,7 @@ train_ds = ImageFolder("./data/train", transform=transforms.Compose([
 bag = dataset.download_dataset_bag(version="1.0.0", materialize=False)
 
 # 2. Build flat DataFrame
-df = bag.denormalize_as_dataframe(include_tables=["Subject", "Measurement"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Subject", "Measurement"])
 
 # 3. Split features and labels
 X = df[["Subject_Age", "Subject_Weight", "Measurement_Value"]]
@@ -262,8 +262,8 @@ bag.find_features("Image")                   # [Feature(name="Diagnosis", ...)]
 bag.fetch_table_features(table="Image", feature_name="Diagnosis", selector="newest")
 
 # Denormalization
-bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
-bag.denormalize_as_dict(include_tables=["Image", "Subject"])
+bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
+bag.get_denormalized_as_dict(include_tables=["Image", "Subject"])
 
 # Restructuring
 bag.restructure_assets(output_dir="./data", targets=["Diagnosis"])
