@@ -89,6 +89,16 @@ Each bag is tied to a **catalog snapshot** — the exact catalog state at the ti
 
 The `materialize=True` default fetches all referenced asset files into the bag (self-contained); `materialize=False` keeps the bag manifest-only and defers asset fetching. See `/deriva:download-bag` "Materialization" for the full mechanics (including `bdbag --resolve-fetch` to materialize selectively after the fact). For validating a bag's contents against the live catalog (manual diff between `ml.lookup_dataset(rid).list_dataset_members(version=...)` and per-table `bag.get_table_as_dict(...)` output), `materialize=False` is sufficient since the comparison is on RIDs only — no asset bytes needed. See `/deriva-ml:debug-bag-contents` Step 6 for the recipe.
 
+**Completing a metadata-only or partial bag later — `bag.materialize()`.** A `DatasetBag` that was downloaded `materialize=False`, or left `cached_holey` by an interrupted fetch, can be filled in place with the Python API — no need to re-download or drop to the `bdbag` CLI:
+
+```python
+bag = dataset.download_dataset_bag(version="1.0.0", materialize=False)  # metadata only
+# ... inspect schema / row counts cheaply ...
+bag = bag.materialize(fetch_concurrency=4)   # fetch all asset bytes in place; returns self
+```
+
+`materialize()` reads the bag's `fetch.txt` and downloads every referenced file into the existing bag directory (`bag.path` is unchanged). It uses **no catalog connection** — a pure local operation over the bag on disk — and is **idempotent**, so a fully-materialized bag returns immediately. `fetch_concurrency` (default 1) caps concurrent downloads.
+
 ## Caching
 
 The generic three-tier cache (local / MINID / generation) is described in `/deriva:download-bag` "Caching". DerivaML extends the cache key to **`{dataset_rid}_{checksum}`** so that two different datasets with coincidentally-identical spec hashes don't collide. The `{rid}@{version}` cache hit is what makes `dataset.download_dataset_bag(version="1.0.0")` deterministic — the same (rid, version) pair always lands in the same cache slot.

@@ -50,13 +50,24 @@ for row in bag.get_denormalized_as_dict(include_tables=["Image", "Subject"]):
     process(row)
 ```
 
+**Including system columns (provenance).** System columns (`RCT`, `RMT`, `RCB`, `RMB` — created/modified time, created/modified by) are dropped from the wide table by default. Pass `system_columns=` to retain the ones you need — e.g. for grader/annotator attribution, keep the row creator:
+
+```python
+df = bag.get_denormalized_as_dataframe(
+    include_tables=["Image", "Diagnosis"],
+    system_columns=["RCB", "RCT"],   # row creator + creation time per table
+)
+```
+
+This opt-in is on `get_denormalized_as_dataframe` / `get_denormalized_as_dict` (Dataset and DatasetBag). Most ML feature extraction doesn't need it; reach for it when provenance (who/when produced a row) is part of the analysis.
+
 **Python API — schema shape and size estimates (no bag needed):**
 ```python
-# Dataset-scoped
+# On a Dataset (live catalog)
 info = dataset.describe_denormalized(include_tables=["Image", "Subject"])
 
-# Catalog-wide (no dataset required)
-info = ml.describe_denormalized(include_tables=["Image", "Subject"])
+# Or on a downloaded bag — same signature
+info = bag.describe_denormalized(include_tables=["Image", "Subject"])
 ```
 Returns `columns`, `join_path`, `tables` (with `row_count`, `is_asset`, `asset_bytes`), `total_rows`, `total_asset_bytes`, `total_asset_size`.
 
@@ -188,11 +199,8 @@ columns = bag.list_denormalized_columns(include_tables=["Image", "Subject"])
 
 **Python API (from SDK — no bag needed):**
 ```python
-# Dataset-scoped shape + size estimates
+# Shape + size estimates on a Dataset (or a downloaded bag — same signature)
 info = dataset.describe_denormalized(include_tables=["Image", "Subject"])
-
-# Catalog-wide (no dataset required)
-info = ml.describe_denormalized(include_tables=["Image", "Subject"])
 ```
 
 These call the same FK path analysis as the full denormalization but skip the data fetch entirely.
