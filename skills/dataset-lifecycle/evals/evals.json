@@ -28,7 +28,7 @@
     {
       "id": 5,
       "prompt": "I have a dataset with about 5,000 images. I want to see what's actually in it — what kinds of images, how the diagnoses are distributed, whether there are any unlabeled ones. The dataset RID is 3-XYZ9.",
-      "expected_output": "Should follow the browse pattern: 1) read deriva_ml_get_dataset for overview, 2) deriva_ml_list_dataset_members to see element types and counts, 3) pick the element type (Image) and denormalize_dataset with related tables to see actual data values, 4) use fetch_table_features to check what annotations exist. Should show how to include feature tables in denormalize to see label distributions. Should NOT just list RIDs — must get to actual data values.",
+      "expected_output": "Should follow the browse pattern: 1) read deriva_ml_get_dataset for overview, 2) deriva_ml_list_dataset_members to see element types and counts, 3) pick the element type (Image) and deriva_ml_denormalize_dataset with related tables to see actual data values, 4) use deriva_ml_list_feature_values (or the Python ml.feature_values(table, feature_name)) to check what annotations exist. Should show how to include feature tables in denormalize to see label distributions. Should NOT just list RIDs — must get to actual data values.",
       "files": []
     },
     {

@@ -357,18 +357,24 @@ members = bag.list_dataset_members(recurse=True)  # includes nested datasets
 ### Feature values
 
 ```python
+from deriva_ml.feature import FeatureRecord
+
 # Discover features on a table
 features = bag.find_features("Image")  # [Feature(name="Diagnosis", ...)]
 
-# Fetch feature values
-feature_df = bag.fetch_table_features(
-    table="Image",
-    feature_name="Diagnosis",
-    selector="newest",           # or: workflow="classify", execution="3-XYZ"
+# Fetch feature values (one feature per call). Returns an iterator of FeatureRecord.
+records = bag.feature_values(
+    "Image",
+    "Diagnosis",
+    selector=FeatureRecord.select_newest,   # collapse multi-value groups
 )
 
-# List all feature values for a specific record
-values = bag.list_feature_values(target="2-ABCD", feature="Diagnosis")
+# Feature values for a specific record — read all, then filter by target RID
+record = next(
+    (r for r in bag.feature_values("Image", "Diagnosis")
+     if r.Image == "2-ABCD"),
+    None,
+)
 ```
 
 ### Denormalization
@@ -487,6 +493,6 @@ bag.restructure_assets(
 | Python API `bag.restructure_assets()` | Organize assets into ML-ready directory layouts |
 | `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
 | `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest per table |
-| `deriva_ml_list_feature_values` | Access feature values from the catalog (or `bag.fetch_table_features` from a downloaded bag) |
+| `deriva_ml_list_feature_values` | Access feature values from the catalog (or `bag.feature_values()` from a downloaded bag) |
 | `deriva_ml_get_dataset` | Dataset details including version and element types |
 | `deriva_ml_list_features` | Available features for building training labels |

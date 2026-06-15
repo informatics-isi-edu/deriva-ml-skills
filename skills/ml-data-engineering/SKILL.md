@@ -136,11 +136,13 @@ deriva_ml_list_features(hostname="data.example.org", catalog_id="1", target_tabl
 ### Fetch feature values
 
 ```python
-# From a bag — with deduplication
-feature_df = bag.fetch_table_features(
-    table="Image",
-    feature_name="Diagnosis",
-    selector="newest",           # most recent annotation per record
+from deriva_ml.feature import FeatureRecord
+
+# From a bag — with deduplication. Returns an iterator of FeatureRecord.
+records = bag.feature_values(
+    "Image",
+    "Diagnosis",
+    selector=FeatureRecord.select_newest,   # most recent annotation per record
 )
 
 # From the catalog
@@ -259,7 +261,7 @@ bag.list_dataset_element_types()
 
 # Features
 bag.find_features("Image")                   # [Feature(name="Diagnosis", ...)]
-bag.fetch_table_features(table="Image", feature_name="Diagnosis", selector="newest")
+bag.feature_values("Image", "Diagnosis", selector=FeatureRecord.select_newest)
 
 # Denormalization
 bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])

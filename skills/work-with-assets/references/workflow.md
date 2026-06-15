@@ -94,7 +94,7 @@ To inspect an asset's properties:
 
 ### Download a single asset
 
-Call Python API `ml.download_asset(rid)` with `asset_rid` set to the asset's RID. Optionally set `dest_dir` to specify where to save the file (defaults to the active execution's working directory).
+Call Python API `exe.download_asset(rid)` from inside an active execution, with `asset_rid` set to the asset's RID. Set `dest_dir` to specify where to save the file (the bundled `download_asset.py` template defaults it to the execution's working directory). `download_asset` is an Execution method, not a `DerivaML` (`ml`) method.
 
 Returns the local file path, filename, asset table name, and asset types.
 

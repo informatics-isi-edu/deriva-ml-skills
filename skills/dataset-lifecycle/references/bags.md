@@ -34,7 +34,7 @@ On top of the generic BDBag shape (`bag-info.txt`, `manifest-md5.txt`, `data/rec
 1. **Member records** — All records from registered element types that belong to the dataset (e.g., Image, Subject rows), stored as CSV files per table and loaded into the bag's SQLite database.
 2. **Related records** — Data from tables reachable via foreign key paths from member records (see [How Bag Contents Are Determined](#how-bag-contents-are-determined)).
 3. **Nested datasets** — Child datasets are included recursively with all their members. Navigate with `bag.list_dataset_children()`.
-4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `bag.fetch_table_features()`.
+4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `bag.feature_values(table, feature_name)`.
 5. **Vocabulary terms** — Controlled vocabulary terms referenced by included records, exported separately.
 6. **Asset files** — Binary files (images, model weights, etc.) referenced by member records, fetched when `materialize=True`.
 
@@ -199,18 +199,25 @@ bag.execution_rid    # "3-XYZ" or None
 ### Features and annotations
 
 ```python
+from deriva_ml.feature import FeatureRecord
+
 # Discover features on a table
 features = bag.find_features("Image")  # [Feature(name="Diagnosis", ...)]
 
-# Fetch feature values (same selector API as live Dataset)
-feature_df = bag.fetch_table_features(
-    table="Image",
-    feature_name="Diagnosis",
-    selector="newest",           # or: workflow="classify", execution="3-XYZ"
+# Fetch feature values (same API as live Dataset). One feature per call;
+# returns an iterator of FeatureRecord.
+records = bag.feature_values(
+    "Image",
+    "Diagnosis",
+    selector=FeatureRecord.select_newest,   # collapse multi-value groups
 )
 
-# List all feature values for a specific record
-values = bag.list_feature_values(target="2-ABCD", feature="Diagnosis")
+# Feature values for a specific record — read all, then filter by target RID
+record = next(
+    (r for r in bag.feature_values("Image", "Diagnosis")
+     if r.Image == "2-ABCD"),
+    None,
+)
 ```
 
 ### Denormalization

@@ -341,39 +341,40 @@ If none of `selector`, `workflow`, or `execution` is specified, all values are r
 ```python
 from deriva_ml.feature import FeatureRecord
 
+# One feature per call. Returns an iterator of FeatureRecord.
 # Newest by creation time
-features = ml.fetch_table_features("Image", selector=FeatureRecord.select_newest)
+features = ml.feature_values("Image", "Diagnosis", selector=FeatureRecord.select_newest)
 
 # Filter by execution RID, then pick newest
-features = ml.fetch_table_features(
+features = ml.feature_values(
     "Image",
+    "Diagnosis",
     selector=FeatureRecord.select_by_execution("3WY2"),
 )
 
-# Convenience wrapper for a single feature — returns flat list
-values = list(ml.list_feature_values("Image", "Diagnosis"))
-values = list(ml.list_feature_values(
+# Materialize the iterator to a list when you need to iterate more than once
+values = list(ml.feature_values("Image", "Diagnosis"))
+values = list(ml.feature_values(
     "Image", "Diagnosis",
     selector=FeatureRecord.select_newest,
 ))
 ```
 
-**Workflow-based selection** uses `ml.select_by_workflow()`, which needs catalog access:
+**Workflow-based selection** uses the `FeatureRecord.select_by_workflow`
+selector factory, which needs catalog access — pass it as the `selector`
+arg. The `container` is the object you call `feature_values` on (it resolves
+the workflow's execution list eagerly via `container.list_workflow_executions`):
 
 ```python
-from collections import defaultdict
-
-features = ml.fetch_table_features("Image", feature_name="Classification")
-records = features.get("Classification", [])
-
-grouped = defaultdict(list)
-for r in records:
-    grouped[r.Image].append(r)
-
-selected = [ml.select_by_workflow(group, "Training") for group in grouped.values()]
+# Picks the newest record from any execution of the "Training" workflow,
+# one survivor per target RID.
+selected = list(ml.feature_values(
+    "Image", "Classification",
+    selector=FeatureRecord.select_by_workflow("Training", container=ml),
+))
 ```
 
-The MCP tool's `workflow` parameter handles this grouping automatically.
+The MCP tool's `workflow` parameter handles this selection automatically.
 
 **Custom selectors** can implement any logic. The example below is specific to features that have a `Confidence` column — direct attribute access fails loudly (`AttributeError`) if applied to a feature without one, which is what you want:
 
@@ -381,7 +382,7 @@ The MCP tool's `workflow` parameter handles this grouping automatically.
 def select_best(records):
     return max(records, key=lambda r: r.Confidence or 0)
 
-features = ml.fetch_table_features("Image", selector=select_best)
+features = ml.feature_values("Image", "Diagnosis", selector=select_best)
 ```
 
 ### Predefined selectors
@@ -395,7 +396,7 @@ All selectors live on `FeatureRecord` and work everywhere — catalog queries, b
 | `FeatureRecord.select_latest` | Static | Alias for `select_newest` (API symmetry) |
 | `FeatureRecord.select_by_execution(rid)` | Factory | Filter by execution RID, then newest |
 | `RecordClass.select_majority_vote(col)` | Factory | Most common value for column; ties by newest RCT. Auto-detects column for single-term features |
-| `ml.select_by_workflow(records, wf)` | Instance | Filter by workflow type/RID, then newest. Not a `selector=` param — call directly on grouped records. Needs catalog access |
+| `FeatureRecord.select_by_workflow(wf, container=ml)` | Factory | Filter by workflow type/RID, then newest. Pass as a `selector=` param. Needs catalog access (resolves the workflow's executions via `container`) |
 
 Import:
 ```python
@@ -409,10 +410,10 @@ from deriva_ml.feature import FeatureRecord
 | Latest value per record | `selector="newest"` | `selector=FeatureRecord.select_newest` |
 | Earliest value (original) | `selector="first"` | `selector=FeatureRecord.select_first` |
 | Majority vote across annotators | `selector="majority_vote"` (requires `feature_name`) | `selector=RecordClass.select_majority_vote()` |
-| Values from a workflow type | `workflow="Annotation"` | `ml.select_by_workflow(records, "Annotation")` |
-| Values from a specific workflow RID | `workflow="2-ABC1"` | `ml.select_by_workflow(records, "2-ABC1")` |
+| Values from a workflow type | `workflow="Annotation"` | `selector=FeatureRecord.select_by_workflow("Annotation", container=ml)` |
+| Values from a specific workflow RID | `workflow="2-ABC1"` | `selector=FeatureRecord.select_by_workflow("2-ABC1", container=ml)` |
 | Values from one execution | `execution="3-XYZ"` | `selector=FeatureRecord.select_by_execution("3-XYZ")` |
-| Single feature only | `feature_name="Diagnosis"` | `ml.list_feature_values("Image", "Diagnosis")` |
+| Single feature only | `feature_name="Diagnosis"` | `ml.feature_values("Image", "Diagnosis")` |
 | Custom logic | Write a Python script | `selector=my_custom_function` |
 | No deduplication | Omit selection params | Omit `selector` |
 
@@ -430,8 +431,8 @@ def select_highest_confidence(records: list[FeatureRecord]) -> FeatureRecord:
     return max(records, key=lambda r: r.Confidence or 0)
 
 # Works with catalog queries
-features = ml.fetch_table_features(
-    "Image", feature_name="Diagnosis",
+features = ml.feature_values(
+    "Image", "Diagnosis",
     selector=select_highest_confidence,
 )
 
@@ -454,7 +455,7 @@ When the MCP tool's built-in selectors are insufficient, write the script, test 
 | `majority_vote` without `feature_name` | Error — needs to know which feature to look up column info | Always specify `feature_name` with `majority_vote` |
 | No selector, surprised by duplicates | Returns ALL values including multiple per record | Add `selector="newest"` or another selection option |
 | `workflow="Training"` vs `workflow="2-ABC1"` | Both work — auto-detected as type name vs RID | Just pass whichever you have |
-| Using `deriva_ml_list_feature_values` for one feature | Works but returns a dict | Use `list_feature_values` (Python API) for a flat list |
+| Using `deriva_ml_list_feature_values` for one feature | Works but returns a dict | Use `ml.feature_values()` (Python API) for an iterator of `FeatureRecord` |
 
 ## Feature Value Table Naming
 
@@ -500,9 +501,8 @@ Feature values for dataset members are automatically included in BDBag exports. 
 ```python
 # Query features in a downloaded bag (same API as live catalog)
 bag = dataset.download_dataset_bag(version="1.0.0")
-features = bag.fetch_table_features("Image")
-values = list(bag.list_feature_values("Image", "Diagnosis",
-                                       selector=FeatureRecord.select_newest))
+values = list(bag.feature_values("Image", "Diagnosis",
+                                  selector=FeatureRecord.select_newest))
 features_on_table = bag.find_features("Image")
 ```
 
@@ -557,8 +557,8 @@ deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", targe
 ```
 
 ```python
-# Python API — convenience wrapper for single feature
-for v in ml.list_feature_values("Image", "Diagnosis"):
+# Python API — iterator of FeatureRecord for a single feature
+for v in ml.feature_values("Image", "Diagnosis"):
     print(f"Image {v.Image}: {v.Diagnosis_Type} (by Execution {v.Execution})")
 ```
 
@@ -593,5 +593,5 @@ for f in features:
 | Browse all features | `deriva_ml_list_features` | `ml.find_features()` | All features in catalog |
 | Features on a table | `deriva_ml_list_features(target_table=...)` | `ml.find_features("Image")` | Filtered to one table |
 | Feature details | `deriva_ml_get_feature` | `ml.lookup_feature()` | Column types, requirements |
-| Feature values | `deriva_ml_list_feature_values` | `ml.list_feature_values()` | With provenance, supports selectors |
-| Values in a bag | — | `bag.fetch_table_features()` | Same API on downloaded bags |
+| Feature values | `deriva_ml_list_feature_values` | `ml.feature_values()` | With provenance, supports selectors |
+| Values in a bag | — | `bag.feature_values()` | Same API on downloaded bags |

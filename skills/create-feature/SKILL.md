@@ -254,7 +254,7 @@ When a record has values from multiple annotators or model runs, use a selector 
 **Before retrieving in the multi-value case, ask the user which values they want.** Quick provenance check:
 
 ```python
-all_values = list(ml.list_feature_values("Image", "Scouts_Pick"))
+all_values = list(ml.feature_values("Image", "Scouts_Pick"))
 executions = set(r.Execution for r in all_values)
 print(f"Total values: {len(all_values)}, from {len(executions)} execution(s): {executions}")
 ```

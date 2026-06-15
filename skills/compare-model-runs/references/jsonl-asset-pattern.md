@@ -83,9 +83,11 @@ The user runs this in a Jupyter notebook or local shell — NOT via MCP:
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
-from deriva_ml import DerivaML
 
-ml = DerivaML(hostname="data.example.org", catalog_id="1")
+# The analysis runs inside its own execution, so the downloads are
+# recorded as inputs. `execution` is created via run_notebook(...) —
+# see the `run-notebook` skill. `download_asset` is an Execution
+# method; there is no non-execution `ml.download_asset`.
 
 # From step 2 (paste in the dict the LLM produced)
 execution_to_metrics_asset = {
@@ -98,7 +100,7 @@ execution_to_metrics_asset = {
 
 dfs = []
 for exec_rid, asset_rid in execution_to_metrics_asset.items():
-    local_path = ml.download_asset(asset_rid)
+    local_path = execution.download_asset(asset_rid)
     records = []
     with open(local_path) as f:
         for line in f:
@@ -151,7 +153,7 @@ If the user only wants the final-epoch metric (not the curves), simplify the loc
 ```python
 results = {}
 for exec_rid, asset_rid in execution_to_metrics_asset.items():
-    local_path = ml.download_asset(asset_rid)
+    local_path = execution.download_asset(asset_rid)
     records = []
     with open(local_path) as f:
         for line in f:
