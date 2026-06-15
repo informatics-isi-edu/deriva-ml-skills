@@ -210,7 +210,7 @@ exe.commit_output_assets(
 |-----------------|---------|
 | Python API `bag.restructure_assets()` | Organize assets into ML-ready layouts |
 | Python API `dataset.download_dataset_bag(version)` | Download bag with assets |
-| Python API `ml.download_asset(rid)` | Download single asset by RID |
+| Python API `exe.download_asset(rid)` | Download single asset by RID (Execution method) |
 | Python API `exe.asset_file_path()` | Register file for upload |
 | Python API `exe.commit_output_assets()` | Commit staged files to catalog (uploads + writes rows + transitions execution to `Uploaded`) |
 | (gap) Creating an asset table | No dedicated tool; use the manual `create_table` recipe — see `concepts.md` |

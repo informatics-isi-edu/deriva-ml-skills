@@ -7,10 +7,11 @@ When to use:
     of an execution. The execution row provides the audit trail
     answering "what consumed this asset?".
 
-    For an unattributed one-off download (no execution), call
-    `ml.download_asset(asset_rid, dest_dir)` directly from a notebook
-    or interactive Python — that path is fine for exploration but
-    leaves no provenance.
+    `download_asset` is an Execution method — there is no
+    non-execution `ml.download_asset`. For an exploratory one-off
+    pull, open a throwaway execution and call
+    `execution.download_asset(asset_rid, dest_dir)`; the execution row
+    is what carries the "what consumed this asset?" provenance.
 
 Pattern:
     1. Open an execution.

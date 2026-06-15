@@ -125,11 +125,12 @@ this locally. Two things are different from Pattern B:
    because every execution's prediction file shares the same
    `Filename` (`prediction_probabilities.csv`). Without per-RID
    directories the downloads collide.
-2. The download goes through `execution.download_asset(...)` rather
-   than `ml.download_asset(...)` because the analysis itself is an
-   execution, and `execution.download_asset` uses the credential-
-   aware Hatrac path the rest of the execution uses. The analysis
-   notebook's `execution` is created via `run_notebook(...)` (see the
+2. The download goes through `execution.download_asset(...)` — an
+   Execution method; there is no non-execution `ml.download_asset`.
+   The analysis itself is an execution, so `execution.download_asset`
+   uses the credential-aware Hatrac path the rest of the execution
+   uses and records the download as an input. The analysis notebook's
+   `execution` is created via `run_notebook(...)` (see the
    `run-notebook` skill).
 
 ```python
@@ -279,11 +280,13 @@ per experiment -- no per-record merge needed.
   `prediction_probabilities.csv`). Downloading them all into the
   same directory will overwrite. Always pass
   `dest_dir=working_dir / "per_asset_downloads" / asset_rid`.
-- **`execution.download_asset` vs `ml.download_asset`.** Inside an
-  analysis notebook created with `run_notebook(...)`, prefer
-  `execution.download_asset` -- it uses the same credential-aware
-  Hatrac path as the rest of the execution. `ml.download_asset` is
-  fine for ad-hoc scripts that are not themselves an execution.
+- **`download_asset` is an Execution method.** There is no
+  non-execution `ml.download_asset`. Inside an analysis notebook
+  created with `run_notebook(...)`, call `execution.download_asset`
+  -- it uses the credential-aware Hatrac path the rest of the
+  execution uses, and records the download as an input. For an
+  ad-hoc pull, open a throwaway execution and call
+  `execution.download_asset` on it.
 - **Ground-truth filter is two predicates, not one.** Filtering by
   `Execution == gt_execution` alone can pick up rows the GT
   execution wrote later with confidence scores. Filtering by

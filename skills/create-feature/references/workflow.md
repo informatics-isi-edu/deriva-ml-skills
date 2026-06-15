@@ -107,7 +107,7 @@ For multi-column features, edit the `RecordClass(**row)` instantiation in the lo
 from deriva_ml import DerivaML, ExecutionConfiguration
 
 ml = DerivaML(hostname, catalog_id)
-workflow = ml.find_workflow_by_url("https://github.com/my-org/my-repo")
+workflow = ml.lookup_workflow_by_url("https://github.com/my-org/my-repo")
 
 config = ExecutionConfiguration(
     workflow=workflow,

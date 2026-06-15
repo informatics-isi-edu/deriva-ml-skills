@@ -318,7 +318,7 @@ source --[input of]--> execution --[output]--> Split / Training / Testing / Vali
 
 This means:
 
-- `source.list_dataset_children()` and `list_dataset_relations(source)` will **NOT** list the Split.
+- `source.list_dataset_children()` (and the `deriva_ml_list_dataset_relations` MCP tool) will **NOT** list the Split.
 - `execution.list_input_datasets()` returns the source.
 - `dataset.producing_execution.list_input_datasets()` reaches the source from any Split child.
 - A lineage walk (`deriva_ml_get_lineage`) reaches splits from the source and vice versa.
@@ -504,9 +504,8 @@ Use the `deriva_ml_get_dataset_spec` MCP tool to generate the correct `DatasetSp
 # Get current version
 current = dataset.current_version  # e.g., "1.2.0"
 
-# Bind a dataset object to a specific version for version-aware operations
-versioned_dataset = dataset.set_version("1.0.0")
-members = versioned_dataset.list_dataset_members()  # members at v1.0.0
+# Pass version= to operate at a specific version (keyword-only)
+members = dataset.list_dataset_members(version="1.0.0")  # members at v1.0.0
 ```
 
 ## Exploring and Navigating Datasets
@@ -715,9 +714,8 @@ print(dataset.description)
 print(dataset.current_version)
 print(dataset.dataset_types)
 
-# Work with a specific version
-v1 = dataset.set_version("1.0.0")
-members = v1.list_dataset_members()
+# Work with a specific version (pass the keyword-only version=)
+members = dataset.list_dataset_members(version="1.0.0")
 
 # Download and work with the bag
 bag = dataset.download_dataset_bag(version="1.0.0")
@@ -836,7 +834,7 @@ Deletion removes the dataset container and member associations, not the member r
 | Find datasets | `rag_search("...", doc_type="catalog-data")` or `deriva_ml_list_datasets` | `ml.find_datasets()` | RAG for discovery; typed list for full surface |
 | Lookup by RID | `deriva_ml_get_dataset(rid)` | `ml.lookup_dataset(rid)` | Get specific dataset |
 | List members | `deriva_ml_list_dataset_members` | `dataset.list_dataset_members()` | Grouped by table; supports `version`, `recurse`, `limit` |
-| List relations (parents + children) | `deriva_ml_list_dataset_relations` | `dataset.list_dataset_relations()` | Both directions in one call; supports `recurse`, `version` |
+| List relations (parents + children) | `deriva_ml_list_dataset_relations` | `dataset.list_dataset_children()` / `dataset.list_dataset_parents()` | MCP tool returns both directions in one call; the Python API has separate child/parent calls. Both support `recurse`, `version` |
 | Check element types | `deriva_ml_list_dataset_element_types` | `ml.list_dataset_element_types()` | Per-dataset or catalog-wide |
 | List executions | `deriva_ml_get_dataset` (includes provenance) | — | Provenance: which runs used this dataset |
 | Validate RIDs | `get_entities(filters={"RID": "..."})` per candidate table; check for empty result | — | Use generic entity fetch |
@@ -852,5 +850,5 @@ Deletion removes the dataset container and member associations, not the member r
 | Download in execution | Python API `exe.download_dataset_bag()` | `exe.download_dataset_bag()` | Records provenance |
 | Restructure assets | Python API `bag.restructure_assets()` | `bag.restructure_assets()` | ML-ready directory layout |
 | Validate bag | Python API bag inspection | — | Cross-check bag vs catalog |
-| Schema shape + size | `deriva_ml_denormalize_dataset(include_tables=[...])` | `ml.denormalize_info()` / `dataset.denormalize_info()` | No dataset needed for schema-only |
-| Denormalize with data | `deriva_ml_denormalize_dataset(..., dataset_rid=..., limit=N)` | `dataset.denormalize_as_dataframe()` | Flat DataFrame for analysis |
+| Schema shape + size | `deriva_ml_denormalize_dataset(include_tables=[...])` | `dataset.describe_denormalized()` / `bag.describe_denormalized()` | Returns columns, join path, row/asset sizes |
+| Denormalize with data | `deriva_ml_denormalize_dataset(..., dataset_rid=..., limit=N)` | `dataset.get_denormalized_as_dataframe()` | Flat DataFrame for analysis |

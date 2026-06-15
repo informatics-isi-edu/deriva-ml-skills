@@ -34,7 +34,7 @@ On top of the generic BDBag shape (`bag-info.txt`, `manifest-md5.txt`, `data/rec
 1. **Member records** — All records from registered element types that belong to the dataset (e.g., Image, Subject rows), stored as CSV files per table and loaded into the bag's SQLite database.
 2. **Related records** — Data from tables reachable via foreign key paths from member records (see [How Bag Contents Are Determined](#how-bag-contents-are-determined)).
 3. **Nested datasets** — Child datasets are included recursively with all their members. Navigate with `bag.list_dataset_children()`.
-4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `bag.fetch_table_features()`.
+4. **Feature values** — All feature annotations for dataset members (e.g., Image_Classification labels). Access with `bag.feature_values(table, feature_name)`.
 5. **Vocabulary terms** — Controlled vocabulary terms referenced by included records, exported separately.
 6. **Asset files** — Binary files (images, model weights, etc.) referenced by member records, fetched when `materialize=True`.
 
@@ -88,6 +88,16 @@ Each bag is tied to a **catalog snapshot** — the exact catalog state at the ti
 ## Materialization
 
 The `materialize=True` default fetches all referenced asset files into the bag (self-contained); `materialize=False` keeps the bag manifest-only and defers asset fetching. See `/deriva:download-bag` "Materialization" for the full mechanics (including `bdbag --resolve-fetch` to materialize selectively after the fact). For validating a bag's contents against the live catalog (manual diff between `ml.lookup_dataset(rid).list_dataset_members(version=...)` and per-table `bag.get_table_as_dict(...)` output), `materialize=False` is sufficient since the comparison is on RIDs only — no asset bytes needed. See `/deriva-ml:debug-bag-contents` Step 6 for the recipe.
+
+**Completing a metadata-only or partial bag later — `bag.materialize()`.** A `DatasetBag` that was downloaded `materialize=False`, or left `cached_holey` by an interrupted fetch, can be filled in place with the Python API — no need to re-download or drop to the `bdbag` CLI:
+
+```python
+bag = dataset.download_dataset_bag(version="1.0.0", materialize=False)  # metadata only
+# ... inspect schema / row counts cheaply ...
+bag = bag.materialize(fetch_concurrency=4)   # fetch all asset bytes in place; returns self
+```
+
+`materialize()` reads the bag's `fetch.txt` and downloads every referenced file into the existing bag directory (`bag.path` is unchanged). It uses **no catalog connection** — a pure local operation over the bag on disk — and is **idempotent**, so a fully-materialized bag returns immediately. `fetch_concurrency` (default 1) caps concurrent downloads.
 
 ## Caching
 
@@ -199,31 +209,38 @@ bag.execution_rid    # "3-XYZ" or None
 ### Features and annotations
 
 ```python
+from deriva_ml.feature import FeatureRecord
+
 # Discover features on a table
 features = bag.find_features("Image")  # [Feature(name="Diagnosis", ...)]
 
-# Fetch feature values (same selector API as live Dataset)
-feature_df = bag.fetch_table_features(
-    table="Image",
-    feature_name="Diagnosis",
-    selector="newest",           # or: workflow="classify", execution="3-XYZ"
+# Fetch feature values (same API as live Dataset). One feature per call;
+# returns an iterator of FeatureRecord.
+records = bag.feature_values(
+    "Image",
+    "Diagnosis",
+    selector=FeatureRecord.select_newest,   # collapse multi-value groups
 )
 
-# List all feature values for a specific record
-values = bag.list_feature_values(target="2-ABCD", feature="Diagnosis")
+# Feature values for a specific record — read all, then filter by target RID
+record = next(
+    (r for r in bag.feature_values("Image", "Diagnosis")
+     if r.Image == "2-ABCD"),
+    None,
+)
 ```
 
 ### Denormalization
 
 ```python
 # Flatten to a wide table (DataFrame) — joins across FK paths
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
 
 # Same as dict (memory-efficient streaming)
-rows = bag.denormalize_as_dict(include_tables=["Image", "Subject"])
+rows = bag.get_denormalized_as_dict(include_tables=["Image", "Subject"])
 
 # Multi-hop FK chain — tables don't need to be dataset members
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Observation", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Observation", "Subject"])
 ```
 
 Denormalize follows FK chains automatically, including through intermediate tables. Tables in `include_tables` don't need to be dataset members — they just need to be FK-reachable from a member table. If multiple FK paths exist between two tables (ambiguous), you'll get a `DerivaMLException` asking you to include intermediate tables to disambiguate. See the `ml-data-engineering` skill's `references/denormalize-guide.md` for details.

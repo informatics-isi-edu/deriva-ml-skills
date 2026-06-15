@@ -185,9 +185,11 @@ Tell the user to run something like this in a notebook or local Python session (
 
 ```python
 import json
-from deriva_ml import DerivaML
 
-ml = DerivaML(hostname="data.example.org", catalog_id="1")
+# The analysis runs inside its own execution, so the downloads are
+# recorded as inputs. `execution` is created via run_notebook(...) —
+# see the `run-notebook` skill. `download_asset` is an Execution
+# method; there is no non-execution `ml.download_asset`.
 
 execution_to_metrics_asset = {
     "1-EXEC-A": "1-ASSET-A",
@@ -197,8 +199,8 @@ execution_to_metrics_asset = {
 
 results = {}
 for exec_rid, asset_rid in execution_to_metrics_asset.items():
-    # Download the JSONL file
-    local_path = ml.download_asset(asset_rid)
+    # Download the JSONL file (recorded as an input of this execution)
+    local_path = execution.download_asset(asset_rid)
 
     # Parse one JSON object per line
     records = []
@@ -276,8 +278,8 @@ dfs = []
 for exec_rid, asset_rid in execution_to_prediction_asset.items():
     rid_dir = per_rid_dir / asset_rid
     rid_dir.mkdir(parents=True, exist_ok=True)
-    # execution.download_asset (not ml.download_asset) -- keeps the
-    # credential-aware Hatrac path the rest of the execution uses.
+    # download_asset is an Execution method (there is no ml.download_asset)
+    # -- it uses the credential-aware Hatrac path the execution uses.
     fresh_path = execution.download_asset(
         asset_rid=asset_rid,
         dest_dir=rid_dir,

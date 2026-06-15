@@ -15,7 +15,7 @@ Without a selector, the API returns ALL values — including duplicates per reco
 
 ## Built-in selectors
 
-All selectors live on `FeatureRecord` and work everywhere: catalog queries (`deriva_ml_list_feature_values`, `list_feature_values`), bag queries, and Python API `bag.restructure_assets()`.
+All selectors live on `FeatureRecord` and work everywhere: catalog queries (`deriva_ml_list_feature_values`, `feature_values`), bag queries, and Python API `bag.restructure_assets()`.
 
 | Selector | Type | What it does | When to use |
 |----------|------|-------------|-------------|
@@ -42,24 +42,22 @@ deriva_ml_list_feature_values(hostname="data.example.org", catalog_id="1", targe
 ```python
 from deriva_ml.feature import FeatureRecord
 
-# Static selectors
-features = ml.fetch_table_features("Image", selector=FeatureRecord.select_newest)
-features = ml.fetch_table_features("Image", selector=FeatureRecord.select_first)
+# Static selectors (one feature per call; returns an iterator of FeatureRecord)
+features = ml.feature_values("Image", "Diagnosis", selector=FeatureRecord.select_newest)
+features = ml.feature_values("Image", "Diagnosis", selector=FeatureRecord.select_first)
 
 # Factory selectors — call them to get a selector function
-features = ml.fetch_table_features("Image",
+features = ml.feature_values("Image", "Diagnosis",
     selector=FeatureRecord.select_by_execution("3-XYZ"))
 
 # Majority vote — auto-detects column for single-term features
 feat = ml.lookup_feature("Image", "Diagnosis")
 RecordClass = feat.feature_record_class()
-features = ml.fetch_table_features("Image",
-    feature_name="Diagnosis",
+features = ml.feature_values("Image", "Diagnosis",
     selector=RecordClass.select_majority_vote())
 
 # Or specify column explicitly
-features = ml.fetch_table_features("Image",
-    feature_name="Diagnosis",
+features = ml.feature_values("Image", "Diagnosis",
     selector=FeatureRecord.select_majority_vote("Diagnosis_Type"))
 ```
 
@@ -145,8 +143,7 @@ def select_weighted(records: list[FeatureRecord]) -> FeatureRecord:
 **Python API** — pass directly:
 
 ```python
-features = ml.fetch_table_features("Image",
-    feature_name="Diagnosis",
+features = ml.feature_values("Image", "Diagnosis",
     selector=select_highest_confidence)
 
 bag.restructure_assets(

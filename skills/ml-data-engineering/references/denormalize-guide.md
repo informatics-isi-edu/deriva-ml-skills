@@ -43,20 +43,31 @@ Returns shape info + actual row data (capped at 100).
 
 **Python API (bag-side):**
 ```python
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
 
 # Memory-efficient streaming
-for row in bag.denormalize_as_dict(include_tables=["Image", "Subject"]):
+for row in bag.get_denormalized_as_dict(include_tables=["Image", "Subject"]):
     process(row)
 ```
 
+**Including system columns (provenance).** System columns (`RCT`, `RMT`, `RCB`, `RMB` — created/modified time, created/modified by) are dropped from the wide table by default. Pass `system_columns=` to retain the ones you need — e.g. for grader/annotator attribution, keep the row creator:
+
+```python
+df = bag.get_denormalized_as_dataframe(
+    include_tables=["Image", "Diagnosis"],
+    system_columns=["RCB", "RCT"],   # row creator + creation time per table
+)
+```
+
+This opt-in is on `get_denormalized_as_dataframe` / `get_denormalized_as_dict` (Dataset and DatasetBag). Most ML feature extraction doesn't need it; reach for it when provenance (who/when produced a row) is part of the analysis.
+
 **Python API — schema shape and size estimates (no bag needed):**
 ```python
-# Dataset-scoped
-info = dataset.denormalize_info(include_tables=["Image", "Subject"])
+# On a Dataset (live catalog)
+info = dataset.describe_denormalized(include_tables=["Image", "Subject"])
 
-# Catalog-wide (no dataset required)
-info = ml.denormalize_info(include_tables=["Image", "Subject"])
+# Or on a downloaded bag — same signature
+info = bag.describe_denormalized(include_tables=["Image", "Subject"])
 ```
 Returns `columns`, `join_path`, `tables` (with `row_count`, `is_asset`, `asset_bytes`), `total_rows`, `total_asset_bytes`, `total_asset_size`.
 
@@ -64,8 +75,8 @@ Returns `columns`, `join_path`, `tables` (with `row_count`, `is_asset`, `asset_b
 
 | Source | Pattern | Example |
 |--------|---------|---------|
-| Catalog (MCP tool, `Dataset.denormalize_as_dataframe`) | `Table_Column` | `Image_Filename`, `Subject_Age` |
-| Bag (`DatasetBag.denormalize_as_dataframe`) | `Table.Column` | `Image.Filename`, `Subject.Age` |
+| Catalog (MCP tool, `Dataset.get_denormalized_as_dataframe`) | `Table_Column` | `Image_Filename`, `Subject_Age` |
+| Bag (`DatasetBag.get_denormalized_as_dataframe`) | `Table.Column` | `Image.Filename`, `Subject.Age` |
 
 ## Decisions Before Calling Denormalize
 
@@ -138,7 +149,7 @@ The `feature_values()` API is the right tool for "give me the values of this fea
 | Do you want one row per annotation/measurement event? | Yes | B |
 | Do you want one row per anchor but feature has multiple writers per anchor? | Use feature_values() and join in pandas | C |
 | Do you want longitudinal columns (`obs_t1`, `obs_t2`)? | Pivot in pandas after Shape B | C |
-| Just need the column list, no data? | `denormalize_columns()` | (any) |
+| Just need the column list, no data? | `list_denormalized_columns()` | (any) |
 | Just need size estimates? | `describe()` / `deriva_ml_bag_info` | (any) |
 
 The cost of mis-picking is silent count inflation (Shape A used on multi-write data emits N × anchor rows; analysts who don't sanity-check anchor counts get wrong denominators). When in doubt, run `dataset.list_dataset_members()` to anchor your expected count, then check the denormalize row count matches.
@@ -182,17 +193,14 @@ The top-level discriminator is `mode` (one of `catalog_shape`, `dataset_describe
 **Python API (from a bag):**
 ```python
 # Returns list of (column_name, column_type) tuples
-columns = bag.denormalize_columns(include_tables=["Image", "Subject"])
+columns = bag.list_denormalized_columns(include_tables=["Image", "Subject"])
 # [("Image.RID", "ermrest_rid"), ("Image.Filename", "text"), ...]
 ```
 
 **Python API (from SDK — no bag needed):**
 ```python
-# Dataset-scoped shape + size estimates
-info = dataset.denormalize_info(include_tables=["Image", "Subject"])
-
-# Catalog-wide (no dataset required)
-info = ml.denormalize_info(include_tables=["Image", "Subject"])
+# Shape + size estimates on a Dataset (or a downloaded bag — same signature)
+info = dataset.describe_denormalized(include_tables=["Image", "Subject"])
 ```
 
 These call the same FK path analysis as the full denormalization but skip the data fetch entirely.
@@ -247,7 +255,7 @@ Result:  Image → Observation → (through association) → ClinicalRecord
 Denormalize uses outer join semantics. If an Image has no Observation FK set (null), the Observation columns in that row will all be null. No rows are dropped — every primary table member always appears in the output.
 
 ```python
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Observation"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Observation"])
 # Row count == number of Image dataset members (never fewer)
 # Images with null Observation FK → Observation columns are null
 ```
@@ -280,10 +288,10 @@ Include the intermediate table to tell denormalize which path to use:
 
 ```python
 # Ambiguous — raises error
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
 
 # Disambiguated — uses Image → Observation → Subject path
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Observation", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Observation", "Subject"])
 ```
 
 When you include Observation, denormalize uses the multi-hop path (Image → Observation → Subject) because all intermediate tables on that path are present in `include_tables`.
@@ -312,10 +320,10 @@ The first table in `include_tables` that has dataset members becomes the primary
 
 ```python
 # Good — Image has members, drives the output
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Subject"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Subject"])
 
 # Risky — if Observation has no members, result may be empty
-df = bag.denormalize_as_dataframe(include_tables=["Observation", "Image"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Observation", "Image"])
 ```
 
 ### Verify FK integrity
@@ -323,7 +331,7 @@ df = bag.denormalize_as_dataframe(include_tables=["Observation", "Image"])
 After denormalization, you can verify FK relationships in the output:
 
 ```python
-df = bag.denormalize_as_dataframe(include_tables=["Image", "Observation"])
+df = bag.get_denormalized_as_dataframe(include_tables=["Image", "Observation"])
 
 # Check FK values match
 valid = df.dropna(subset=["Image.Observation", "Observation.RID"])

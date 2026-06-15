@@ -18,7 +18,7 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 
 1. **Use RIDs to reference assets** — not filenames or URLs. RIDs are immutable and unique.
 2. **Upload within an execution** — assets must be registered with Python API `exe.asset_file_path()` and committed with Python API `exe.commit_output_assets()` inside an active execution for provenance tracking.
-3. **Download records provenance automatically** — calling Python API `ml.download_asset(rid)` within an execution links the asset as an "Input" to that execution.
+3. **Download records provenance automatically** — calling Python API `exe.download_asset(rid)` inside an execution links the asset as an "Input" to that execution. `download_asset` is an Execution method, not a `DerivaML` (`ml`) method.
 4. **Create the asset table before uploading** — the table must exist before you can register files for upload to it.
 
 ## Workflow Summary
@@ -38,7 +38,7 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 
 ### Downloading assets
 
-1. Python API `ml.download_asset(rid)` — download a single asset by RID
+1. Python API `exe.download_asset(rid)` — download a single asset by RID (Execution method; call inside an active execution)
 2. Python API `dataset.download_dataset_bag(version)` — download a dataset as a BDBag with all asset files (no execution required)
 3. Python API `exe.download_dataset_bag()` — same as above but within an active execution (records the dataset as an input for provenance)
 4. Python API `bag.restructure_assets()` — organize downloaded assets into ML-ready directory layouts

@@ -203,9 +203,15 @@ deriva_ml_bag_info(
 # decide whether to use exclude_tables or increase timeout.
 
 # Step 2: Validate version. Reject dev versions up front.
-ds = ml.find_dataset("2-XXXX")          # or ds = dataset for an in-scope object
-v = ds.find_version("1.0.0")             # raises if version doesn't exist
-assert not v.is_dev, (
+ds = ml.lookup_dataset("2-XXXX")         # or ds = dataset for an in-scope object
+# dataset_history() lists every Dataset_Version row, oldest first.
+v = next(
+    (h.dataset_version for h in ds.dataset_history()
+     if str(h.dataset_version) == "1.0.0"),
+    None,
+)
+assert v is not None, "Version 1.0.0 does not exist for this dataset."
+assert not v.is_devrelease, (
     f"Version {v} is a dev label — bags cannot pin to a dev label "
     f"(no snapshot to pin). Release first with deriva_ml_release_dataset()."
 )

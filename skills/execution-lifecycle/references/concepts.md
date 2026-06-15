@@ -83,7 +83,7 @@ print(record.description)     # "Train CNN on batch 1"
 print(record.workflow_rid)    # "1-WXYZ"
 ```
 
-`ExecutionRecord` is also what you get back from provenance queries like `asset.list_executions()` and `ml.find_workflow_executions()`.
+`ExecutionRecord` is also what you get back from provenance queries like `asset.list_executions()` and `ml.find_executions()`.
 
 `ExecutionRecord` is **read-only** — it carries the metadata fields above but not the asset/dataset/feature *link methods* that the live `Execution` handle (returned by `ml.create_execution(...)` and threaded through training code) carries. Once the live handle has gone out of scope, use the MCP queries listed above (or the equivalent path-builder traversals) to walk to the execution's linked records; don't expect `record.execution_assets()` or similar live-handle methods on the lookup result.
 
@@ -280,20 +280,23 @@ Each child is its own execution with its own inputs and outputs; the parent's `a
 |----------|----------------|
 | `deriva://catalog/{h}/{c}/deriva-ml/execution/{rid}` | Execution details including status, workflow, timing, inputs, outputs |
 
-**Python API:**
+Nested-execution navigation lives on the MCP surface, not as Execution
+methods — there is no `execution.list_execution_children(...)` /
+`execution.list_execution_parents(...)` on the Python `Execution` object.
+Use the MCP tools (or the matching resources) to walk the tree:
 
-```python
+```text
 # From parent to children
-children = parent_execution.list_execution_children(recurse=False)
-all_descendants = parent_execution.list_execution_children(recurse=True)
+deriva_ml_list_execution_children(hostname, catalog_id, execution_rid="PARENT_RID")
+deriva_ml_list_execution_children(hostname, catalog_id, execution_rid="PARENT_RID", recurse=True)
 
 # From child to parent
-parents = child_execution.list_execution_parents(recurse=False)
-
-# Each child is an ExecutionRecord with .execution_rid, .status, .description
-for child in children:
-    print(f"{child.execution_rid}: {child.status} — {child.description}")
+deriva_ml_list_execution_parents(hostname, catalog_id, execution_rid="CHILD_RID")
 ```
+
+Each call returns the related execution RIDs; pass each RID to
+`deriva_ml_get_execution(hostname, catalog_id, execution_rid=...)` to fetch
+its status, workflow, and description.
 
 ### Analyzing sweep results
 
@@ -315,7 +318,7 @@ An execution consumes inputs, does work in a local working directory, and produc
 An execution's inputs are **datasets** and **assets** specified when the execution is created. During execution, you download these to a local working directory:
 
 - **Datasets** are downloaded as BDBags — self-contained, versioned archives that include all member records, asset files, feature values, and vocabulary terms at the exact catalog state when the version was created. Call Python API `exe.download_dataset_bag()` with a dataset RID and version. See the `dataset-lifecycle` skill for how datasets and versions work, and its `references/bags.md` for details on the BDBag format.
-- **Individual assets** (e.g., pretrained model weights) are downloaded directly. Call Python API `ml.download_asset(rid)` with an asset RID. See the `work-with-assets` skill for asset concepts including caching.
+- **Individual assets** (e.g., pretrained model weights) are downloaded directly. Call Python API `exe.download_asset(rid)` with an asset RID. See the `work-with-assets` skill for asset concepts including caching.
 
 Both operations automatically record provenance — the downloaded dataset or asset is linked to the execution with role "Input".
 

@@ -61,7 +61,7 @@ Assets and datasets serve different purposes:
 | **Storage** | File in object store + metadata row in an asset table | Membership associations in the catalog |
 | **Versioning** | Immutable once uploaded (new version = new asset) | Semantic versioning with snapshot semantics |
 | **Primary use** | Track individual files with provenance | Organize data for reproducible experiments |
-| **Download** | Python API `ml.download_asset(rid)` → one file | Python API `dataset.download_dataset_bag(version)` → BDBag with all members + assets |
+| **Download** | Python API `exe.download_asset(rid)` → one file (Execution method) | Python API `dataset.download_dataset_bag(version)` → BDBag with all members + assets |
 
 **Key distinction:** A dataset *contains* assets (among other records). When you download a dataset as a BDBag, the bag includes all asset files reachable from the dataset's members. But an asset exists independently — you can download, reference, and track a single asset without it being part of any dataset.
 
@@ -99,7 +99,7 @@ The plugin exposes schema-scoped resources for asset discovery:
 
 Every asset has a unique **RID** (Resource IDentifier) — a short, immutable string like `3-JSE4` or `2-IMG1`. RIDs are the primary way to reference assets across the system:
 
-- **In MCP tools**: Pass `asset_rid` to `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)`, `deriva_ml_update_asset(hostname, catalog_id, asset_rid, ...)`, etc. The Python API still uses `ml.download_asset(rid)` for the file download itself.
+- **In MCP tools**: Pass `asset_rid` to `deriva_ml_lookup_asset(hostname, catalog_id, asset_rid)`, `deriva_ml_update_asset(hostname, catalog_id, asset_rid, ...)`, etc. The Python API uses `exe.download_asset(rid)` (an Execution method) for the file download itself.
 - **In configurations**: Use RIDs in `AssetSpecConfig` to specify execution inputs
 - **In provenance**: Execution records reference asset RIDs for inputs and outputs
 - **In the web UI**: Each asset's Chaise page URL includes its RID
@@ -201,7 +201,7 @@ This bidirectional tracking means you can answer two key questions:
 - "Where did this asset come from?" — find the execution with role "Output"
 - "What used this asset?" — find all executions with role "Input"
 
-Provenance is recorded automatically: committing via Python API `exe.commit_output_assets()` records "Output" links, and downloading via Python API `ml.download_asset(rid)` within an execution records "Input" links.
+Provenance is recorded automatically: committing via Python API `exe.commit_output_assets()` records "Output" links, and downloading via Python API `exe.download_asset(rid)` within an execution records "Input" links.
 
 ### Asset_Type auto-tags (directional)
 

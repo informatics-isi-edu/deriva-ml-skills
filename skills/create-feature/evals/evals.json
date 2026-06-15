@@ -28,25 +28,25 @@
     {
       "id": 5,
       "prompt": "I have a dataset with images that have been labeled by three different pathologists. I need to get the consensus label for each image — the most common label among the three. How do I do that?",
-      "expected_output": "Should recommend selector='majority_vote' on the MCP tool (requires feature_name). Should show fetch_table_features with selector='majority_vote' and feature_name='Diagnosis'. Should mention the MCP resource deriva_ml_list_feature_values(selector='majority_vote') as an alternative. Should explain that majority_vote auto-detects the term column for single-term features. Should note that for Python, use RecordClass.select_majority_vote().",
+      "expected_output": "Should recommend the deriva_ml_list_feature_values MCP tool with selector='majority_vote' and feature_name='Diagnosis'. Should explain that majority_vote auto-detects the term column for single-term features. For the Python API, should show ml.feature_values('Image', 'Diagnosis', selector=RecordClass.select_majority_vote()) where RecordClass = ml.lookup_feature('Image','Diagnosis').feature_record_class().",
       "files": []
     },
     {
       "id": 6,
       "prompt": "What features exist on the Image table in my catalog? I want to see what annotations are available before I start my analysis.",
-      "expected_output": "Should use the discovery flow: read deriva_ml_list_features tool to see all features, or read feature-specific resources. Should show how to browse values with deriva_ml_list_feature_values(selector='newest') for a quick summary. Should use fetch_table_features MCP tool for filtered queries. Should follow a systematic exploration: discover features → inspect structure → browse values.",
+      "expected_output": "Should use the discovery flow: read deriva_ml_list_features tool to see all features, or read feature-specific resources. Should show how to browse values with deriva_ml_list_feature_values(selector='newest') for a quick summary, and mention the Python API ml.feature_values(table, feature_name) for filtered/programmatic queries. Should follow a systematic exploration: discover features → inspect structure → browse values.",
       "files": []
     },
     {
       "id": 7,
       "prompt": "I have images annotated by multiple model runs. I only want the labels from the training workflow, not from the inference workflow. How do I filter?",
-      "expected_output": "Should recommend using workflow parameter on fetch_table_features: fetch_table_features(table_name='Image', feature_name='Prediction', workflow='Training'). Should explain that workflow accepts either a workflow type name or a workflow RID. Should note mutual exclusivity — can't combine with selector or execution. Should mention that this approach requires a live catalog connection (doesn't work on bags).",
+      "expected_output": "Should filter by workflow using the select_by_workflow selector: ml.feature_values('Image', 'Prediction', selector=FeatureRecord.select_by_workflow(workflow, container=ml)) for the Python API, or the deriva_ml_list_feature_values MCP tool with the workflow selector. Should explain that select_by_workflow accepts either a workflow type name or a workflow RID and resolves it to that workflow's executions. Should note that selectors collapse multi-value groups to one survivor per target RID.",
       "files": []
     },
     {
       "id": 8,
       "prompt": "I want to get the original labels for my images — the very first annotation that was done, not the latest corrections. How?",
-      "expected_output": "Should recommend selector='first' on the MCP tool: fetch_table_features(table_name='Image', feature_name='Diagnosis', selector='first'). Should mention the MCP resource deriva_ml_list_feature_values(selector='first') as an alternative for browsing. Should explain that select_first picks the earliest by RCT (creation timestamp). Should mention FeatureRecord.select_first for Python API usage.",
+      "expected_output": "Should recommend selector='first' on the deriva_ml_list_feature_values MCP tool with feature_name='Diagnosis'. For the Python API, should show ml.feature_values('Image', 'Diagnosis', selector=FeatureRecord.select_first). Should explain that select_first picks the earliest by RCT (creation timestamp).",
       "files": []
     },
     {
