@@ -64,7 +64,13 @@ def main() -> int:
 
     if want in ("all", "bags"):
         print("== Cached dataset bags ==")
-        bags = list(ml.list_cached_bags())
+        try:
+            bags = list(ml.list_cached_bags())
+        except (PermissionError, OSError) as e:
+            print(f"  ! could not read the bag cache: {e}")
+            print("  ! a cached bag directory is unreadable (permissions?) — "
+                  "fix access or remove that directory, then re-run.")
+            bags = []
         if not bags:
             print("  (none)")
         for b in bags:
@@ -74,7 +80,13 @@ def main() -> int:
 
     if want in ("all", "assets"):
         print("== Cached assets ==")
-        assets = list(ml.list_cached_assets())
+        try:
+            assets = list(ml.list_cached_assets())
+        except (PermissionError, OSError) as e:
+            print(f"  ! could not read the asset cache: {e}")
+            print("  ! a cached asset directory is unreadable (permissions?) — "
+                  "fix access or remove that directory, then re-run.")
+            assets = []
         if not assets:
             print("  (none)")
         for a in assets:
@@ -83,14 +95,27 @@ def main() -> int:
 
     if want in ("all", "executions"):
         print("== Execution working directories ==")
-        dirs = list(ml.list_execution_dirs())
+        try:
+            dirs = list(ml.list_execution_dirs())
+        except (PermissionError, OSError) as e:
+            print(f"  ! could not read execution working directories: {e}")
+            print("  ! an execution directory is unreadable (permissions?) — "
+                  "fix access or remove that directory, then re-run.")
+            dirs = []
         if not dirs:
             print("  (none)")
         for d in dirs:
             print(f"  {d['execution_rid']:>10}  {d['size_mb']:>10.1f} MB  {d['path']}")
 
     if want in ("all", "summary"):
-        s = ml.get_storage_summary()
+        try:
+            s = ml.get_storage_summary()
+        except (PermissionError, OSError) as e:
+            print("== Summary ==")
+            print(f"  ! could not compute storage summary: {e}")
+            print("  ! an unreadable cache/execution directory blocked the size "
+                  "walk — fix access or remove it, then re-run.")
+            return 0
         print("== Summary ==")
         print(f"  bags:       {s['bag_count']:>4}  ({s['bag_size_mb']:.1f} MB)")
         print(f"  assets:     {s['asset_count']:>4}  ({s['asset_size_mb']:.1f} MB)")

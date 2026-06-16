@@ -128,6 +128,19 @@ print(summary["total_size_mb"])
 (`bag_size_mb` / `asset_size_mb` break down `cache_size_mb` by
 species — they are subsets of it, not additive with it.)
 
+> **Unreadable cache directories.** A cache populated under a different user,
+> on a restrictive shared mount, or left half-written by an interrupted run can
+> contain a directory the current user can't read. The deriva-ml layer skips
+> most such entries, but a permission-denied directory *inside* a bag can still
+> raise `PermissionError` / `OSError` during the size walk. **Don't let that
+> abort the whole report.** The bundled `inspect_storage.py` already catches
+> per-species read errors and continues with a warning; if you call the API
+> directly, wrap each `list_*` / `get_storage_summary` call in
+> `try/except (PermissionError, OSError)` and report the unreadable path rather
+> than crashing. The fix for the user is to correct the directory's permissions
+> or remove it (deleting the whole `cache/` directory is safe — index and bags
+> leave together), then re-run.
+
 ### Browse all storage (bash fallback)
 
 ```
