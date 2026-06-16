@@ -377,7 +377,9 @@ uv run python ${skill_base_dir}/scripts/warm_cache.py \
     --dataset-rid 9QPM --version 0.4.0
 ```
 
-**Progress.** For a multi-GB warm, the script surfaces the library's per-dataset progress by default — `Materializing bag: N of M file(s) downloaded` lines — so it isn't a silent wait. This is **file-count** progress, not bytes/percent (the library's fetch callback reports file counts only; true byte progress would need a deriva-ml change — tracked at [deriva-ml#314](https://github.com/informatics-isi-edu/deriva-ml/issues/314)). Pass `--quiet` to suppress it.
+**Progress.** For a multi-GB warm, the script reports per-dataset progress by default — `Materializing: 120/4210 files (3%)` lines — so it isn't a silent wait. The progress is **throttled**: by default one line at most every 15 s (tune with `--progress-interval SECONDS`; `0` = every update), with the first and final (100%) lines always shown, so a long warm reports on a steady cadence instead of spamming a line per file. It is **file-count** progress, not bytes/percent (the library exposes file counts only; true byte progress would need a deriva-ml change — tracked at [deriva-ml#314](https://github.com/informatics-isi-edu/deriva-ml/issues/314)), so the percentage is *files done*, which can be lumpy when a few large files dominate. Pass `--quiet` to suppress progress entirely.
+
+Note for the agent: the script does not draw a live, redrawing progress bar — it emits discrete throttled lines, which is the right shape when Claude runs it through the Bash tool (captured output, not a live terminal). Relay the latest line's milestone to the user rather than expecting an animated bar.
 
 **What the output looks like** (so you can relay status to the user, not dump raw text):
 
@@ -385,8 +387,9 @@ uv run python ${skill_base_dir}/scripts/warm_cache.py \
 [1/3] 28CT v1.0.0
     Image                                       4210 rows,     1834.2 MB assets
     Subject                                      512 rows,        0.0 MB assets
-Materializing bag: 120 of 4210 file(s) downloaded.
-...
+  Materializing: 120/4210 files (3%)
+  Materializing: 2380/4210 files (57%)
+  Materializing: 4210/4210 files (100%)
   cached. {'status': 'cached_materialized', ...}
 [2/3] 3WSE v2.1.0
   ! preview failed, skipping: 404 ... catalog 27
@@ -477,7 +480,7 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 - `ml.clear_cache(older_than_days=None)` / `ml.clean_execution_dirs(...)` / `ml.gc_executions(...)` — Bulk cleanup
 - Bash `ls -la ~/.deriva-ml/` — Quick visual scan (don't `rm -rf` inside `cache/` — use the deletion APIs)
 - `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version
-- `${skill_base_dir}/scripts/warm_cache.py` — Pre-fetches one or more dataset bags into the local cache (no execution required). Accepts repeated `--dataset-rid`/`--version` pairs (warmed sequentially, per-RID error isolation); shows file-count progress by default (`--quiet` to silence). **Two run modes:** run it in place from this skill's directory for a one-off warm (Mode 1 — the default; you run it, don't hand it off), or copy it into `src/scripts/` and commit it when the warm belongs in the project's repeatable setup (Mode 2). Either way it's the script, not inline `cache_dataset()`.
+- `${skill_base_dir}/scripts/warm_cache.py` — Pre-fetches one or more dataset bags into the local cache (no execution required). Accepts repeated `--dataset-rid`/`--version` pairs (warmed sequentially, per-RID error isolation); shows throttled file-count progress with a percentage by default (`--progress-interval SECONDS` to tune the cadence, `--quiet` to silence). **Two run modes:** run it in place from this skill's directory for a one-off warm (Mode 1 — the default; you run it, don't hand it off), or copy it into `src/scripts/` and commit it when the warm belongs in the project's repeatable setup (Mode 2). Either way it's the script, not inline `cache_dataset()`.
 
 ## Related Skills
 
