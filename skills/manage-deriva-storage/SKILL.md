@@ -379,6 +379,35 @@ uv run python ${skill_base_dir}/scripts/warm_cache.py \
 
 **Progress.** For a multi-GB warm, the script surfaces the library's per-dataset progress by default — `Materializing bag: N of M file(s) downloaded` lines — so it isn't a silent wait. This is **file-count** progress, not bytes/percent (the library's fetch callback reports file counts only; true byte progress would need a deriva-ml change — tracked at [deriva-ml#314](https://github.com/informatics-isi-edu/deriva-ml/issues/314)). Pass `--quiet` to suppress it.
 
+**What the output looks like** (so you can relay status to the user, not dump raw text):
+
+```
+[1/3] 28CT v1.0.0
+    Image                                       4210 rows,     1834.2 MB assets
+    Subject                                      512 rows,        0.0 MB assets
+Materializing bag: 120 of 4210 file(s) downloaded.
+...
+  cached. {'status': 'cached_materialized', ...}
+[2/3] 3WSE v2.1.0
+  ! preview failed, skipping: 404 ... catalog 27
+[3/3] 9QPM v0.4.0
+    ...
+  cached. {...}
+
+1 of 3 dataset(s) failed:
+  - 3WSE v2.1.0: 404 ... catalog 27
+```
+
+Read it as: `[i/N] <rid> <version>` headers track which dataset; a `! ... skipping` / `! cache failed` line means *that* dataset failed but the rest continued; the final `X of N dataset(s) failed:` block (and exit code 1) is the consolidated result. Report the substance to the user (e.g. *"2 of 3 cached; 9QPM failed — its catalog is gone"*), not the raw stream.
+
+**Keeping a record of a long warm.** There's no `--log-file` flag — you don't need one. For a long multi-GB / many-dataset warm where the user steps away, capture the stream with the shell:
+
+```bash
+uv run python ${skill_base_dir}/scripts/warm_cache.py ... 2>&1 | tee warm-cache.log
+```
+
+`tee` shows progress live *and* writes `warm-cache.log` for later review. Only do this for genuinely long warms; a quick one-off doesn't need a log file cluttering the directory.
+
 Downloads the full bag (including materialized assets) into the cache. Subsequent calls to `exe.download_dataset_bag(spec)` with the same RID and version reuse the cached copy.
 
 ### Cache metadata only (no asset files)
