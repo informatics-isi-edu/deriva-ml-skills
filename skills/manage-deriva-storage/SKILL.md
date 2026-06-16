@@ -359,6 +359,18 @@ uv run python src/scripts/warm_cache.py \
 
 Both modes run the *same* script — the only difference is whether it gets committed. Mode 1 is the right default when the user asks you to warm the cache; reach for Mode 2 when the warm belongs in the project's permanent setup. Either way: it's the script, not a hand-written `cache_dataset()` snippet (see the rule above).
 
+**Warming several datasets at once.** Repeat `--dataset-rid` / `--version` as paired arguments (same order) — the script warms them **sequentially** in one invocation. Don't launch multiple `warm_cache.py` processes in parallel: each dataset's asset download is already ~8-way concurrent inside the library, which saturates a typical uplink, so parallel processes just split the same bandwidth and contend. Sequential also isolates a bad RID (a deleted catalog, a dev-label version) — it's reported and skipped, the rest still warm.
+
+```bash
+uv run python ${skill_base_dir}/scripts/warm_cache.py \
+    --hostname data.example.org --catalog-id 1 \
+    --dataset-rid 28CT --version 1.0.0 \
+    --dataset-rid 3WSE --version 2.1.0 \
+    --dataset-rid 9QPM --version 0.4.0
+```
+
+**Progress.** For a multi-GB warm, the script surfaces the library's per-dataset progress by default — `Materializing bag: N of M file(s) downloaded` lines — so it isn't a silent wait. This is **file-count** progress, not bytes/percent (the library's fetch callback reports file counts only; true byte progress would need a deriva-ml change — tracked at [deriva-ml#314](https://github.com/informatics-isi-edu/deriva-ml/issues/314)). Pass `--quiet` to suppress it.
+
 Downloads the full bag (including materialized assets) into the cache. Subsequent calls to `exe.download_dataset_bag(spec)` with the same RID and version reuse the cached copy.
 
 ### Cache metadata only (no asset files)
@@ -428,7 +440,7 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 - `ml.clear_cache(older_than_days=None)` / `ml.clean_execution_dirs(...)` / `ml.gc_executions(...)` — Bulk cleanup
 - Bash `ls -la ~/.deriva-ml/` — Quick visual scan (don't `rm -rf` inside `cache/` — use the deletion APIs)
 - `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version
-- `${skill_base_dir}/scripts/warm_cache.py` — Pre-fetches a dataset bag into the local cache (no execution required). **Two run modes:** run it in place from this skill's directory for a one-off warm (Mode 1 — the default; you run it, don't hand it off), or copy it into `src/scripts/` and commit it when the warm belongs in the project's repeatable setup (Mode 2). Either way it's the script, not inline `cache_dataset()`.
+- `${skill_base_dir}/scripts/warm_cache.py` — Pre-fetches one or more dataset bags into the local cache (no execution required). Accepts repeated `--dataset-rid`/`--version` pairs (warmed sequentially, per-RID error isolation); shows file-count progress by default (`--quiet` to silence). **Two run modes:** run it in place from this skill's directory for a one-off warm (Mode 1 — the default; you run it, don't hand it off), or copy it into `src/scripts/` and commit it when the warm belongs in the project's repeatable setup (Mode 2). Either way it's the script, not inline `cache_dataset()`.
 
 ## Related Skills
 
