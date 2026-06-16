@@ -1,6 +1,6 @@
 ---
 name: manage-deriva-storage
-description: "Use whenever the user asks about DerivaML LOCAL storage — listing or finding which datasets/bags are cached on disk, checking local disk usage, cleaning up or deleting cached bags and execution working directories, pre-fetching (warming) datasets into the local cache, or understanding the cache-dir vs working-dir distinction (including a relocated cache_dir that is not under ~/.deriva-ml). Fire even on read-only phrasings the user won't word as 'manage storage' — 'what datasets are cached', 'list my cached bags', 'what's in my cache', 'how much disk is DerivaML using', 'free up space', 'is dataset X cached', 'where is my cache'. Triggers on: 'disk full', 'clean up cache', 'what's cached', 'cached datasets', 'storage', 'free space', 'delete old data', 'cache management', 'prefetch dataset', 'warm cache', 'working directory', 'cache directory', 'cache_dir', '~/.deriva-ml'. Do NOT trigger for: catalog-side object storage / hatrac, downloading a bag for the first time (that's dataset-lifecycle), or a git/OS 'working directory' unrelated to DerivaML's local cache."
+description: "Use whenever the user asks about DerivaML LOCAL storage — listing or finding which datasets/bags AND cached assets (model weights, files) are on disk, checking local disk usage, cleaning up or deleting cached bags / cached assets / execution working directories, pre-fetching (warming) datasets or assets into the local cache, or understanding the cache-dir vs working-dir distinction (including a relocated cache_dir that is not under ~/.deriva-ml). Fire even on read-only phrasings the user won't word as 'manage storage' — 'what datasets are cached', 'list my cached bags', 'are my model weights cached', 'what's in my cache', 'how much disk is DerivaML using', 'free up space', 'is dataset X cached', 'delete the cached weights', 'where is my cache'. Triggers on: 'disk full', 'clean up cache', 'what's cached', 'cached datasets', 'cached assets', 'cached model weights', 'storage', 'free space', 'delete old data', 'cache management', 'prefetch dataset', 'warm cache', 'working directory', 'cache directory', 'cache_dir', '~/.deriva-ml'. Do NOT trigger for: catalog-side object storage / hatrac or catalog asset RECORDS (that's work-with-assets), downloading a bag for the first time (that's dataset-lifecycle), or a git/OS 'working directory' unrelated to DerivaML's local cache."
 disable-model-invocation: false
 ---
 
@@ -127,6 +127,19 @@ print(summary["total_size_mb"])
 
 (`bag_size_mb` / `asset_size_mb` break down `cache_size_mb` by
 species — they are subsets of it, not additive with it.)
+
+> **Unreadable cache directories.** A cache populated under a different user,
+> on a restrictive shared mount, or left half-written by an interrupted run can
+> contain a directory the current user can't read. The deriva-ml layer skips
+> most such entries, but a permission-denied directory *inside* a bag can still
+> raise `PermissionError` / `OSError` during the size walk. **Don't let that
+> abort the whole report.** The bundled `inspect_storage.py` already catches
+> per-species read errors and continues with a warning; if you call the API
+> directly, wrap each `list_*` / `get_storage_summary` call in
+> `try/except (PermissionError, OSError)` and report the unreadable path rather
+> than crashing. The fix for the user is to correct the directory's permissions
+> or remove it (deleting the whole `cache/` directory is safe — index and bags
+> leave together), then re-run.
 
 ### Browse all storage (bash fallback)
 
@@ -316,23 +329,35 @@ Download datasets or assets into the local cache **without creating an execution
 
 ### Cache a dataset bag
 
-> **Use the `warm_cache.py` template — do NOT hand-write inline cache-warming Python.** This is the one bypass to actively resist here: warming is reproducible, parameterized project work (it gets committed and re-run), so it belongs in the copied script, not a one-off `ml.cache_dataset(...)` snippet. (Read-only *inspection* — `inspect_storage.py` / a quick `ml.list_cached_bags()` — is the opposite: run in place, inline is fine. The prohibition below applies to *warming*, not listing.)
+> **Run the `warm_cache.py` script — do NOT hand-write inline cache-warming Python.** This is the one bypass to actively resist: the script gives you `--dry-run`, `--metadata-only`, `--cache-dir`, and a stable CLI, and (when committed) makes the warm step reproducible — a one-off `ml.cache_dataset(...)` snippet gives none of that and leaves no trace. (This is about *script vs. inline*, a separate question from *where you run the script* — see the two run modes just below. Read-only *inspection* — `inspect_storage.py` / a quick `ml.list_cached_bags()` — is exempt: run in place, inline is fine. This rule is about *warming*.)
 >
 > | Rationalization (STOP — you're about to bypass) | Reality |
 > |---|---|
-> | "I already know how to call `ml.cache_dataset()`" | Knowing the API is exactly the trap. The template adds `--dry-run`, `--metadata-only`, `--cache-dir`, and a stable CLI you don't have to reconstruct each time. |
-> | "Inline Python is faster / fewer steps" | A copied-and-committed script is reproducible and citable; an inline snippet leaves no trace and can't be re-run by the next person (or the next run of the matrix). |
-> | "It's just a one-liner, copying a file is overkill" | Warming is pre-flight infrastructure that runs repeatedly (before training, in CI, across an experiment matrix). One-off-ness is the illusion. |
+> | "I already know how to call `ml.cache_dataset()`" | Knowing the API is exactly the trap. The script wraps it with `--dry-run`, `--metadata-only`, `--cache-dir`, and a stable CLI you don't have to reconstruct. |
+> | "Inline Python is faster / fewer steps" | Running the bundled script in place (Mode 1 below) is just as fast and needs no copying — you get the CLI for free with no extra steps. |
+> | "Writing it inline avoids copying a file" | You don't have to copy it — run it in place from `${skill_base_dir}` (Mode 1). Copying is only for when you want it committed (Mode 2). |
 >
-> If you catch yourself reaching for inline `cache_dataset` / `download_dataset_bag` to warm the cache: stop, copy the template, run it.
+> If you catch yourself reaching for inline `cache_dataset` / `download_dataset_bag` to warm the cache: stop and run `warm_cache.py` instead (in place is fine).
 
-Unlike `inspect_storage.py` (run in place), `warm_cache.py` is a **template you copy into the user's project** so it can be committed for reproducibility. Copy it from this skill's directory — `${skill_base_dir}/scripts/warm_cache.py` — into `src/scripts/`, then run:
+`warm_cache.py` has **two run modes** — and "use the script" (the rule above) does NOT mean "you must copy it first." These are independent decisions:
+
+**Mode 1 — run it in place, now (the default for a one-off warm).** When the user just wants the cache warmed for the work at hand, **you run the bundled script directly from this skill's directory — don't hand the command off to the user, and don't copy anything.** Same as `inspect_storage.py`:
+
+```bash
+uv run python ${skill_base_dir}/scripts/warm_cache.py \
+    --hostname data.example.org --catalog-id 1 \
+    --dataset-rid 28CT --version 0.9.0
+```
+
+**Mode 2 — copy into the project, for reproducibility.** When the warm step is part of the experiment's repeatable setup (it'll run again — before each training run, in CI, across a sweep), copy it from `${skill_base_dir}/scripts/warm_cache.py` into `src/scripts/` and commit it, then run the copied version:
 
 ```bash
 uv run python src/scripts/warm_cache.py \
     --hostname data.example.org --catalog-id 1 \
     --dataset-rid 28CT --version 0.9.0
 ```
+
+Both modes run the *same* script — the only difference is whether it gets committed. Mode 1 is the right default when the user asks you to warm the cache; reach for Mode 2 when the warm belongs in the project's permanent setup. Either way: it's the script, not a hand-written `cache_dataset()` snippet (see the rule above).
 
 Downloads the full bag (including materialized assets) into the cache. Subsequent calls to `exe.download_dataset_bag(spec)` with the same RID and version reuse the cached copy.
 
@@ -357,7 +382,7 @@ spec = DatasetSpec(rid="28CT", version="0.9.0")
 ml.cache_dataset(spec, materialize=True)
 ```
 
-Shown so you recognize what the template runs — **not as an invitation to skip it.** Per the red-flags table above, warming for an actual project goes through the copied `warm_cache.py` (committed, parameterized, re-runnable). The only time the bare call is appropriate is a genuinely throwaway exploration in a notebook you will not commit — and even then, prefer the template the moment the warm step becomes something you'd run twice.
+Shown so you recognize what the script runs — **not as an invitation to skip it.** Per the red-flags table above, warming goes through `warm_cache.py` (run it in place for a one-off, or copy + commit it for repeatable setup). The only time the bare call is appropriate is a genuinely throwaway exploration in a notebook you will not commit — and even then, running the script in place is just as easy.
 
 ### Cache an individual asset
 
@@ -381,7 +406,7 @@ The recommended pre-flight sequence:
 
 1. **Validate** — call `get_entities(hostname=..., catalog_id=..., schema=..., table=..., filters={"RID": "<rid>"})` per candidate dataset/asset RID and confirm a non-empty result.
 2. **Check cache** — `deriva_ml_bag_info(hostname=..., catalog_id=..., dataset_rid=..., version=...)` — see what's already cached
-3. **Pre-fetch** — run your copied `src/scripts/warm_cache.py --dataset-rid <rid> --version <version>` to download anything that's `not_cached`
+3. **Pre-fetch** — run `warm_cache.py --dataset-rid <rid> --version <version>` to download anything that's `not_cached` (in place from `${skill_base_dir}/scripts/` for a one-off, or your committed `src/scripts/` copy if this experiment's setup is repeatable)
 4. **Verify** — `deriva_ml_bag_info(...)` — confirm `cached_materialized`
 5. **Run** — copy `skills/execution-lifecycle/scripts/basic_execution.py`, commit it, and run with `deriva-ml-run`. Downloads inside the execution hit cache instantly.
 
@@ -403,7 +428,7 @@ This launches a web UI that shows all cached data with filters, sizes, and bulk 
 - `ml.clear_cache(older_than_days=None)` / `ml.clean_execution_dirs(...)` / `ml.gc_executions(...)` — Bulk cleanup
 - Bash `ls -la ~/.deriva-ml/` — Quick visual scan (don't `rm -rf` inside `cache/` — use the deletion APIs)
 - `deriva_ml_bag_info` — Check cache status, size, and manifest for a specific dataset version
-- `${skill_base_dir}/scripts/warm_cache.py` — Template (in this skill's directory) for pre-fetching a dataset bag into the local cache; **copy into `src/scripts/`** and commit (no execution required). Contrast with `inspect_storage.py`, which is run in place.
+- `${skill_base_dir}/scripts/warm_cache.py` — Pre-fetches a dataset bag into the local cache (no execution required). **Two run modes:** run it in place from this skill's directory for a one-off warm (Mode 1 — the default; you run it, don't hand it off), or copy it into `src/scripts/` and commit it when the warm belongs in the project's repeatable setup (Mode 2). Either way it's the script, not inline `cache_dataset()`.
 
 ## Related Skills
 
