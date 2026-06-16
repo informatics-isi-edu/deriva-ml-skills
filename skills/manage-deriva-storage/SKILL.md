@@ -349,6 +349,8 @@ uv run python ${skill_base_dir}/scripts/warm_cache.py \
     --dataset-rid 28CT --version 0.9.0
 ```
 
+The single `--dataset-rid` above is just the one-dataset case. **For two or more datasets, don't repeat this command — pass all the pairs to one call** (see "Warming several datasets" below).
+
 **Mode 2 — copy into the project, for reproducibility.** When the warm step is part of the experiment's repeatable setup (it'll run again — before each training run, in CI, across a sweep), copy it from `${skill_base_dir}/scripts/warm_cache.py` into `src/scripts/` and commit it, then run the copied version:
 
 ```bash
@@ -359,7 +361,13 @@ uv run python src/scripts/warm_cache.py \
 
 Both modes run the *same* script — the only difference is whether it gets committed. Mode 1 is the right default when the user asks you to warm the cache; reach for Mode 2 when the warm belongs in the project's permanent setup. Either way: it's the script, not a hand-written `cache_dataset()` snippet (see the rule above).
 
-**Warming several datasets at once.** Repeat `--dataset-rid` / `--version` as paired arguments (same order) — the script warms them **sequentially** in one invocation. Don't launch multiple `warm_cache.py` processes in parallel: each dataset's asset download is already ~8-way concurrent inside the library, which saturates a typical uplink, so parallel processes just split the same bandwidth and contend. Sequential also isolates a bad RID (a deleted catalog, a dev-label version) — it's reported and skipped, the rest still warm.
+**Warming several datasets — pass them all to one invocation (the preferred way).** When more than one dataset needs warming, give a single `warm_cache.py` call repeated `--dataset-rid` / `--version` pairs (same order) — **not** one run per dataset, and **not** several runs in parallel. One call is preferable on every axis:
+
+- It warms each dataset with the library's built-in ~8-way asset concurrency, one after another — which already saturates a typical uplink. Parallel processes (or `&`-backgrounded runs) just split the same bandwidth and contend, so they're no faster and usually slower.
+- A bad RID (deleted catalog, dev-label version) is reported and **skipped**, and the remaining datasets still warm — you get one consolidated pass/fail summary instead of N separate exit codes to babysit.
+- It's one command to read, log, and (in Mode 2) commit.
+
+So the rule: **more than one dataset → one `warm_cache.py` call with all the pairs.** Reach for separate invocations only when the datasets genuinely belong to different catalogs (different `--hostname`/`--catalog-id`).
 
 ```bash
 uv run python ${skill_base_dir}/scripts/warm_cache.py \

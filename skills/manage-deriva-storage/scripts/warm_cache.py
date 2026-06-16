@@ -16,13 +16,17 @@ The cache key is ``(dataset_rid, version, exclude_tables, materialize)``
 plus the catalog's snapshot for that version, so re-running this script
 with the same args after a successful cache load is a no-op.
 
-Multiple datasets are warmed **sequentially**, not in parallel. Each
-dataset's asset download is already concurrent inside the library
+**To warm more than one dataset, pass them all to a single invocation**
+(repeat ``--dataset-rid`` with a paired ``--version`` each) — this is
+the preferred way, rather than running the script once per dataset or
+launching several runs in parallel. They are warmed **sequentially**:
+each dataset's asset download is already concurrent inside the library
 (``cache_dataset`` fetches asset files ~8-way by default), which
-saturates a typical uplink on its own; launching several warms at once
-would just split the same bandwidth and contend for it, not go faster.
-Sequential keeps progress legible and lets one bad RID be isolated
-without killing the rest.
+saturates a typical uplink on its own, so parallel runs would just
+split the same bandwidth and contend, not go faster. One sequential
+invocation also keeps progress legible and isolates a bad RID (it is
+reported and skipped, the rest still warm) with a single pass/fail
+summary at the end.
 
 This is a Python-only operation because the cache lives on the caller's
 machine, not the MCP server's filesystem. There is no MCP tool that
@@ -58,8 +62,10 @@ def main() -> int:
     parser.add_argument("--hostname", required=True)
     parser.add_argument("--catalog-id", required=True)
     parser.add_argument("--dataset-rid", action="append", required=True, dest="dataset_rids",
-                        help="A Dataset RID to warm. Repeat for several datasets; "
-                             "pair each with a --version in the same order.")
+                        help="A Dataset RID to warm. For MORE THAN ONE dataset, "
+                             "repeat this (with a paired --version each, same order) "
+                             "in a SINGLE invocation — that is the preferred way; do "
+                             "not run the script once per dataset or in parallel.")
     parser.add_argument("--version", action="append", required=True, dest="versions",
                         help="Released version label (e.g. 1.0.0) for the "
                              "correspondingly-positioned --dataset-rid. Dev labels "
