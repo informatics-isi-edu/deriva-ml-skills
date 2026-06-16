@@ -54,7 +54,49 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 import sys
+import time
+
+# Matches the library's per-file progress message, e.g.
+# "Materializing bag: 120 of 4210 file(s) downloaded." — the only progress
+# signal the library exposes (file counts, not bytes; see deriva-ml#314). We
+# parse current/total out of it to add a percentage and to throttle the rate.
+_PROGRESS_RE = re.compile(r"(?P<verb>Materializing|Validating) bag: (?P<cur>\d+) of (?P<total>\d+)")
+
+
+class _ThrottledProgressHandler(logging.Handler):
+    """Surface the library's file-count progress, throttled, with a percentage.
+
+    Records that match the progress message are re-emitted at most once per
+    ``interval`` seconds (always emitting the first and the final 100% line),
+    with a ``(P%)`` appended. Any record that does NOT match the expected
+    format is passed through unchanged, so a future change to the library's
+    message wording degrades gracefully (you still see the raw line) rather
+    than silently dropping progress.
+    """
+
+    def __init__(self, interval: float):
+        super().__init__(level=logging.INFO)
+        self.interval = interval
+        self._last_emit = 0.0
+
+    def emit(self, record: logging.LogRecord) -> None:
+        msg = record.getMessage()
+        m = _PROGRESS_RE.search(msg)
+        if not m:
+            # Non-progress INFO line (or changed format) — pass through.
+            print(msg)
+            return
+        cur, total = int(m.group("cur")), int(m.group("total"))
+        is_last = total > 0 and cur >= total
+        now = time.monotonic()
+        # Always show the final (100%) line; otherwise honor the interval.
+        if not is_last and (now - self._last_emit) < self.interval:
+            return
+        self._last_emit = now
+        pct = (cur / total * 100.0) if total else 0.0
+        print(f"  {m.group('verb')}: {cur}/{total} files ({pct:.0f}%)")
 
 
 def main() -> int:
@@ -85,8 +127,14 @@ def main() -> int:
                              "/ hydra default_deriva(...) config uses, or the bag "
                              "warms into the wrong (default) location.")
     parser.add_argument("--quiet", action="store_true",
-                        help="Suppress the per-dataset file-count progress lines "
-                             "(the library's INFO logging). On by default.")
+                        help="Suppress the per-dataset file-count progress lines. "
+                             "Progress is on by default.")
+    parser.add_argument("--progress-interval", type=float, default=15.0,
+                        metavar="SECONDS",
+                        help="Minimum seconds between progress lines (default 15). "
+                             "Throttles the library's per-file logging so a long "
+                             "warm reports on a steady cadence instead of spamming "
+                             "a line per file. 0 = every update.")
     args = parser.parse_args()
 
     if len(args.dataset_rids) != len(args.versions):
@@ -96,12 +144,15 @@ def main() -> int:
             f"in the same order."
         )
 
-    # Surface the library's file-count progress ("Materializing bag: N of M
-    # file(s) downloaded") unless suppressed. This is the only progress the
-    # library exposes — file counts, not bytes/percent.
+    # Surface the library's file-count progress, throttled and with a percentage,
+    # unless suppressed. The library only emits file counts (not bytes/percent;
+    # see deriva-ml#314), via INFO logging — so we attach a handler that parses
+    # those records, throttles them to --progress-interval, and appends (P%).
     if not args.quiet:
-        logging.basicConfig(level=logging.INFO, format="%(message)s")
-        logging.getLogger("deriva_ml").setLevel(logging.INFO)
+        lib_logger = logging.getLogger("deriva_ml")
+        lib_logger.setLevel(logging.INFO)
+        lib_logger.addHandler(_ThrottledProgressHandler(args.progress_interval))
+        lib_logger.propagate = False  # don't double-print via the root logger
 
     # Imported here (not at module top) so --help and argument validation work
     # without deriva-ml installed, matching inspect_storage.py.
