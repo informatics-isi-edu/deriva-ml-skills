@@ -42,7 +42,8 @@ jobs:
             --exclude='evals' \
             --exclude='docs/superpowers' \
             .claude-plugin/ \
-            skills/
+            skills/ \
+            hooks/
 
       - name: Draft GitHub Release
         uses: release-drafter/release-drafter@v5

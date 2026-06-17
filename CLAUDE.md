@@ -122,7 +122,7 @@ There is also an `evals/optimization/` directory containing a cross-skill eval s
 3. GitHub Actions automatically:
    - Bumps version in `plugin.json` (the bump-my-version config in `pyproject.toml` runs as part of `bump-version`, before the tag push)
    - Commits version bump back to main
-   - Creates `deriva-ml-skills-{VERSION}.tar.gz` (the tar invocation packages `.claude-plugin/` and `skills/`; everything else — `.git`, `.github`, `evals/`, `docs/`, `tests/`, `pyproject.toml`, `uv.lock` — is excluded by virtue of not being passed)
+   - Creates `deriva-ml-skills-{VERSION}.tar.gz` (the tar invocation packages `.claude-plugin/`, `skills/`, and `hooks/`; everything else — `.git`, `.github`, `evals/`, `docs/`, `tests/`, `pyproject.toml`, `uv.lock` — is excluded by virtue of not being passed). **`hooks/` must stay in the tar** — it carries the `SessionStart` hook (`hooks/hooks.json` + the executable `hooks/session-start` script) that injects the tacit-knowledge capture discipline every session; drop it from the tar and the hook silently ships nowhere. The `session-start` file is tracked executable (`100755`); tar preserves the mode so it stays runnable after install.
    - Publishes GitHub Release with auto-generated notes
 4. **Manual step — bump the meta-marketplace.** See "Bumping the meta-marketplace" below. Without this step, users on `autoUpdate: true` will stay pinned to the previous version.
 

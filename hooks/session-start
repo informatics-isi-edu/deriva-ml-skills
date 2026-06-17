@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# SessionStart hook for the deriva-ml plugin.
+#
+# Tacit-knowledge capture is load-bearing for DerivaML projects: the catalog
+# records WHAT was done, but the rationale (why this split, why this config,
+# why this fix) lives only in tacit-knowledge.md — and only if someone writes
+# it. The capture-tacit-knowledge skill is auto-invocable, but auto-invocation
+# is model-judgment and can miss the moment. This hook is the hard-guarantee
+# layer: it injects the capture discipline into context at the start of every
+# session so the agent is primed to record decisions and consult prior ones
+# even if the skill's own trigger doesn't fire.
+
+set -euo pipefail
+
+# JSON-escape a string via bash parameter substitution (single-pass each).
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+reminder=$(cat <<'EOF'
+DerivaML tacit-knowledge capture is active in this session. The catalog stores
+what was done; the WHY lives only in tacit-knowledge.md (project root). Apply
+the capture-tacit-knowledge discipline without waiting to be asked:
+
+- WRITE: right after any action a future teammate would need the rationale for
+  — running/committing an execution, creating or splitting a dataset, creating
+  a feature or vocabulary, changing schema, choosing hyperparameters or a
+  config, resolving a bug with a non-obvious fix — append a short dated entry
+  to tacit-knowledge.md in the SAME response. Fire even when the choice felt
+  obvious. The user will phrase these as plain actions, not as "record this."
+- GUIDANCE: before you execute or recommend a proposed action (add a feature,
+  change a config, split a dataset, train a model), consult tacit-knowledge.md
+  first — prior experience may bear on whether it will work.
+- FORENSIC: when asked "why was X chosen", "have we tried Y", "is this still
+  right", or when orienting to the project, consult the file before answering;
+  if it is silent, say so rather than inventing rationale.
+
+Use the /deriva-ml:capture-tacit-knowledge skill for the full discipline. Treat
+this as a standing trigger for the whole session, not a one-time note.
+EOF
+)
+
+reminder_escaped=$(escape_for_json "$reminder")
+session_context="<important>${reminder_escaped}</important>"
+
+# Emit only the field the current platform consumes (Claude Code reads both
+# additional_context and hookSpecificOutput without dedup, so don't emit both).
+# printf (not heredoc) avoids the bash 5.3+ heredoc hang.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{\n  "additional_context": "%s"\n}\n' "$session_context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
+else
+  printf '{\n  "additionalContext": "%s"\n}\n' "$session_context"
+fi
+
+exit 0
