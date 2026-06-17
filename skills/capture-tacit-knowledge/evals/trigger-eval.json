@@ -1,0 +1,22 @@
+[
+  {"query": "ok that fixed it — the generator was double-counting the holdout rows because the FK path went through Image twice. moving on to the eval now", "should_trigger": true},
+  {"query": "great, execution 6-0938 finished and committed the weights. let's set up the next run with lr=0.001", "should_trigger": true},
+  {"query": "i'm going to split the fundus dataset 70/15/15 stratified on Diagnosis instead of the random split we did last time", "should_trigger": true},
+  {"query": "let's bump the batch size to 256 — the 64 we used before was leaving the GPU half idle", "should_trigger": true},
+  {"query": "have we tried training on just the high-confidence labels before? i'm thinking of filtering to confidence > 0.9", "should_trigger": true},
+  {"query": "i'll use the Subsample dataset type for this instead of making a whole new Split hierarchy, simpler for what we need", "should_trigger": true},
+  {"query": "turns out the cache_dataset call has to happen before the execution context opens, not inside it — that was why the bag was empty. noting for next time", "should_trigger": true},
+  {"query": "is the cifar10_quick preset still the right config to start from, or did we move off it for a reason", "should_trigger": true},
+  {"query": "why did we pin deriva-ml to 1.43 in this project's lock when the latest is 1.50?", "should_trigger": true},
+  {"query": "let's create a new Image_Quality vocabulary with terms good/blurry/occluded and feature it on the Image table", "should_trigger": true},
+  {"query": "going to register the workflow against the eye-ai catalog and kick off the training run", "should_trigger": true},
+  {"query": "what's the difference between a Split and a Subsample dataset type in deriva-ml?", "should_trigger": false},
+  {"query": "can you reformat this CSV so the date column is ISO 8601 instead of MM/DD/YYYY", "should_trigger": false},
+  {"query": "the test suite is failing on test_dataset_mutate, can you look at the traceback and fix it", "should_trigger": false},
+  {"query": "what datasets are cached locally right now and how much disk are they using", "should_trigger": false},
+  {"query": "write me a python script to download all the images in dataset 28CT and resize them to 224x224", "should_trigger": false},
+  {"query": "bump the plugin version and push the release", "should_trigger": false},
+  {"query": "explain how foreign keys work in ermrest, i'm new to deriva", "should_trigger": false},
+  {"query": "list the features defined on the Image table", "should_trigger": false},
+  {"query": "my execution is stuck in Running and never moved to Uploaded, how do i recover the staged outputs", "should_trigger": false}
+]
