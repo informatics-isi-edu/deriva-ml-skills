@@ -163,13 +163,36 @@ General principles — descriptions should be specific, quantified, purposeful, 
 | `timeout` | `list[int] \| None` | `None` | `[connect_timeout, read_timeout]` in seconds. Default `[10, 610]` |
 | `fetch_concurrency` | `int` | `8` | Parallelism for bag fetch. Lower if the catalog is rate-limiting; raise for fast networks |
 
-### `AssetSpecConfig` (from `deriva_ml.asset.aux_classes`)
+### `AssetSpecConfig` (from `deriva_ml.execution`)
+
+Pins a **catalog-resident** asset (by RID) as an input the experiment consumes.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `rid` | `str` | *(required)* | Asset RID |
-| `asset_role` | `Literal['Input', 'Output']` | `'Input'` | Whether this entry pins an asset the experiment will **consume** (default — pretrained weights, reference images) or one it will **produce** (when the same `assets.py` is also referenced by a downstream experiment as a hand-off). Most config entries are `'Input'` |
 | `cache` | `bool` | `False` | Cache asset locally by MD5. Use for large immutable files (model weights) |
+
+> **Role is by context, never a field.** There is no `asset_role` parameter. An
+> asset declared in `assets=` is an **Input** because it is consumed; assets a run
+> *produces* become **Outputs** when uploaded (via `asset_file_path` +
+> `commit_output_assets`). The strict config model **rejects** a stray
+> `asset_role=` — do not write one. (`asset_role` still exists as a read-side
+> *filter* on query methods like `exe.list_assets(asset_role=...)`; that is
+> unrelated to declaring a config entry.)
+
+### `LocalFileConfig` (from `deriva_ml.execution`)
+
+Declares an **external local file** (e.g. a CSV on disk) as an input — by
+**path**, not RID. On input resolution the framework registers it as a referenced
+`File` row (path/URL + MD5) and links it to the execution as an Input edge
+(role from context). It is **not uploaded to Hatrac** — use this for files that
+should stay local (e.g. a source CSV carrying sensitive data) while still giving
+lineage from the run's outputs back to the source file.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | *(required)* | Local filesystem path (or URL) of the file to register and consume |
+| `cache` | `bool` | `False` | Cache locally by MD5 (mirrors `AssetSpecConfig.cache`) |
 
 ## Wiring fresh RIDs into config files
 
@@ -190,7 +213,8 @@ The Python-API generators below produce the exact string to paste into the confi
 | Entry kind | Generator | Why prefer it over hand-typing |
 |---|---|---|
 | `DatasetSpecConfig` | `deriva_ml_get_dataset_spec(hostname=..., catalog_id=..., dataset_rid=..., version=...)` | Only call that guarantees the version segment is PEP-440 released-only (no `.devN` suffix would silently slip past pin-the-version reproducibility) |
-| `AssetSpecConfig` | Read the asset details first via `deriva://catalog/{h}/{c}/deriva-ml/asset/{rid}` or `deriva_ml_lookup_asset(...)`, then write `AssetSpecConfig(rid="<rid>", cache=<True\|False>, asset_role="<Input\|Output>")`. Choose `cache=True` for large immutable files (model weights, reference images); leave default for small files that may evolve. Choose `asset_role` per the table above |
+| `AssetSpecConfig` | Read the asset details first via `deriva://catalog/{h}/{c}/deriva-ml/asset/{rid}` or `deriva_ml_lookup_asset(...)`, then write `AssetSpecConfig(rid="<rid>", cache=<True\|False>)`. Choose `cache=True` for large immutable files (model weights, reference images); leave default for small files that may evolve. **No `asset_role`** — role is by context (a declared asset is an Input) |
+| `LocalFileConfig` | For an **external local file** input (a CSV/file on disk, not a catalog asset), write `LocalFileConfig(path="<local/path>")`. Registers a referenced `File` row + Input edge, no Hatrac upload. Use a path the run will find at execution time; the same constant can feed both this entry and the script's read path |
 
 ### File structure conventions
 

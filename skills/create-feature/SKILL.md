@@ -130,7 +130,8 @@ Adding values requires knowing what columns a feature has, which are required, a
 | One execution per label | Works but clutters provenance | Batch labels from same source into one execution |
 | Passing boolean as string `"true"`/`"false"` | Pydantic validation error | Pass as native bool: `true` / `false` (no quotes) |
 | Forgetting `exe.commit_output_assets()` after the `with` block | Execution stays in `Stopped` and values stay staged | The bundled templates always call `commit_output_assets()` post-context. If you write your own script, do the same. On failure inside the `with` block, the context manager auto-transitions to `Failed`; run `salvage_execution.py` to drain anything that successfully staged. |
-| CSV ingest without capturing the source file | Provenance traces to Execution but not to *what data* | Upload the CSV as an Execution input asset (see the worked example below) |
+| CSV ingest without capturing the source file | Provenance traces to Execution but not to *what data* | Declare the CSV as a `LocalFile` input in `ExecutionConfiguration(assets=[LocalFile(path=...)])` (see the worked example below) — registers a referenced `File` row + Input edge, no Hatrac upload |
+| Capturing a *source/input* CSV via `asset_file_path` + copy | Uploads the bytes to Hatrac and mis-frames an input as an output asset | For an **input** file use `LocalFile` (reference, no upload). Reserve `asset_file_path` + `commit_output_assets` for files the run **produces** |
 
 ### Worked example: bulk-populate feature values from a CSV
 
@@ -138,20 +139,23 @@ The most common production pattern: a domain expert hands you a CSV of ground-tr
 
 **The canonical entry point is the bundled template** `skills/create-feature/scripts/populate_feature_values.py`. Copy it into the user's project (typically `src/scripts/`), edit the CSV path and the feature name, commit, then run with `deriva-ml-run`. The script encodes the validate → execute → commit pattern with full provenance.
 
-For tasks that need additional work beyond a flat-CSV load (e.g., capturing the source CSV as an input asset of the execution, custom validation, multi-column features), here's the same pattern fleshed out — copy as a starting point and adapt:
+For tasks that need additional work beyond a flat-CSV load (e.g., declaring the source CSV as a `LocalFile` input of the execution, custom validation, multi-column features), here's the same pattern fleshed out — copy as a starting point and adapt:
 
 ```python
 # src/scripts/ingest_image_quality.py
 """Load Image_Quality feature values from a ground-truth CSV.
 
-The CSV is captured as an input asset on the execution, so anyone
+The CSV is declared as a LocalFile input on the execution, so anyone
 walking the provenance chain (`deriva_ml_get_lineage(rid=<feature_value_rid>)`)
-sees Execution → Workflow (this script's git commit) → input Asset (the CSV).
+sees Execution → Workflow (this script's git commit) → input File (the CSV).
+The LocalFile is registered as a referenced File row + Input edge — the CSV
+bytes are NOT uploaded to Hatrac (right for source files that should stay local).
 """
 from pathlib import Path
 import argparse
 import pandas as pd
 from deriva_ml import DerivaML, ExecutionConfiguration
+from deriva_ml.execution import LocalFile
 
 def main(hostname: str, catalog_id: str, csv_path: Path) -> int:
     ml = DerivaML(hostname=hostname, catalog_id=catalog_id, check_auth=True)
@@ -173,14 +177,19 @@ def main(hostname: str, catalog_id: str, csv_path: Path) -> int:
 
     # 2. Create a Workflow for this script and an Execution that consumes the CSV.
     #    The workflow's source-code URL + git commit is captured by deriva-ml from
-    #    the script's git context. The CSV is captured as an input asset so the
-    #    full source-of-truth chain survives.
+    #    the script's git context. The CSV is declared as a LocalFile input so the
+    #    full source-of-truth chain survives — the framework registers it as a
+    #    referenced File row + Input edge (role from context), WITHOUT uploading
+    #    the bytes to Hatrac.
     workflow = ml.create_workflow(
         name="Image Quality Ingest",
         workflow_type="Data_Load",   # add this term to Workflow_Type if missing
         description=f"Load Image_Quality feature values from {csv_path.name}",
     )
-    config = ExecutionConfiguration(workflow=workflow)
+    config = ExecutionConfiguration(
+        workflow=workflow,
+        assets=[LocalFile(path=str(csv_path))],   # source CSV → File row + Input edge
+    )
 
     # 3. Build feature records, then write them inside the Execution context.
     ImageQuality = ml.feature_record_class("Image", "Image_Quality")
@@ -190,16 +199,8 @@ def main(hostname: str, catalog_id: str, csv_path: Path) -> int:
     ]
 
     with ml.create_execution(config) as exe:
-        # Stage the source CSV as an input asset so it's captured in lineage.
-        exe.asset_file_path(
-            asset_name="Execution_Asset",
-            file_name=csv_path.name,
-            asset_types=["Source_CSV"],   # add this term to Asset_Type if missing
-        )
-        # The asset_file_path call returned the target path; copy the CSV there
-        # (or use copy_file=True / rename_file= if your file is elsewhere).
-        # See /deriva-ml:work-with-assets for the full asset-staging recipe.
-
+        # The CSV's provenance (File row + Input edge) is recorded by the
+        # framework from the LocalFile declared above — nothing to capture here.
         exe.add_features(records)
         print(f"Added {len(records)} Image_Quality values "
               f"in execution {exe.execution_rid}")
@@ -228,11 +229,11 @@ uv run python src/scripts/ingest_image_quality.py \
 
 The git commit is mandatory — `ml.create_workflow(...)` raises `DerivaMLDirtyWorkflowError` if the working tree is dirty. Without the commit, the workflow's source-code URL has nothing reproducible to point at. `--allow-dirty` is only for local debugging iterations where you accept degraded provenance; never for the run that produces values that anyone will reference later.
 
-**What you get afterward:** every feature value links to the execution, the execution links to the workflow (this script at this git commit), and the workflow's execution has the CSV as a captured input asset. `deriva_ml_get_lineage(rid=<any feature value RID>)` walks the full chain back to the CSV. If a year from now someone asks "what data produced these labels?", the answer is in the catalog, not in someone's downloads folder.
+**What you get afterward:** every feature value links to the execution, the execution links to the workflow (this script at this git commit), and the execution has the CSV declared as a `LocalFile` input (a referenced `File` row + Input edge). `deriva_ml_get_lineage(rid=<any feature value RID>)` walks the full chain back to the CSV. If a year from now someone asks "what data produced these labels?", the answer is in the catalog, not in someone's downloads folder.
 
 #### If the script crashes mid-ingest
 
-The Execution is recoverable. See `/deriva-ml:troubleshoot-execution` "Salvage a Failed Execution" — the three-branch decision tree (salvage staged work via `salvage_execution.py`, recovery execution from inputs, or recovery execution that claims survivors as inputs) applies directly. The CSV asset stays captured even if some feature values failed to upload.
+The Execution is recoverable. See `/deriva-ml:troubleshoot-execution` "Salvage a Failed Execution" — the three-branch decision tree (salvage staged work via `salvage_execution.py`, recovery execution from inputs, or recovery execution that claims survivors as inputs) applies directly. The CSV's `LocalFile` Input edge stays recorded even if some feature values failed to upload.
 
 ## Phase 5: Query and Explore Feature Values
 

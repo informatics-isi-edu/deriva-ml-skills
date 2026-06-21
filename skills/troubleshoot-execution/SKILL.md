@@ -287,6 +287,18 @@ for snap in incomplete:
     print(snap.execution_rid, snap.status, snap.working_dir)
 ```
 
+`find_incomplete_executions()` is **local working-dir scoped** — it only sees runs whose staged work is still on *this* machine. For a **catalog-wide** view of every execution stranded in a non-terminal state (regardless of where it ran), use the read-only provenance audit:
+
+```python
+report = ml.audit_provenance()
+# report.violations includes stranded non-terminal executions and null-producer
+# artifacts; report.known_degraded lists sentinel-attributed (compliant) state.
+for v in report.violations:
+    print(v)
+```
+
+Under the provenance contract a non-terminal execution (`Created`/`Running`/`Pending_Upload`) is a **violation**, not just a recoverable state — the audit is how you find them all. (It only reports; it never mutates. Salvage/abort the rows yourself with the recipes above.)
+
 To **commit every salvageable run in one pass** (instead of running `salvage_execution.py` N times), call the workspace-level commit:
 
 ```python
