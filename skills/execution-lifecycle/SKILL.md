@@ -111,7 +111,7 @@ Sample wording (multi-asset case is the common one for executions):
 
 The grouping decision is the user's call — for a single training run that produces weights + predictions + a plot, a single config entry referencing all three is idiomatic; for an unrelated set of uploads, separate entries make more sense.
 
-If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs into config files"** — that section carries the `AssetSpecConfig` field reference (including `asset_role='Output'` for assets produced by an execution), the file-structure conventions, and the commit-message template (`chore(configs): add outputs from execution <rid>` — the execution RID is the cross-reference back to provenance). Use `deriva_ml_get_execution(...)` (or its resource form) to read each asset's metadata before writing the entry.
+If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs into config files"** — that section carries the `AssetSpecConfig` field reference (note: **no `asset_role` field** — these run-produced assets were Outputs by context; when a *downstream* experiment pins one in its `assets=`, it is an Input there by context), the file-structure conventions, and the commit-message template (`chore(configs): add outputs from execution <rid>` — the execution RID is the cross-reference back to provenance). Use `deriva_ml_get_execution(...)` (or its resource form) to read each asset's metadata before writing the entry.
 
 **This skill owns the bulk-output offer**; `write-hydra-config` owns the shape.
 
@@ -125,6 +125,8 @@ Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/d
 4. **Commit AFTER the with block** — `exe.commit_output_assets()` goes after `with`, not inside (or omit it entirely and let the context manager's auto-stop drive the commit on exit). Re-call if the first attempt partially failed — the bag-commit pipeline is idempotent.
 5. **Use Python API `exe.asset_file_path()` for all outputs** — never manually place files in the working directory
 6. **Commit code before running** — DerivaML raises `DerivaMLDirtyWorkflowError` if uncommitted changes exist. Use `--allow-dirty` only for debugging.
+7. **Declare your inputs** — datasets in `datasets=`, catalog assets / external files in `assets=`. For an external file on disk (a source CSV), use `LocalFile(path=...)` (from `deriva_ml.execution`) — a referenced `File` row + Input edge, no Hatrac upload. A run that **produces** an artifact (dataset version, feature, or asset) but declares **no** input is flagged at commit: deriva-ml auto-links the *unknown-provenance File sentinel* as an Input (a loud warn-and-mark, not a failure) so the gap is recorded explicitly rather than left null. Declaring real inputs avoids the sentinel.
+8. **Finish honestly** — an execution must reach a terminal state (`Uploaded`, `Stopped`, `Failed`, `Aborted`). The `with` block guarantees this. A run stranded in `Created` / `Running` / `Pending_Upload` is a provenance violation. `ml.audit_provenance()` returns a read-only report (`.violations`, `.known_degraded`) that surfaces stranded runs, null-producer artifacts, and sentinel-attributed (known-degraded) state catalog-wide.
 
 ## Reference Resources
 

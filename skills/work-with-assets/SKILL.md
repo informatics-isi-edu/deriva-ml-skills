@@ -43,6 +43,29 @@ For background on asset tables, types, RIDs, object storage, caching, and proven
 3. Python API `exe.download_dataset_bag()` — same as above but within an active execution (records the dataset as an input for provenance)
 4. Python API `bag.restructure_assets()` — organize downloaded assets into ML-ready directory layouts
 
+### Declaring an external local file as an input (`LocalFile`)
+
+When the input is a **file on disk** (a source CSV, a labels file) rather than a
+catalog-resident asset, declare it with `LocalFile` — **do not** upload it via
+`asset_file_path` (that's for outputs, and it copies the bytes into Hatrac).
+
+```python
+from deriva_ml import ExecutionConfiguration
+from deriva_ml.execution import LocalFile
+
+config = ExecutionConfiguration(
+    workflow=workflow,
+    assets=[LocalFile(path="data/labels.csv")],   # external input file
+)
+```
+
+On input resolution the framework registers the file as a referenced `File` row
+(path/URL + MD5) and links it to the execution as an **Input** edge (role from
+context — a declared asset is consumed). The bytes are **not** uploaded, so the
+source file can stay local (e.g. data carrying PHI) while lineage still walks
+from the run's outputs back to it. In a hydra config, use
+`LocalFileConfig(path=...)` in the `assets` group (see `/deriva-ml:write-hydra-config`).
+
 ### Creating asset tables
 
 1. `deriva_ml_create_asset_table(hostname, catalog_id, asset_name, additional_columns=[...], comment=...)` — one call creates the full canonical shape: the five standard hatrac columns, the `<name>_Asset_Type` tag association, the `<name>_Execution` association (with the `Asset_Role` FK the upload machinery writes), and the standard Chaise annotations. Do NOT hand-build asset tables with the generic `create_table`.
@@ -79,7 +102,7 @@ Sample wording:
 
 > *"The new model-weights asset is at RID `3-WTS1`. Want me to add it to `src/configs/assets.py` so the inference experiment can pin it?"*
 
-If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs into config files"** — that section carries the canonical entry-line shape (`AssetSpecConfig`'s field reference, including the `cache=True` rule for large immutable files and `asset_role='Input'|'Output'`), the file-structure conventions, and the commit-message template (`chore(configs): add <name> asset (RID <rid>)`).
+If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs into config files"** — that section carries the canonical entry-line shape (`AssetSpecConfig`'s field reference, including the `cache=True` rule for large immutable files; note there is **no** `asset_role` field — role is by context, a declared asset is an Input), the file-structure conventions, and the commit-message template (`chore(configs): add <name> asset (RID <rid>)`).
 
 **This skill owns the offer** (because this skill produced the RID); `write-hydra-config` owns the shape.
 
