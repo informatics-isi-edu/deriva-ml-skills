@@ -462,7 +462,12 @@ This mirrors the equivalent section in `/deriva:troubleshoot-deriva-errors` (der
 
 **The short version of the fix:**
 
-- **Check** which version is running:
+- **Check installed-vs-latest for all three components in one shot** with the bundled script:
+  ```bash
+  uv run python skills/troubleshoot-execution/scripts/check_versions.py --project /path/to/your/ml/project
+  ```
+  It runs a discovery chain before trusting anything — **(1)** the project is a git repo, **(2)** it has a `pyproject.toml` (the deriva-ml uv convention), **(3)** it has a `.venv/` — failing loud with the fix to apply (e.g. "run `uv sync`") at the first unmet step. It then reads the installed `deriva-ml` by running the **venv's own** Python (`<venv>/bin/python -c "import deriva_ml…"`), NOT `uv pip show` — so it works even when `uv` isn't on PATH (whether `uv` is available is *reported*, not required). It reads the `deriva-ml-skills` plugin from the Claude Code cache, then compares each against the latest published version on GitHub, queried live from the right source: highest git **tag** for the library and the `deriva-ml-mcp` plugin (both ship tags, no GitHub Releases), highest GitHub **release** for the `deriva-ml-skills` plugin. Prints `current` / `behind` / `unknown` per component. No network or `gh` needed to *run* — without them the latest columns degrade to `unknown` (with a reason); only a definitive "behind" sets exit 1, a failed precondition sets exit 2. The MCP server's *running* version is only knowable live (via `server_status`), so the script shows the latest published plugin version and points you at that tool for the running one. This is the replacement for the deleted `check-deriva-ml-versions` skill — a thin reference script, not a skill, so it can't go stale by hardcoding "latest" (it always queries live).
+- **Check** a single component manually:
   - MCP server: `server_status(hostname=...)` — returns the running framework version plus the list of loaded plugins. The `deriva-ml-mcp` plugin appears in that list with its version.
   - Python library: `uv pip show deriva-ml` (in your project venv).
   - Claude Code plugin: `cat ~/.claude/plugins/cache/deriva-plugins/deriva-ml/*/plugin.json` — the `version` field.
