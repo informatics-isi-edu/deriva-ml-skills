@@ -22,8 +22,10 @@ and any entity-specific sections), then hands off to **implementation**, with
 **configuration** derived from requirements, **execution**, and **validation**
 against the spec — and the four entities **hand off to each other** because they
 depend on each other (experiments rely on datasets, models, and
-configurations; models rely on features; datasets and models rely on
-features).
+configurations; models rely on features). A dataset does **not** depend on a
+feature: a dataset is a collection of *elements*, and those elements may have
+features associated with them — so the dataset/feature relationship is
+containment-of-feature-bearing-elements, not a build dependency.
 
 This framework is grounded in an assessment of the four lifecycles as they
 exist today (see "Assessment evidence" below); it describes a shape that is
@@ -101,20 +103,24 @@ in mind, so the derivation can tighten over time.
 
 ## The canonical handoff grammar
 
-The four entities depend on each other. The dependency graph (A → B means "A
+The entities depend on each other. The dependency graph (A → B means "A
 depends on / is built from B"):
 
 ```
 Experiment ── depends on ──▶ Model ── depends on ──▶ Feature
-     │                          │
-     └── depends on ──▶ Dataset ─┴── depends on ──▶ Feature
+     │
+     └── depends on ──▶ Dataset ──contains──▶ Elements ──may have──▶ Features
 ```
 
 - An **experiment** is built from a model, a dataset, and configurations.
 - A **model** is built from features (the labels/annotations it trains on and
   the predictions it emits as features).
-- A **dataset** is built from features (e.g. a stratified split keys on a
-  feature column).
+- A **dataset** is **not** built from features. A dataset is a collection of
+  *elements* (members from element-type tables); those elements may have
+  features associated with them. The dataset/feature relationship is
+  containment-of-feature-bearing-elements, not a build dependency — which is
+  why the Feature↔Dataset interactions below are **drift notifications** and
+  **element-property reads**, not produce→consume handoffs.
 
 ### One grammar for every edge
 
@@ -133,15 +139,17 @@ The existing, well-crystallized handoffs are the template:
 - **Execution → Experiment:** "produce output asset RIDs → offer to wire into
   `src/configs/assets.py`." Already implemented in `execution-lifecycle`.
 
-Phase B closes the gaps by making the *same* grammar mandatory on the edges
-that are currently ad-hoc:
+Phase B closes the gaps. The two true **produce→consume handoffs** below adopt
+the grammar directly; the two Feature↔Dataset interactions are *not* build
+handoffs (a dataset doesn't depend on features) and get the appropriate
+flavor — a **drift notification** and an **element-property read**:
 
-| Gap edge | Today | Under the grammar |
-|---|---|---|
-| **Feature → Dataset** (version-on-write) | a rule the developer must remember (`mark_dev` after writing feature values) | `create-feature` offers the dev-flip/release and routes to `dataset-lifecycle` at the write-values moment |
-| **Feature → Dataset** (stratify input) | implicit (`stratify_by_column` references a feature column) | `dataset-lifecycle` Specify routes to `create-feature` when the required feature is missing |
-| **Model → Feature** (predictions) | not routed | `model`/`new-model` Specify routes to `create-feature` for the prediction-feature definition |
-| **Feature → Experiment** (metric features) | inline query, no setup gate | the metric feature is named as a Specify-time prerequisite for evaluation |
+| Gap edge | Kind | Today | Phase B closes it by |
+|---|---|---|---|
+| **Model → Feature** (predictions) | produce→consume handoff | not routed | `model`/`new-model` Specify routes to `create-feature` for the prediction-feature definition |
+| **Feature → Experiment** (metric features) | produce→consume handoff | inline query, no setup gate | the metric feature is named as a Specify-time prerequisite for evaluation |
+| **Feature ⇒ Dataset** (version-on-write) | drift notification (a feature value written to a member *element* drifts its containing dataset) | a rule the developer must remember (`mark_dev` after writing feature values) | `create-feature` *notifies* and offers the dataset dev-flip/release at the write-values moment, routing to `dataset-lifecycle` |
+| **Feature ← Dataset** (stratify reads element feature) | element-property read (a split reads a feature carried by the elements, not a dataset dependency) | implicit (`stratify_by_column` references a feature column on the elements) | `dataset-lifecycle` Specify checks the *elements* carry the needed feature and routes to `create-feature` if missing |
 
 ## The spec dependency tree
 
@@ -151,12 +159,17 @@ the entity dependency graph**:
 - an `experiment-design/<slug>.md` names the `model-design` + `dataset-design`
   it builds on;
 - a `model-design/<slug>.md` names the `feature-design`s it consumes;
-- a `dataset-design/<slug>.md` names the `feature-design`s its splits key on.
+- a `dataset-design/<slug>.md` does **not** name a feature-design as a
+  dependency (a dataset doesn't depend on features). Where a split reads a
+  feature carried by its elements, the dataset-design notes that **element
+  feature** as a precondition on its members — a reference to a property of the
+  data, not an upstream design it's built from.
 
-This makes dependencies traceable at the **spec layer**, not just the
-config/RID layer. A reader of an experiment design can walk down to the model
-and dataset designs and the features beneath them. (The design docs remain
-repo artifacts under their respective `*-design/` directories;
+This makes the genuine build dependencies traceable at the **spec layer**, not
+just the config/RID layer. A reader of an experiment design can walk down to the
+model design and the features it consumes, and across to the dataset design.
+(The design docs remain repo artifacts under their respective `*-design/`
+directories;
 `tacit-knowledge.md` remains the running journal — see the design-experiment
 spec for that contract, which this framework extends rather than changes.)
 
@@ -210,8 +223,10 @@ A phase-by-phase assessment of the four lifecycles (2026-06-22) established:
 - **The handoff pattern is ~80% consistent** — "produce a RID → offer to wire
   into a config" + "route to a named specialist" are crystallized for
   dataset→experiment and execution→experiment; the gaps are specific and
-  nameable (feature→dataset versioning, feature→dataset stratify, model→feature
-  predictions, feature→experiment metrics).
+  nameable — two true produce→consume handoffs (model→feature predictions,
+  feature→experiment metrics) plus two Feature↔Dataset interactions that are
+  *not* build dependencies (the version-on-write drift notification and the
+  stratify element-feature read).
 - **Configuration is genuinely a model+experiment concern** — Feature and
   Dataset have no config artifact; the model layer (`model_config`) and
   experiment layer (`experiment`/`multiruns`) already exist in the hydra-zen
