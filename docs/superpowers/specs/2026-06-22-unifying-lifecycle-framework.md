@@ -233,6 +233,30 @@ modifications to them**. Phase B (its own plan, after this doc is approved):
    "this skill is the «Build» phase of the «X» lifecycle per the unifying
    framework").
 
+## What is deliberately NOT a lifecycle node
+
+The framework has exactly **four lifecycle entities** — Experiment, Dataset,
+Feature, Model — each with a goal-driven Specify→Build→Validate arc and a design
+doc. Several other DerivaML concepts are intentionally **not** nodes; they are
+Build-phase internals or supporting structures, because they have no
+goal/hypothesis to specify and nothing to validate against beyond correctness:
+
+- **Execution** — the *Execute* step inside Build. A run is the mechanism by
+  which an experiment's or model's Build happens; it has no design doc of its
+  own.
+- **Workflow** — provenance machinery (the catalog record tying an execution to
+  a git commit). Consumed by execution; not a goal-driven artifact.
+- **Vocabulary** — a supporting structure a Feature's Build creates (the terms
+  a feature's values draw from). It is reused and evolves, but it is specified
+  *within* a feature's design, not on its own arc.
+- **Asset** — a file with a RID that flows on the produce→consume edges and
+  enters via the configuration surface (see "Assets" above). Not a node.
+
+Treating any of these as a fifth entity with its own design doc would force the
+unnatural structure this framework avoids — the same error as claiming a dataset
+depends on a feature. If a future concept genuinely has goals, requirements, and
+validation criteria of its own, *that* is the test for promoting it to a node.
+
 ## Non-goals
 
 - **Not** a rigid five-phase template forced onto every entity (the three-phase
