@@ -1,8 +1,7 @@
 ---
 name: write-hydra-config
-description: "Write, bootstrap, and validate hydra-zen config files for DerivaML — DatasetSpecConfig, asset_store, builds(), experiment_config, multirun_config, with_description. Use when adding/editing/updating any config in configs/, when bootstrapping a fresh project's configs from an existing catalog (per-config-group recipes + a worked end-to-end example), or when validating that config RIDs and versions match the catalog (singular validators per group, whole-tree composition, or the single-call deriva_ml_validate_config_file tool). Triggers on: 'write hydra config', 'edit datasets.py', 'edit assets.py', 'bootstrap configs', 'populate configs from catalog', 'validate config', 'validate datasets.py', 'check config matches catalog'."
+description: "Write, bootstrap, and validate hydra-zen config files for DerivaML — DatasetSpecConfig, asset_store, builds(), experiment_config, multirun_config, with_description. Use when adding/editing/updating any config in configs/, when bootstrapping a fresh project's configs from an existing catalog (per-config-group recipes + a worked end-to-end example), or when validating that config RIDs and versions match the catalog (singular validators per group, whole-tree composition, or the single-call deriva_ml_validate_config_file tool). Triggers on: 'write hydra config', 'edit datasets.py', 'edit assets.py', 'bootstrap configs', 'populate configs from catalog', 'validate config', 'validate datasets.py', 'check config matches catalog'. Auto-fires when editing a config file or wiring a RID into configs/, the mechanics behind the dataset-lifecycle/execution-lifecycle 'add the RID to configs' offers. Do NOT use for config-group composition/project structure (use configure-experiment)."
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Writing Hydra-Zen Config Files for DerivaML

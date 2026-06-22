@@ -1,7 +1,6 @@
 ---
 name: configure-experiment
-description: "Use when setting up a DerivaML experiment project, adding config groups, or understanding how experiments compose. Triggers on: 'set up experiment', 'config groups', 'project structure', 'hydra defaults', 'DerivaModelConfig', 'experiment preset', 'new project from template'."
-disable-model-invocation: true
+description: "Use when setting up a DerivaML experiment project, adding config groups, or understanding how experiments compose. Triggers on: 'set up experiment', 'config groups', 'project structure', 'hydra defaults', 'DerivaModelConfig', 'experiment preset', 'new project from template'. Auto-fires in the experiment-lifecycle Phase 2 (configuration) moment, the seam where the lifecycle hands off here. Do NOT use for per-config-file Python syntax (use write-hydra-config) or for the up-front design doc (use design-experiment)."
 ---
 
 # Configure ML Experiments with hydra-zen and DerivaML
