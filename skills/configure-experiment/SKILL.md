@@ -54,6 +54,8 @@ Example: `uv run deriva-ml-run +experiment=cifar10_quick` loads base defaults, t
 
 ## Setup Steps
 
+> **The config implements an approved experiment-design doc.** Before writing config groups, you should have an `experiment-design/<slug>.md` at **Approved** (see `/deriva-ml:design-experiment`). As you fill the groups below, cross-check that every **Requirement** in that design — the datasets/versions, assets, vocabularies — is satisfied by a config entry. A requirement with no config home is a gap to close before running.
+
 1. Clone the model template or create `configs/` directory
 2. Configure each group in order: `deriva.py` → `datasets.py` → `assets.py` → `workflow.py` → `<model>.py` → `base.py` → `experiments.py`
 3. Verify the config tree composes: `uv run deriva-ml-run --list-configs` (the menu of registered options), then `uv run deriva-ml-run +experiment=<name> --cfg job` to confirm a specific experiment resolves
@@ -216,5 +218,6 @@ cache_dir="/scratch/ml-work/cache"  # ❌ Cache dir INSIDE working dir
 
 ## Related Skills
 
+- **`design-experiment`** — Authors the `experiment-design/<slug>.md` this config implements. Write the design first; the config satisfies its Requirements.
 - **`write-hydra-config`** — Exact Python API patterns for each config type
 - **`execution-lifecycle`** — Pre-flight checklist and CLI commands for running

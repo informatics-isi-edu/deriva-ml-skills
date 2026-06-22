@@ -1,6 +1,6 @@
 ---
 name: design-experiment
-description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the experiment-design/ and dataset-design/ directory conventions and the two parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase of both experiment-lifecycle (Phase 1) and dataset-lifecycle (Phase 1: Design); they hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 3+)."
+description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the experiment-design/ and dataset-design/ directory conventions and the two parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase of both experiment-lifecycle (Phase 1) and dataset-lifecycle (Phase 1: Design); they hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 4+)."
 ---
 
 # Design-First: Experiment and Dataset Design
@@ -57,7 +57,7 @@ The full fill-in templates and worked examples are in `references/`:
    *you* re-read it and it holds together; in a team, it's the review gate.
 3. **The config / dataset implements the doc.** When you write the hydra config
    (`/deriva-ml:configure-experiment`) or build the dataset
-   (`/deriva-ml:dataset-lifecycle` Phase 3+), cross-check that every
+   (`/deriva-ml:dataset-lifecycle` Phase 4+), cross-check that every
    **Requirement** in the design is satisfied. A requirement with no
    corresponding config/dataset decision is a gap.
 4. **Close the loop.** After the run/build, update the doc's **Status & links**

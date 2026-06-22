@@ -301,7 +301,7 @@ uv run deriva-ml-run +multirun=lr_sweep
    tools — call `dataset.mark_dev(description)` from the Python API to
    declare a dev period (which flips `current_version` to a `.devN`
    label), then `deriva_ml_release_dataset(...)` to mint a release that captures
-   the new feature values. See the `dataset-lifecycle` skill, Phase 4.
+   the new feature values. See the `dataset-lifecycle` skill, Phase 5.
 
    Do NOT bump for runs whose outputs are **assets only** (model weights,
    training logs, prediction CSVs, plots). Execution-output assets are
@@ -322,6 +322,11 @@ ML development is iterative. After each production run:
    - Ready for next experiment → Tier 3 (production run)
 
 **Never skip back to Tier 3** after a significant change. Always validate with tiers 1–2 first.
+
+The first hypothesis-driven experiment after cycle zero authors an
+`experiment-design/<slug>.md` via `/deriva-ml:design-experiment` — the
+design-first phase `experiment-lifecycle` opens with. Cycle zero validated the
+plumbing; from here every experiment starts with a design doc.
 
 ## Git workflow
 
