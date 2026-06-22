@@ -11,7 +11,24 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 
 **Check project context first.** Before running any commands, look for catalog references in the project: `tacit-knowledge.md` records which catalog/hostname previous operations used; `src/configs/deriva.py` carries hydra-zen connection configs; `CLAUDE.md` may specify the working catalog. Use the catalog the project is actively working with, NOT the original source catalog (e.g., the clone on dev.facebase.org, not the source on www.facebase.org). If you don't know the catalog ID, read `deriva://registry/{hostname}` to see available catalogs and aliases.
 
-## Phase 1: Assess
+## Phase 1: Design
+
+Before assessing or building, capture what the dataset is *for* and how you'll
+know it's correct. Hand off to `/deriva-ml:design-experiment` to author
+`dataset-design/<slug>.md` — Purpose, Requirements (source, size, composition,
+element types, balance), Structure plan (standalone / split / subsample /
+curated, and the three-axis `Dataset_Type` tags), Validation (balance, no
+leakage, bag parity, counts), and Consumption (which experiments pin it).
+
+The design doc is the up-front contract the build implements; get it to
+**Approved** before creating anything. `tacit-knowledge.md` stays the running
+journal (`capture-tacit-knowledge` auto-fires for decisions made here). For a
+quick reuse/extend/create triage with no new structure, the design can be a
+few lines — but a new split, subsample, or curated subset earns a full doc,
+because its validation criteria (leakage, balance) are exactly what gets
+skipped otherwise.
+
+## Phase 2: Assess
 
 Before creating a dataset, determine whether an existing one can be reused, extended, or split. The find-before-you-create discipline is carried by `/deriva:semantic-awareness` *(deriva-skills, auto-fires)* — its synonym/abbreviation/spelling-variant search expansion applies to ML entities (Datasets) as well as generic catalog entities. The same skill covers the EAV-vs-wide-table dual extreme, which is worth knowing when designing the *element-type* tables a dataset will draw members from.
 
@@ -28,7 +45,7 @@ Before creating a dataset, determine whether an existing one can be reused, exte
 | Need a focused subset filtered by data values | Create a new dataset (curated subset — see below) |
 | Building from scratch | Bootstrap a new dataset from raw table data |
 
-## Phase 2: Plan
+## Phase 3: Plan
 
 ### Choose the dataset structure
 
@@ -74,7 +91,7 @@ Two implementation conventions that follow from this principle:
 - **Separate role terms from qualifiers.** `Training`/`Testing`/`Validation` are role terms; `Labeled`/`Complete`/`Split` are qualifiers (orthogonal dimensions — see `references/type-naming-strategy.md` § "A well-typed dataset reads like a description"). A consumer deciding what to *do* with a dataset is dispatching on the role term; the qualifiers describe properties of the dataset but don't change the decision.
 - **Unknown types should fail loudly, not silently drop.** When a consumer encounters a `Dataset_Type` it has no handler for, the right behavior is a clear error or warning that names the unrecognized type — never a silent skip. A consumer that filters out unknown types without saying so will produce results that look correct but are missing data, and the failure mode is invisible until someone goes looking.
 
-## Phase 3: Create
+## Phase 4: Create
 
 **Default: use the script-based workflow** for any dataset creation that adds more than a handful of members. This ensures code provenance — every execution record links to a committed git hash. The MCP-tool path is only for trivial cases (creating an empty dataset, adding 2-3 members manually).
 
@@ -110,7 +127,7 @@ If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs
 
 **This skill owns the offer** (because this skill produced the RID); `write-hydra-config` owns the shape.
 
-## Phase 4: Version
+## Phase 5: Version
 
 Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md):
 
@@ -125,7 +142,7 @@ Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com
 4. **Execution-output assets do NOT flip the dataset.** Model weights, prediction CSVs, training logs, plots — these are linked to the producing execution, not to the dataset's members. Future consumers reach them through the execution RID, not through a new dataset version. The dev-flip rule applies only to mutations of dataset *contents* (members + features attached to members).
 5. **Always provide a description.** For mutation tools, the `description` is recorded on the dev row and **replaced** on each subsequent mutation (not appended). For `deriva_ml_release_dataset`, the `description` becomes the release notes — replaces the dev row's accumulated description, not appended.
 6. **Adding *feature values* to existing dataset members does NOT auto-flip the dataset, but probably should.** The auto-flip detection in rule 2 fires on member-set changes (add/remove members) and dataset-type changes. It does NOT fire when a feature value gets written for an existing member RID — feature drift is invisible to that detection. But a dataset whose members gained new feature values is materially different from before: a consumer who downloads its bag tomorrow gets different data than they got yesterday, even though the member RIDs are the same. Reproducibility breaks silently. **If your work added feature values to members of a Dataset that has a released version, call `dataset.mark_dev(description)` from the Python API to flip the dataset to a dev label, then `deriva_ml_release_dataset(...)` when the drift period is done.** See `/deriva-ml:create-feature` "Integration with Datasets" for the symmetric statement from the feature-author side.
-7. **Update configs immediately after a release, commit before running.** Specifically `src/configs/datasets.py` — find the `DatasetSpecConfig` entry whose `rid` matches the dataset you just released and bump its `version` to the new release label, then `git commit src/configs/datasets.py -m "chore(configs): bump <name> to <new_version>"`. Proactively offer to do this for the user as soon as `deriva_ml_release_dataset` returns the new version (see "Proactively offer to update `src/configs/datasets.py`" in Phase 3). The git hash in the execution record must match the config state — running an experiment whose config still pins the prior release means the execution row says "run X" but the dataset bytes loaded are version X+1's.
+7. **Update configs immediately after a release, commit before running.** Specifically `src/configs/datasets.py` — find the `DatasetSpecConfig` entry whose `rid` matches the dataset you just released and bump its `version` to the new release label, then `git commit src/configs/datasets.py -m "chore(configs): bump <name> to <new_version>"`. Proactively offer to do this for the user as soon as `deriva_ml_release_dataset` returns the new version (see "Proactively offer to update `src/configs/datasets.py`" in Phase 4). The git hash in the execution record must match the config state — running an experiment whose config still pins the prior release means the execution row says "run X" but the dataset bytes loaded are version X+1's.
 
 ### PEP 440 version segments
 
@@ -168,12 +185,12 @@ These don't appear on the MCP tool surface; reach for them from notebook code or
 
 For the full versioning rules, common mistakes, and version history API, see `references/concepts.md` under "Dataset Versioning."
 
-## Phase 5: Use
+## Phase 6: Use
 
 Once a dataset is created and versioned, there are several ways to consume it.
 
 - **Browse in Chaise** — `cite(hostname, catalog_id, rid="1-ABC4")` for a permanent snapshot URL; add `current=true` for the live URL.
-- **Reference in experiment configs** — `DatasetSpecConfig(rid="28EA", version="0.4.0")` in a Hydra-zen config. Use `deriva_ml_get_dataset_spec` to generate the correct string. If the user has just created, split, or released a dataset in this session, proactively offer to add the new RID + version to `src/configs/datasets.py` (see Phase 3 → "Proactively offer to update `src/configs/datasets.py`"). For how dataset configs integrate into the broader experiment configuration surface, see `/deriva-ml:configure-experiment` and `/deriva-ml:write-hydra-config`.
+- **Reference in experiment configs** — `DatasetSpecConfig(rid="28EA", version="0.4.0")` in a Hydra-zen config. Use `deriva_ml_get_dataset_spec` to generate the correct string. If the user has just created, split, or released a dataset in this session, proactively offer to add the new RID + version to `src/configs/datasets.py` (see Phase 4 → "Proactively offer to update `src/configs/datasets.py`"). For how dataset configs integrate into the broader experiment configuration surface, see `/deriva-ml:configure-experiment` and `/deriva-ml:write-hydra-config`.
 - **Explore and browse contents (no browser)** — 7-step MCP workflow from overview → members → schema shape → actual data → features → hierarchy → provenance. See `references/workflow.md` → "Explore and browse dataset contents".
 - **Download as BDBag** — see "Download workflow" below for the worked recipe; `references/bags.md` for DerivaML-specific behavior (version pinning, cache key, `DatasetBag` API). For the generic BDBag format and the underlying export mechanics (what a bag *is*, the `bdbag` CLI, materialization, `DerivaDownload` / `DerivaExport` Python classes), `/deriva:download-bag` *(deriva-skills)*.
 - **Restructure for ML frameworks** — after downloading, `bag.restructure_assets(output_dir, asset_table, targets=[...])` organizes files for PyTorch ImageFolder or similar. See `/deriva-ml:ml-data-engineering` for the full restructuring patterns.
@@ -266,6 +283,7 @@ For what to do with the bag after it lands — restructure for PyTorch, build tr
 
 ## Related Skills
 
+- **`/deriva-ml:design-experiment`** — Phase 1 hands off here to author the `dataset-design/<slug>.md` contract before assessing or building. The dataset-design template is parallel to the experiment-design one.
 - **`/deriva-ml:ml-data-engineering`** — Restructuring assets for PyTorch/TensorFlow, building training DataFrames, DatasetBag API, value selectors
 - **`/deriva-ml:debug-bag-contents`** — Diagnosing missing data, FK traversal issues, and export problems in dataset bags
 - **`/deriva-ml:create-feature`** — Creating features and adding labels/annotations to records in datasets

@@ -14,7 +14,7 @@ For creating, populating, splitting, versioning, or browsing datasets, see the `
 
 ## Step 1: Download the Dataset
 
-> **Where the four-step recipe lives.** The full download recipe (preview → validate version → download → validate bag), the dev-version pitfall, and the option matrix (`materialize`, `timeout`, `exclude_tables`, `use_minid`, `DatasetSpecConfig`) belong with the dataset abstraction itself — see `/deriva-ml:dataset-lifecycle` Phase 5 → "Download workflow". For the BDBag format mechanics underneath (manifest, checksums, materialization, the `bdbag` CLI, `DerivaDownload` / `DerivaExport` Python classes), see `/deriva:download-bag` *(deriva-skills)*. This skill picks up from "you have a downloaded bag" — Step 2 onward.
+> **Where the four-step recipe lives.** The full download recipe (preview → validate version → download → validate bag), the dev-version pitfall, and the option matrix (`materialize`, `timeout`, `exclude_tables`, `use_minid`, `DatasetSpecConfig`) belong with the dataset abstraction itself — see `/deriva-ml:dataset-lifecycle` Phase 6 → "Download workflow". For the BDBag format mechanics underneath (manifest, checksums, materialization, the `bdbag` CLI, `DerivaDownload` / `DerivaExport` Python classes), see `/deriva:download-bag` *(deriva-skills)*. This skill picks up from "you have a downloaded bag" — Step 2 onward.
 
 The condensed version, for in-context reference:
 
