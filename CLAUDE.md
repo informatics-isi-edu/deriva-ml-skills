@@ -67,15 +67,15 @@ The 31 skills divide into two shapes by invocation model. The split matters when
 
 - Lifecycle (also auto-fires): `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle`
 - Datasets: `debug-bag-contents`
-- Features: `create-feature`, `compare-model-runs`
-- Assets: `work-with-assets`, `manage-deriva-storage` (also auto-fires — see below)
-- Experiments / configs: `design-experiment` (also auto-fires — the design-first phase, owns experiment-design/ + dataset-design/), `configure-experiment`, `write-hydra-config`
+- Features: `create-feature` (also auto-fires), `compare-model-runs` (also auto-fires — at the post-run evaluation moment)
+- Assets: `work-with-assets` (also auto-fires — per-asset file I/O), `manage-deriva-storage` (also auto-fires — see below)
+- Experiments / configs: `design-experiment` (also auto-fires — the design-first phase, owns experiment-design/ + dataset-design/), `configure-experiment` (also auto-fires — the lifecycle Phase 2 config seam), `write-hydra-config` (also auto-fires — when editing config files / wiring RIDs)
 - Models: `new-model`, `model-development-workflow`
 - Notebooks: `setup-notebook-environment`, `run-notebook`
-- Project setup: `setup-derivaml-project`, `validate-project-setup`
-- Apps + visualization: `create-web-app`, `browse-erd`
+- Project setup: `setup-derivaml-project`, `setup-ml-catalog`, `validate-project-setup`
+- Apps + visualization: `create-web-app`, `browse-erd`, `use-annotation-builders`
 - Help / orientation: `help`
-- Troubleshooting: `troubleshoot-execution` (also covers DerivaML versioning)
+- Troubleshooting: `troubleshoot-execution` (also auto-fires — on execution failures AND proactive DerivaML version checks; covers DerivaML versioning via the bundled `check_versions.py`), `schema-evolution-impact` (impact analysis before changing/deleting catalog entities)
 
 **Auto-invoked guides (no slash command typed by user)** — `user-invocable: false` or `disable-model-invocation` unset; should NOT be surfaced in user-facing skill lists as if they were commands. These "look over the shoulder" of the ML developer to inject the right framing before mistakes:
 
@@ -90,6 +90,10 @@ The 31 skills divide into two shapes by invocation model. The split matters when
 - `design-experiment` — auto-fires before configuring an experiment or building a dataset (dual-mode: also slash-typeable). Owns the design-first phase: the standardized design doc that precedes config/construction.
 - `generate-scripts` — auto-fires when generating Python scripts for catalog operations
 - `generate-descriptions` — auto-fires when creating any DerivaML entity without a description
+- `configure-experiment` — auto-fires at the experiment-lifecycle Phase 2 config seam (dual-mode: also slash-typeable). The lifecycle routes here; making it auto-fire closes the "router points at a door you can't open" gap.
+- `write-hydra-config` — auto-fires when editing config files or wiring RIDs into `configs/` (dual-mode). The mechanics behind the dataset/execution-lifecycle "add the RID to configs" offers.
+- `work-with-assets` — auto-fires on per-asset file I/O — download/upload/inspect (dual-mode). The single-asset half of the asset offer; execution-lifecycle owns the bulk-output offer.
+- `compare-model-runs` — auto-fires at the post-run evaluation moment — "which run was best", "is this a regression" (dual-mode). experiment-lifecycle Phase 6 routes here.
 
 **Convention for adding a new skill:** decide which shape it is. Guide-shaped skills (workflow, lifecycle, discipline, always-relevant guard) get rich auto-fire descriptions and guide the user proactively. Tool-shaped skills (verification, troubleshooting, environment setup, one-shot operations) get `disable-model-invocation: true` and wait for the user to explicitly invoke them. Documentation surfaces (README, marketing copy, help blurbs) should keep the two layers in clearly-separated sections so users don't reach for an auto-invoked guide as if it were a command.
 
