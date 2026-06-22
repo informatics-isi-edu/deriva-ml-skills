@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# UserPromptSubmit hook for the deriva-ml plugin.
+#
+# The companion SessionStart hook injects the FULL tacit-knowledge capture
+# discipline (WRITE / GUIDANCE / FORENSIC) once, at session start. But a
+# single early reminder gets demoted as the conversation grows — which is the
+# exact failure mode this pair fixes: the agent reads the session-start note,
+# then forgets to act on it turns later. This hook re-injects a SHORT binding
+# directive on EVERY user turn so the capture trigger is present at every
+# decision point, not just the first. It deliberately carries only the terse
+# pointer (not the full discipline — that would be ~1.3 KB of noise per turn);
+# the SessionStart block front-loads the full contract, including the
+# do-NOT-fire boundary, so this per-turn line can stay short without causing
+# over-firing.
+
+set -euo pipefail
+
+# JSON-escape a string via bash parameter substitution (single-pass each).
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+reminder=$(cat <<'EOF'
+DerivaML tacit-knowledge check (standing, every turn): if this turn involves a
+DerivaML decision or action a future teammate would need the rationale for —
+running/committing an execution, creating/splitting a dataset, creating a
+feature or vocabulary, changing schema, choosing a config or hyperparameters,
+or fixing a bug with a non-obvious cause — invoke /deriva-ml:capture-tacit-knowledge
+and append a dated entry to tacit-knowledge.md IN THIS SAME response, without
+waiting to be asked. Before recommending such an action, and when asked "why
+was X chosen / have we tried Y / is this still right", consult that file first.
+EOF
+)
+
+reminder_escaped=$(escape_for_json "$reminder")
+prompt_context="<important>${reminder_escaped}</important>"
+
+# Emit only the field the current platform consumes (Claude Code reads both
+# additional_context and hookSpecificOutput without dedup, so don't emit both).
+# printf (not heredoc) avoids the bash 5.3+ heredoc hang.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{\n  "additional_context": "%s"\n}\n' "$prompt_context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "UserPromptSubmit",\n    "additionalContext": "%s"\n  }\n}\n' "$prompt_context"
+else
+  printf '{\n  "additionalContext": "%s"\n}\n' "$prompt_context"
+fi
+
+exit 0
