@@ -75,7 +75,7 @@ The 31 skills divide into two shapes by invocation model. The split matters when
 - Project setup: `setup-derivaml-project`, `validate-project-setup`
 - Apps + visualization: `create-web-app`, `browse-erd`
 - Help / orientation: `help`
-- Troubleshooting: `troubleshoot-execution` (also covers DerivaML versioning)
+- Troubleshooting: `troubleshoot-execution` (also auto-fires — on execution failures AND proactive DerivaML version checks; covers DerivaML versioning via the bundled `check_versions.py`)
 
 **Auto-invoked guides (no slash command typed by user)** — `user-invocable: false` or `disable-model-invocation` unset; should NOT be surfaced in user-facing skill lists as if they were commands. These "look over the shoulder" of the ML developer to inject the right framing before mistakes:
 
