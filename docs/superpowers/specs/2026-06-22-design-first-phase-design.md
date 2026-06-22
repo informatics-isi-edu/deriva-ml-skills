@@ -203,7 +203,8 @@ The SKILL.md carries the discipline and the section skeletons; the
 | `skills/experiment-lifecycle/SKILL.md` | Phase 1 rewrite + routing table + Related Skills |
 | `skills/dataset-lifecycle/SKILL.md` | new Design phase + Related Skills |
 | `skills/configure-experiment/SKILL.md` | one-line pointer at Setup Steps |
-| `skills/model-development-workflow/SKILL.md` | one sentence in Phase 7 / Iterate |
+| `skills/model-development-workflow/SKILL.md` | one sentence in Phase 7 / Iterate; fix renumbered dataset-lifecycle phase ref (4→5) |
+| `skills/ml-data-engineering/SKILL.md` | fix renumbered dataset-lifecycle phase ref (5→6, the Download-workflow pointer) — a consequence of the dataset-lifecycle renumbering |
 | `CLAUDE.md` | skill count + inventory listing for the new skill |
 
 ## Release
