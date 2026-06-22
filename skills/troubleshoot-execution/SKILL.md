@@ -462,7 +462,12 @@ This mirrors the equivalent section in `/deriva:troubleshoot-deriva-errors` (der
 
 **The short version of the fix:**
 
-- **Check** which version is running:
+- **Check installed-vs-latest for all three components in one shot** with the bundled script:
+  ```bash
+  uv run python skills/troubleshoot-execution/scripts/check_versions.py --project /path/to/your/ml/project
+  ```
+  It reads the locally-installed `deriva-ml` library (from the project venv) and the `deriva-ml` plugin (from the Claude Code cache), compares each against the latest published version (highest git **tag** for the library, highest GitHub **release** for the plugin), and prints a `current` / `behind` / `unknown` status per component. It needs no network or `gh` to *run* — without them it degrades to `unknown` (with a reason) rather than failing, and only a definitive "behind" sets a non-zero exit. The MCP server is shown as a pointer (its running version is only knowable live, via `server_status`). This is the replacement for the deleted `check-deriva-ml-versions` skill — a thin reference script, not a skill, so it can't go stale by hardcoding "latest" (it always queries live).
+- **Check** a single component manually:
   - MCP server: `server_status(hostname=...)` — returns the running framework version plus the list of loaded plugins. The `deriva-ml-mcp` plugin appears in that list with its version.
   - Python library: `uv pip show deriva-ml` (in your project venv).
   - Claude Code plugin: `cat ~/.claude/plugins/cache/deriva-plugins/deriva-ml/*/plugin.json` — the `version` field.
