@@ -88,6 +88,42 @@ framework describes reality rather than imposing it: the `model_config` group
 is the model layer; the `experiment` / `multiruns` groups are the experiment
 layer composing model + dataset + workflow together.
 
+### Assets: where they enter the framework
+
+An **asset** (model weights, a prediction CSV, a plot, a reference file) is not
+a fifth lifecycle entity — it has no Specify→Build→Validate arc and no design
+doc. It is a file with a RID that plays **two distinct roles**:
+
+- **Asset as input — enters through configuration.** An input asset is consumed
+  by being *referenced in a config*, at whichever of the two layers owns it:
+  - *Model layer* — an intrinsic asset the model is built with (a pretrained
+    checkpoint / starting weights), referenced from the model's config
+    (`configs/assets.py`, wired into the model config group). Part of "what
+    this model is."
+  - *Experiment layer* — an asset a *particular run* consumes (a specific
+    checkpoint to fine-tune from, a reference file), referenced from the
+    experiment's compositional config.
+  So **configuration is the asset-consumption surface** — config carries not
+  just hyperparameters and dataset RIDs but also the asset RIDs bound to a
+  model or a run. This is exactly the canonical handoff grammar: "produce a RID
+  → offer to wire it into `configs/assets.py`" *is* an asset handoff, with the
+  config file as the consumer's surface. It also reinforces the
+  generable-from-requirements aspiration: a model-design requirement naming a
+  pretrained checkpoint generates that asset config entry.
+
+- **Asset as output — produced by execution (the Build phase).** A run emits
+  assets (trained weights, predictions, plots, evaluation summaries) as named
+  outputs. These become *configurable inputs to the next* model or experiment
+  (the execution→experiment "wire output RIDs into `configs/assets.py`"
+  handoff). **One overlap to keep in mind:** a model's *prediction* outputs are
+  simultaneously **assets** (the prediction file) and **feature values** (the
+  predicted labels written to the records) — the same execution output is
+  reachable both as an asset RID and as feature values on the elements.
+
+So assets appear in the framework on the produce→consume edges as the payload
+that flows, with configuration as the surface they enter through — never as a
+node that runs the arc.
+
 ### Aspiration: config generable from requirements
 
 The framework's directional goal is that **both config layers be generable
