@@ -72,10 +72,10 @@ The 31 skills divide into two shapes by invocation model. The split matters when
 - Experiments / configs: `design-experiment` (also auto-fires — the design-first phase, owns experiment-design/ + dataset-design/), `configure-experiment` (also auto-fires — the lifecycle Phase 2 config seam), `write-hydra-config` (also auto-fires — when editing config files / wiring RIDs)
 - Models: `new-model`, `model-development-workflow`
 - Notebooks: `setup-notebook-environment`, `run-notebook`
-- Project setup: `setup-derivaml-project`, `validate-project-setup`
-- Apps + visualization: `create-web-app`, `browse-erd`
+- Project setup: `setup-derivaml-project`, `setup-ml-catalog`, `validate-project-setup`
+- Apps + visualization: `create-web-app`, `browse-erd`, `use-annotation-builders`
 - Help / orientation: `help`
-- Troubleshooting: `troubleshoot-execution` (also auto-fires — on execution failures AND proactive DerivaML version checks; covers DerivaML versioning via the bundled `check_versions.py`)
+- Troubleshooting: `troubleshoot-execution` (also auto-fires — on execution failures AND proactive DerivaML version checks; covers DerivaML versioning via the bundled `check_versions.py`), `schema-evolution-impact` (impact analysis before changing/deleting catalog entities)
 
 **Auto-invoked guides (no slash command typed by user)** — `user-invocable: false` or `disable-model-invocation` unset; should NOT be surfaced in user-facing skill lists as if they were commands. These "look over the shoulder" of the ML developer to inject the right framing before mistakes:
 
