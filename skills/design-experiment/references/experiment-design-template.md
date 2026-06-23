@@ -106,6 +106,10 @@ accuracy by ≥3% vs the current unregularized baseline (execution 6-ABC1).
 Single-run read of `Test_Accuracy` via `deriva_ml_list_feature_values`, then
 a two-run comparison against `6-ABC1` via `/deriva-ml:compare-model-runs`.
 
+## Upstream designs
+- Model design: `cifar10-2layer-cnn` (the model this experiment runs).
+- Dataset design: `cifar10-dev-subset` (the dataset it consumes).
+
 ## Status & links
 - **Config:** `dropout_quick` in `configs/experiments.py`
 - **Executions:** (filled after the run)

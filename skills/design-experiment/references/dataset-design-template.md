@@ -103,6 +103,11 @@ small-data runs, so full-scale compute isn't spent debugging plumbing.
 - Pinned in `configs/datasets.py` as a released version (e.g. `0.1.0`), never
   a dev label.
 
+## Upstream designs
+None — a dataset doesn't depend on a feature. The subsample stratifies on the
+class label its Image elements already carry (an element-feature precondition,
+not a build dependency).
+
 ## Status & links
 - **RID + version:** (filled after the build)
 - **configs/datasets.py:** (filled after the build)
