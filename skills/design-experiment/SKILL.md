@@ -94,8 +94,7 @@ model-design names the feature-designs it consumes. A dataset-design does NOT
 name a feature as a dependency (a dataset doesn't depend on features) — where a
 split reads a feature its *elements* carry, note that element feature as a
 precondition, not an upstream design. This makes genuine build dependencies
-traceable at the spec layer. See the framework spec
-`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`.
+traceable at the spec layer.
 
 ## Slug naming
 
