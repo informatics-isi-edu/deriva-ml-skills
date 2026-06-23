@@ -63,13 +63,20 @@ meta-marketplace's `marketplace.json` is **not** auto-bumped — see
 
 The 31 skills divide into two shapes by invocation model. The split matters when editing skills and when adding new ones — guide-shaped skills can assume background loading and should produce coordinated behavioral guidance; tool-shaped skills can assume the user explicitly typed `/deriva-ml:<name>` and should produce a useful standalone response.
 
+The four lifecycle skills (`experiment-lifecycle`, `dataset-lifecycle`,
+`create-feature`, `model-development-workflow`) realize a common **Specify →
+Build → Validate** arc with one canonical handoff grammar — see
+`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`.
+`design-experiment` owns the Specify phase for all four (one design-doc template
+per entity).
+
 **User commands (`/deriva-ml:<name>`)** — `user-invocable: true` or unset; the user types the command or asks a question that maps to it:
 
 - Lifecycle (also auto-fires): `dataset-lifecycle`, `execution-lifecycle`, `experiment-lifecycle`
 - Datasets: `debug-bag-contents`
 - Features: `create-feature` (also auto-fires), `compare-model-runs` (also auto-fires — at the post-run evaluation moment)
 - Assets: `work-with-assets` (also auto-fires — per-asset file I/O), `manage-deriva-storage` (also auto-fires — see below)
-- Experiments / configs: `design-experiment` (also auto-fires — the design-first phase, owns experiment-design/ + dataset-design/), `configure-experiment` (also auto-fires — the lifecycle Phase 2 config seam), `write-hydra-config` (also auto-fires — when editing config files / wiring RIDs)
+- Experiments / configs: `design-experiment` (also auto-fires — the design-first phase, owns experiment-design/ + dataset-design/ + feature-design/ + model-design/), `configure-experiment` (also auto-fires — the lifecycle Phase 2 config seam), `write-hydra-config` (also auto-fires — when editing config files / wiring RIDs)
 - Models: `new-model`, `model-development-workflow`
 - Notebooks: `setup-notebook-environment`, `run-notebook`
 - Project setup: `setup-derivaml-project`, `setup-ml-catalog`, `validate-project-setup`
