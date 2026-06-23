@@ -44,7 +44,7 @@ All `deriva_ml_*` tools take `hostname=` and `catalog_id=` arguments explicitly 
 DerivaML keeps your work in **two durable places**, and knowing which is which prevents most early confusion:
 
 - **The catalog** (a Deriva server) — the *data and its provenance*: datasets, features, assets, workflows, executions, RIDs, and the lineage graph connecting them. This is the authoritative record of *what exists and what produced it*.
-- **The project repository** (a git repo on your machine) — the *code and intent*: model code, Hydra-zen configs (`src/configs/`), the design docs (`experiment-design/`, `dataset-design/`, `feature-design/`, `model-design/`), and `tacit-knowledge.md`. This is where you *plan and build*; the catalog is where results *land*.
+- **The project repository** (a git repo on your machine) — the *code and intent*: model code, Hydra-zen configs (`src/configs/`), the design docs (`docs/design/experiment/`, `docs/design/dataset/`, `docs/design/feature/`, `docs/design/model/`), and `tacit-knowledge.md`. This is where you *plan and build*; the catalog is where results *land*.
 
 Everything you do follows one arc — **Specify → Build → Validate**: write a design doc (Specify), implement/configure/run it (Build), check the result against the design (Validate). The four entities all share this arc.
 

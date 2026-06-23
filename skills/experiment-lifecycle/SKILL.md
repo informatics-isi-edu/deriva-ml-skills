@@ -48,7 +48,7 @@ The phase no other skill owns. Before writing any config, settle:
 - **What's the success criterion?** A run finishes either confirming the hypothesis, refuting it, or being inconclusive. Knowing in advance which is which prevents post-hoc rationalization.
 - **What's the cost budget?** Roughly how much compute, how many GPU-hours, how many cycles before you stop iterating regardless of result? This bounds the next phases.
 
-**Deliverable:** an experiment-design document. Hand off to `/deriva-ml:design-experiment` to author `experiment-design/<slug>.md` — the four questions above become its Goal, Validation, and Requirements sections. The design doc is the up-front contract this cycle's config will implement; `tacit-knowledge.md` remains the running journal (`capture-tacit-knowledge` auto-fires for the decisions you make here). The lifecycle's job is to make sure the design doc reaches **Approved** before you move to Phase 2.
+**Deliverable:** an experiment-design document. Hand off to `/deriva-ml:design-experiment` to author `docs/design/experiment/<slug>.md` — the four questions above become its Goal, Validation, and Requirements sections. The design doc is the up-front contract this cycle's config will implement; `tacit-knowledge.md` remains the running journal (`capture-tacit-knowledge` auto-fires for the decisions you make here). The lifecycle's job is to make sure the design doc reaches **Approved** before you move to Phase 2.
 
 If you can't answer the four questions above, do not advance to phase 2. The most expensive failure mode in ML experimentation is running an experiment that, regardless of result, doesn't tell you anything about your hypothesis. The cost of writing the hypothesis down is small; the cost of finding out you tested the wrong thing after running the cycle is large.
 
@@ -152,7 +152,7 @@ Auto-fires alongside this lifecycle: `capture-tacit-knowledge` (captures decisio
 
 ## Related skills
 
-- **`/deriva-ml:design-experiment`** — Phase 1 hands off here to author the `experiment-design/<slug>.md` contract before any config is written. Returns here for Phase 2.
+- **`/deriva-ml:design-experiment`** — Phase 1 hands off here to author the `docs/design/experiment/<slug>.md` contract before any config is written. Returns here for Phase 2.
 - **`/deriva-ml:dataset-lifecycle`** — sibling lifecycle skill for the dataset side; the experiment cycle frequently depends on dataset versioning decisions named in that lifecycle.
 - **`/deriva-ml:execution-lifecycle`** — sibling lifecycle skill for the run mechanics; phase 4 hands off here for the state machine and upload discipline.
 - **`/deriva-ml:model-development-workflow`** — the cycle-zero counterpart. Use it before this skill applies — for standing up a new pipeline from schema design through the first production run. Once that first real result lands, switch over to this skill for cycle-2-onward iteration.

@@ -1,6 +1,6 @@
 ---
 name: design-experiment
-description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the experiment-design/, dataset-design/, feature-design/, and model-design/ directory conventions and the four parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase (Specify) of all four lifecycles — experiment-lifecycle, dataset-lifecycle, create-feature, and model-development-workflow; they each hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design', 'design a feature', 'design a model', 'feature-design', 'model-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 4+)."
+description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the docs/design/{experiment,dataset,feature,model}/ directory conventions and the four parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase (Specify) of all four lifecycles — experiment-lifecycle, dataset-lifecycle, create-feature, and model-development-workflow; they each hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design', 'design a feature', 'design a model', 'feature-design', 'model-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 4+)."
 ---
 
 # Design-First: Experiment, Dataset, Feature, and Model Design
@@ -37,10 +37,10 @@ not.
 
 | You are about to… | Template | Directory |
 |---|---|---|
-| Configure and run an experiment | experiment-design | `experiment-design/<slug>.md` |
-| Create, split, subsample, or curate a dataset | dataset-design | `dataset-design/<slug>.md` |
-| Create a feature (label, score, annotation) | feature-design | `feature-design/<slug>.md` |
-| Author or substantially change a model | model-design | `model-design/<slug>.md` |
+| Configure and run an experiment | experiment-design | `docs/design/experiment/<slug>.md` |
+| Create, split, subsample, or curate a dataset | dataset-design | `docs/design/dataset/<slug>.md` |
+| Create a feature (label, score, annotation) | feature-design | `docs/design/feature/<slug>.md` |
+| Author or substantially change a model | model-design | `docs/design/model/<slug>.md` |
 
 All four share the same section skeleton — **Goal/Purpose · Requirements ·
 Validation · (entity-specific) · Upstream designs · Status & links** — so they
@@ -55,9 +55,9 @@ in `references/`:
 ## The discipline
 
 1. **Write the design doc first.** One `<slug>.md` per experiment / dataset /
-   feature / model in the matching directory. Use the template; fill every
-   section. A section you can't fill is a design question you haven't answered
-   yet — answer it now, not after the run.
+   feature / model in the matching `docs/design/<entity>/` directory. Use the
+   template; fill every section. A section you can't fill is a design question
+   you haven't answered yet — answer it now, not after the run.
 2. **Get it to "Approved"** (the Status field) before moving to configuration
    (experiments) or construction (datasets/features/models). For solo work,
    "Approved" means *you* re-read it and it holds together; in a team, it's the
@@ -87,6 +87,11 @@ in `references/`:
    `tacit-knowledge.md` entries the work produced. The design doc is then a
    complete record: plan → implementation → outcome.
 
+**Before building, look for an existing design.** When you start configuring
+or building something, first check the matching `docs/design/<entity>/`
+directory for an existing `<slug>.md` and read it — don't re-derive a plan
+that's already written. If none exists, that's the signal to author one now.
+
 **Upstream designs (the spec dependency tree).** Each design doc names the
 design docs it builds on, mirroring the entity dependency graph: an
 experiment-design names the model-design + dataset-design it uses; a
@@ -98,8 +103,10 @@ traceable at the spec layer.
 
 ## Slug naming
 
-`<slug>` is a short kebab-case handle matching the experiment/dataset's intent,
-e.g. `dropout-vs-baseline.md`, `lr-sweep-2layer.md`, `cifar10-dev-subset.md`.
+`<slug>` is a short kebab-case handle matching the entity's intent,
+e.g. `dropout-vs-baseline.md` (experiment), `lr-sweep-2layer.md` (experiment),
+`cifar10-dev-subset.md` (dataset), `image-quality-label.md` (feature),
+`cifar10-2layer-cnn.md` (model).
 Keep it stable — the config's experiment name and the doc slug should be easy
 to associate.
 

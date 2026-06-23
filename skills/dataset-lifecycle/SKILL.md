@@ -31,7 +31,7 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 
 Before assessing or building, capture what the dataset is *for* and how you'll
 know it's correct. Hand off to `/deriva-ml:design-experiment` to author
-`dataset-design/<slug>.md` — Purpose, Requirements (source, size, composition,
+`docs/design/dataset/<slug>.md` — Purpose, Requirements (source, size, composition,
 element types, balance), Structure plan (standalone / split / subsample /
 curated, and the three-axis `Dataset_Type` tags), Validation (balance, no
 leakage, bag parity, counts), and Consumption (which experiments pin it).
@@ -299,7 +299,7 @@ For what to do with the bag after it lands — restructure for PyTorch, build tr
 
 ## Related Skills
 
-- **`/deriva-ml:design-experiment`** — Phase 1 hands off here to author the `dataset-design/<slug>.md` contract before assessing or building. The dataset-design template is parallel to the experiment-design one.
+- **`/deriva-ml:design-experiment`** — Phase 1 hands off here to author the `docs/design/dataset/<slug>.md` contract before assessing or building. The dataset-design template is parallel to the experiment-design one.
 - **`/deriva-ml:ml-data-engineering`** — Restructuring assets for PyTorch/TensorFlow, building training DataFrames, DatasetBag API, value selectors
 - **`/deriva-ml:debug-bag-contents`** — Diagnosing missing data, FK traversal issues, and export problems in dataset bags
 - **`/deriva-ml:create-feature`** — Creating features and adding labels/annotations to records in datasets

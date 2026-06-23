@@ -1,6 +1,6 @@
 # Feature Design Template
 
-Copy this into `feature-design/<slug>.md` and fill every section. Parallel in
+Copy this into `docs/design/feature/<slug>.md` and fill every section. Parallel in
 shape to the experiment/dataset templates — same skeleton, feature-specific
 prompts. A section you can't fill is a design gap; close it before creating the
 feature.

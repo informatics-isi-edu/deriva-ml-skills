@@ -14,7 +14,7 @@ Features link domain objects (e.g., Image, Subject) to structured values — con
 
 Before assessing or creating, capture what the feature is for and how you'll
 know it serves that purpose. Hand off to `/deriva-ml:design-experiment` to
-author `feature-design/<slug>.md` — Purpose (the decision the values inform),
+author `docs/design/feature/<slug>.md` — Purpose (the decision the values inform),
 Requirements (target table, type, vocabulary, who writes the values),
 Validation (coverage, value sanity, provenance, the consumer can read it), and
 Upstream designs. Get it to **Approved** before creating anything;

@@ -38,11 +38,12 @@ The validation walks five categories. For each item, report **present**, **parti
 | `notebooks/` | present | Jupyter notebook directory (may be empty if the project doesn't use notebooks) |
 | `tests/` | present | Test suite directory |
 | `tacit-knowledge.md` | present | Auto-maintained by `capture-tacit-knowledge`; captures decisions over time |
+| `docs/design/` | present once any design exists (optional early) | Design docs — the up-front Specify-phase contracts, in per-entity subdirs `docs/design/{experiment,dataset,feature,model}/<slug>.md`. Authored by `design-experiment`; the "before" companion to `tacit-knowledge.md`. Absent on a brand-new project; expected once the user has designed an experiment/dataset/feature/model |
 | `Experiments.md` | present (optional but strongly recommended) | Human-readable registry of named experiments and multiruns |
 | `README.md` | present | Project description (may be the template's default; flag if so) |
 | `.gitignore` | present | Should ignore `outputs/`, `multirun/`, `.deriva-ml/`, etc. |
 
-**Common gaps:** missing `tacit-knowledge.md` (suggest creating an empty file with a one-line header so `capture-tacit-knowledge` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`).
+**Common gaps:** missing `tacit-knowledge.md` (suggest creating an empty file with a one-line header so `capture-tacit-knowledge` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`). Do **not** flag a missing `docs/design/` on a new or early project — design docs are authored on demand by `design-experiment`, so their absence is normal until the user designs their first experiment/dataset/feature/model; report it as "not yet used" rather than a gap.
 
 ### 2. The `src/configs/` directory
 
