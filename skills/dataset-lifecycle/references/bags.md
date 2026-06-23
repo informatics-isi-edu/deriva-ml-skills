@@ -352,7 +352,7 @@ bag.restructure_assets(
 Both `timeout` and `exclude_tables` are available on `DatasetSpecConfig`:
 
 ```python
-from deriva_ml.dataset.aux_classes import DatasetSpecConfig
+from deriva_ml.dataset import DatasetSpecConfig
 
 DatasetSpecConfig(rid="28EA", version="0.4.0", timeout=[10, 1800])
 DatasetSpecConfig(rid="28EA", version="0.4.0", exclude_tables=["Study", "Institution"])

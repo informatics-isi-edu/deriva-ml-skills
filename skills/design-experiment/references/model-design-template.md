@@ -28,8 +28,13 @@ The source the model-layer config is derived from:
 - **Hyperparameters:** the knobs and their intended defaults (learning rate,
   batch size, epochs, regularization) — these become the `model_config` group.
 - **Input features:** which features the model trains on (the labels/annotations
-  it consumes — name the `feature-design`s). The model's prediction outputs, if
-  they become features, name the feature they populate.
+  it *consumes*) — name the `feature-design`s. These are upstream dependencies
+  (see Upstream designs).
+- **Output features:** the features the model *produces* (predicted labels,
+  confidence scores), if any. These are model *outputs*, not dependencies — list
+  them here, but do NOT list them under Upstream designs (that would create a
+  cycle). Each output feature's own `feature-design` names this model-design as
+  its producer.
 - **Input assets:** any pretrained checkpoint / starting weights the model is
   built with (enters via the model-layer config — `configs/assets.py`).
 
@@ -42,8 +47,11 @@ How you'll confirm the model meets its Goal (beyond "the code runs"):
 
 ## Upstream designs
 
-- **Feature designs** this model consumes (labels it trains on; features its
-  predictions populate).
+- **Input feature-designs** this model *consumes* (the labels/annotations it
+  trains on). Only inputs go here. Do NOT list the model's own *output*
+  (prediction) features — those are downstream of this model, recorded under
+  Requirements → Output features, and they name this model-design as their
+  producer. Keeping inputs-only here is what makes the dependency graph acyclic.
 - Any prior `model-design` it extends (a checkpoint lineage).
 
 ## Status & links

@@ -43,9 +43,19 @@ How you'll confirm the feature serves its stated Purpose:
 
 ## Upstream designs
 
-The design docs this feature builds on, if any (usually none — features are
-near the bottom of the dependency tree). If a model's predictions populate this
-feature, name the `model-design` that produces them.
+The design docs this feature builds on, if any. This depends on the feature's
+**role**, and the distinction keeps the dependency graph acyclic:
+
+- **Input feature** (ground truth / labels a model trains on, or a column a
+  split keys on): usually **none** — input features sit near the bottom of the
+  tree, and the *model-design* that consumes them names *them* upstream (not the
+  other way around). Leave this empty.
+- **Output / prediction feature** (the model emits it — predicted label,
+  confidence score): name the `model-design` that **produces** it. This feature
+  is *downstream* of that model. The model-design records this as an output, NOT
+  as one of its own upstream dependencies — so there is no cycle (the model
+  points down to its output feature; the output feature points up to its
+  producing model; nothing points back).
 
 ## Status & links
 

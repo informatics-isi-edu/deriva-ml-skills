@@ -1,7 +1,9 @@
 # Unifying Lifecycle Framework for DerivaML Skills
 
 **Date:** 2026-06-22
-**Status:** Approved (framework); Phase B (manifestation) pending its own plan
+**Status:** Approved (framework); Phase B (manifestation) implemented — see
+`docs/superpowers/plans/2026-06-22-unifying-framework-phase-b.md` and the skill
+edits on this branch
 **Author:** Carl Kesselman + Claude
 
 ## Purpose
@@ -124,6 +126,18 @@ So assets appear in the framework on the produce→consume edges as the payload
 that flows, with configuration as the surface they enter through — never as a
 node that runs the arc.
 
+**External file inputs (`LocalFile`) are the one asset-shaped input without a
+RID.** A source CSV or labels file on disk is declared as a `LocalFile` /
+`LocalFileConfig` input (see `/deriva-ml:work-with-assets`): the framework
+registers it as a referenced `File` row (path + MD5) and links it to the
+execution at run time — the bytes are not uploaded to Hatrac, so there is **no
+catalog asset RID to "wire into `configs/assets.py`" ahead of time.** The
+configuration still names it (a `LocalFileConfig` entry in the `assets` group),
+so configuration remains the consumption surface; the difference is the
+payload is a *declared path*, not a pre-existing RID. The produce→consume
+grammar's "register in the consumer's config surface" step holds; only its
+"produce a RID first" precondition does not apply to external inputs.
+
 ### Aspiration: config generable from requirements
 
 The framework's directional goal is that **both config layers be generable
@@ -149,8 +163,14 @@ Experiment ── depends on ──▶ Model ── depends on ──▶ Feature
 ```
 
 - An **experiment** is built from a model, a dataset, and configurations.
-- A **model** is built from features (the labels/annotations it trains on and
-  the predictions it emits as features).
+- A **model** depends on its **input** features — the labels/annotations it
+  trains on. Those are upstream of the model. A model's **output** (prediction)
+  features are a different relationship: they are *produced by* the model, so
+  they are **downstream** of it, not dependencies. The dependency edge is
+  Model → input-Feature only; the prediction feature points *up* to its
+  producing model. This input/output split is what keeps the graph acyclic — a
+  prediction feature and its model never both name each other as upstream. (See
+  "The spec dependency tree" for how the design docs encode this.)
 - A **dataset** is **not** built from features. A dataset is a collection of
   *elements* (members from element-type tables); those elements may have
   features associated with them. The dataset/feature relationship is
@@ -165,7 +185,14 @@ Every cross-entity handoff follows a single pattern:
 > When entity **A** produces something entity **B** needs, **A offers to
 > register it in B's consumption surface** — a config entry, a dataset version
 > bump, or a feature definition — **and names the spec linkage**: B's design
-> doc records its dependency on A's design doc.
+> doc records the dependency. When A is itself a design-doc'd entity (model,
+> dataset, feature), B names A's design doc upstream. When A is **not** a
+> design-doc'd node — an **Execution** producing output assets, the most common
+> case — there is no A-side doc to name; the linkage closes entirely on B's
+> side: B's design doc **Status & links** records the produced execution RID and
+> the output-asset RIDs it consumes. The closure requirement is the same (the
+> dependency is written down at the spec layer); only the place it's written is
+> B's Status & links, not an A→B upstream pointer.
 
 The existing, well-crystallized handoffs are the template:
 
@@ -194,7 +221,12 @@ the entity dependency graph**:
 
 - an `experiment-design/<slug>.md` names the `model-design` + `dataset-design`
   it builds on;
-- a `model-design/<slug>.md` names the `feature-design`s it consumes;
+- a `model-design/<slug>.md` names the **input** `feature-design`s it consumes
+  (the labels it trains on) as upstream. It does **not** name its own **output**
+  (prediction) features as upstream — those are downstream of the model. Each
+  prediction `feature-design` instead names *this* model-design as its producer.
+  Inputs point up to features; outputs point up to the model; nothing points
+  back — the tree stays acyclic;
 - a `dataset-design/<slug>.md` does **not** name a feature-design as a
   dependency (a dataset doesn't depend on features). Where a split reads a
   feature carried by its elements, the dataset-design notes that **element

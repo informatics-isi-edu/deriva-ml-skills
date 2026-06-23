@@ -129,6 +129,18 @@ If this is the project's first or primary model, also set it as `default_workflo
 
 ### 4. Add experiments
 
+> **This step crosses into the experiment layer.** Steps 1–3 above are the
+> *model layer* (the model fn, its `model_config`, the workflow) — what this
+> skill and a `model-design` own. An entry in `experiments.py` is
+> *experiment-layer* config: it composes this model with a dataset into a
+> runnable preset, which is the experiment lifecycle's territory. A starter
+> preset here (to smoke-test the model wires up) is fine, but a real experiment
+> preset implements an **experiment-design** — when you're testing a hypothesis,
+> author that design first (`/deriva-ml:design-experiment`) and treat
+> `/deriva-ml:configure-experiment` as the owner of the experiment-layer config.
+> Don't let "add a model" silently mint hypothesis-bearing experiments with no
+> experiment-design contract.
+
 Add to `src/configs/experiments.py`:
 
 ```python

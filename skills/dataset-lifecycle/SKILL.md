@@ -13,10 +13,20 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 
 > **This lifecycle realizes the universal Specify → Build → Validate arc** (see
 > `docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`): Phase 1
-> (Design) is Specify; Phases 2–4 (assess → plan → create) are Build; Phase 5
-> (version) + the validation checks are Validate. A dataset has no configuration
-> artifact — its shape lives in its design. A dataset does not depend on
-> features; its elements may carry them.
+> (Design) is Specify; Phases 2–4 (assess → plan → create) are Build; Validate
+> is the explicit step below. A dataset has no configuration artifact — its
+> shape lives in its design. A dataset does not depend on features; its elements
+> may carry them.
+>
+> **Validate before you release or wire into a config.** Before promoting a
+> dataset to a released version (Phase 5) or adding its RID to
+> `src/configs/datasets.py`, check it against the Validation criteria in its
+> `dataset-design`: class balance, no train/test leakage (partition member RIDs
+> disjoint), bag parity (downloaded bag RIDs == catalog members — see the
+> download workflow's Step 4), and expected counts. Set the design doc's Status →
+> **Validated**, then release. "Released" is not "validated" — a dataset can be
+> released without these checks, which is exactly the silent gap this step
+> closes.
 
 ## Phase 1: Design
 

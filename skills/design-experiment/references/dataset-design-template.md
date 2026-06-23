@@ -12,7 +12,7 @@ prompts. A section you can't fill is a design gap; close it before building.
 # Dataset Design: <one-line title>
 
 **Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Built | Released -->
+**Status:** Draft   <!-- Draft | Approved | Built | Validated | Released -->
 **Date:** <YYYY-MM-DD>
 
 ## Purpose

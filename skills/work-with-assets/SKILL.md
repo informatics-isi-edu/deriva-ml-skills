@@ -122,6 +122,6 @@ If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs
 - **`execution-lifecycle`** — Full execution lifecycle including asset upload patterns
 - **`ml-data-engineering`** — Downloading and restructuring assets for ML training
 - **`dataset-lifecycle`** — Datasets organize assets into versioned collections for reproducibility
-- **`/deriva:create-table`** *(deriva-skills)* — Generic table creation via `create_table`, used to build new asset tables
+- **`/deriva:create-table`** *(deriva-skills)* — Generic table creation via `create_table` for **non-asset** domain tables. Do **not** use it to build asset tables — use `deriva_ml_create_asset_table` (above), which creates the full canonical asset shape (hatrac columns, the `_Asset_Type` and `_Execution` associations, Chaise annotations) that a hand-built `create_table` would miss.
 - **`/deriva:load-data`** *(deriva-skills)* — Row-side loading once the asset table exists; covers both ad-hoc inserts and the production `deriva-upload-cli` path with upload specs (`asset_mappings`)
 - **`/deriva:manage-vocabulary`** *(deriva-skills)* — Generic vocabulary CRUD via `add_term`/`delete_term`, used to manage Asset_Type terms
