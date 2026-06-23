@@ -11,6 +11,13 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 
 **Check project context first.** Before running any commands, look for catalog references in the project: `tacit-knowledge.md` records which catalog/hostname previous operations used; `src/configs/deriva.py` carries hydra-zen connection configs; `CLAUDE.md` may specify the working catalog. Use the catalog the project is actively working with, NOT the original source catalog (e.g., the clone on dev.facebase.org, not the source on www.facebase.org). If you don't know the catalog ID, read `deriva://registry/{hostname}` to see available catalogs and aliases.
 
+> **This lifecycle realizes the universal Specify → Build → Validate arc** (see
+> `docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`): Phase 1
+> (Design) is Specify; Phases 2–4 (assess → plan → create) are Build; Phase 5
+> (version) + the validation checks are Validate. A dataset has no configuration
+> artifact — its shape lives in its design. A dataset does not depend on
+> features; its elements may carry them.
+
 ## Phase 1: Design
 
 Before assessing or building, capture what the dataset is *for* and how you'll
