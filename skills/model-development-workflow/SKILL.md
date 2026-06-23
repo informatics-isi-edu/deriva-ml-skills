@@ -27,7 +27,7 @@ Every DerivaML workflow follows this progression:
 **Never skip tiers.** Tier 1 catches config errors. Tier 2 catches data pipeline bugs. Tier 3 is only for generating real results.
 
 
-## Phase 0: Specify
+## Phase 1: Specify
 
 Before designing the schema or writing any model code, capture what the model is
 for. Hand off to `/deriva-ml:design-experiment` to author `model-design/<slug>.md`
@@ -38,13 +38,13 @@ section is the source the model-layer configuration is derived from.
 
 This is the Specify phase of the universal Specify → Build → Validate arc (see
 `docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`). The
-three-tier development pattern (Phases 1–6) is Build; Phase 7 plus the
+three-tier development pattern (Phases 2–7) is Build; Phase 8 plus the
 validate-against-the-design check is Validate. Configuration here is the *model
 layer* (hyperparameters, architecture); the experiment layer that composes this
 model with a dataset lives in `/deriva-ml:experiment-lifecycle`.
 
 
-## Phase 1: Schema Design
+## Phase 2: Schema Design
 
 Before any data, design the catalog structure.
 
@@ -72,7 +72,9 @@ asset (the prediction file) and feature values (on the records).
 **After creating the schema**, run `rag_index_schema()` so the RAG index includes your new tables.
 
 
-## Phase 2: Create a Development Dataset
+## Phase 3: Create a Development Dataset
+
+> **The dataset itself is owned by `/deriva-ml:dataset-lifecycle`.** This phase creates a *development* dataset as a means to the model bootstrap; for the dataset's own design, structure, typing, and versioning decisions, that lifecycle is authoritative. The inline recipe below is the fast path for a throwaway dev subset — route through dataset-lifecycle when the dev dataset becomes something you'll reuse or cite.
 
 Create a small, representative dataset for development. This is the dataset you'll use for tiers 1 and 2.
 
@@ -154,7 +156,7 @@ deriva_ml_release_dataset(
 Use `deriva_ml_get_dataset_spec(hostname="data.example.org", catalog_id="1", dataset_rid="<dev_dataset>")` to get the `DatasetSpecConfig` for your config files. Always pin configs to a released label (no `.devN` suffix) — dev labels are mutable.
 
 
-## Phase 3: Validate Features and Labels
+## Phase 4: Validate Features and Labels
 
 Before training, confirm the feature schema works with your development data.
 
@@ -188,7 +190,7 @@ deriva_ml_denormalize_dataset(
 This shows you exactly what the training pipeline will see.
 
 
-## Phase 4: Tier 1 — Dry Run
+## Phase 5: Tier 1 — Dry Run
 
 A dry run validates configuration without creating execution records or writing to the catalog.
 
@@ -212,7 +214,7 @@ uv run python src/scripts/train_resnet50.py \
     --dry-run
 ```
 
-For ad-hoc validation without writing a script, use `deriva_ml_validate_execution_configuration` (see Phase 5 pre-flight) — it's the metadata-only equivalent that doesn't pay the bag-download cost.
+For ad-hoc validation without writing a script, use `deriva_ml_validate_execution_configuration` (see Phase 6 pre-flight) — it's the metadata-only equivalent that doesn't pay the bag-download cost.
 
 ### What dry_run validates
 - ✅ Config resolves without errors
@@ -231,7 +233,7 @@ Common tier 1 failures:
 - Config schema mismatch → fix config structure
 
 
-## Phase 5: Tier 2 — Small-Data Run
+## Phase 6: Tier 2 — Small-Data Run
 
 Run a real execution against your development dataset. This creates catalog records and tests the full pipeline end-to-end.
 
@@ -266,7 +268,7 @@ Common tier 2 failures:
 - Wrong number of classes → check vocabulary and feature values
 
 
-## Phase 6: Tier 3 — Production Run
+## Phase 7: Tier 3 — Production Run
 
 Only after tiers 1 and 2 succeed, scale to the full dataset.
 
@@ -333,7 +335,7 @@ uv run deriva-ml-run +multirun=lr_sweep
    version.
 
 
-## Phase 7: Iterate
+## Phase 8: Iterate
 
 **Validate against the model-design first.** Before iterating, check the run's
 results against the Validation criteria in the `model-design` doc — did it hit

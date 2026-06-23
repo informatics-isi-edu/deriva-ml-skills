@@ -10,7 +10,7 @@ Features link domain objects (e.g., Image, Subject) to structured values — con
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
 
-## Phase 0: Specify
+## Phase 1: Specify
 
 Before assessing or creating, capture what the feature is for and how you'll
 know it serves that purpose. Hand off to `/deriva-ml:design-experiment` to
@@ -23,10 +23,10 @@ be a few lines, but a feature a model or split will depend on earns a full
 design — its Validation criteria are exactly what gets skipped otherwise.
 
 This is the Specify phase of the universal Specify → Build → Validate arc (see
-`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`). Phases 1–4
-below are Build; Phase 5 (now reframed) is Validate.
+`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`). Phases 2–5
+below are Build; Phase 6 (now reframed) is Validate.
 
-## Phase 1: Assess
+## Phase 2: Assess
 
 Before creating a feature, determine whether one is needed and whether it already exists.
 
@@ -65,7 +65,7 @@ feature = ml.lookup_feature("Image", "Diagnosis")
 - Can the existing feature be extended with new vocabulary terms?
 - Is this really a feature, or should it be a column on the table? `/deriva:semantic-awareness` covers the EAV-vs-wide-table dual extreme — features map naturally to the middle ground (typed columns + FK-to-vocab), but if you find yourself reaching for one giant feature with many free-text fields, or one EAV-shaped feature whose `Value` carries every kind of label, step back and rethink.
 
-## Phase 2: Design
+## Phase 3: Design the feature structure
 
 ### Choose the feature type
 
@@ -91,7 +91,7 @@ The test: if you always set them at the same time in the same execution, they be
 
 For the full design guide, see `references/concepts.md` under "Designing a Feature."
 
-## Phase 3: Create the Feature Definition
+## Phase 4: Create the Feature Definition
 
 ### Standard workflow
 
@@ -122,7 +122,7 @@ Every feature needs a description explaining what it measures, what values it ta
 
 Since features are multivalued, note whether it's intended for ground truth, model predictions, or computed metrics. For description templates and quality guidelines, see `/deriva-ml:generate-descriptions` *(auto-loaded)*.
 
-## Phase 4: Add Feature Values
+## Phase 5: Add Feature Values
 
 Adding values requires knowing what columns a feature has, which are required, and what values are valid. The full inspect → discover-valid-values → add → commit walkthrough lives in `references/workflow.md` under "Add Feature Values"; this section names the rule.
 
@@ -251,7 +251,7 @@ The git commit is mandatory — `ml.create_workflow(...)` raises `DerivaMLDirtyW
 
 The Execution is recoverable. See `/deriva-ml:troubleshoot-execution` "Salvage a Failed Execution" — the three-branch decision tree (salvage staged work via `salvage_execution.py`, recovery execution from inputs, or recovery execution that claims survivors as inputs) applies directly. The CSV's `LocalFile` Input edge stays recorded even if some feature values failed to upload.
 
-## Phase 5: Validate against the design
+## Phase 6: Validate against the design
 
 Confirm the feature serves the Purpose in its `feature-design` doc — not just
 that values were written:
@@ -267,7 +267,7 @@ Record the outcome in the design doc's Status & links (Status → Validated) and
 in `tacit-knowledge.md`. Then proceed to query/explore (next section) for
 ongoing use.
 
-## Phase 6: Query and Explore Feature Values
+## Phase 7: Query and Explore Feature Values
 
 Feature queries fall into two categories. **Always choose the right one — never use preview tools to retrieve feature values.**
 

@@ -215,6 +215,8 @@ The version bump creates a git tag, giving production runs a clean version refer
 
 **Now run for real** — see the `execution-lifecycle` skill for the pre-flight checklist. The key point: production runs (without `dry_run=true`) should only happen on `main` after the merge and version bump, so the recorded commit hash and version tag are meaningful.
 
+After the run produces real results, return to the model's Validate phase: check the outcome against the `model-design`'s Validation criteria (target metric + threshold) and update the design doc's Status → Validated. See `/deriva-ml:model-development-workflow` Phase 8 (Iterate) for the validate-against-the-design step. "Uploaded" is not "validated".
+
 ## Related Skills
 
 - **`write-hydra-config`** — Config file syntax for every config group
