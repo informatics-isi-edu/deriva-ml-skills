@@ -41,9 +41,10 @@ not.
 | Create a feature (label, score, annotation) | feature-design | `feature-design/<slug>.md` |
 | Author or substantially change a model | model-design | `model-design/<slug>.md` |
 
-Both share the same section skeleton — **Goal/Purpose · Requirements ·
-Validation · Analysis/Consumption · Status & links** — so the two read alike.
-The full fill-in templates and worked examples are in `references/`:
+All four share the same section skeleton — **Goal/Purpose · Requirements ·
+Validation · (entity-specific) · Upstream designs · Status & links** — so they
+read alike across entities. The full fill-in templates and worked examples are
+in `references/`:
 
 - `references/experiment-design-template.md`
 - `references/dataset-design-template.md`
