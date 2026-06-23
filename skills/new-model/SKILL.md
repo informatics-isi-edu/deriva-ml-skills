@@ -14,8 +14,8 @@ A DerivaML model is a plain Python function. The framework injects a DerivaML in
 > `/deriva-ml:design-experiment`). Steps 2–4 here are the model-layer
 > configuration; cross-check every Requirement in the design — architecture,
 > hyperparameters, input features, input assets — is satisfied by a config
-> entry. This skill is the Build phase of the model lifecycle per the framework
-> (`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`).
+> entry. This skill is the Build phase of the model lifecycle
+> (Specify → Build → Validate).
 
 For how the runner interfaces with the model, data access patterns, and Python API `bag.restructure_assets()`, see `references/runner-interface.md`.
 

@@ -22,9 +22,8 @@ Upstream designs. Get it to **Approved** before creating anything;
 be a few lines, but a feature a model or split will depend on earns a full
 design — its Validation criteria are exactly what gets skipped otherwise.
 
-This is the Specify phase of the universal Specify → Build → Validate arc (see
-`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`). Phases 2–5
-below are Build; Phase 6 (now reframed) is Validate.
+This is the Specify phase of the universal Specify → Build → Validate arc.
+Phases 2–5 below are Build; Phase 6 (now reframed) is Validate.
 
 ## Phase 2: Assess
 

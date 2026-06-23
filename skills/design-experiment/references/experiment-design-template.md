@@ -12,7 +12,7 @@ section you can't fill is a design gap — close it now.
 # Experiment Design: <one-line title>
 
 **Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Run | Concluded -->
+**Status:** Draft   <!-- Draft | Approved | Built | Validated -->
 **Date:** <YYYY-MM-DD>
 
 ## Goal

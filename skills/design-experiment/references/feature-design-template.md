@@ -13,7 +13,7 @@ feature.
 # Feature Design: <one-line title>
 
 **Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Created | Validated -->
+**Status:** Draft   <!-- Draft | Approved | Built | Validated -->
 **Date:** <YYYY-MM-DD>
 
 ## Purpose

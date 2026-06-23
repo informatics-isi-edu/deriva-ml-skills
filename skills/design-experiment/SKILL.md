@@ -69,11 +69,14 @@ in `references/`:
 > split will depend on, a new or substantially-changed model. For *cheap,
 > reversible* work — a quick parameter tweak on an existing experiment
 > (`lr=3e-4` rerun), a one-off dev/debug/smoke run, reusing a dataset unchanged,
-> a trivial single-term label — a **brief inline design note** (a sentence on
-> goal + success criterion, captured in `tacit-knowledge.md`) is enough; skip
-> the full doc. The test: *would a future teammate (or reviewer) need this
-> written down to trust or reproduce the result?* If no, stay lightweight. The
-> lifecycle skills carry this same fast-path rule at their Specify phase.
+> a trivial single-term label — a **one-line design note** (goal + success
+> criterion, written *before you start*) is enough; skip the full doc. For cheap
+> work that one-liner can live as a dated entry in `tacit-knowledge.md` rather
+> than a separate design doc — but it is still a *design note written up front*,
+> not a during/after journal entry; the placement is pragmatic, the timing is
+> unchanged. The test: *would a future teammate (or reviewer) need this written
+> down to trust or reproduce the result?* If no, stay lightweight. The lifecycle
+> skills carry this same fast-path rule at their Specify phase.
 3. **The config / dataset implements the doc.** When you write the hydra config
    (`/deriva-ml:configure-experiment`) or build the dataset
    (`/deriva-ml:dataset-lifecycle` Phase 4+), cross-check that every

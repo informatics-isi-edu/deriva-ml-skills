@@ -36,8 +36,7 @@ features, input assets), Validation (the target metric + success threshold), and
 Upstream designs (the feature-designs the model consumes). The Requirements
 section is the source the model-layer configuration is derived from.
 
-This is the Specify phase of the universal Specify → Build → Validate arc (see
-`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`). The
+This is the Specify phase of the universal Specify → Build → Validate arc. The
 three-tier development pattern (Phases 2–7) is Build; Phase 8 plus the
 validate-against-the-design check is Validate. Configuration here is the *model
 layer* (hyperparameters, architecture); the experiment layer that composes this
