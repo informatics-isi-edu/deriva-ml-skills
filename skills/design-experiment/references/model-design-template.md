@@ -1,6 +1,6 @@
 # Model Design Template
 
-Copy this into `model-design/<slug>.md` and fill every section. Parallel in
+Copy this into `docs/design/model/<slug>.md` and fill every section. Parallel in
 shape to the other design templates. The Requirements section is the source the
 model-layer configuration (hyperparameters, architecture, the `model_config`
 group) is derived from — write it so a config could be scaffolded from it.

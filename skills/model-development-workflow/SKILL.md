@@ -30,7 +30,7 @@ Every DerivaML workflow follows this progression:
 ## Phase 1: Specify
 
 Before designing the schema or writing any model code, capture what the model is
-for. Hand off to `/deriva-ml:design-experiment` to author `model-design/<slug>.md`
+for. Hand off to `/deriva-ml:design-experiment` to author `docs/design/model/<slug>.md`
 — Goal (the prediction task), Requirements (architecture, hyperparameters, input
 features, input assets), Validation (the target metric + success threshold), and
 Upstream designs (the feature-designs the model consumes). The Requirements
@@ -353,8 +353,8 @@ ML development is iterative. After each production run:
 
 **Never skip back to Tier 3** after a significant change. Always validate with tiers 1–2 first.
 
-The first hypothesis-driven experiment after cycle zero authors an
-`experiment-design/<slug>.md` via `/deriva-ml:design-experiment` — the
+The first hypothesis-driven experiment after cycle zero authors a
+`docs/design/experiment/<slug>.md` via `/deriva-ml:design-experiment` — the
 design-first phase `experiment-lifecycle` opens with. Cycle zero validated the
 plumbing; from here every experiment starts with a design doc.
 

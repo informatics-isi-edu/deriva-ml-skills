@@ -1,6 +1,6 @@
 # Experiment Design Template
 
-Copy this into `experiment-design/<slug>.md` and fill every section. Each
+Copy this into `docs/design/experiment/<slug>.md` and fill every section. Each
 section maps to a question the experiment must answer *before* it runs. A
 section you can't fill is a design gap — close it now.
 

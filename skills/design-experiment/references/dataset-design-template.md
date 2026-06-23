@@ -1,6 +1,6 @@
 # Dataset Design Template
 
-Copy this into `dataset-design/<slug>.md` and fill every section. Parallel in
+Copy this into `docs/design/dataset/<slug>.md` and fill every section. Parallel in
 shape to the experiment-design template — same skeleton, dataset-specific
 prompts. A section you can't fill is a design gap; close it before building.
 
