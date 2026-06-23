@@ -9,6 +9,14 @@ disable-model-invocation: true
 
 A DerivaML model is a plain Python function. The framework injects a DerivaML instance and an execution context at runtime — everything else becomes a configurable hyperparameter via hydra-zen. The runner handles the execution lifecycle (create, start, stop, upload), so the model function focuses on doing the work.
 
+> **Author from an approved model-design.** Before writing the model file, you
+> should have a `model-design/<slug>.md` at Approved (see
+> `/deriva-ml:design-experiment`). Steps 2–4 here are the model-layer
+> configuration; cross-check every Requirement in the design — architecture,
+> hyperparameters, input features, input assets — is satisfied by a config
+> entry. This skill is the Build phase of the model lifecycle per the framework
+> (`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`).
+
 For how the runner interfaces with the model, data access patterns, and Python API `bag.restructure_assets()`, see `references/runner-interface.md`.
 
 ## Critical Rules

@@ -27,6 +27,23 @@ Every DerivaML workflow follows this progression:
 **Never skip tiers.** Tier 1 catches config errors. Tier 2 catches data pipeline bugs. Tier 3 is only for generating real results.
 
 
+## Phase 0: Specify
+
+Before designing the schema or writing any model code, capture what the model is
+for. Hand off to `/deriva-ml:design-experiment` to author `model-design/<slug>.md`
+— Goal (the prediction task), Requirements (architecture, hyperparameters, input
+features, input assets), Validation (the target metric + success threshold), and
+Upstream designs (the feature-designs the model consumes). The Requirements
+section is the source the model-layer configuration is derived from.
+
+This is the Specify phase of the universal Specify → Build → Validate arc (see
+`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`). The
+three-tier development pattern (Phases 1–6) is Build; Phase 7 plus the
+validate-against-the-design check is Validate. Configuration here is the *model
+layer* (hyperparameters, architecture); the experiment layer that composes this
+model with a dataset lives in `/deriva-ml:experiment-lifecycle`.
+
+
 ## Phase 1: Schema Design
 
 Before any data, design the catalog structure.
@@ -36,6 +53,13 @@ Before any data, design the catalog structure.
 2. What vocabularies provide consistent categorical labels?
 3. What features attach annotations to records?
 4. What asset tables store files? (images, models, masks, etc.)
+
+**Predictions as features (handoff grammar).** If the model emits predictions
+that should be stored as feature values (predicted labels, confidence scores),
+that feature must be defined first. Hand off to `/deriva-ml:create-feature` to
+author its `feature-design` and create it — the model-design's "Upstream
+designs" names that feature. A model's prediction output is simultaneously an
+asset (the prediction file) and feature values (on the records).
 
 **Skills to use:**
 - `/deriva:create-table` *(deriva-skills)* — domain tables with columns and foreign keys
@@ -310,6 +334,12 @@ uv run deriva-ml-run +multirun=lr_sweep
 
 
 ## Phase 7: Iterate
+
+**Validate against the model-design first.** Before iterating, check the run's
+results against the Validation criteria in the `model-design` doc — did it hit
+the target metric and threshold? This is the Validate phase of the arc: success
+is measured against the design's stated criteria, not just "the pipeline ran."
+Record the verdict in the design doc (Status → Validated) and `tacit-knowledge.md`.
 
 ML development is iterative. After each production run:
 
