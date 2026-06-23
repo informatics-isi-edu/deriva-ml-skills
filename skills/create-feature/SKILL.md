@@ -10,6 +10,22 @@ Features link domain objects (e.g., Image, Subject) to structured values — con
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
 
+## Phase 0: Specify
+
+Before assessing or creating, capture what the feature is for and how you'll
+know it serves that purpose. Hand off to `/deriva-ml:design-experiment` to
+author `feature-design/<slug>.md` — Purpose (the decision the values inform),
+Requirements (target table, type, vocabulary, who writes the values),
+Validation (coverage, value sanity, provenance, the consumer can read it), and
+Upstream designs. Get it to **Approved** before creating anything;
+`tacit-knowledge.md` stays the running journal. A trivial single-term label can
+be a few lines, but a feature a model or split will depend on earns a full
+design — its Validation criteria are exactly what gets skipped otherwise.
+
+This is the Specify phase of the universal Specify → Build → Validate arc (see
+`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`). Phases 1–4
+below are Build; Phase 5 (now reframed) is Validate.
+
 ## Phase 1: Assess
 
 Before creating a feature, determine whether one is needed and whether it already exists.
@@ -235,7 +251,23 @@ The git commit is mandatory — `ml.create_workflow(...)` raises `DerivaMLDirtyW
 
 The Execution is recoverable. See `/deriva-ml:troubleshoot-execution` "Salvage a Failed Execution" — the three-branch decision tree (salvage staged work via `salvage_execution.py`, recovery execution from inputs, or recovery execution that claims survivors as inputs) applies directly. The CSV's `LocalFile` Input edge stays recorded even if some feature values failed to upload.
 
-## Phase 5: Query and Explore Feature Values
+## Phase 5: Validate against the design
+
+Confirm the feature serves the Purpose in its `feature-design` doc — not just
+that values were written:
+- **Coverage** — every intended record got a value (or the expected subset did).
+- **Value sanity** — terms are from the declared vocabulary; numeric scores in
+  range.
+- **Provenance** — each value links to its producing Execution
+  (`deriva_ml_list_feature_values(..., execution_rids=[...])`).
+- **Consumer can read it** — the downstream use named in the design (a
+  stratified split, a training loop) actually finds the values where it expects.
+
+Record the outcome in the design doc's Status & links (Status → Validated) and
+in `tacit-knowledge.md`. Then proceed to query/explore (next section) for
+ongoing use.
+
+## Phase 6: Query and Explore Feature Values
 
 Feature queries fall into two categories. **Always choose the right one — never use preview tools to retrieve feature values.**
 
@@ -270,6 +302,15 @@ If multiple executions contributed, present only the relevant selector options b
 - **In `deriva_ml_denormalize_dataset`** — include feature tables to see labels alongside data. Column names: `{FeatureTableName}_{ColumnName}`
 - **Dataset versioning** — adding feature values to dataset members does NOT automatically flip the dataset to a dev version. Per ADR-0003, only the dataset-mutation tools (`add_dataset_members`, `delete_dataset_members`, dataset-type changes) auto-flip to dev; feature drift is invisible to that detection. To record feature drift, call `dataset.mark_dev(description)` from the Python API to declare a dev period, then `deriva_ml_release_dataset(...)` to mint a release that captures the new feature values
 - **In `split_dataset`** (Python API, run from a script) — the `stratify_by_column` parameter references feature columns in denormalized format
+
+**Drift notification (handoff grammar).** Writing feature values to records that
+are members of a *released* Dataset drifts that dataset's content — the same
+members now carry different data. This is not a build dependency (a dataset
+doesn't depend on the feature); it's a drift the dataset must record. When you
+populate values on members of a released dataset, **proactively offer** to flip
+it to a dev version (`dataset.mark_dev(description)`) and route to
+`/deriva-ml:dataset-lifecycle` Phase 5 for the release once the drift period is
+done. Don't wait to be asked.
 
 ## Reference Resources
 
