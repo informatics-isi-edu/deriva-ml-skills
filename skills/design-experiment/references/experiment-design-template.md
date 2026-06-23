@@ -54,6 +54,12 @@ How results get evaluated: single-run read of feature values
 (`/deriva-ml:compare-model-runs`), or a sweep
 (`deriva_ml_multirun_status`). Name the tool and the feature/metric.
 
+## Upstream designs
+
+The design docs this experiment builds on: the `model-design` of the model it
+runs and the `dataset-design` of the dataset it consumes. Naming them makes the
+dependency traceable at the spec layer.
+
 ## Status & links
 
 - **Config:** the experiment name + `configs/experiments.py` entry that

@@ -1,6 +1,6 @@
 ---
 name: design-experiment
-description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the experiment-design/ and dataset-design/ directory conventions and the two parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase of both experiment-lifecycle (Phase 1) and dataset-lifecycle (Phase 1: Design); they hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 4+)."
+description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the experiment-design/, dataset-design/, feature-design/, and model-design/ directory conventions and the four parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase of both experiment-lifecycle (Phase 1) and dataset-lifecycle (Phase 1: Design); they hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design', 'design a feature', 'design a model', 'feature-design', 'model-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 4+)."
 ---
 
 # Design-First: Experiment and Dataset Design
@@ -38,6 +38,8 @@ not.
 |---|---|---|
 | Configure and run an experiment | experiment-design | `experiment-design/<slug>.md` |
 | Create, split, subsample, or curate a dataset | dataset-design | `dataset-design/<slug>.md` |
+| Create a feature (label, score, annotation) | feature-design | `feature-design/<slug>.md` |
+| Author or substantially change a model | model-design | `model-design/<slug>.md` |
 
 Both share the same section skeleton — **Goal/Purpose · Requirements ·
 Validation · Analysis/Consumption · Status & links** — so the two read alike.
@@ -45,6 +47,8 @@ The full fill-in templates and worked examples are in `references/`:
 
 - `references/experiment-design-template.md`
 - `references/dataset-design-template.md`
+- `references/feature-design-template.md`
+- `references/model-design-template.md`
 
 ## The discipline
 
@@ -64,6 +68,16 @@ The full fill-in templates and worked examples are in `references/`:
    with the resulting RID(s) / execution(s) / config entries and a link to the
    `tacit-knowledge.md` entries the work produced. The design doc is then a
    complete record: plan → implementation → outcome.
+
+**Upstream designs (the spec dependency tree).** Each design doc names the
+design docs it builds on, mirroring the entity dependency graph: an
+experiment-design names the model-design + dataset-design it uses; a
+model-design names the feature-designs it consumes. A dataset-design does NOT
+name a feature as a dependency (a dataset doesn't depend on features) — where a
+split reads a feature its *elements* carry, note that element feature as a
+precondition, not an upstream design. This makes genuine build dependencies
+traceable at the spec layer. See the framework spec
+`docs/superpowers/specs/2026-06-22-unifying-lifecycle-framework.md`.
 
 ## Slug naming
 

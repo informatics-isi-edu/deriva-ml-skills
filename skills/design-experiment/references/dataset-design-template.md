@@ -52,6 +52,13 @@ Who uses this downstream: which experiments/configs reference it, and the
 version-pinning expectation (always a released label, never dev/"current" in
 `configs/datasets.py`).
 
+## Upstream designs
+
+A dataset does not depend on a feature, so it names no upstream design. Where a
+split reads a feature its *elements* carry, note that element feature here as a
+precondition on the members — a reference to a data property, not a build
+dependency.
+
 ## Status & links
 
 - **RID + version:** the produced dataset RID and released version.
