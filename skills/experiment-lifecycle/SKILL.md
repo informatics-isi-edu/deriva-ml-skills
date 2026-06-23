@@ -11,6 +11,20 @@ This skill names the arc and walks you through it. The mechanics of each phase l
 
 > **This skill assumes the pipeline already exists and works.** If you're standing up a new pipeline from scratch — schema design, first dev dataset, first dry run, first small-data run, first production run — that's cycle-zero work and belongs in `/deriva-ml:model-development-workflow`. Come back here for cycle 2 onward, once "does the plumbing run" has been answered and the next question is "what would teach us something we don't already know?"
 
+> **This lifecycle realizes the universal Specify → Build → Validate arc**: Phase 1
+> (design) is Specify; Phases 2–5 (configure → identify assets → run) are Build;
+> Phases 6–7 (evaluate → repeat) are Validate. Configuration here is the
+> *experiment layer* — composing a model + dataset + parameter values over the
+> model-layer config.
+
+> **"Experiment" means three things in DerivaML — keep them distinct.** (1) The
+> *experiment cycle* — one turn of this lifecycle (hypothesis → config → run →
+> evaluate). (2) An *experiment config preset* — a named entry in
+> `configs/experiments.py` that composes a model + dataset + params (see
+> `/deriva-ml:configure-experiment`). (3) The *experiment repository* — the
+> GitHub repo holding your code, configs, and design docs (the project itself).
+> This skill is about the *cycle*; it uses *presets* and lives in the *repo*.
+
 ## The seven phases
 
 ```

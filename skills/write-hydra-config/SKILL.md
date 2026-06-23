@@ -162,7 +162,7 @@ General principles — descriptions should be specific, quantified, purposeful, 
 | `timeout` | `list[int] \| None` | `None` | `[connect_timeout, read_timeout]` in seconds. Default `[10, 610]` |
 | `fetch_concurrency` | `int` | `8` | Parallelism for bag fetch. Lower if the catalog is rate-limiting; raise for fast networks |
 
-### `AssetSpecConfig` (from `deriva_ml.execution`)
+### `AssetSpecConfig` (from `deriva_ml`)
 
 Pins a **catalog-resident** asset (by RID) as an input the experiment consumes.
 

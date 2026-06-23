@@ -245,7 +245,7 @@ asset_store(
 )
 
 # AssetSpecConfig with caching (for large immutable files like model weights)
-from deriva_ml.asset.aux_classes import AssetSpecConfig
+from deriva_ml import AssetSpecConfig
 
 asset_store(
     with_description(
@@ -294,7 +294,7 @@ asset_store([], name="no_assets")
 # )
 
 # Example: cached asset (for large files like model weights)
-# from deriva_ml.asset.aux_classes import AssetSpecConfig
+# from deriva_ml import AssetSpecConfig
 # asset_store(
 #     with_description(
 #         [AssetSpecConfig(rid="XXXX", cache=True)],

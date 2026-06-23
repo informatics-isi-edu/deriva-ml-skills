@@ -1,15 +1,16 @@
 ---
 name: design-experiment
-description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the experiment-design/ and dataset-design/ directory conventions and the two parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase of both experiment-lifecycle (Phase 1) and dataset-lifecycle (Phase 1: Design); they hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 4+)."
+description: "ALWAYS use BEFORE configuring an experiment or building a dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction) then implements. Owns the experiment-design/, dataset-design/, feature-design/, and model-design/ directory conventions and the four parallel design-doc templates. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase (Specify) of all four lifecycles — experiment-lifecycle, dataset-lifecycle, create-feature, and model-development-workflow; they each hand off here. Triggers on: 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'write a design doc', 'experiment-design', 'dataset-design', 'design a feature', 'design a model', 'feature-design', 'model-design'. Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting the dataset (dataset-lifecycle Phase 4+)."
 ---
 
-# Design-First: Experiment and Dataset Design
+# Design-First: Experiment, Dataset, Feature, and Model Design
 
-Before you write a config or build a dataset, capture **what you're trying to
-achieve and how you'll know you succeeded** — in a standardized document, in
-the repo, that the work then implements. This is the design-first phase that
-both `/deriva-ml:experiment-lifecycle` and `/deriva-ml:dataset-lifecycle` open
-with.
+Before you build anything — a config, a dataset, a feature, or a model —
+capture **what you're trying to achieve and how you'll know you succeeded** —
+in a standardized document, in the repo, that the work then implements. This is
+the design-first (Specify) phase that all four lifecycle skills open with:
+`/deriva-ml:experiment-lifecycle`, `/deriva-ml:dataset-lifecycle`,
+`/deriva-ml:create-feature`, and `/deriva-ml:model-development-workflow`.
 
 ## Why a design doc (and not just `tacit-knowledge.md`)
 
@@ -38,23 +39,44 @@ not.
 |---|---|---|
 | Configure and run an experiment | experiment-design | `experiment-design/<slug>.md` |
 | Create, split, subsample, or curate a dataset | dataset-design | `dataset-design/<slug>.md` |
+| Create a feature (label, score, annotation) | feature-design | `feature-design/<slug>.md` |
+| Author or substantially change a model | model-design | `model-design/<slug>.md` |
 
-Both share the same section skeleton — **Goal/Purpose · Requirements ·
-Validation · Analysis/Consumption · Status & links** — so the two read alike.
-The full fill-in templates and worked examples are in `references/`:
+All four share the same section skeleton — **Goal/Purpose · Requirements ·
+Validation · (entity-specific) · Upstream designs · Status & links** — so they
+read alike across entities. The full fill-in templates and worked examples are
+in `references/`:
 
 - `references/experiment-design-template.md`
 - `references/dataset-design-template.md`
+- `references/feature-design-template.md`
+- `references/model-design-template.md`
 
 ## The discipline
 
-1. **Write the design doc first.** One `<slug>.md` per experiment/dataset in
-   the matching directory. Use the template; fill every section. A section you
-   can't fill is a design question you haven't answered yet — answer it now,
-   not after the run.
+1. **Write the design doc first.** One `<slug>.md` per experiment / dataset /
+   feature / model in the matching directory. Use the template; fill every
+   section. A section you can't fill is a design question you haven't answered
+   yet — answer it now, not after the run.
 2. **Get it to "Approved"** (the Status field) before moving to configuration
-   (experiments) or construction (datasets). For solo work, "Approved" means
-   *you* re-read it and it holds together; in a team, it's the review gate.
+   (experiments) or construction (datasets/features/models). For solo work,
+   "Approved" means *you* re-read it and it holds together; in a team, it's the
+   review gate.
+
+> **Match the doc's weight to the work — don't let this become ceremony.** A
+> full design doc earns its cost for *durable, expensive, or hypothesis-bearing*
+> work: a new experiment hypothesis, a new split/subsample, a feature a model or
+> split will depend on, a new or substantially-changed model. For *cheap,
+> reversible* work — a quick parameter tweak on an existing experiment
+> (`lr=3e-4` rerun), a one-off dev/debug/smoke run, reusing a dataset unchanged,
+> a trivial single-term label — a **one-line design note** (goal + success
+> criterion, written *before you start*) is enough; skip the full doc. For cheap
+> work that one-liner can live as a dated entry in `tacit-knowledge.md` rather
+> than a separate design doc — but it is still a *design note written up front*,
+> not a during/after journal entry; the placement is pragmatic, the timing is
+> unchanged. The test: *would a future teammate (or reviewer) need this written
+> down to trust or reproduce the result?* If no, stay lightweight. The lifecycle
+> skills carry this same fast-path rule at their Specify phase.
 3. **The config / dataset implements the doc.** When you write the hydra config
    (`/deriva-ml:configure-experiment`) or build the dataset
    (`/deriva-ml:dataset-lifecycle` Phase 4+), cross-check that every
@@ -64,6 +86,15 @@ The full fill-in templates and worked examples are in `references/`:
    with the resulting RID(s) / execution(s) / config entries and a link to the
    `tacit-knowledge.md` entries the work produced. The design doc is then a
    complete record: plan → implementation → outcome.
+
+**Upstream designs (the spec dependency tree).** Each design doc names the
+design docs it builds on, mirroring the entity dependency graph: an
+experiment-design names the model-design + dataset-design it uses; a
+model-design names the feature-designs it consumes. A dataset-design does NOT
+name a feature as a dependency (a dataset doesn't depend on features) — where a
+split reads a feature its *elements* carry, note that element feature as a
+precondition, not an upstream design. This makes genuine build dependencies
+traceable at the spec layer.
 
 ## Slug naming
 
@@ -78,8 +109,15 @@ to associate.
   (hypothesis/design); returns here at the start of each new cycle.
 - **`/deriva-ml:dataset-lifecycle`** — opens with this skill as its Phase 1
   (Design) before planning structure.
+- **`/deriva-ml:create-feature`** — opens with this skill as its Phase 1
+  (Specify) to author the `feature-design` before creating the feature.
+- **`/deriva-ml:model-development-workflow`** — opens with this skill as its
+  Phase 1 (Specify) to author the `model-design` before bootstrapping.
+- **`/deriva-ml:new-model`** — authors the model from an approved `model-design`
+  (the Build side; this skill is the Specify side).
 - **`/deriva-ml:configure-experiment`** / **`/deriva-ml:write-hydra-config`** —
-  the config that *implements* an approved experiment-design doc.
+  the config that *implements* an approved experiment-design (and the model
+  layer that implements a model-design).
 - **`/deriva-ml:capture-tacit-knowledge`** (auto-fires) — the during/after
   counterpart. Design = the plan before; capture = what was learned.
 - **`/deriva-ml:generate-descriptions`** (auto-fires) — when the design's Goal

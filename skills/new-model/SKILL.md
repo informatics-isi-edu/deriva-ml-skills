@@ -9,6 +9,14 @@ disable-model-invocation: true
 
 A DerivaML model is a plain Python function. The framework injects a DerivaML instance and an execution context at runtime — everything else becomes a configurable hyperparameter via hydra-zen. The runner handles the execution lifecycle (create, start, stop, upload), so the model function focuses on doing the work.
 
+> **Author from an approved model-design.** Before writing the model file, you
+> should have a `model-design/<slug>.md` at Approved (see
+> `/deriva-ml:design-experiment`). Steps 2–4 here are the model-layer
+> configuration; cross-check every Requirement in the design — architecture,
+> hyperparameters, input features, input assets — is satisfied by a config
+> entry. This skill is the Build phase of the model lifecycle
+> (Specify → Build → Validate).
+
 For how the runner interfaces with the model, data access patterns, and Python API `bag.restructure_assets()`, see `references/runner-interface.md`.
 
 ## Critical Rules
@@ -121,6 +129,18 @@ If this is the project's first or primary model, also set it as `default_workflo
 
 ### 4. Add experiments
 
+> **This step crosses into the experiment layer.** Steps 1–3 above are the
+> *model layer* (the model fn, its `model_config`, the workflow) — what this
+> skill and a `model-design` own. An entry in `experiments.py` is
+> *experiment-layer* config: it composes this model with a dataset into a
+> runnable preset, which is the experiment lifecycle's territory. A starter
+> preset here (to smoke-test the model wires up) is fine, but a real experiment
+> preset implements an **experiment-design** — when you're testing a hypothesis,
+> author that design first (`/deriva-ml:design-experiment`) and treat
+> `/deriva-ml:configure-experiment` as the owner of the experiment-layer config.
+> Don't let "add a model" silently mint hypothesis-bearing experiments with no
+> experiment-design contract.
+
 Add to `src/configs/experiments.py`:
 
 ```python
@@ -206,6 +226,8 @@ uv run bump-version minor   # New model = new feature = minor bump
 The version bump creates a git tag, giving production runs a clean version reference. Use `minor` for a new model; use `patch` if you're fixing an existing model.
 
 **Now run for real** — see the `execution-lifecycle` skill for the pre-flight checklist. The key point: production runs (without `dry_run=true`) should only happen on `main` after the merge and version bump, so the recorded commit hash and version tag are meaningful.
+
+After the run produces real results, return to the model's Validate phase: check the outcome against the `model-design`'s Validation criteria (target metric + threshold) and update the design doc's Status → Validated. See `/deriva-ml:model-development-workflow` Phase 8 (Iterate) for the validate-against-the-design step. "Uploaded" is not "validated".
 
 ## Related Skills
 

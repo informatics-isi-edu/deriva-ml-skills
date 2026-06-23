@@ -12,7 +12,7 @@ prompts. A section you can't fill is a design gap; close it before building.
 # Dataset Design: <one-line title>
 
 **Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Built | Released -->
+**Status:** Draft   <!-- Draft | Approved | Built | Validated | Released -->
 **Date:** <YYYY-MM-DD>
 
 ## Purpose
@@ -51,6 +51,13 @@ How you'll verify the dataset is correct *before* relying on it:
 Who uses this downstream: which experiments/configs reference it, and the
 version-pinning expectation (always a released label, never dev/"current" in
 `configs/datasets.py`).
+
+## Upstream designs
+
+A dataset does not depend on a feature, so it names no upstream design. Where a
+split reads a feature its *elements* carry, note that element feature here as a
+precondition on the members — a reference to a data property, not a build
+dependency.
 
 ## Status & links
 
@@ -95,6 +102,11 @@ small-data runs, so full-scale compute isn't spent debugging plumbing.
 - Used by the `*_quick` / small-data experiments in `configs/experiments.py`.
 - Pinned in `configs/datasets.py` as a released version (e.g. `0.1.0`), never
   a dev label.
+
+## Upstream designs
+None — a dataset doesn't depend on a feature. The subsample stratifies on the
+class label its Image elements already carry (an element-feature precondition,
+not a build dependency).
 
 ## Status & links
 - **RID + version:** (filled after the build)

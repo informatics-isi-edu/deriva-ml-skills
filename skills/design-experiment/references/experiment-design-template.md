@@ -12,7 +12,7 @@ section you can't fill is a design gap — close it now.
 # Experiment Design: <one-line title>
 
 **Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Run | Concluded -->
+**Status:** Draft   <!-- Draft | Approved | Built | Validated -->
 **Date:** <YYYY-MM-DD>
 
 ## Goal
@@ -53,6 +53,12 @@ How results get evaluated: single-run read of feature values
 (`deriva_ml_list_feature_values`), multi-run comparison
 (`/deriva-ml:compare-model-runs`), or a sweep
 (`deriva_ml_multirun_status`). Name the tool and the feature/metric.
+
+## Upstream designs
+
+The design docs this experiment builds on: the `model-design` of the model it
+runs and the `dataset-design` of the dataset it consumes. Naming them makes the
+dependency traceable at the spec layer.
 
 ## Status & links
 
@@ -99,6 +105,10 @@ accuracy by ≥3% vs the current unregularized baseline (execution 6-ABC1).
 ## Analysis plan
 Single-run read of `Test_Accuracy` via `deriva_ml_list_feature_values`, then
 a two-run comparison against `6-ABC1` via `/deriva-ml:compare-model-runs`.
+
+## Upstream designs
+- Model design: `cifar10-2layer-cnn` (the model this experiment runs).
+- Dataset design: `cifar10-dev-subset` (the dataset it consumes).
 
 ## Status & links
 - **Config:** `dropout_quick` in `configs/experiments.py`

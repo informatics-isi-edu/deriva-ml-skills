@@ -487,7 +487,7 @@ A dataset is uniquely identified by its **RID** (Resource Identifier), like any 
 This pair is captured in a **DatasetSpec** — the standard way to reference a dataset in code:
 
 ```python
-from deriva_ml.dataset.aux_classes import DatasetSpec, DatasetSpecConfig
+from deriva_ml.dataset import DatasetSpec, DatasetSpecConfig
 
 # Python API
 DatasetSpec(rid="28EA", version="0.4.0")
@@ -650,7 +650,7 @@ url = ml.cite("1-ABC4", current=True)  # live URL
 The standard way to use a dataset in an ML experiment is through a Hydra-zen configuration file. The `DatasetSpecConfig` captures the RID and pinned version:
 
 ```python
-from deriva_ml.dataset.aux_classes import DatasetSpecConfig
+from deriva_ml.dataset import DatasetSpecConfig
 
 # In a config module (e.g., src/configs/datasets.py)
 training_data = DatasetSpecConfig(rid="28EA", version="0.4.0")

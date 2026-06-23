@@ -35,9 +35,32 @@ The DerivaML stack:
 
 - **`deriva-ml`** — the Python library; provides the `DerivaML` class, `Workflow`, `ExecutionConfiguration`, dataset / feature / asset APIs, and the `with ml.create_execution(config) as exe:` context manager pattern.
 - **`deriva_ml_*` MCP tools** — e.g., `deriva_ml_create_dataset`, `deriva_ml_create_feature`, `deriva_ml_release_dataset`, plus the `deriva://catalog/{h}/{c}/deriva-ml/...` resource family. MCP is the **observation + catalog-state-mutation** surface; execution authorship (creating + running executions, staging feature values, committing output assets) lives in user-local Python via bundled script templates — see the `execution-lifecycle` skill.
-- **`deriva-ml-skills`** — this Claude Code plugin; ~28 skills that drive the above two layers through Claude.
+- **`deriva-ml-skills`** — this Claude Code plugin; the skills that drive the above two layers through Claude.
 
 All `deriva_ml_*` tools take `hostname=` and `catalog_id=` arguments explicitly — see `/deriva:deriva-context` for the stateless-model framing that applies to the whole stack.
+
+## The object model in one screen (start here if you're new)
+
+DerivaML keeps your work in **two durable places**, and knowing which is which prevents most early confusion:
+
+- **The catalog** (a Deriva server) — the *data and its provenance*: datasets, features, assets, workflows, executions, RIDs, and the lineage graph connecting them. This is the authoritative record of *what exists and what produced it*.
+- **The project repository** (a git repo on your machine) — the *code and intent*: model code, Hydra-zen configs (`src/configs/`), the design docs (`experiment-design/`, `dataset-design/`, `feature-design/`, `model-design/`), and `tacit-knowledge.md`. This is where you *plan and build*; the catalog is where results *land*.
+
+Everything you do follows one arc — **Specify → Build → Validate**: write a design doc (Specify), implement/configure/run it (Build), check the result against the design (Validate). The four entities all share this arc.
+
+**Which skill do I start with?**
+
+| Your situation | Start with |
+|---|---|
+| No project repo yet | `/deriva-ml:setup-derivaml-project` |
+| No ML catalog yet | `/deriva-ml:setup-ml-catalog` |
+| New / unproven pipeline (no real results yet) | `/deriva-ml:model-development-workflow` (cycle zero) |
+| Working pipeline, want to test a hypothesis | `/deriva-ml:experiment-lifecycle` |
+| Need one specific entity | `/deriva-ml:dataset-lifecycle`, `/deriva-ml:create-feature`, `/deriva-ml:new-model`, or `/deriva-ml:work-with-assets` |
+| About to plan any of the above | `/deriva-ml:design-experiment` (the Specify phase for all four) |
+| Something broke / am I up to date | `/deriva-ml:troubleshoot-execution` |
+
+> **One term, three meanings — "experiment".** (1) the *experiment cycle* (one turn of the experiment lifecycle); (2) an *experiment config preset* (a named entry in `configs/experiments.py` composing model + dataset + params); (3) the *experiment repository* (the project repo itself). Keep them distinct.
 
 ## Read-side questions: fetch the resource first
 
