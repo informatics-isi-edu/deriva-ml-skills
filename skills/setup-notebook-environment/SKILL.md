@@ -1,6 +1,6 @@
 ---
 name: setup-notebook-environment
-description: "Use when setting up the development environment for a DerivaML project — installing the Jupyter kernel, syncing uv dependencies (uv sync --group=jupyter), configuring nbstripout, authenticating with Deriva or Globus, installing PyTorch dependencies, or any environment-prep step before running notebooks or models for the first time. Triggers on: 'install jupyter', 'install kernel', 'jupyter kernel', 'install nbstripout', 'configure nbstripout', 'authenticate with deriva', 'authenticate with globus', 'globus login', 'deriva login', 'install pytorch', 'install dependencies', 'uv sync', 'uv sync --group', 'set up environment', 'set up dev environment', 'project environment setup', 'first time environment setup', 'install deriva-ml', 'install deriva-ml-mcp'."
+description: "Use when setting up the development environment for a DerivaML project — installing the Jupyter kernel, syncing uv dependencies (uv sync --group=jupyter), configuring nbstripout, authenticating with Deriva or Globus, installing PyTorch dependencies, or any environment-prep step before running notebooks or models for the first time. Triggers on: 'install jupyter', 'install kernel', 'jupyter kernel', 'install nbstripout', 'configure nbstripout', 'authenticate with deriva', 'authenticate with globus', 'globus login', 'deriva login', 'install pytorch', 'install dependencies', 'uv sync', 'uv sync --group', 'set up environment', 'set up dev environment', 'project environment setup', 'first time environment setup', 'install deriva-ml'."
 disable-model-invocation: true
 ---
 
@@ -68,10 +68,7 @@ uv run nbstripout --status
 uv run deriva-ml-install-kernel
 ```
 
-This registers the project's virtual environment as a Jupyter kernel. The kernel name is derived from the project name in `pyproject.toml`.
-
-Alternatively, use the MCP tool:
-- CLI `uv run deriva-ml-install-kernel` to install the kernel programmatically.
+This registers the project's virtual environment as a Jupyter kernel. The kernel name is derived from the project name in `pyproject.toml`. (Kernel installation is CLI-only — there is no MCP tool for it.)
 
 To verify the kernel was installed:
 ```bash

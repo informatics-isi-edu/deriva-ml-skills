@@ -190,7 +190,7 @@ Ask yourself: **does this script change the catalog?**
 | Count records, compute statistics, plot distributions | Exploration | No | No |
 | Fetch and analyze features (read-only) | Exploration | No | No |
 | Insert records, add feature values, upload assets, create datasets | Catalog-modifying | **Yes** | **Yes** |
-| Modify vocabulary terms | Catalog-modifying | **Yes** | **Yes** |
+| Add/modify vocabulary terms | Interactive MCP (`add_term`) | No | No (a few terms are an interactive `add_term` call, not a committed script — vocab edits don't carry a provenance execution; only generate a script for a *bulk* term load) |
 
 ## When to suggest writing a script
 
