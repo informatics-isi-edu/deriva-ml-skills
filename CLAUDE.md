@@ -166,9 +166,18 @@ git commit -m "Bump deriva-ml to 1.3.2"
 # The naming convention `{plugin-name}--v{version}` is required by Claude Code.
 git tag deriva-ml--v1.3.2
 
-# Push commit + tag together
-git push --follow-tags
+# Push the commit, then the tag EXPLICITLY by name.
+git push
+git push origin deriva-ml--v1.3.2
 ```
+
+**Push the tag by name — `git push --follow-tags` will NOT push it.**
+`git tag deriva-ml--v1.3.2` creates a *lightweight* tag, and `--follow-tags`
+only pushes *annotated* tags. So `git push --follow-tags` silently pushes the
+commit but skips the tag, leaving the load-bearing dependency tag absent on the
+remote (the `no-matching-tag` failure mode below). Always push the tag by its
+explicit name as shown — or, if you prefer `--follow-tags`, create an annotated
+tag instead (`git tag -a deriva-ml--v1.3.2 -m "deriva-ml 1.3.2"`).
 
 Sanity-check the diff before pushing — `jq` rewrites the whole file, so the diff should be exactly one line changed.
 
