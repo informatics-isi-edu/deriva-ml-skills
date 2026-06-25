@@ -8,8 +8,6 @@ disable-model-invocation: false
 
 DerivaML stores downloaded datasets, execution working directories, and cached assets on the local filesystem. This skill covers browsing, cleaning up, pre-fetching, and configuring that storage.
 
-> **RAG-first:** Start with `rag_search("storage cache dataset", doc_type="catalog-data")` to discover relevant datasets and executions before managing storage. This helps identify which cached items correspond to which catalog entities.
-
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
 ## Understanding the Storage Layout
@@ -85,73 +83,19 @@ script (below) takes `--cache-dir` for exactly this.
 
 The lead path is the typed introspection API — one call per storage
 species, no directory spelunking. The fastest way to run it is the bundled
-read-only script, **`inspect_storage.py`, which ships inside this skill's
-own directory**. Run it in place — do NOT search the user's project for it,
-and do NOT copy it in; it is read-only (it never writes or deletes), so
-there is nothing to customize or commit. Use the script's path from this
-skill's `Base directory` (shown in the skill header when the skill loads):
+**read-only** `inspect_storage.py` script, run in place from this skill's
+own directory (don't copy it in):
 
 ```bash
-# ${skill_base_dir} is this skill's directory — the path in the skill's
-# "Base directory:" header, e.g. .../deriva-ml-skills/skills/manage-deriva-storage
 uv run python ${skill_base_dir}/scripts/inspect_storage.py \
     --hostname dev.eye-ai.org --catalog-id 5 \
     --cache-dir /fast-ssd/deriva-cache   # omit --cache-dir for the default location
 ```
 
-Or call the API directly (pass `cache_dir=` when the cache is relocated;
-omit it for the default):
-
-```python
-ml = DerivaML(hostname, catalog_id, cache_dir="/fast-ssd/deriva-cache")  # omit cache_dir for default
-
-# Every cached bag, newest first — CachedBag records
-for bag in ml.list_cached_bags():
-    print(bag.dataset_rid, bag.version, bag.status.value, bag.size_bytes, bag.path)
-
-# Every cached asset — CachedAsset records
-for asset in ml.list_cached_assets():
-    print(asset.rid, asset.md5, asset.size_bytes, asset.path)
-
-# Execution working directories
-for d in ml.list_execution_dirs():
-    print(d["execution_rid"], d["size_mb"], d["path"])
-
-# One summary across all three species
-summary = ml.get_storage_summary()
-print(summary["bag_count"], summary["bag_size_mb"])      # cached bags
-print(summary["asset_count"], summary["asset_size_mb"])  # cached assets
-print(summary["execution_dir_count"], summary["execution_size_mb"])
-print(summary["total_size_mb"])
-```
-
-(`bag_size_mb` / `asset_size_mb` break down `cache_size_mb` by
-species — they are subsets of it, not additive with it.)
-
-> **Unreadable cache directories.** A cache populated under a different user,
-> on a restrictive shared mount, or left half-written by an interrupted run can
-> contain a directory the current user can't read. The deriva-ml layer skips
-> most such entries, but a permission-denied directory *inside* a bag can still
-> raise `PermissionError` / `OSError` during the size walk. **Don't let that
-> abort the whole report.** The bundled `inspect_storage.py` already catches
-> per-species read errors and continues with a warning; if you call the API
-> directly, wrap each `list_*` / `get_storage_summary` call in
-> `try/except (PermissionError, OSError)` and report the unreadable path rather
-> than crashing. The fix for the user is to correct the directory's permissions
-> or remove it (deleting the whole `cache/` directory is safe — index and bags
-> leave together), then re-run.
-
-### Browse all storage (bash fallback)
-
-```
-# Bash: ls -la ~/.deriva-ml/
-# Bash: du -sh ~/.deriva-ml/*/cache/      # Only the cache
-# Bash: du -sh ~/.deriva-ml/*/execution_*  # Only execution working directories
-```
-
-Fine for a quick visual scan, but bash can't tell you which bag
-belongs to which dataset/version or whether it's fully materialized —
-use `list_cached_bags()` for that.
+For the full per-species API recipes (`list_cached_bags()`,
+`list_cached_assets()`, `list_execution_dirs()`, `get_storage_summary()`),
+the bash `ls`/`du` fallback, and the **unreadable-cache-directory**
+permission-error handling, see `references/inspection.md`.
 
 ### Check a specific dataset's cache status
 
@@ -196,32 +140,10 @@ dry run:
 
 A single dataset RID may match multiple cached bags (one per version).
 
-### Delete cached data (targeted)
-
-```python
-ml.delete_cached_bag("28CT")                   # every cached version of a dataset
-ml.delete_cached_bag("28CT", version="1.2.0")  # one version only
-ml.delete_cached_asset("3WSE")                 # every cached copy of an asset
-ml.delete_cached_asset("3WSE", md5="<md5>")    # one specific copy
-```
-
-All return `{"…_removed": n, "bytes_freed": n}` and are idempotent —
-deleting something that isn't cached returns zeros rather than
-raising. Deletion is purely local and never touches the catalog.
-
-### Delete cached data (bulk, by age)
-
-```python
-ml.clear_cache()                    # everything in the cache
-ml.clear_cache(older_than_days=30)  # only old entries
-```
-
-Bags age by their recorded build time; assets by directory mtime.
-
 > **Don't `rm -rf` inside `cache/` by hand.** Bags are tracked in
 > `cache/index.sqlite`; raw deletion under `cache/bags/` leaves stale
 > index entries that misreport cache status until the next
-> `clear_cache()` repairs them. The deletion APIs above remove the
+> `clear_cache()` repairs them. The deletion APIs remove the
 > index entry and the on-disk directory together. (Deleting the
 > *entire* `~/.deriva-ml/{host}/{catalog}/cache/` directory is safe —
 > index and bags leave together.)
@@ -234,114 +156,28 @@ Bags age by their recorded build time; assets by directory mtime.
 **What's NOT safe to delete:**
 - Execution directories where `exe.commit_output_assets()` (Python API) was never called — those outputs are **only** on local disk
 
-### Clean execution working directories
-
-```python
-ml.clean_execution_dirs(older_than_days=30, exclude_rids=["<active-rid>"])
-```
-
-### Bulk garbage-collect old executions
-
-For executions that already uploaded successfully (status `Uploaded`), the right cleanup call is `gc_executions` — it scopes by status and age, and optionally removes the working directory in the same pass:
-
-```python
-from datetime import timedelta
-from deriva_ml.execution.state_store import ExecutionStatus
-
-ml = DerivaML(hostname=..., catalog_id=...)
-
-# Drop the SQLite registry rows + working dirs for every Uploaded
-# execution older than 30 days. The catalog rows are untouched —
-# only the local workspace is cleaned.
-n = ml.gc_executions(
-    status=ExecutionStatus.Uploaded,
-    older_than=timedelta(days=30),
-    delete_working_dir=True,
-)
-print(f"cleaned {n} old executions")
-```
-
-By default `gc_executions` only removes the registry (SQLite) rows. Pass `delete_working_dir=True` to also `rm -rf` the on-disk execution root. **Always pair with `status=ExecutionStatus.Uploaded`** unless you have a specific reason to also remove `Stopped` / `Pending_Upload` directories (their staged outputs would be unrecoverable). The call never touches the catalog — executions that uploaded stay in the catalog regardless of local gc.
+For the full cleanup recipes — targeted delete (`delete_cached_bag` /
+`delete_cached_asset`), bulk-by-age (`clear_cache`),
+`clean_execution_dirs`, and bulk garbage-collect (`gc_executions`, always
+scoped to `status=ExecutionStatus.Uploaded`) — see `references/cleanup.md`.
 
 ## Phase 2b: Find and Resume Incomplete Executions
 
-Execution working directories may contain outputs that were never uploaded — from interrupted runs, crashes, or forgotten `exe.commit_output_assets()` (Python API) calls. These are the **only** local data that can't be re-downloaded from the catalog.
+Execution working directories may contain outputs that were never uploaded — from interrupted runs, crashes, or forgotten `exe.commit_output_assets()` (Python API) calls. These are the **only** local data that can't be re-downloaded from the catalog. **Confirm what's staged-but-uncommitted before deleting any execution directory** — `find_incomplete_executions()` (not a bare `ls`) tells you which directories hold un-uploaded work.
 
-### Find incomplete executions
-
-The Python-API workspace finder is the lead path — it walks the execution directories AND consults the catalog to identify what's salvageable in one call:
-
-```python
-ml = DerivaML(hostname=..., catalog_id=...)
-incomplete = ml.find_incomplete_executions()
-for snap in incomplete:
-    print(snap.execution_rid, snap.status, snap.working_dir)
-```
-
-Each returned `ExecutionSnapshot` carries the RID, status (`Stopped`, `Pending_Upload`, orphaned `Running`), and local working directory path. No more guessing whether a directory's contents have been uploaded yet.
-
-The bash equivalent (`ls -la ~/.deriva-ml/<host>/<catalog>/execution_*`) is still useful as a quick visual scan, but it doesn't tell you which directories represent staged-but-uncommitted work versus already-uploaded work.
-
-### Check execution status in the catalog
-
-For a specific execution from the list (or one whose RID came from elsewhere):
-
-```
-deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="<execution_rid>")
-```
-
-A status of `Stopped` or `Pending_Upload` means there's local staged work that has not made it to the catalog.
-
-### Resume and upload
-
-**For one execution:** inspect via `deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")` or use `ml.resume_execution(rid)` in Python to re-hydrate the staged work, then call `commit_output_assets()` on the resumed execution. For broader salvage flows (Stopped, Failed, crash recovery), see `skills/execution-lifecycle/scripts/salvage_execution.py` and `crash_recovery.py`.
-
-**For every salvageable execution at once** (after a long break, after a batch run, or as periodic cleanup):
-
-```python
-report = ml.commit_pending_executions(execution_rids=None, clean_folder=False)
-# Omit execution_rids to commit all; pass a list to scope to a subset.
-# clean_folder=True wipes each working dir after a successful commit.
-# Returns an UploadReport (total_uploaded, total_failed, per_table, errors).
-```
-
-`commit_pending_executions` is idempotent under the same `match_by_columns` dedup as `commit_output_assets()`, so re-running it after a partial failure picks up the failed rows and leaves already-uploaded ones alone. This is the right call when several runs accumulated staged work over a session.
-
-For brand-new work (not resuming), copy `basic_execution.py` and run it; the relationship to the prior run lives in `tacit-knowledge.md`, not in the catalog automatically.
-
-### After successful upload, clean up
-
-Once outputs are safely in the catalog, the local execution
-directory and registry row can be removed with `gc_executions`
-(scoped to uploaded executions so staged-but-uncommitted work is
-never touched):
-
-```python
-# Python API — not an MCP tool
-from deriva_ml.execution.state_store import ExecutionStatus
-
-ml.gc_executions(status=ExecutionStatus.Uploaded, delete_working_dir=True)
-```
+For the full resume-and-salvage recipes — `find_incomplete_executions()`,
+`deriva_ml_get_execution` status checks, single-execution resume
+(`resume_execution` + `commit_output_assets`), the all-at-once
+`commit_pending_executions`, and post-upload cleanup with `gc_executions` —
+see `references/cleanup.md` ("Phase 2b" section).
 
 ## Phase 3: Pre-fetch — Warm the Cache
 
 Download datasets or assets into the local cache **without creating an execution**. Useful before long-running experiments to avoid download delays mid-run.
 
-### Cache a dataset bag
+> **Run the `warm_cache.py` script — do NOT hand-write inline cache-warming Python.** This is the one bypass to actively resist: the script gives you `--dry-run`, `--metadata-only`, `--cache-dir`, and a stable CLI, and (when committed) makes the warm step reproducible — a one-off `ml.cache_dataset(...)` snippet gives none of that and leaves no trace. (Read-only *inspection* — `inspect_storage.py` / a quick `ml.list_cached_bags()` — is exempt; this rule is about *warming*.) If you catch yourself reaching for inline `cache_dataset` / `download_dataset_bag` to warm the cache: stop and run `warm_cache.py` instead (in place is fine).
 
-> **Run the `warm_cache.py` script — do NOT hand-write inline cache-warming Python.** This is the one bypass to actively resist: the script gives you `--dry-run`, `--metadata-only`, `--cache-dir`, and a stable CLI, and (when committed) makes the warm step reproducible — a one-off `ml.cache_dataset(...)` snippet gives none of that and leaves no trace. (This is about *script vs. inline*, a separate question from *where you run the script* — see the two run modes just below. Read-only *inspection* — `inspect_storage.py` / a quick `ml.list_cached_bags()` — is exempt: run in place, inline is fine. This rule is about *warming*.)
->
-> | Rationalization (STOP — you're about to bypass) | Reality |
-> |---|---|
-> | "I already know how to call `ml.cache_dataset()`" | Knowing the API is exactly the trap. The script wraps it with `--dry-run`, `--metadata-only`, `--cache-dir`, and a stable CLI you don't have to reconstruct. |
-> | "Inline Python is faster / fewer steps" | Running the bundled script in place (Mode 1 below) is just as fast and needs no copying — you get the CLI for free with no extra steps. |
-> | "Writing it inline avoids copying a file" | You don't have to copy it — run it in place from `${skill_base_dir}` (Mode 1). Copying is only for when you want it committed (Mode 2). |
->
-> If you catch yourself reaching for inline `cache_dataset` / `download_dataset_bag` to warm the cache: stop and run `warm_cache.py` instead (in place is fine).
-
-`warm_cache.py` has **two run modes** — and "use the script" (the rule above) does NOT mean "you must copy it first." These are independent decisions:
-
-**Mode 1 — run it in place, now (the default for a one-off warm).** When the user just wants the cache warmed for the work at hand, **you run the bundled script directly from this skill's directory — don't hand the command off to the user, and don't copy anything.** Same as `inspect_storage.py`:
+The common one-off (run it in place, don't copy, don't hand it off):
 
 ```bash
 uv run python ${skill_base_dir}/scripts/warm_cache.py \
@@ -349,108 +185,16 @@ uv run python ${skill_base_dir}/scripts/warm_cache.py \
     --dataset-rid 28CT --version 0.9.0
 ```
 
-The single `--dataset-rid` above is just the one-dataset case. **For two or more datasets, don't repeat this command — pass all the pairs to one call** (see "Warming several datasets" below).
+**More than one dataset → one `warm_cache.py` call with all the
+`--dataset-rid`/`--version` pairs** (warmed sequentially with per-RID error
+isolation), not one run per dataset and not parallel runs.
 
-**Mode 2 — copy into the project, for reproducibility.** When the warm step is part of the experiment's repeatable setup (it'll run again — before each training run, in CI, across a sweep), copy it from `${skill_base_dir}/scripts/warm_cache.py` into `src/scripts/` and commit it, then run the copied version:
-
-```bash
-uv run python src/scripts/warm_cache.py \
-    --hostname data.example.org --catalog-id 1 \
-    --dataset-rid 28CT --version 0.9.0
-```
-
-Both modes run the *same* script — the only difference is whether it gets committed. Mode 1 is the right default when the user asks you to warm the cache; reach for Mode 2 when the warm belongs in the project's permanent setup. Either way: it's the script, not a hand-written `cache_dataset()` snippet (see the rule above).
-
-**Warming several datasets — pass them all to one invocation (the preferred way).** When more than one dataset needs warming, give a single `warm_cache.py` call repeated `--dataset-rid` / `--version` pairs (same order) — **not** one run per dataset, and **not** several runs in parallel. One call is preferable on every axis:
-
-- It warms each dataset with the library's built-in ~8-way asset concurrency, one after another — which already saturates a typical uplink. Parallel processes (or `&`-backgrounded runs) just split the same bandwidth and contend, so they're no faster and usually slower.
-- A bad RID (deleted catalog, dev-label version) is reported and **skipped**, and the remaining datasets still warm — you get one consolidated pass/fail summary instead of N separate exit codes to babysit.
-- It's one command to read, log, and (in Mode 2) commit.
-
-So the rule: **more than one dataset → one `warm_cache.py` call with all the pairs.** Reach for separate invocations only when the datasets genuinely belong to different catalogs (different `--hostname`/`--catalog-id`).
-
-```bash
-uv run python ${skill_base_dir}/scripts/warm_cache.py \
-    --hostname data.example.org --catalog-id 1 \
-    --dataset-rid 28CT --version 1.0.0 \
-    --dataset-rid 3WSE --version 2.1.0 \
-    --dataset-rid 9QPM --version 0.4.0
-```
-
-**Progress.** For a multi-GB warm, the script reports per-dataset progress by default — `Materializing: 120/4210 files (3%)` lines — so it isn't a silent wait. The progress is **throttled**: by default one line at most every 15 s (tune with `--progress-interval SECONDS`; `0` = every update), with the first and final (100%) lines always shown, so a long warm reports on a steady cadence instead of spamming a line per file. It is **file-count** progress, not bytes/percent (the library exposes file counts only; true byte progress would need a deriva-ml change — tracked at [deriva-ml#314](https://github.com/informatics-isi-edu/deriva-ml/issues/314)), so the percentage is *files done*, which can be lumpy when a few large files dominate. Pass `--quiet` to suppress progress entirely.
-
-Note for the agent: the script does not draw a live, redrawing progress bar — it emits discrete throttled lines, which is the right shape when Claude runs it through the Bash tool (captured output, not a live terminal). Relay the latest line's milestone to the user rather than expecting an animated bar.
-
-**What the output looks like** (so you can relay status to the user, not dump raw text):
-
-```
-[1/3] 28CT v1.0.0
-    Image                                       4210 rows,     1834.2 MB assets
-    Subject                                      512 rows,        0.0 MB assets
-  Materializing: 120/4210 files (3%)
-  Materializing: 2380/4210 files (57%)
-  Materializing: 4210/4210 files (100%)
-  cached. {'status': 'cached_materialized', ...}
-[2/3] 3WSE v2.1.0
-  ! preview failed, skipping: 404 ... catalog 27
-[3/3] 9QPM v0.4.0
-    ...
-  cached. {...}
-
-1 of 3 dataset(s) failed:
-  - 3WSE v2.1.0: 404 ... catalog 27
-```
-
-Read it as: `[i/N] <rid> <version>` headers track which dataset; a `! ... skipping` / `! cache failed` line means *that* dataset failed but the rest continued; the final `X of N dataset(s) failed:` block (and exit code 1) is the consolidated result. Report the substance to the user (e.g. *"2 of 3 cached; 9QPM failed — its catalog is gone"*), not the raw stream.
-
-**Keeping a record of a long warm.** There's no `--log-file` flag — you don't need one. For a long multi-GB / many-dataset warm where the user steps away, capture the stream with the shell:
-
-```bash
-uv run python ${skill_base_dir}/scripts/warm_cache.py ... 2>&1 | tee warm-cache.log
-```
-
-`tee` shows progress live *and* writes `warm-cache.log` for later review. Only do this for genuinely long warms; a quick one-off doesn't need a log file cluttering the directory.
-
-Downloads the full bag (including materialized assets) into the cache. Subsequent calls to `exe.download_dataset_bag(spec)` with the same RID and version reuse the cached copy.
-
-### Cache metadata only (no asset files)
-
-Add `--metadata-only` to skip asset bytes:
-
-```bash
-uv run python src/scripts/warm_cache.py \
-    --hostname data.example.org --catalog-id 1 \
-    --dataset-rid 28CT --version 0.9.0 \
-    --metadata-only
-```
-
-Useful for inspecting schema and row counts before committing to a full download.
-
-The template wraps this underlying call — `ml.cache_dataset(spec, materialize=True)`:
-
-```python
-from deriva_ml.dataset.aux_classes import DatasetSpec
-spec = DatasetSpec(rid="28CT", version="0.9.0")
-ml.cache_dataset(spec, materialize=True)
-```
-
-Shown so you recognize what the script runs — **not as an invitation to skip it.** Per the red-flags table above, warming goes through `warm_cache.py` (run it in place for a one-off, or copy + commit it for repeatable setup). The only time the bare call is appropriate is a genuinely throwaway exploration in a notebook you will not commit — and even then, running the script in place is just as easy.
-
-### Cache an individual asset
-
-Individual-asset download is a Python-API operation. Pass the asset RID to `Execution.download_asset()` from inside an execution context, or call it through a bundled script template — there is no MCP tool that warms a single asset to the user's machine.
-
-```python
-exe.download_asset("3WSE")  # pre-trained model weights, etc.
-```
-
-### Verify cache after pre-fetching
-
-```
-deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="28CT", version="0.9.0")
-```
-
-Confirm `cache_status` is `cached_materialized`.
+For the full cache-warming recipes — the two run modes (run-in-place vs.
+copy-and-commit for reproducibility), the multi-dataset invocation, the
+throttled file-count progress flags (`--progress-interval`, `--quiet`), how
+to read the output, `tee`-logging a long warm, `--metadata-only`,
+single-asset download (`exe.download_asset`), and verifying with
+`deriva_ml_bag_info` — see `references/cache-warming.md`.
 
 ## Pre-flight Pattern (Before Running Experiments)
 

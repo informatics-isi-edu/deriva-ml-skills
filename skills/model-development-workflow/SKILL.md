@@ -80,86 +80,11 @@ asset (the prediction file) and feature values (on the records).
 
 ## Phase 3: Create a Development Dataset
 
-> **The dataset itself is owned by `/deriva-ml:dataset-lifecycle`.** This phase creates a *development* dataset as a means to the model bootstrap; for the dataset's own design, structure, typing, and versioning decisions, that lifecycle is authoritative. The inline recipe below is the fast path for a throwaway dev subset — route through dataset-lifecycle when the dev dataset becomes something you'll reuse or cite.
+> **The dataset itself is owned by `/deriva-ml:dataset-lifecycle`.** This phase creates a *development* dataset as a means to the model bootstrap; for the dataset's own design, structure, typing, and versioning decisions, that lifecycle is authoritative. The fast-path recipe in `references/dev-dataset-recipe.md` covers a throwaway dev subset — route through dataset-lifecycle when the dev dataset becomes something you'll reuse or cite.
 
-Create a small, representative dataset for development. This is the dataset you'll use for tiers 1 and 2.
+Create a small, representative dataset for development. This is the dataset you'll use for tiers 1 and 2. A development dataset should have **50–200 records**, include **all classes** (5–10 per class), cover known **edge cases**, and be **labeled** if your workflow needs labels.
 
-### What "representative" means
-
-A development dataset should:
-- Have **50–200 records** (enough to test pipelines, small enough to iterate fast)
-- Include **all classes** in your classification task (at least 5–10 per class)
-- Cover **edge cases** you know about (missing values, unusual formats)
-- Be **labeled** if your workflow needs labels
-
-### How to create it
-
-```
-# 1. Register Image as a dataset element type
-deriva_ml_add_dataset_element_type(
-    hostname="data.example.org",
-    catalog_id="1",
-    dataset_rid="<dev_dataset>",
-    element_table="Image",
-)
-
-# 2. Create the development dataset
-deriva_ml_create_dataset(
-    hostname="data.example.org",
-    catalog_id="1",
-    description="Development subset: 100 chest X-rays, ~20 per diagnosis class, for pipeline validation",
-    dataset_types=["Development"],
-)
-
-# 3. Add a representative sample of members
-# Query to find records spanning all classes:
-deriva_ml_denormalize_dataset(
-    hostname="data.example.org",
-    catalog_id="1",
-    dataset_rid="<source>",
-    include_tables=["Image", "Image_Diagnosis"],
-    limit=200,
-)
-# Pick records that cover all classes, then:
-deriva_ml_add_dataset_members(
-    hostname="data.example.org",
-    catalog_id="1",
-    dataset_rid="<dev_dataset>",
-    members=[...selected RIDs...],
-)
-```
-
-### Create a "Development" dataset type
-
-If your catalog doesn't have a "Development" type yet, use the generic `add_term` tool against the `Dataset_Type` vocabulary:
-
-```
-add_term(
-    hostname="data.example.org",
-    catalog_id="1",
-    schema="deriva-ml",
-    table="Dataset_Type",
-    name="Development",
-    description="Small representative subset used for pipeline development, debugging, and rapid iteration. Not for production training.",
-    synonyms=["Dev", "Debug"],
-)
-```
-
-### Pin to a released version
-
-After populating the development subset (which will have flipped `current_version` to a dev label per ADR-0003), call `deriva_ml_release_dataset` to mint a citable release that configs can pin to:
-
-```
-deriva_ml_release_dataset(
-    hostname="data.example.org",
-    catalog_id="1",
-    dataset_rid="<dev_dataset>",
-    bump="minor",
-    description="Initial development subset with balanced class representation",
-)
-```
-
-Use `deriva_ml_get_dataset_spec(hostname="data.example.org", catalog_id="1", dataset_rid="<dev_dataset>")` to get the `DatasetSpecConfig` for your config files. Always pin configs to a released label (no `.devN` suffix) — dev labels are mutable.
+> **Recipe:** the fast-path commands for creating the dev subset (register element type → create dataset → add a representative sample → mint a "Development" type → pin to a released version) live in [`references/dev-dataset-recipe.md`](references/dev-dataset-recipe.md). For the dataset's own design, structure, typing, and versioning — and once the dev dataset becomes something you'll reuse or cite — route through `/deriva-ml:dataset-lifecycle`, the canonical home for dataset creation.
 
 
 ## Phase 4: Validate Features and Labels
