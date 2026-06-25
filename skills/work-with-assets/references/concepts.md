@@ -263,7 +263,7 @@ Domain FKs (e.g., `Image` → `Subject`) are not part of the canonical shape; ad
 
 ### After this recipe runs
 
-You can register files for upload to the new table via the Python API `exe.asset_file_path(asset_name="Image", file_name=..., asset_types=["Image"])` inside an execution context. See `references/workflow.md` for the full upload flow.
+You can register files for upload to the new table via the Python API `exe.asset_file_path(asset_name="Image", file_name=..., asset_types=["Image"])` inside an execution context. See `workflow.md` for the full upload flow.
 
 Configure any Chaise display annotations (visible columns, row name patterns, etc.) via `/deriva:customize-display` *(deriva-skills)* — those tools work on any asset table; nothing DerivaML-specific.
 
