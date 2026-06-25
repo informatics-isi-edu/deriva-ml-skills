@@ -119,7 +119,7 @@ The upstream MCP server's prompts and resources are the **canonical source of tr
 
 ### Orientation surface (the primer)
 
-- `deriva_ml_primer` — tool, prompt (`/<server>:deriva_ml_primer`), and resource (`deriva://deriva-ml/primer`); all three return the same primer text (agent guidelines + on-demand guide manifest). This supersedes reading `deriva://deriva-ml/concepts` and `deriva://deriva-ml/getting-started` separately — the primer inlines both.
+- `deriva_ml_primer` — tool, prompt (`/<server>:deriva_ml_primer`), and resource (`deriva://deriva-ml/primer`); all three return the same primer text (agent guidelines + on-demand guide manifest). Start here instead of reading `deriva://deriva-ml/concepts` and `deriva://deriva-ml/getting-started` blind — the primer's manifest names them so you fetch the one you need on demand (it does NOT inline them; it carries only the compact contract).
 - `deriva://deriva-ml/concepts`, `deriva://deriva-ml/getting-started` — still available individually if you want one without the other, but the primer is the preferred single entry point.
 - `deriva://server/status` — server health / version info
 

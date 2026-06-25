@@ -1,6 +1,6 @@
 ---
 name: help
-description: "Use when the user asks general questions about DerivaML, Deriva, deriva-mcp, or what they can do with these tools — including 'what is DerivaML', 'how do I use Deriva', 'what can you help me with', 'how does this work', or 'where do I start'. Also use for broad orientation questions about catalogs, datasets, experiments, hydra-zen configuration, ML workflows, or the MCP server when the user is asking 'how do I approach this' rather than requesting a specific action."
+description: "Use when the user asks general questions about DerivaML, Deriva, the deriva MCP server, or what they can do with these tools — including 'what is DerivaML', 'how do I use Deriva', 'what can you help me with', 'how does this work', or 'where do I start'. Also use for broad orientation questions about catalogs, datasets, experiments, hydra-zen configuration, ML workflows, or the MCP server when the user is asking 'how do I approach this' rather than requesting a specific action."
 disable-model-invocation: true
 ---
 

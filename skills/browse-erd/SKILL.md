@@ -47,7 +47,7 @@ uv run python -m deriva_ml_apps.proxy --backend <hostname> --port 8080
 ## Features
 
 - **Interactive graph**: Tables as nodes, foreign keys as directed edges, dagre-based hierarchical layout
-- **Color-coded nodes**: Domain (slate), ML (amber), Vocabulary (emerald), Asset (sky), Association (zinc)
+- **Color-coded nodes**: Domain (slate), ML (amber), Vocabulary (emerald), Asset (sky), Association (zinc). The full color/layout system the browser uses is in `references/erd-design-guide.md` — read it only if you're customizing the app's appearance, not for routine browsing.
 - **Detail panel**: Click any table to see columns, foreign keys, sample data, and features
 - **Search**: Filter tables by name or schema
 - **Type filter**: Show all / domain only / ML only / vocabulary only / asset only

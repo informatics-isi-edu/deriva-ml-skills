@@ -12,13 +12,13 @@ This skill covers the full lifecycle of a DerivaML dataset: assessing whether on
 **Check project context first.** Before running any commands, look for catalog references in the project: `tacit-knowledge.md` records which catalog/hostname previous operations used; `src/configs/deriva.py` carries hydra-zen connection configs; `CLAUDE.md` may specify the working catalog. Use the catalog the project is actively working with, NOT the original source catalog (e.g., the clone on dev.facebase.org, not the source on www.facebase.org). If you don't know the catalog ID, read `deriva://registry/{hostname}` to see available catalogs and aliases.
 
 > **This lifecycle realizes the universal Specify → Build → Validate arc**: Phase 1
-> (Design) is Specify; Phases 2–4 (assess → plan → create) are Build; Validate
-> is the explicit step below. A dataset has no configuration artifact — its
-> shape lives in its design. A dataset does not depend on features; its elements
-> may carry them.
+> (Design) is Specify; Phases 2–4 (assess → plan → create) are Build; **Phase 5
+> (Validate)** is Validate; Phases 6–7 (version → use) follow. A dataset has no
+> configuration artifact — its shape lives in its design. A dataset does not
+> depend on features; its elements may carry them.
 >
 > **Validate before you release or wire into a config.** Before promoting a
-> dataset to a released version (Phase 5) or adding its RID to
+> dataset to a released version (Phase 6) or adding its RID to
 > `src/configs/datasets.py`, check it against the Validation criteria in its
 > `dataset-design`: class balance, no train/test leakage (partition member RIDs
 > disjoint), bag parity (downloaded bag RIDs == catalog members — see the
@@ -143,7 +143,25 @@ If they say yes, follow `/deriva-ml:write-hydra-config` → **"Wiring fresh RIDs
 
 **This skill owns the offer** (because this skill produced the RID); `write-hydra-config` owns the shape.
 
-## Phase 5: Version
+## Phase 5: Validate
+
+This is the arc's **Validate** phase — check the built dataset against the
+criteria in its `dataset-design` *before* you release it (Phase 6) or wire its
+RID into a config:
+
+- **Class balance** — counts per class within the design's stated tolerance.
+- **No train/test leakage** — for splits, partition member RIDs are disjoint.
+- **Bag parity** — the downloaded bag's member RIDs match the catalog's members
+  (see the download workflow's Step 4 in Phase 7 / `references/bags.md`).
+- **Expected counts** — total members match the design's target size.
+
+Set the design doc's Status → **Validated**, then proceed to release. "Released"
+is not "validated": a dataset can be released without these checks, and that
+silent gap is exactly what this phase closes. For a trivial reuse with no new
+structure there's nothing to validate; for any new split, subsample, or curated
+subset, these checks are the point.
+
+## Phase 6: Version
 
 Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md):
 
@@ -201,7 +219,7 @@ These don't appear on the MCP tool surface; reach for them from notebook code or
 
 For the full versioning rules, common mistakes, and version history API, see `references/concepts.md` under "Dataset Versioning."
 
-## Phase 6: Use
+## Phase 7: Use
 
 Once a dataset is created and versioned, there are several ways to consume it.
 

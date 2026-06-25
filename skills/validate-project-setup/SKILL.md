@@ -1,7 +1,6 @@
 ---
 name: validate-project-setup
 description: "Validate that a DerivaML project repository conforms to the expected shape from deriva-ml-model-template. Use when the user asks 'is my project set up right?', 'does my repo look right?', 'validate my project', 'check project structure', 'why isn't my project working?', or when something is failing in a way that suggests the project structure may not match what DerivaML expects. Walks through the canonical layout (src/configs/, src/models/, src/scripts/, notebooks/, pyproject.toml entry points, tacit-knowledge.md, Experiments.md), reports each item as present, partial, or missing, and suggests fixes for gaps. Conceptual checklist only — no bundled script — so the LLM can adapt to template variations and present results contextually. Triggers on: 'validate project', 'validate project setup', 'is my project set up right', 'is my project set up correctly', 'check my project structure', 'check project layout', 'does my repo look right', 'project shape', 'project conforms', 'is this a deriva-ml project', 'project sanity check', 'audit my project', 'verify project setup'."
-user-invocable: true
 disable-model-invocation: true
 ---
 

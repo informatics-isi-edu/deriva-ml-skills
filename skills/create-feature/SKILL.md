@@ -308,8 +308,8 @@ members now carry different data. This is not a build dependency (a dataset
 doesn't depend on the feature); it's a drift the dataset must record. When you
 populate values on members of a released dataset, **proactively offer** to flip
 it to a dev version (`dataset.mark_dev(description)`) and route to
-`/deriva-ml:dataset-lifecycle` Phase 5 for the release once the drift period is
-done. Don't wait to be asked.
+`/deriva-ml:dataset-lifecycle` Phase 6 (Version) for the release once the drift
+period is done. Don't wait to be asked.
 
 ## Reference Resources
 

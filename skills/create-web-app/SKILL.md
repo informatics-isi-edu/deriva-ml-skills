@@ -17,7 +17,7 @@ cd ~/GitHub/deriva-ml-apps && uv sync
 uv run deriva-ml-apps serve --backend dev.example.org
 ```
 
-Or start via MCP: `start_app(app_id="app-launcher", hostname="dev.example.org", catalog_id="1")`
+(`deriva-ml-apps` is its own CLI + app server — there is no MCP server for it; the launch above is the `deriva-ml-apps serve` CLI command.)
 
 ## Quick Start: Minimal HTML App
 
@@ -76,7 +76,7 @@ Build and register:
 
 ```bash
 pnpm build
-# Register via API or MCP
+# Register via the REST API (POST /api/registry) — see "Registering and Managing Apps" below
 ```
 
 ## Accessing Catalog Data
@@ -100,15 +100,13 @@ const catalog = params.get('catalog');
 
 ## Registering and Managing Apps
 
-### Via MCP Tools
+### Via the app server (CLI + registry methods)
 
-```
-# List all registered apps
-list_apps()
-
-# Start the app server (starts all apps)
-start_app(app_id="schema-workbench", hostname="dev.example.org", catalog_id="1")
-```
+`deriva-ml-apps` is a standalone app server with its own CLI — **not** an MCP
+server, so there are no `list_apps` / `start_app` MCP tools. The registry
+methods (`registry.list_apps()`, etc. in `deriva_apps/registry.py`) are reached
+either through the CLI (`uv run deriva-ml-apps serve …`, shown above) or through
+the REST endpoints below.
 
 ### Via Registry API
 

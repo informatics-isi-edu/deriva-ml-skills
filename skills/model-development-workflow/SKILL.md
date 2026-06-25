@@ -332,7 +332,7 @@ uv run deriva-ml-run +multirun=lr_sweep
    tools — call `dataset.mark_dev(description)` from the Python API to
    declare a dev period (which flips `current_version` to a `.devN`
    label), then `deriva_ml_release_dataset(...)` to mint a release that captures
-   the new feature values. See the `dataset-lifecycle` skill, Phase 5.
+   the new feature values. See the `dataset-lifecycle` skill, Phase 6 (Version).
 
    Do NOT bump for runs whose outputs are **assets only** (model weights,
    training logs, prediction CSVs, plots). Execution-output assets are
