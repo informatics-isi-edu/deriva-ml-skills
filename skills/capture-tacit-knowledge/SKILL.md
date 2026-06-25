@@ -46,6 +46,8 @@ When prior experience contradicts the proposed action, hand the decision back wi
 
 If the user is asking a question the file would answer — *why* did we choose X, *was there a reason* for Y, *have we tried* Z, *what did we learn* from a prior run, *where does the rationale for this configuration live*, or *catch me up on this project* (new collaborator orientation) — consult `tacit-knowledge.md` *before* answering from configs, current catalog state, or general reasoning.
 
+**Pair it with the design doc when the question is about a specific experiment, dataset, feature, or model.** `tacit-knowledge.md` holds what was *learned*; the matching `docs/design/<entity>/<slug>.md` holds the up-front *plan* — the goal/hypothesis, requirements, and what counted as success. A forensic question like "*why is this model built this way?*", "*what was this experiment testing?*", or "*is this still the right approach?*" is usually answered best by reading **both**: the design (intent + success criteria) and the journal (what happened, what changed). Check the design doc for the entity in question first when the question is about its purpose or whether it's still on-target; fall back to / combine with the journal for the during-and-after story. If neither has it, the honesty rule below applies.
+
 ### Honesty rule (both modes)
 
 **If the file is silent on the question, say so explicitly. Do not invent a rationale to fill the gap.** Frame any reconstruction from current state as exactly that — a reconstruction, not a recalled decision — so the user can choose whether to treat it as authoritative or look further. When the file does have an entry, cite it (entity RID + entry title) so the user can verify and follow back-references.

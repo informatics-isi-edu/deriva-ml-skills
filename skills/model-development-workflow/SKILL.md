@@ -42,6 +42,13 @@ validate-against-the-design check is Validate. Configuration here is the *model
 layer* (hyperparameters, architecture); the experiment layer that composes this
 model with a dataset lives in `/deriva-ml:experiment-lifecycle`.
 
+> **Reasoning about an existing model — read its design first.** When the
+> question is about a model that already exists (why is it built this way? what
+> was it meant to predict? is this architecture still the right choice?), open
+> its `docs/design/model/<slug>.md` — the goal, requirements, and success
+> criteria are there. Pair it with `tacit-knowledge.md` (what was learned in
+> building/training it). Design = intent; journal = history.
+
 
 ## Phase 2: Schema Design
 
