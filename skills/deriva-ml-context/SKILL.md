@@ -152,11 +152,7 @@ The dot-access rule above is the local case. The broader principle is: **when da
 
 The reason this matters: when structure decays — when a typed `Execution` becomes a `dict`, a DataFrame becomes a `list[dict]`, a `@dataclass` becomes a tuple — you lose the named-field check at every downstream call site. `getattr(d, "version", "?")` returning `"?"` instead of erroring is the symptom; the disease is that `d` should never have been treated as if its fields were optional in the first place. Same disease shows up as `row["confidence"]` silently returning `None` because the real column is `Confidence`, or `result.get("status")` masking a renamed field.
 
-**Worked example.** You're ranking three executions by top-1 accuracy. Wrong: build a `list[dict]` where each entry is `{"rid": ..., "accuracy": ..., "epochs": ...}` and access via `entry.get("accuracy", 0)`. Right: define `@dataclass class RankingEntry: rid: str; accuracy: float; epochs: int` and access via `entry.accuracy`. The dataclass version catches a typo at the point of construction; the dict version ships a silent zero into your sorted list.
-
-**Worked example 2.** `denormalize_dataset()` hands you a DataFrame with columns like `Image_RID`, `Diagnosis_Type`, `Confidence`. Wrong: `df.to_dict(orient="records")` and iterate with `row.get("Confidence", 0)`. Right: stay in DataFrame land — `df["Confidence"].fillna(0)`, `df.groupby("Diagnosis_Type")`, `df.merge(predictions_df, on="Image_RID")`. You only leave the DataFrame when you need a scalar (a final summary number) or when the shape genuinely changes (one row out of many).
-
-The rule is not "avoid DataFrames" — DataFrames *are* the typed container for table-of-records. The rule is **don't downgrade**: don't turn a DataFrame into a list-of-dicts, don't turn a Pydantic record into a dict, don't turn a `@dataclass` into a tuple. Each downgrade trades a real schema for stringly-typed lookups, and every downstream call site pays the cost.
+The rule is not "avoid DataFrames" — DataFrames *are* the typed container for table-of-records. The rule is **don't downgrade**: don't turn a DataFrame into a list-of-dicts, don't turn a Pydantic record into a dict, don't turn a `@dataclass` into a tuple. Each downgrade trades a real schema for stringly-typed lookups, and every downstream call site pays the cost. Two worked examples of the downgrade failure mode (the execution-ranking `list[dict]` and the `denormalize_dataset()` DataFrame) are in [`references/python-idioms.md`](references/python-idioms.md) → "Carry structure — worked examples".
 
 ## The rule: inheritance with override
 
@@ -190,24 +186,11 @@ The Python `DerivaML` API uses two prefixes for accessor methods, and **they mea
 - **`find_*`** — search the catalog for entities of a kind, optionally filtered. The argument (if any) is a *filter*, not a scope.
   - Examples: `ml.find_features()`, `ml.find_features(table)`, `ml.find_datasets()`, `ml.find_workflows()`, `ml.find_executions()`, `ml.find_experiments()`, `ml.find_assets()`, `ml.find_incomplete_executions()`.
 - **`list_*`** — enumerate things scoped to a specific parent entity. The first argument **is the scope** (and is typically required).
-  - Examples: `ml.list_assets(asset_table)`, `dataset.list_dataset_members(...)`, `dataset.list_dataset_children(...)`, `ml.list_workflow_executions(workflow)`, `ml.list_vocabulary_terms(table)`, `asset.list_executions(...)`.
+  - Examples: `ml.list_assets(asset_table)`, `dataset.list_dataset_members(...)`, `ml.list_workflow_executions(workflow)`, `ml.list_vocabulary_terms(table)`.
 
-So:
+**There is no `ml.list_features()`.** Features aren't scoped to a parent entity in the way dataset members are scoped to a dataset, so there's no place for a scope-less `list_*` flavor. Use `find_features()` for the catalog-wide enumeration — and when you hit `AttributeError: ... has no attribute 'list_features'. Did you mean: 'find_features'?`, that's the muscle-memory failure mode, not a bug.
 
-| What you want | The right call |
-|---|---|
-| "All features anywhere in the catalog" | `ml.find_features()` |
-| "All features on table T" | `ml.find_features(T)` — `T` is a filter, not a scope |
-| "All datasets" | `ml.find_datasets()` |
-| "All members of dataset D" | `dataset.list_dataset_members()` — D is the scope (it's `self`) |
-| "All executions of workflow W" | `ml.list_workflow_executions(W)` — W is the scope |
-| "All assets of table T" | `ml.list_assets(T)` — T is the scope |
-
-**There is no `ml.list_features()`.** Features aren't scoped to a parent entity in the way dataset members are scoped to a dataset, so there's no place for a scope-less `list_*` flavor. Use `find_features()` for the catalog-wide enumeration.
-
-Both kinds return iterables of typed records (Pydantic models or DerivaML domain objects), not raw rows. Convert with `list(...)` if you need a concrete list. `feature_values()` is the same shape but named without the `find`/`list` prefix because it returns *values of one feature*, not an enumeration of feature definitions.
-
-When you hit `AttributeError: 'DerivaML' object has no attribute 'list_features'. Did you mean: 'find_features'?` — that's the muscle-memory failure mode. The convention is intentional; the search is `find_features()`.
+Both kinds return iterables of typed records (Pydantic models or DerivaML domain objects), not raw rows. `feature_values()` is the same shape but named without the `find`/`list` prefix because it returns *values of one feature*, not an enumeration of feature definitions. The full want→call disambiguation table (filter-vs-scope worked out for features, datasets, members, workflow executions, assets) is in [`references/python-idioms.md`](references/python-idioms.md) → "`find_*` vs `list_*` — full call table".
 
 ## Built-in DerivaML vocabularies
 
