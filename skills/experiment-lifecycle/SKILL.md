@@ -112,7 +112,7 @@ What this phase adds to the catalog: usually nothing new (the run already added 
 
 ### Phase 6 — Evaluate
 
-Compare this cycle's results against the hypothesis from phase 1 — **which is written in the experiment's design doc.** Open `docs/design/experiment/<slug>.md` and read its **Validation** section (the metric, the baseline, the confirm/refute/inconclusive criteria); judge the run against *those stated criteria*, not just against whatever looks good. When the cycle concludes, update the design doc's **Status & links** (Status → Validated, plus the execution RID(s) it produced). Two paths depending on scope:
+Compare this cycle's results against the hypothesis from phase 1 — **which is written in the experiment's design doc.** If the experiment has one, open `docs/design/experiment/<slug>.md` and read its **Validation** section (the metric, the baseline, the confirm/refute/inconclusive criteria); judge the run against *those stated criteria*, not just against whatever looks good. When the cycle concludes, update the design doc's **Status & links** (Status → Validated, plus the execution RID(s) it produced). Two paths depending on scope:
 
 - **Single-run analysis** — does this run's metrics support, refute, or fail to address the hypothesis? Read the feature values from the catalog (`deriva_ml_list_feature_values(hostname=..., catalog_id=..., execution_rids=[...])`) and the output assets (model checkpoint, evaluation summary). Document your reading in `tacit-knowledge.md` (auto-fired by `capture-tacit-knowledge`).
 - **Multi-run comparison** — comparing this cycle to previous cycles or to a sweep. Hand off to `/deriva-ml:compare-model-runs` for the ranking/aggregation logic.
