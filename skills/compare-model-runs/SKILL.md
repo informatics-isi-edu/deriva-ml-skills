@@ -250,102 +250,17 @@ deriva_ml_list_assets(
 
 Filter the response for rows where `asset_table == "Execution_Asset"` and `Filename` matches your convention (default: `prediction_probabilities.csv`). Capture the asset RID for each execution.
 
-### Step 3: Generate the local Python script
+### Step 3: Hand off to local Python — download, merge with ground truth, rank
 
-The user runs this in a Jupyter notebook or local Python session. The full implementation lives in the model template's `notebooks/roc_analysis.ipynb` — point users there if they want the worked code.
+Like Pattern B, the MCP server cannot download bytes; the user runs the analysis locally. The recipe has three moving parts specific to Pattern C:
 
-```python
-import hashlib
-from pathlib import Path
+1. **Per-RID download subdirs are REQUIRED** — every execution's prediction file is named identically, so a flat dir would overwrite. Download each through `execution.download_asset(asset_rid=..., dest_dir=working_dir / "per_asset_downloads" / asset_rid, update_catalog=False)`.
+2. **Ground truth is an `Image_Classification`-style feature**, and the ground-truth execution is identified by BOTH predicates together — `Execution == gt_execution` AND `Confidence IS NULL` (labeling writes labels without confidence; training executions always write confidence). Merge GT into each prediction df, then compute accuracy / rank.
+3. **(Optional) write a per-analysis summary CSV asset** (`roc_metrics.csv` via `execution.asset_file_path(MLAsset.execution_asset, ...)`) if the comparison is recurring, so the next run reads it directly without recomputing.
 
-import pandas as pd
+For ROC / AUC / confusion-matrix metrics, keep the `prob_<classname>` columns and pass them to `sklearn.metrics.roc_curve` / `auc` / `confusion_matrix`.
 
-# From step 2 (paste in the dict the LLM produced)
-execution_to_prediction_asset = {
-    "1-EXEC-A": "1-ASSET-PRED-A",
-    "1-EXEC-B": "1-ASSET-PRED-B",
-    # ... fill in from step 2 results
-}
-
-# Per-RID subdirs are REQUIRED -- every execution's prediction file
-# is named identically, so downloading them all into the same dir
-# would overwrite.
-per_rid_dir = Path(execution.working_dir) / "per_asset_downloads"
-per_rid_dir.mkdir(parents=True, exist_ok=True)
-
-dfs = []
-for exec_rid, asset_rid in execution_to_prediction_asset.items():
-    rid_dir = per_rid_dir / asset_rid
-    rid_dir.mkdir(parents=True, exist_ok=True)
-    # download_asset is an Execution method (there is no ml.download_asset)
-    # -- it uses the credential-aware Hatrac path the execution uses.
-    fresh_path = execution.download_asset(
-        asset_rid=asset_rid,
-        dest_dir=rid_dir,
-        update_catalog=False,
-    )
-    df = pd.read_csv(fresh_path)
-    df["execution_rid"] = exec_rid
-    dfs.append(df)
-```
-
-### Step 4: Merge with ground truth and compute the metric
-
-Ground truth lives in an `Image_Classification`-style feature. The ground-truth execution is identified by `Confidence IS NULL` (labeling writes labels without confidence; training executions always write confidence). The filter is BOTH predicates together — `Execution == gt_execution` AND `Confidence IS NULL`.
-
-```python
-feature_values = [
-    r.model_dump() for r in ml.feature_values("Image", "Image_Classification")
-]
-feature_df = pd.DataFrame(feature_values)
-
-# Identify the GT execution: the one whose rows all have NULL Confidence.
-exec_summary = feature_df.groupby("Execution").agg(
-    num_images=("Image", "count"),
-    with_confidence=("Confidence", lambda x: x.notna().sum()),
-)
-gt_execution = exec_summary[exec_summary["with_confidence"] == 0].index[0]
-
-# Both filters together.
-gt_rows = feature_df[
-    (feature_df["Execution"] == gt_execution) & feature_df["Confidence"].isna()
-][["Image", "Image_Class"]]
-gt_lookup = dict(zip(gt_rows["Image"], gt_rows["Image_Class"]))
-
-# Merge into each prediction df and compute accuracy.
-results = []
-for df in dfs:
-    df["True_Class"] = df["Image_RID"].map(gt_lookup)
-    matched = df.dropna(subset=["True_Class"])
-    accuracy = (matched["Predicted_Class"] == matched["True_Class"]).mean()
-    results.append({
-        "execution_rid": df["execution_rid"].iloc[0],
-        "samples": len(matched),
-        "accuracy": accuracy,
-    })
-
-ranked = sorted(results, key=lambda r: r["accuracy"], reverse=True)
-for r in ranked:
-    print(f"  {r['execution_rid']}: accuracy = {r['accuracy']:.4f}")
-```
-
-For ROC / AUC / confusion-matrix metrics, use the `prob_<classname>` columns with `sklearn.metrics.roc_curve` / `auc` / `confusion_matrix`. See the model template's `notebooks/roc_analysis.ipynb` for the complete implementation.
-
-### Step 5 (optional): Write a per-analysis summary CSV asset
-
-If this comparison is going to be recurring, write the result back to the catalog as a summary `Execution_Asset` (e.g., `roc_metrics.csv`) so the next analysis can read it directly without recomputing.
-
-```python
-from deriva_ml.core.enums import MLAsset, ExecAssetType
-
-summary_df = pd.DataFrame(ranked)
-csv_path = execution.asset_file_path(
-    MLAsset.execution_asset, "roc_metrics.csv", ExecAssetType.output_file
-)
-summary_df.to_csv(csv_path, index=False)
-```
-
-See `references/prediction-csv-pattern.md` for the full worked example with ROC-specific aggregation and the discovery recipe for finding a prior analysis's summary CSV.
+The complete local-Python script for all three parts — per-RID download loop, the fingerprint sanity-check, the two-predicate GT merge, the ranking, and the summary-CSV write — is in `references/prediction-csv-pattern.md` (Steps 3–5), which mirrors the model template's canonical `notebooks/roc_analysis.ipynb`. That reference also carries the discovery recipe for finding a prior analysis's summary CSV and the Pattern A migration path.
 
 ## Critical rules
 
