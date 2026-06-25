@@ -76,7 +76,7 @@ Build and register:
 
 ```bash
 pnpm build
-# Register via API or MCP
+# Register via the REST API (POST /api/registry) — see "Registering and Managing Apps" below
 ```
 
 ## Accessing Catalog Data
