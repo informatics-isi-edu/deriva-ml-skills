@@ -1,6 +1,6 @@
 ---
 name: work-with-assets
-description: "Use when working with file assets in DerivaML — discovering, downloading, uploading, inspecting, or managing images, model weights, CSVs, or any file-based catalog records, AND wiring resulting asset RIDs into src/configs/assets.py. After any operation that produces a new asset RID an experiment may consume downstream (creating an asset table, uploading a file inside an execution, registering an asset type that gates a future config), proactively offer to add an AssetSpecConfig entry — this skill owns the offer because this skill produced the RID. Triggers on: 'download asset', 'upload files', 'asset table', 'find images', 'model weights', 'what created this file', 'asset provenance', 'asset types', 'create asset table', 'update assets config', 'update assets.py', 'add asset RID to config', 'wire asset into config'. Auto-fires on per-asset file I/O — the single-asset half of the asset offer (execution-lifecycle owns the bulk-output offer). Do NOT use for downloading a whole dataset bag (use dataset-lifecycle) or restructuring assets for an ML framework (use ml-data-engineering)."
+description: "Use when working with file assets in DerivaML — discovering, downloading, uploading, inspecting, or managing images, model weights, CSVs, or any file-based catalog records, AND wiring resulting asset RIDs into src/configs/assets.py. After any operation that produces a new asset RID an experiment may consume downstream (creating an asset table, uploading a file inside an execution, registering an asset type that gates a future config), proactively offer to add an AssetSpecConfig entry — this skill owns the offer because this skill produced the RID. Also covers getting raw files INTO the catalog and the choice between the three ingest paths — uploading bytes into a typed asset table (asset_file_path), declaring one local input file via config (LocalFile), or registering a directory of source files BY REFERENCE as File inputs (add_files / FileSpec.create_filespecs, no bytes copied). Triggers on: 'download asset', 'upload files', 'asset table', 'find images', 'model weights', 'what created this file', 'asset provenance', 'asset types', 'create asset table', 'update assets config', 'update assets.py', 'add asset RID to config', 'wire asset into config', 'register files', 'register a directory of files', 'add_files', 'ingest raw files', 'source files by reference', 'File rows for source data'. Auto-fires on per-asset file I/O — the single-asset half of the asset offer (execution-lifecycle owns the bulk-output offer). Do NOT use for downloading a whole dataset bag (use dataset-lifecycle) or restructuring assets for an ML framework (use ml-data-engineering)."
 ---
 
 # Working with Assets in DerivaML
@@ -64,6 +64,57 @@ context — a declared asset is consumed). The bytes are **not** uploaded, so th
 source file can stay local (e.g. data carrying PHI) while lineage still walks
 from the run's outputs back to it. In a hydra config, use
 `LocalFileConfig(path=...)` in the `assets` group (see `/deriva-ml:write-hydra-config`).
+
+### Three ways to get files into the catalog — pick deliberately
+
+Before ingesting raw files, decide which path matches what the files *are*. The
+three differ in **where the bytes live** and **what provenance role** the file
+gets — getting it wrong puts bytes in the wrong place or records the wrong role.
+
+| You have… | Use | Bytes | Role | How |
+|---|---|---|---|---|
+| Files the run **produces**, or that you want **hosted, labelable, splittable** (a typed asset table) | `asset_file_path` + `commit_output_assets` | copied **into Hatrac** | **Output** | "Uploading assets" below; template `scripts/upload_asset.py` |
+| **One** local input file wired through a **hydra config** | `LocalFile` / `LocalFileConfig` | referenced (stays local) | **Input** | the `LocalFile` section above |
+| **A directory of source files** to register **by reference** (origin provenance) | `add_files` + `FileSpec.create_filespecs` | referenced (stays put) | **Input** | next section; template `scripts/register_files_template.py` |
+
+These are not mutually exclusive — a mature loader often does **two stages in
+one execution**: `add_files` the source directory first (Input provenance for
+*where the data came from*), then `asset_file_path` the bytes into a typed asset
+table (Output). See `/deriva-ml:setup-ml-catalog` for that combined ingest
+pattern.
+
+### Registering a directory of source files by reference (`add_files`)
+
+When you have a **directory of raw source files** and want the catalog to record
+*which files* the run consumed — by reference, without copying bytes into
+Hatrac — use `exe.add_files(...)`. It inserts one `File` row per file (URL +
+MD5 + length), links each as an **Input** of the execution, and returns a
+`Dataset` nested to mirror the directory structure (one dataset per
+sub-directory, auto-tagged with the built-in `File` + `Directory`
+`Dataset_Type` terms).
+
+```python
+from deriva_ml.core.filespec import FileSpec
+
+with ml.create_execution(config, workflow=workflow) as exe:
+    specs = FileSpec.create_filespecs(           # walks the dir recursively,
+        "data/source_images",                    # computing MD5 + length per file
+        description="Source images (pre-upload reference)",
+        file_types=["Image"],                    # "File" is always added too
+    )
+    root_ds = exe.add_files(specs, description="Registered source files")
+    # root_ds.list_dataset_children() → per-directory File datasets
+```
+
+This is the by-reference **Input** path — contrast with `asset_file_path`
+(copies bytes, **Output**) and `LocalFile` (one config-declared input). The
+bundled template `scripts/register_files_template.py` is the copy-me starting
+point (CLI args, dry-run, the directory-walk + `add_files` call).
+
+> **Requires deriva-ml ≥ 1.51.14.** Earlier versions fail at scale (an HTTP-414
+> on the unbatched member-resolution query — fixed in 1.51.12) or produce flat
+> sibling datasets with no common parent (directory-tree nesting landed in
+> 1.51.14). Pin accordingly if your loader uses `add_files` over a directory tree.
 
 ### Creating asset tables
 

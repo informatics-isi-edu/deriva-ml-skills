@@ -45,7 +45,12 @@ For "set up a fresh ML catalog from scratch" or "set up a fresh ML catalog popul
 
 ## Branch 1: From scratch
 
-The canonical reference is the **`load_cifar10` script** in `deriva-ml-model-template` at `src/scripts/load_cifar10.py`. It demonstrates the right shape: a thin orchestrator that wires three resumable phases (schema → assets → datasets), each in its own module. Copy that structure for your own loader.
+This skill ships two **copy-me template scripts** under `scripts/` — copy them into your project's `src/scripts/`, fill the `# TODO: your domain` blocks, commit, and run via `uv run python src/scripts/<name>.py` (no pyproject entry point — these are one-time loaders):
+
+- **`scripts/phased_loader_template.py`** — a thin orchestrator that wires three resumable phases (schema → assets → datasets) behind one `--phase {all,schema,assets,datasets}` switch.
+- **`scripts/setup_domain_model_template.py`** — the schema-phase body: create the domain vocabulary, the asset table, register it as a dataset element type, and define the feature. Includes an optional `create_ml_catalog` + `set_catalog_provenance` bootstrap for the from-nothing case.
+
+The external `load_cifar10` script in `deriva-ml-model-template` (`src/scripts/load_cifar10.py` + its `_cifar10_schema.py` / `_cifar10_assets.py` / `_cifar10_datasets.py` modules) is the worked **reference implementation** these templates generalize from — read it for a complete, domain-filled example, but start from the bundled templates here.
 
 ### Step 1: Create the catalog and install the deriva-ml schema
 
@@ -102,19 +107,30 @@ def setup_domain_model(ml: DerivaML) -> None:
     ...
 ```
 
-`load_cifar10`'s `_cifar10_schema.py` has a full working example of this for the CIFAR-10 domain.
+The bundled **`scripts/setup_domain_model_template.py`** is a runnable, idempotent (check-before-create) version of this — copy it and fill the `# TODO: your domain` blocks for your vocabulary, asset table, element type, and feature. `load_cifar10`'s `_cifar10_schema.py` is the worked CIFAR-10 example it generalizes from.
 
 ### Step 4: Phase your loader
 
-The `load_cifar10` script's three-phase structure is the recommended shape for any from-scratch loader:
+The bundled **`scripts/phased_loader_template.py`** gives you this three-phase structure as a copy-me orchestrator. It is the recommended shape for any from-scratch loader:
 
 | Phase | What it does | Idempotent? |
 |-------|-------------|-------------|
 | **schema** | Creates the domain tables (Subject, Image, etc.), workflow types, dataset types, Chaise annotations. | Yes — re-running on a catalog that already has the schema is safe. |
-| **assets / images** | Uploads files (assets) to Hatrac, inserts catalog rows, populates per-row features (labels, classes). | Mostly — Hatrac uploads are content-addressed and idempotent; row inserts use upsert patterns. |
+| **assets** | Registers source files by reference, uploads asset bytes to Hatrac, inserts catalog rows, populates per-row features (labels, classes). | Mostly — Hatrac uploads are content-addressed and idempotent; row inserts use upsert / truncate-then-write patterns. |
 | **datasets** | Creates the Dataset hierarchy (Training, Testing, Complete, splits, subsets) and adds members. | Re-running typically creates new dataset versions, not duplicate datasets. |
 
-Wire them with a `--phase {all,schema,images,datasets}` CLI argument so a partial failure can be resumed without re-running the earlier phases. The orchestrator (in `load_cifar10.py`) does this with a single `argparse` switch.
+The template wires these behind a single `--phase {all,schema,assets,datasets}` `argparse` switch so a partial failure can be resumed without re-running the earlier phases — re-run `--phase assets` (or `--phase datasets`) to pick up where it died. `--phase schema` prints the catalog id on completion so a `--create` first run can resume against `--catalog-id` without hunting for it.
+
+#### The canonical ingest: register-then-upload in one execution
+
+The `assets` phase's file ingest is **two stages inside one execution**, which is what gives uploaded assets provenance back to the exact source files they came from:
+
+1. **Register source files by reference** — `FileSpec.create_filespecs(staged_dir)` + `exe.add_files(specs)` inserts one `File` row per source file (URL + MD5 + length, no bytes copied) and links each as an **Input** of the execution. This records *where the bytes came from*.
+2. **Upload the bytes as output assets** — the per-file `exe.asset_file_path(asset_table, ...)` loop stages each file, and `exe.commit_output_assets()` (after the `with` block) uploads them into Hatrac as typed **Output** asset rows.
+
+Both stages run in the **same** execution, so the resulting asset rows link to the source `File` inputs through that execution's provenance. Don't re-implement the mechanics here — `/deriva-ml:work-with-assets` owns them and ships the two keystone templates: `register_files_template.py` (the `add_files` input-registration path) and `upload_asset.py` (the `asset_file_path` output-upload path). The phased loader template calls into this shape and points at both.
+
+> **Prerequisite — deriva-ml >= 1.51.14.** The `add_files` directory-tree nesting (intermediate ancestors get datasets, so equal-depth siblings like `train`/`test` nest under a common parent) needs deriva-ml >= 1.51.14. Below that you get flat sibling `File` datasets with no common parent. Pin it in your project's `pyproject.toml`.
 
 ### Step 5: Verify
 
@@ -179,12 +195,14 @@ The defaults (`UPLOAD_IF_MISSING`, complete-provenance `terminal_tables`, `Dangl
 | `AssetMode.UPLOAD_IF_MISSING` / `AssetMode.ROWS_ONLY` | `deriva.bag.traversal` (Python) | Whether the destination gets its own asset bytes or references the source's Hatrac. |
 | `DanglingFKStrategy.DELETE` / `FAIL` / `NULLIFY` | `deriva.bag.traversal` (Python) | What to do with orphan FK rows at load time. |
 | `clone_catalog` / `clone_catalog_async` | `deriva-mcp-core` MCP | Whole-catalog same-server clone. **Not for this skill's workflows** — see "Why not `clone_catalog`?" above. |
-| `load_cifar10` script + `_cifar10_schema.py` / `_cifar10_assets.py` / `_cifar10_datasets.py` | `deriva-ml-model-template` repo | Reference implementation of Branch 1. Copy the structure. |
+| `phased_loader_template.py` + `setup_domain_model_template.py` | this skill's `scripts/` | **Copy-me starting point** for Branch 1 — the three-phase orchestrator and the schema-phase body. Fill the `# TODO: your domain` blocks. |
+| `load_cifar10` script + `_cifar10_schema.py` / `_cifar10_assets.py` / `_cifar10_datasets.py` | `deriva-ml-model-template` repo (external) | Reference implementation of Branch 1. The bundled templates above are the copy-me starting point; this is the worked, domain-filled example they generalize from. |
 
 ## Related Skills
 
 - **`/deriva-ml:setup-derivaml-project`** *(this plugin)* — Sets up the code repo (uv, pyproject.toml, conventions) that will read/write whichever catalog you set up here. Independent; do these in either order.
 - **`/deriva-ml:dataset-lifecycle`** *(this plugin)* — Once the catalog is populated, this is where dataset work starts.
+- **`/deriva-ml:work-with-assets`** *(this plugin)* — Owns the file-ingest mechanics the `assets` phase uses: `register_files_template.py` (`add_files` input registration) and `upload_asset.py` (`asset_file_path` output upload).
 - **`/deriva-ml:execution-lifecycle`** *(this plugin)* — Running workflows against the new catalog.
 - **`/deriva-ml:troubleshoot-execution`** *(this plugin)* — If something during the loader phases produces a failed Execution and you need to recover. Covers the salvage workflow.
 - **`/deriva:create-table`** *(deriva-skills)* — The schema operations you'll need inside the `schema` phase of a from-scratch loader (Branch 1 Step 3).
