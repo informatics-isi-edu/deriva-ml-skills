@@ -17,10 +17,10 @@ Filters declare `requires_data` to select the right path:
 
 ## REQUIRED: Read templates first
 
-**Before proposing any approach**, read the template files in this skill's `scripts/` directory:
+**Before proposing any approach**, read the template files in this skill's `scripts/` directory (from this reference file, that's `../scripts/`):
 
-- `scripts/generate_subset_template.py` — the template for generation functions
-- `scripts/subset_filters.py` — the filter registry with built-in filters
+- `../scripts/generate_subset_template.py` — the template for generation functions
+- `../scripts/subset_filters.py` — the filter registry with built-in filters
 
 Do NOT propose standalone scripts, custom solutions, or MCP-tool-only approaches without first understanding what the template provides. The template workflow is the prescribed approach.
 
@@ -28,7 +28,7 @@ Do NOT propose standalone scripts, custom solutions, or MCP-tool-only approaches
 
 Before generating anything, verify the project has the required infrastructure. If any piece is missing, create it — this handles both first-time setup and subsequent subset scripts.
 
-1. **Filter registry** — Check if `src/scripts/subset_filters.py` exists. If not, copy it from this skill's `scripts/subset_filters.py`. This provides built-in filters with `requires_data` metadata: `random_sample` (False), `all_records` (False), `has_feature` (True), `feature_equals` (True), `feature_in` (True), `numeric_range` (True).
+1. **Filter registry** — Check if `src/scripts/subset_filters.py` exists. If not, copy it from this skill's `../scripts/subset_filters.py`. This provides built-in filters with `requires_data` metadata: `random_sample` (False), `all_records` (False), `has_feature` (True), `feature_equals` (True), `feature_in` (True), `numeric_range` (True).
 
 2. **Config file** — Check if `src/configs/dataset_generation.py` exists. If not, create it with `script_store = store(group="script_config")` and a `script_store(None, name="none")` placeholder.
 
@@ -60,7 +60,7 @@ Based on the preview, confirm what filter they want. Common patterns:
 
 ### Step 3: Generate the script function
 
-Read `scripts/generate_subset_template.py` and fill in the placeholders (`{{FUNCTION_NAME}}`, `{{EXPERIMENT_NAME}}`). Write to `src/scripts/generate_<name>.py`.
+Read `../scripts/generate_subset_template.py` and fill in the placeholders (`{{FUNCTION_NAME}}`, `{{EXPERIMENT_NAME}}`). Write to `src/scripts/generate_<name>.py`.
 
 **IMPORTANT — Verify API calls.** Before writing the script, verify every DerivaML API call against the actual library. The template's docstring lists verified signatures. Common pitfalls:
 

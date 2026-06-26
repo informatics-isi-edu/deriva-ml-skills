@@ -123,7 +123,7 @@ Run with `uv run python src/scripts/<your_split>.py --hostname … --catalog-id 
 
 `split_dataset` requires the open Execution as a positional argument — the produced Split / Training / Testing / Validation datasets all attribute to it. The `_cifar10_datasets.py` script in `deriva-ml-model-template` is a worked example of this pattern applied end-to-end.
 
-If your split *also* needs to filter members by data values (e.g., "split only the labeled images, stratified by class"), see `references/curated-subsets.md` and `scripts/generate_subset_template.py` — that template handles the filter-then-split case directly.
+If your split *also* needs to filter members by data values (e.g., "split only the labeled images, stratified by class"), see `curated-subsets.md` and `../scripts/generate_subset_template.py` — that template handles the filter-then-split case directly.
 
 ### Stratified and labeled splits
 
@@ -259,7 +259,7 @@ To mint a **released** version (citable, reproducible), call `deriva_ml_release_
 
 The release tool errors if the dataset has no dev row to promote — every release must come from a real working state. To mint a release with no actual change (e.g., to attach release notes), use the Python API's `dataset.mark_dev(description)` first to declare a dev period, then `deriva_ml_release_dataset` to promote it.
 
-See the versioning section of `references/concepts.md` for full rules and the pre-experiment checklist.
+See the versioning section of `concepts.md` for full rules and the pre-experiment checklist.
 
 ## Downloading
 
