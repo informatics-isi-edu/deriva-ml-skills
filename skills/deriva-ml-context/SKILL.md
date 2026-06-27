@@ -154,6 +154,26 @@ The reason this matters: when structure decays — when a typed `Execution` beco
 
 The rule is not "avoid DataFrames" — DataFrames *are* the typed container for table-of-records. The rule is **don't downgrade**: don't turn a DataFrame into a list-of-dicts, don't turn a Pydantic record into a dict, don't turn a `@dataclass` into a tuple. Each downgrade trades a real schema for stringly-typed lookups, and every downstream call site pays the cost. Two worked examples of the downgrade failure mode (the execution-ranking `list[dict]` and the `denormalize_dataset()` DataFrame) are in [`references/python-idioms.md`](references/python-idioms.md) → "Carry structure — worked examples".
 
+## Two schemas: `deriva-ml` vs your domain schema
+
+A deriva-ml catalog has two kinds of schema, and knowing which is which prevents
+most confusion about where a table lives:
+
+- **The `deriva-ml` schema** — 26 fixed tables that back the five abstractions
+  (Dataset/Workflow/Execution + the asset and vocabulary machinery).
+  Library-managed: you extend it only through the `deriva_ml_*` surface and
+  through `add_term` on its built-in vocabularies — never by hand-editing these
+  tables.
+- **Your domain schema** — your project's own tables (`Subject`, `Image`,
+  `Specimen`, …), named after the project, created per-project. The asset tables
+  and feature tables you create at runtime (`create_asset`, `create_feature`)
+  land in the domain schema, not in `deriva-ml`.
+
+For the concrete table-by-table reference — every `deriva-ml` table, its foreign
+keys, the FK graph, and the five-abstractions → backing-tables mapping — see the
+OKF schema bundle at `references/concepts/index.md`. (For a live visual of a
+specific catalog, use `/deriva-ml:browse-erd`.)
+
 ## The rule: inheritance with override
 
 The deriva-ml plugin **extends** the deriva plugin. Everything that applies in a Deriva catalog applies in a deriva-ml catalog by default. **Override:** if a deriva-ml surface exists for an operation, prefer it over the equivalent deriva surface. This applies symmetrically on all three planes:
