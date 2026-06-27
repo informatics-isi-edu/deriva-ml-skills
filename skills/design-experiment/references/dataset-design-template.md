@@ -9,11 +9,23 @@ prompts. A section you can't fill is a design gap; close it before building.
 ## Template (copy below this line)
 
 ```markdown
-# Dataset Design: <one-line title>
+---
+type: Dataset Design
+title: <one-line title>
+description: >
+  <one-line purpose>
+tags: [dataset, <structure>, <domain>]
+timestamp: <YYYY-MM-DD>
+status: Draft   # Draft | Approved | Built | Validated | Released
+slug: <kebab-case-slug>
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource (even after the dataset is built). Artifact linkage
+#   lives in tacit-knowledge.md + the "Status & links" section below.
+---
 
-**Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Built | Validated | Released -->
-**Date:** <YYYY-MM-DD>
+# Dataset Design: <one-line title>
 
 ## Purpose
 
@@ -68,14 +80,24 @@ dependency.
 
 ---
 
-## Worked example
+## Examples
 
 ```markdown
-# Dataset Design: CIFAR-10 dev subset
+---
+type: Dataset Design
+title: CIFAR-10 dev subset
+description: >
+  500-image stratified subset of cifar10_complete for rapid dev iteration.
+tags: [dataset, subsample, cifar-10]
+timestamp: 2026-06-22
+status: Approved   # Draft | Approved | Built | Validated | Released
+slug: cifar10-dev-subset
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` intentionally omitted — abstract specification, not a physical resource.
+---
 
-**Slug:** cifar10-dev-subset
-**Status:** Approved
-**Date:** 2026-06-22
+# Dataset Design: CIFAR-10 dev subset
 
 ## Purpose
 A small, class-balanced CIFAR-10 subset for rapid pipeline validation and
