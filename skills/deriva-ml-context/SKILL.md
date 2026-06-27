@@ -276,20 +276,15 @@ When the user mentions an entity by name, OR when the user asks to create a new 
 
 6. **Description handling on create.** Every `create_*` / `add_*` tool that accepts a `description` (or `comment`) argument SHOULD receive a non-empty, user-confirmed one — never empty, never placeholder text like `"TODO"`, never a fabricated description without showing the user. The full discipline (gather context → draft → confirm → create) and the autonomous-agent fallback live in the always-on `/deriva:generate-descriptions` (generic entities) and `/deriva-ml:generate-descriptions` (ML entities) skills.
 
-### Why this workflow matters
+The cost of wrong resolution is data corruption or silent FK errors; the cost of right resolution is one or two extra round-trips. **Always prefer the round-trips.**
 
-The cost of getting it wrong:
-- **Fabricating a name** leads to FK-violation errors at best, or silent data corruption at worst (e.g. a typo'd `"Trianing"` Dataset_Type that creates a duplicate vocab term).
-- **Skipping the picker** when there are multiple matches lets the LLM commit the user to an entity they didn't intend.
-- **Empty descriptions** destroy catalog discoverability — a catalog with 500 datasets all described as `""` is indistinguishable from a catalog with 500 datasets nobody can find.
-
-The cost of doing it right is one or two extra round-trips per operation. **Always prefer the round-trips.**
+The expanded rationale, the read-through-index caveat, and the structured-vs-fuzzy examples are in `references/entity-resolution.md`. The underlying find-before-create discipline is owned by `/deriva:semantic-awareness` *(deriva-skills, auto-loaded)*.
 
 ### Related always-on skills
 
 Several always-on skills reinforce this workflow:
 
-- **`/deriva:semantic-awareness`** *(deriva-skills)* — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
+- **`/deriva:semantic-awareness`** *(deriva-skills)* — **owns the find-before-create discipline**; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
 - **`/deriva:generate-descriptions`** *(deriva-skills)* — description-generation guidance for generic catalog entities (tables, columns, vocabularies, vocabulary terms).
 - **`/deriva-ml:generate-descriptions`** *(this plugin)* — description-generation guidance for DerivaML entities (Datasets, Workflows, Executions, Features, Assets, Experiments). The deriva-skills and this plugin's description skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
 
