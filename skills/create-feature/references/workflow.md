@@ -52,7 +52,7 @@ Call `deriva_ml_create_feature` with:
 
 At least one of `terms` or `assets` is required.
 
-This creates the feature record and a `{FeatureName}_Feature_Value` association table.
+This creates the feature record and a `Execution_{TargetTable}_{FeatureName}` association table.
 
 ### Examples
 
@@ -159,21 +159,21 @@ When you need to filter feature values by specific column values (e.g., "all ima
 # Whole-row read filtered by feature column
 get_entities(
     hostname="data.example.org", catalog_id="1",
-    schema="<schema>", table="Tumor_Classification_Feature_Value",
+    schema="<schema>", table="Execution_Image_Tumor_Classification",
     filters={"Tumor_Grade": "Grade III"},
 )
 
 # Or scope to a specific image
 get_entities(
     hostname="data.example.org", catalog_id="1",
-    schema="<schema>", table="Tumor_Classification_Feature_Value",
+    schema="<schema>", table="Execution_Image_Tumor_Classification",
     filters={"Image": "2-IMG1"},
 )
 
 # Project specific columns or join — use query_attribute with path syntax
 query_attribute(
     hostname="data.example.org", catalog_id="1",
-    path="<schema>:Tumor_Classification_Feature_Value/Tumor_Grade=Grade%20III",
+    path="<schema>:Execution_Image_Tumor_Classification/Tumor_Grade=Grade%20III",
     attributes=["RID", "Image", "Tumor_Grade", "Confidence"],
 )
 ```
