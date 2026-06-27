@@ -10,11 +10,23 @@ feature.
 ## Template (copy below this line)
 
 ```markdown
-# Feature Design: <one-line title>
+---
+type: Feature Design
+title: <one-line title>
+description: >
+  <one-line purpose>
+tags: [feature, <kind>, <domain>]
+timestamp: <YYYY-MM-DD>
+status: Draft   # Draft | Approved | Built | Validated
+slug: <kebab-case-slug>
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Built | Validated -->
-**Date:** <YYYY-MM-DD>
+# Feature Design: <one-line title>
 
 ## Purpose
 
@@ -66,14 +78,26 @@ The design docs this feature builds on, if any. This depends on the feature's
 
 ---
 
-## Worked example
+## Examples
 
 ```markdown
-# Feature Design: image quality label
+---
+type: Feature Design
+title: image quality label
+description: >
+  A per-image quality label (good/blurry/occluded) so low-quality images can be filtered out of training sets and flagged for re-acquisition.
+tags: [feature, quality-assessment, image-curation]
+timestamp: 2026-06-22
+status: Approved   # Draft | Approved | Built | Validated
+slug: image-quality-label
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** image-quality-label
-**Status:** Approved
-**Date:** 2026-06-22
+# Feature Design: image quality label
 
 ## Purpose
 A per-image quality label (good/blurry/occluded) so low-quality images can be
