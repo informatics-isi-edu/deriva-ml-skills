@@ -52,6 +52,31 @@ in `references/`:
 - `references/feature-design-template.md`
 - `references/model-design-template.md`
 
+## Design docs follow the Open Knowledge Format (OKF)
+
+The design documents this skill authors conform to the
+[Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+— Markdown with YAML frontmatter — so `docs/design/` is a self-describing OKF
+bundle. When authoring or updating a design doc:
+
+- Open the file with the OKF frontmatter block from the template: `type`
+  (required — one of `Dataset Design` / `Experiment Design` / `Feature Design`
+  / `Model Design`), plus `title`, `description`, `tags`, `timestamp`, and the
+  DerivaML extension keys `status` and `slug`.
+- **Never add a `resource` field.** A design doc is an abstract specification,
+  not a physical resource — even after the entity is built. The produced RID +
+  version belong in the prose "Status & links" section and `tacit-knowledge.md`,
+  not in frontmatter.
+- The body stays human-readable Markdown; the worked example uses the `##
+  Examples` heading (OKF convention).
+
+**Maintain `docs/design/index.md`.** The bundle root is an OKF `index.md`
+(directory listing). When you author a new design doc, add or update its line
+in `docs/design/index.md` under the right entity subsection. If `index.md`
+doesn't exist yet, create it from the shape in
+`references/index-template.md`. It opens with `type: Index` frontmatter and a
+one-line statement that the corpus follows OKF (with the spec link).
+
 ## The discipline
 
 1. **Write the design doc first.** One `<slug>.md` per experiment / dataset /
