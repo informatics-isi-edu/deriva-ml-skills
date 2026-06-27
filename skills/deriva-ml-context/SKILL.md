@@ -203,16 +203,7 @@ The provenance graph is **walkable in one tool call**: `deriva_ml_get_lineage(ri
 
 ## Python API method naming: `find_*` vs `list_*`
 
-The Python `DerivaML` API uses two prefixes for accessor methods, and **they mean different things**. Use the right one for what you want to do.
-
-- **`find_*`** — search the catalog for entities of a kind, optionally filtered. The argument (if any) is a *filter*, not a scope.
-  - Examples: `ml.find_features()`, `ml.find_features(table)`, `ml.find_datasets()`, `ml.find_workflows()`, `ml.find_executions()`, `ml.find_experiments()`, `ml.find_assets()`, `ml.find_incomplete_executions()`.
-- **`list_*`** — enumerate things scoped to a specific parent entity. The first argument **is the scope** (and is typically required).
-  - Examples: `ml.list_assets(asset_table)`, `dataset.list_dataset_members(...)`, `ml.list_workflow_executions(workflow)`, `ml.list_vocabulary_terms(table)`.
-
-**There is no `ml.list_features()`.** Features aren't scoped to a parent entity in the way dataset members are scoped to a dataset, so there's no place for a scope-less `list_*` flavor. Use `find_features()` for the catalog-wide enumeration — and when you hit `AttributeError: ... has no attribute 'list_features'. Did you mean: 'find_features'?`, that's the muscle-memory failure mode, not a bug.
-
-Both kinds return iterables of typed records (Pydantic models or DerivaML domain objects), not raw rows. `feature_values()` is the same shape but named without the `find`/`list` prefix because it returns *values of one feature*, not an enumeration of feature definitions. The full want→call disambiguation table (filter-vs-scope worked out for features, datasets, members, workflow executions, assets) is in [`references/python-idioms.md`](references/python-idioms.md) → "`find_*` vs `list_*` — full call table".
+`find_*` searches the catalog for entities of a kind (its argument is a *filter*); `list_*` enumerates entities scoped to a specific parent (its first argument *is* the scope). The full taxonomy with examples lives in `/deriva-ml:api-naming-conventions` *(auto-loaded)* — consult it when choosing a method.
 
 ## Built-in DerivaML vocabularies
 
