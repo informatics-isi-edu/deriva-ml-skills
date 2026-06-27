@@ -10,11 +10,23 @@ group) is derived from — write it so a config could be scaffolded from it.
 ## Template (copy below this line)
 
 ```markdown
-# Model Design: <one-line title>
+---
+type: Model Design
+title: <one-line title>
+description: >
+  <one-line goal>
+tags: [model, <architecture>, <domain>]
+timestamp: <YYYY-MM-DD>
+status: Draft   # Draft | Approved | Built | Validated
+slug: <kebab-case-slug>
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Built | Validated -->
-**Date:** <YYYY-MM-DD>
+# Model Design: <one-line title>
 
 ## Goal
 
@@ -63,14 +75,26 @@ How you'll confirm the model meets its Goal (beyond "the code runs"):
 
 ---
 
-## Worked example
+## Examples
 
 ```markdown
-# Model Design: 2-layer CNN for CIFAR-10
+---
+type: Model Design
+title: 2-layer CNN for CIFAR-10
+description: >
+  A small 2-layer CNN that classifies CIFAR-10 images into the 10 classes, as the baseline architecture for the project's experiments.
+tags: [model, cnn, cifar-10]
+timestamp: 2026-06-22
+status: Approved   # Draft | Approved | Built | Validated
+slug: cifar10-2layer-cnn
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** cifar10-2layer-cnn
-**Status:** Approved
-**Date:** 2026-06-22
+# Model Design: 2-layer CNN for CIFAR-10
 
 ## Goal
 A small 2-layer CNN that classifies CIFAR-10 images into the 10 classes, as the
