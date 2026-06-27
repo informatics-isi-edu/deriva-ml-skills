@@ -228,7 +228,7 @@ consistent, greppable verb set so the edge types can be inferred uniformly:
 |---|---|---|
 | **consumes** | experiment/model → dataset | "consumes [cifar10-dev-subset](/dataset/…)" |
 | **runs** | experiment → model | "runs [cifar10-2layer-cnn](/model/…)" |
-| **produces** | model → output-feature; (consumer side) | "produces [pred-label](/feature/…)" |
+| **produced by** | output-feature → its producing model (the feature-design is the author, pointing back at its model) | "produced by [cifar10-2layer-cnn](/model/…)" |
 | **trains on** / **keys on** | model/dataset → input-feature | "trains on [class-label](/feature/…)" |
 | **composed of** / **builds on** | experiment → sub-experiment(s) | "composed of [phase-1-sweep](/experiment/…)" |
 | **extends** | model → prior model (checkpoint lineage) | "extends [baseline-cnn](/model/…)" |
