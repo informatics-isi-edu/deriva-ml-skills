@@ -21,7 +21,7 @@ After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_creat
 
 ## Reference File
 
-- `references/config-reference.md` — Annotated examples and starter templates for every config group. Each section shows a populated example from a real project, followed by a minimal template. Read the relevant section when writing or modifying a specific config file.
+- `references/config-reference/` — Annotated examples and starter templates for every config group. Each section shows a populated example from a real project, followed by a minimal template. Read the relevant section when writing or modifying a specific config file.
 
 ## Config Groups Overview
 
@@ -39,7 +39,7 @@ After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_creat
 ## Key Rules by Config Group
 
 The high-leverage rules that change what you write. The exhaustive per-group rule
-list is in `references/config-reference.md` → "Per-Group Key Rules"; read it when
+list is in `references/config-reference/rules-and-validation.md` → "Per-Group Key Rules"; read it when
 authoring a specific group.
 
 - **Datasets** — `version` is **required** and must be a **released** PEP 440 string (`"0.9.0"`); never an integer, never a `.devN` dev label (dev labels are mutable, pinning to one defeats reproducibility). Default config uses a plain list; non-default configs use `with_description()`. Find the released version via `deriva_ml_get_dataset(...)`; if `current_version` is a dev label, `deriva_ml_release_dataset(...)` first.
@@ -55,11 +55,11 @@ authoring a specific group.
 
 Pick the mechanism by config type: **lists** (datasets, assets) → `with_description(items, "...")`; **`builds()` configs** (models, connections) → `zen_meta={"description": "..."}`; **experiments** → `description=` on `make_config()`; **multiruns / notebooks** → `description=` on `multirun_config()` / `notebook_config()`. Descriptions land in execution metadata, so make them specific, quantified, purposeful, and version-aware — state the *goal/hypothesis*, not the parameters (those are already in the config). Before writing, look up catalog details via `deriva_ml_get_dataset(...)` / `deriva_ml_lookup_asset(...)`.
 
-Full mechanism table + per-config-type good/bad description examples: `references/config-reference.md` → "Description Mechanisms and Good Descriptions".
+Full mechanism table + per-config-type good/bad description examples: `references/config-reference/rules-and-validation.md` → "Description Mechanisms and Good Descriptions".
 
 ## Config Class Parameter Reference
 
-Exhaustive parameter tables for `DerivaMLConfig`, `DatasetSpecConfig`, `AssetSpecConfig`, and `LocalFileConfig` (every field, type, default, description) are in `references/config-reference.md` → "Config Class Parameter Reference". The load-bearing distinctions:
+Exhaustive parameter tables for `DerivaMLConfig`, `DatasetSpecConfig`, `AssetSpecConfig`, and `LocalFileConfig` (every field, type, default, description) are in `references/config-reference/rules-and-validation.md` → "Config Class Parameter Reference". The load-bearing distinctions:
 
 - **`AssetSpecConfig`** pins a catalog-resident asset by RID. **Role is by context, never a field** — there is no `asset_role` parameter; an asset in `assets=` is an Input because it's consumed. The strict model **rejects** a stray `asset_role=`.
 - **`LocalFileConfig`** declares an external local file by **path** (not RID) — registered as a referenced `File` row + Input edge, **not uploaded to Hatrac**. Use for files that must stay local (e.g. sensitive source CSVs) while keeping lineage.
@@ -117,7 +117,7 @@ The offer is *one prompt*. If the user declines, **acknowledge plainly** so futu
 
 ## MCP Reference Resources
 
-Substitute your catalog's hostname and ID wherever examples show them. The most-reached-for: `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{rid}` (dataset details incl. current version, or call `deriva_ml_get_dataset(...)`). Full list of `deriva://docs/*` and `deriva://config/*` starter-template resources: `references/config-reference.md` → "MCP Reference Resources".
+Substitute your catalog's hostname and ID wherever examples show them. The most-reached-for: `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{rid}` (dataset details incl. current version, or call `deriva_ml_get_dataset(...)`). Full list of `deriva://docs/*` and `deriva://config/*` starter-template resources: `references/config-reference/rules-and-validation.md` → "MCP Reference Resources".
 
 ## Bootstrap Configs from a Catalog
 
@@ -127,7 +127,7 @@ Three situations bring you here: a **new project** (empty `src/configs/` to popu
 
 **Fast path — one call:** `deriva_ml_bootstrap_config(hostname, catalog_id, kinds=[...])` walks the catalog and returns ready-to-paste config bodies (each with a `spec_string` + `rationale`) for every group in one round trip. Prefer it for fresh-project and catalog-clone bootstraps. It's a pure read — it does NOT write files.
 
-**Granular path — per-group recipes + worked fresh-catalog example:** the per-config-group catalog queries (which tool/resource discovers each group's entries, the entry shape, the heuristics for picking which datasets/assets to bootstrap) and a full Step 1–6 worked example (`localhost` catalog `19` → populated `src/configs/`) are in `references/config-reference.md` → "Bootstrap Configs from a Catalog". Use these for incremental updates or when you want to drive the discovery one group at a time.
+**Granular path — per-group recipes + worked fresh-catalog example:** the per-config-group catalog queries (which tool/resource discovers each group's entries, the entry shape, the heuristics for picking which datasets/assets to bootstrap) and a full Step 1–6 worked example (`localhost` catalog `19` → populated `src/configs/`) are in `references/config-reference/rules-and-validation.md` → "Bootstrap Configs from a Catalog". Use these for incremental updates or when you want to drive the discovery one group at a time.
 
 Quick orientation on which groups bootstrap from the catalog vs. are hand-authored project code:
 
@@ -156,7 +156,7 @@ Before running experiments, validate that all RIDs and versions in config files 
 
 > **Why not `dry_run=True`?** `dry_run=True` validates the config but by actually downloading every bag and materializing every asset — minutes-to-hours and GBs. The validators above are the cheap metadata-only alternative. See deriva-ml ADR-0002.
 
-The exhaustive validator recipes — per-tool call examples, the by-composition whole-tree walk (for when you want per-group reports), the common-fix patterns table, the `deriva_ml_validate_config_file` report shape, and the `lookup_term` workflow-type-existence check — are in `references/config-reference.md` → "Validating Configs Against the Catalog". That section also carries the full "Common Issues" symptom/cause/fix table (RID not found, stale version, dev-label-in-`current_version`, wrong catalog).
+The exhaustive validator recipes — per-tool call examples, the by-composition whole-tree walk (for when you want per-group reports), the common-fix patterns table, the `deriva_ml_validate_config_file` report shape, and the `lookup_term` workflow-type-existence check — are in `references/config-reference/rules-and-validation.md` → "Validating Configs Against the Catalog". That section also carries the full "Common Issues" symptom/cause/fix table (RID not found, stale version, dev-label-in-`current_version`, wrong catalog).
 
 ### Proactive Validation
 
