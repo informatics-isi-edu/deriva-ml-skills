@@ -84,10 +84,11 @@ These are not mutually exclusive — a mature loader does this as **two separate
 When you have a **directory of raw source files** and want the catalog to record
 *which files* the run consumed — by reference, without copying bytes into
 Hatrac — use `exe.add_files(...)`. It inserts one `File` row per file (URL +
-MD5 + length), links each as an **Input** of the execution, and returns a
-`Dataset` nested to mirror the directory structure (one dataset per
-sub-directory, auto-tagged with the built-in `File` + `Directory`
-`Dataset_Type` terms).
+MD5 + length) and returns a `Dataset` nested to mirror the directory structure
+(one dataset per sub-directory, auto-tagged with the built-in `File` +
+`Directory` `Dataset_Type` terms), and links that **File dataset** as an
+**Input** of the execution — a single Dataset↔Execution input edge for the
+root, not a per-file edge.
 
 ```python
 from deriva_ml.core.filespec import FileSpec

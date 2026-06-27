@@ -48,7 +48,7 @@ SOURCE_ROOT = Path("~/.cache/my_project/source").expanduser()  # where stage_sou
 PARTITIONS = ["train", "test"]   # subdirs under SOURCE_ROOT; ["."] for a flat layout
 ASSET_TABLE = "Image"            # hosted asset table (created in the schema phase)
 FILE_TYPES = ["Image"]           # Asset_Type tag(s) on the registered File rows
-FILE_DATASET_TYPE = "Source"     # Dataset_Type term for the register-phase File dataset
+FILE_DATASET_TYPE = "Source"     # Dataset_Type for the register-phase File dataset; seeded by the schema phase (setup_domain_model_template step 6) — keep this name in sync there
 LABEL_MANIFEST: str | None = "labels.csv"   # None if labels come from elsewhere
 
 

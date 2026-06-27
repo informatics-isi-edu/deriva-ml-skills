@@ -74,7 +74,7 @@ def run_upload_phase(
 
     workflow = ml.create_workflow(
         name=f"Upload {asset_table} assets",
-        workflow_type="Asset_Upload",  # TODO: a Workflow_Type term you added in schema
+        workflow_type="Asset_Upload",  # seeded by setup_domain_model_template step 6; keep names in sync there
         description=f"Upload registered source files as {asset_table} assets",
     )
     # Declare the File dataset as a materialize=False INPUT — the lineage edge.

@@ -55,7 +55,7 @@ def run_register_phase(
 
     workflow = ml.create_workflow(
         name=f"Register {root_name} source files",
-        workflow_type="Source_Registration",  # TODO: a Workflow_Type term you added in schema
+        workflow_type="Source_Registration",  # seeded by setup_domain_model_template step 6; keep names in sync there
         description="Register source files by reference as a File dataset (Input provenance)",
     )
     config = ExecutionConfiguration(workflow=workflow)

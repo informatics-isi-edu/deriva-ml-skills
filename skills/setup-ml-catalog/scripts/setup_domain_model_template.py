@@ -30,6 +30,9 @@ Pattern:
        dataset member type.
     5. ``create_feature`` to define the per-row labels/scores attached to
        the asset table.
+    6. ``add_term`` for the loader's Workflow_Type / Dataset_Type terms that
+       are not built in (so the register/upload phases' workflow types and the
+       source File dataset's type resolve on a fresh catalog).
 
 Idempotency:
     Every step is check-before-create, mirroring the CIFAR reference's
@@ -228,6 +231,41 @@ def setup_domain_model(ml: DerivaML) -> None:
             print(f"{feature_name} feature already exists")
         else:
             raise
+
+    # ---- 5. Loader vocabulary terms (Workflow_Type / Dataset_Type) ---------
+    # The two-step loader (loader_orchestrator_template.py + register/upload
+    # phases) tags its workflows and its source File dataset with terms that
+    # are NOT built in to a fresh deriva-ml catalog — `initialize_ml_schema`
+    # seeds Workflow_Type {Ingest, Training, Testing, Prediction, ...} and
+    # Dataset_Type {File, Directory, Complete, Training, Labeled, ...}, but not
+    # `Source_Registration` / `Asset_Upload` / `Data_Load` / `Source`. Without
+    # this step, `create_workflow(workflow_type=...)` and
+    # `add_files(dataset_types=[...])` fail term lookup on the default copy-me
+    # path. Seed them here (idempotent — add_term is check-before-create at the
+    # catalog level).
+    #
+    # TODO: keep these names in sync with the orchestrator config
+    # (FILE_DATASET_TYPE) and the phase templates' workflow_type= values. If you
+    # prefer the built-ins, set the loader to use `Ingest` (Workflow_Type) and
+    # `File` (Dataset_Type) and you can drop the matching rows below.
+    loader_workflow_types = [
+        ("Source_Registration", "Register source files by reference (register phase)."),
+        ("Asset_Upload", "Upload source bytes into Hatrac as assets (upload phase)."),
+        ("Data_Load", "Attach per-row features/labels to uploaded assets."),
+    ]
+    loader_dataset_types = [
+        ("Source", "A by-reference File dataset of registered source files."),
+    ]
+    existing_wf_types = {t.name for t in ml.list_vocabulary_terms("Workflow_Type")}
+    for name, desc in loader_workflow_types:
+        if name not in existing_wf_types:
+            ml.add_term(table="Workflow_Type", term_name=name, description=desc)
+            print(f"  Added Workflow_Type term: {name}")
+    existing_ds_types = {t.name for t in ml.list_vocabulary_terms("Dataset_Type")}
+    for name, desc in loader_dataset_types:
+        if name not in existing_ds_types:
+            ml.add_term(table="Dataset_Type", term_name=name, description=desc)
+            print(f"  Added Dataset_Type term: {name}")
 
 
 def main() -> int:

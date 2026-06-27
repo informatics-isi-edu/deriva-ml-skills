@@ -28,12 +28,13 @@ Pattern (what this script does):
        recursively, computing MD5 + length per file. Local paths are
        normalized to `tag://` origin URIs (an identity token, not a live
        fetch URL).
-    3. `exe.add_files(specs, ...)` inserts one `File` row per file, links
-       each as an Input of this execution, and returns a `Dataset` — a
-       nested tree mirroring the directory layout (one dataset per
-       sub-directory, parent dataset over the root). Datasets are
-       auto-tagged with the built-in `File` + `Directory` Dataset_Type
-       terms.
+    3. `exe.add_files(specs, ...)` inserts one `File` row per file and
+       returns a `Dataset` — a nested tree mirroring the directory layout
+       (one dataset per sub-directory, parent dataset over the root) — and
+       links that **File dataset** as an Input of this execution (a single
+       Dataset↔Execution input edge for the root, not a per-file edge).
+       Datasets are auto-tagged with the built-in `File` + `Directory`
+       Dataset_Type terms.
 
 Version requirement:
     Needs **deriva-ml >= 1.51.14**. 1.51.12 added the `resolve_rids`
@@ -115,8 +116,9 @@ def main() -> int:
 
     with ml.create_execution(config, workflow=workflow,
                              dry_run=args.dry_run) as execution:
-        # add_files inserts the File rows, links them as Inputs, and returns
-        # the root File dataset (nested to mirror the directory structure).
+        # add_files inserts the File rows and returns the root File dataset
+        # (nested to mirror the directory structure), linking that dataset as
+        # an Input of this execution (one Dataset↔Execution edge, not per-file).
         root_ds = execution.add_files(
             specs,
             dataset_types=args.dataset_type or None,

@@ -120,7 +120,7 @@ The bundled **`scripts/loader_orchestrator_template.py`** gives you a copy-me fo
 |-------|-------------|-------------|
 | **schema** | Creates the domain tables, asset table, feature, workflow/dataset types, Chaise annotations. | Yes — re-running on a catalog that already has the schema is safe. |
 | **register** | Stages the source directory, then `exe.add_files(...)` records the files as a by-reference **File dataset** (Input provenance; bytes NOT uploaded). Its own execution. | Re-running creates a new File dataset version. |
-| **upload** | Consumes the File dataset as a `DatasetSpec(materialize=False)` **Input**, uploads the bytes into Hatrac as hosted assets (Output), then adds features. Two executions — asset upload (2a), then features (2b). | Mostly — Hatrac uploads are content-addressed; the feature step truncates prior loader rows first. |
+| **upload** | Consumes the File dataset as a `DatasetSpec(materialize=False)` **Input**, uploads the bytes into Hatrac as hosted assets (Output), then adds features. Two executions — asset upload (2a), then features (2b). | Mostly — Hatrac uploads are content-addressed. The feature step (2b) ships as a `_add_features` stub; when you implement it, truncate prior loader feature rows first (the pattern is in the stub's comments) so retries don't duplicate labels. |
 | **cleanup** | Removes the local source cache. | Yes. |
 
 The template wires these behind a single `--phase {all,schema,register,upload,cleanup}` switch so a partial failure resumes without re-running earlier phases. `--phase schema` prints the catalog id so a `--create` first run can resume against `--catalog-id`.
