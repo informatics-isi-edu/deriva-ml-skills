@@ -1,6 +1,6 @@
 ---
 name: deriva-ml-context
-description: "ALWAYS load this context when the deriva-ml plugin is active. Establishes what DerivaML is (a reproducible-ML layer on top of Deriva catalogs), the five core abstractions (Dataset, Workflow, Execution, Feature, Asset), and the inheritance-with-override rule that governs when to use a deriva-ml surface versus the underlying deriva surface. Triggers on: 'derivaml', 'deriva-ml', 'dataset', 'workflow', 'execution', 'feature', 'asset', 'experiment', 'training run', 'model', 'pipeline', 'reproducible', 'provenance', 'hydra-zen', 'configure-experiment'."
+description: "Always-on plugin context — load whenever the deriva-ml plugin is active and any DerivaML work is in view (datasets, workflows, executions, features, assets, experiments, training runs, pipelines, provenance, hydra-zen configs). This is background framing the model should carry the whole session, not a selective per-task trigger. Establishes what DerivaML is (a reproducible-ML layer on top of Deriva catalogs), the five core abstractions (Dataset, Workflow, Execution, Feature, Asset), and the inheritance-with-override rule that governs when to use a deriva-ml surface versus the underlying deriva surface."
 disable-model-invocation: false
 ---
 
