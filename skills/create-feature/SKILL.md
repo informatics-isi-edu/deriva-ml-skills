@@ -31,7 +31,7 @@ Before creating a feature, determine whether one is needed and whether it alread
 
 ### Is this a feature or a column?
 
-Features have overhead (separate table, execution requirement, provenance). Use a feature when you need provenance, multivalued support, or controlled vocabulary terms. Use a column when the value is intrinsic to the record and immutable. See `references/concepts.md` under "When to Use a Feature vs a Column" for the full decision guide.
+Features have overhead (separate table, execution requirement, provenance). Use a feature when you need provenance, multivalued support, or controlled vocabulary terms. Use a column when the value is intrinsic to the record and immutable. See `references/concepts/feature-vs-column.md` for the full decision guide.
 
 > **Already decided wrong?** If an existing target table has a column that should really be a feature (or vice versa), that's a non-additive schema change — use `/deriva:evolve-schema` *(deriva-skills)* for the migration runbook (backfill, FK rewire, drop the old column under a snaptime). Don't try to "convert" in place by silently adding both shapes; pick one and migrate.
 
@@ -88,7 +88,7 @@ The test: if you always set them at the same time in the same execution, they be
 - Name the annotation act, not the vocabulary: `Diagnosis` (not `Diagnosis_Type`)
 - Be specific: `Cell_Classification` (not just `Classification`)
 
-For the full design guide, see `references/concepts.md` under "Designing a Feature."
+For the full design guide, see `references/concepts/design.md`.
 
 ## Phase 4: Create the Feature Definition
 
@@ -185,7 +185,7 @@ For the exploratory-preview MCP tool examples and the full Python API retrieval 
 
 ### Resolve multiple values with selectors
 
-When a record has values from multiple annotators or model runs, use a selector to pick one. Built-in selectors include `select_newest`, `select_by_execution`, `select_by_workflow`, `select_majority_vote`. For the full guide — built-in selectors, custom selector functions, the cache-key warning, common pitfalls — see `references/feature-selectors.md`.
+When a record has values from multiple annotators or model runs, use a selector to pick one. Built-in selectors include `select_newest`, `select_by_execution`, `select_by_workflow`, `select_majority_vote`. For the full guide — built-in selectors, custom selector functions, the cache-key warning, common pitfalls — see `references/concepts/selectors.md`.
 
 **Before retrieving in the multi-value case, ask the user which values they want.** Quick provenance check:
 
@@ -217,9 +217,9 @@ period is done. Don't wait to be asked.
 
 ## Reference Resources
 
-- `references/concepts.md` — Feature types, design guidance, naming, multivalued features, selection, Python API, integration
+- `references/concepts/` — Feature types, design guidance, naming, multivalued features, selection, Python API, integration
 - `references/workflow.md` — Step-by-step MCP and Python API examples for create / add-values / query
-- `references/feature-selectors.md` — Complete guide to writing and using feature selectors
+- `references/concepts/selectors.md` — Complete guide to writing and using feature selectors
 - `deriva://docs/features` — Full user guide to features in DerivaML
 - `deriva://catalog/{h}/{c}/deriva-ml/features/{table}` — Snapshot of features defined on a target table (one round trip; preferred for "what features exist on X?")
 - `deriva_ml_list_features(hostname, catalog_id)` — Paginated browse across all target tables (use when you need to filter or drill beyond the per-table snapshot)
