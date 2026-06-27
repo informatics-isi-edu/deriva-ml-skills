@@ -73,7 +73,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
    # Write file to `path`
    # Verify: os.path.exists(path) should be True
    ```
-4. Check that the execution is still in `Running` status when you attempt the upload. If it was already committed or aborted, uploads will not work.
+4. Check the execution's status before uploading. `commit_output_assets()` runs on a **`Stopped`** execution (the `with` block already transitioned `Running → Stopped`; the commit then drives `Stopped → Pending_Upload → Uploaded`). If the run is already `Uploaded` the commit is a no-op. If it was `Aborted`, its staged rows are still preserved (not discarded) — recover them via `ml.resume_execution(rid)` before committing, or discard via `gc_executions`.
 
 ---
 

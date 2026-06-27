@@ -73,7 +73,7 @@ For **read-side questions about an existing entity** — "show me X by RID," "wh
 | `ml/executions`, `ml/execution/{rid}` | Executions list / one execution (summary + inputs + outputs split into `assets` and `metadata` + experiment; per-row `cite_url`) |
 | `ml/lineage/{rid}` | Provenance chain for any artifact (Dataset, Asset, Feature value, Execution) |
 | `ml/features/{table}` | Features defined on a target table |
-| `ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the four built-ins, or your domain schema) |
+| `ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the six built-in vocabulary tables, or your domain schema) |
 | `ml/vocabularies/{schema}/{vocab_name}` | Full term list for one vocabulary (name, rid, description, synonyms, CURIE, URI) |
 | `ml/assets/{schema}` | Asset tables in one schema |
 | `ml/assets/{schema}/{asset_table}` | Snapshot of assets in one asset table |
