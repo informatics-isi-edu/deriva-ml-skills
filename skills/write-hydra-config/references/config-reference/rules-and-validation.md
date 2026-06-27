@@ -520,3 +520,15 @@ For workflow-type checks (separate from the workflow row itself), use:
 ```
 lookup_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name="Training")
 ```
+
+This is a generic deriva-skills (`/deriva:`) tool, not a deriva-ml-specific surface — it's the right tool for any vocabulary-term existence check.
+
+### Common Issues
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Dataset not found: RID=...` | RID doesn't exist in target catalog | Verify RID against correct catalog (dev vs prod) |
+| `Version X not found` | Version never created (released) | Find the latest released version via `deriva_ml_get_dataset`. If you need to mint a release from a dev period, call `deriva_ml_release_dataset(hostname=..., catalog_id=..., dataset_rid=..., bump="minor", description="...")`. |
+| Stale version | Data changed since release was created | Mutate further if needed (lands on dev), then call `deriva_ml_release_dataset(...)` to mint a new release and update the config. |
+| Dev label in `current_version` | The dataset is mid-mutation; no release captures the current state | Call `deriva_ml_release_dataset(...)` to promote the dev period to a release. Configs must pin to released labels, not dev. |
+| Wrong catalog | Config RIDs are from a different catalog | Check `deriva_ml` config group — are you pointing at the right host/catalog? |
