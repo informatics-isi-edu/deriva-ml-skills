@@ -75,7 +75,43 @@ bundle. When authoring or updating a design doc:
 in `docs/design/index.md` under the right entity subsection. If `index.md`
 doesn't exist yet, create it from the shape in
 `references/index-template.md`. It opens with `type: Index` frontmatter and a
-one-line statement that the corpus follows OKF (with the spec link).
+one-line statement that the corpus follows OKF (with the spec link). Render each
+listed design as a link to its file so the index is navigable.
+
+### Link related specs together (the connected-corpus payoff)
+
+OKF treats the bundle as a graph: a Markdown link from one design to another
+asserts a relationship, and **the link is untyped — the prose beside it names
+the relationship**. This is what turns isolated specs into a navigable
+dependency graph (which dataset feeds which experiment, which models a compound
+experiment composes). Wire it in every design's **"Upstream designs"** section:
+
+- **Use OKF bundle-absolute links** — `[<slug>](/<entity>/<slug>.md)`, a path
+  from the `docs/design/` bundle root (leading slash). They survive a doc moving
+  between subdirectories. (Relative `../<entity>/<slug>.md` is also valid; prefer
+  bundle-absolute.)
+- **Name the relationship with a verb in the prose** (not in frontmatter — OKF
+  has no typed-link field). Use this consistent, greppable set:
+
+  | Verb | Edge |
+  |---|---|
+  | **consumes** | experiment / model → dataset |
+  | **runs** | experiment → model |
+  | **produced by** | output-feature → its producing model |
+  | **trains on** | model → input feature |
+  | **composed of** | experiment → sub-experiment(s) |
+  | **extends** | model → prior model (checkpoint lineage) |
+  | **precondition on members** | dataset → element-feature (a data-property reference, *not* a build dependency) |
+
+- **Compound experiments** stay a *single* Experiment Design doc whose "Upstream
+  designs" links *all* the sub-specs it composes — multiple `consumes`/`runs`
+  links, plus `composed of` links to any sibling experiment-designs. Keep the
+  graph acyclic: only link designs authored earlier (the input-vs-output feature
+  rule the templates already encode does the same job for features).
+- **Broken links are fine.** Per OKF, a link to a not-yet-written design is *not*
+  an error — it's planned-but-unauthored knowledge. So you may link a dataset
+  design that's still `Draft` or doesn't exist yet; don't hold up authoring to
+  resolve it.
 
 ## The discipline
 

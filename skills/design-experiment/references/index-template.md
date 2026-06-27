@@ -25,13 +25,13 @@ so they carry no OKF `resource` field; the produced catalog entities and their
 RIDs live in `tacit-knowledge.md` and each doc's "Status & links" section.
 
 ## experiment/
-<!-- - [<slug>](experiment/<slug>.md) — <one-line description> (Status: <status>) -->
+<!-- - [<slug>](/experiment/<slug>.md) — <one-line description> (Status: <status>) -->
 
 ## dataset/
-<!-- - [<slug>](dataset/<slug>.md) — <one-line description> (Status: <status>) -->
+<!-- - [<slug>](/dataset/<slug>.md) — <one-line description> (Status: <status>) -->
 
 ## feature/
-<!-- - [<slug>](feature/<slug>.md) — <one-line description> (Status: <status>) -->
+<!-- - [<slug>](/feature/<slug>.md) — <one-line description> (Status: <status>) -->
 
 ## model/
-<!-- - [<slug>](model/<slug>.md) — <one-line description> (Status: <status>) -->
+<!-- - [<slug>](/model/<slug>.md) — <one-line description> (Status: <status>) -->

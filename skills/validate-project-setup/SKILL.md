@@ -42,7 +42,7 @@ The validation walks five categories. For each item, report **present**, **parti
 | `README.md` | present | Project description (may be the template's default; flag if so) |
 | `.gitignore` | present | Should ignore `outputs/`, `multirun/`, `.deriva-ml/`, etc. |
 
-**Common gaps:** missing `tacit-knowledge.md` (suggest creating an empty file with a one-line header so `capture-tacit-knowledge` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`). Do **not** flag a missing `docs/design/` on a new or early project — design docs are authored on demand by `design-experiment`, so their absence is normal until the user designs their first experiment/dataset/feature/model; report it as "not yet used" rather than a gap.
+**Common gaps:** missing `tacit-knowledge.md` (suggest creating an empty file with a one-line header so `capture-tacit-knowledge` has somewhere to write); missing `Experiments.md` (offer to scaffold one from `src/configs/experiments.py` and `src/configs/multiruns.py`); missing `tests/` (offer to create the directory with a placeholder `__init__.py`). Do **not** flag a missing `docs/design/` on a new or early project — design docs are authored on demand by `design-experiment`, so their absence is normal until the user designs their first experiment/dataset/feature/model; report it as "not yet used" rather than a gap. Also: a design doc's "Upstream designs" link pointing at a not-yet-authored design is **not** a defect — OKF tolerates broken links (planned-but-unauthored knowledge), so do not flag a dangling inter-spec link.
 
 ### 2. The `src/configs/` directory
 
