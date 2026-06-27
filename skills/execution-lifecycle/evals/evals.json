@@ -4,25 +4,25 @@
     {
       "id": 1,
       "prompt": "I want to run my CIFAR-10 training experiment. The config references dataset 28CT version 0.9.0 and model weights asset 3WSE. Walk me through the steps to validate everything and run it.",
-      "expected_output": "Should start with pre-flight validation: get_entities to check all RIDs exist, deriva_ml_bag_info to check cache status and size, deriva_ml_cache_dataset if not cached. Should check git status and version. Should show either the CLI command (deriva-ml-run) or the MCP tool sequence (deriva_ml_create_execution → start → download → work → stop → upload). Should recommend dry_run=True first. Should verify results after completion.",
+      "expected_output": "Should start with pre-flight validation: get_entities to check all RIDs exist, deriva_ml_bag_info to check cache status and size, deriva_ml_cache_dataset if not cached. Should check git status and version. Should show that the run itself is authored in Python (the `with ml.create_execution(config) as exe:` context manager, then exe.commit_output_assets() after the block) and launched via the deriva-ml-run CLI — the MCP execution surface is read-only (deriva_ml_list_executions / deriva_ml_get_execution for observation), not a write path. Should recommend dry_run=True first. Should verify results after completion.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "I need to create an execution that downloads a dataset, runs inference, and uploads the prediction results. Show me the full MCP tool sequence.",
-      "expected_output": "Should show the complete MCP lifecycle: deriva_ml_create_execution with workflow_name and workflow_type, deriva_ml_start_execution, download_execution_dataset with dataset_rid and version, do work, asset_file_path to register outputs, optionally deriva_ml_add_feature_values for predictions, deriva_ml_commit_execution, commit_output_assets. Should mention that steps 2-7 operate on the active execution.",
+      "prompt": "I need to create an execution that downloads a dataset, runs inference, and uploads the prediction results. Show me the full sequence.",
+      "expected_output": "Should correct the framing: there is no MCP write sequence — executions are authored in user-local Python, not over the MCP wire (MCP execution tools are read-only). Should show the complete Python lifecycle: build an ExecutionConfiguration (workflow + datasets/assets), `with ml.create_execution(config) as exe:`, materialize/access the input dataset, run inference, exe.asset_file_path(...) to stage the prediction outputs, add any per-record predictions via exe.add_features(records) inside the block, then exe.commit_output_assets() AFTER the with block to upload. Should mention running via deriva-ml-run for code provenance and reading results back with deriva_ml_get_execution / deriva_ml_list_feature_values.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "My dataset is 15 GB and I don't want it downloading during my experiment run. How do I warm the cache ahead of time?",
-      "expected_output": "Should recommend deriva_ml_bag_info first to check current cache status. Should then use deriva_ml_cache_dataset with dataset_rid and version to download ahead of time. Should explain that subsequent download_execution_dataset calls will use the cached copy. Should mention materialize=True for full download or False for metadata only.",
+      "expected_output": "Should recommend deriva_ml_bag_info first to check current cache status. Should then use deriva_ml_cache_dataset with dataset_rid and version to download ahead of time. Should explain that the subsequent execution run uses the cached copy automatically (the DatasetSpec(materialize=True) input in the ExecutionConfiguration resolves to the warmed cache). Should mention materialize=True for full download or False for metadata only.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "I ran an experiment but the status shows 'Running' even though it finished. What happened and how do I fix it?",
-      "expected_output": "Should explain that deriva_ml_commit_execution was likely not called (or the execution crashed before stop). Should mention deriva_ml_get_execution + create fresh execution (gap; restore_execution was not ported) to regain control. Should show deriva_ml_abort_execution(reason=...) as the way to mark the stuck execution failed (deriva_ml_update_execution accepts only description=, not status=). Should explain that the context manager in Python handles this automatically (sets Failed on exception).",
+      "expected_output": "Should explain that the execution exited its `with` block without reaching a terminal state — typically the process crashed before `__exit__` ran, or commit_output_assets() was never called. Should use deriva_ml_get_execution to inspect the stuck run's status (the MCP execution surface is read-only — there is no deriva_ml_commit_execution / abort_execution / update_execution write tool as of v0.5.0). Should show recovery in Python: ml.resume_execution(rid) to re-hydrate, then exe.commit_output_assets() to drain anything staged, or exe.abort() to mark it terminal. Should explain that in normal operation the Python context manager handles this automatically (clean exit → Stopped, exception → Failed).",
       "files": []
     },
     {

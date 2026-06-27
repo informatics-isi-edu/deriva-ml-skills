@@ -149,8 +149,8 @@ After the loader finishes, sanity-check from a fresh `DerivaML(...)` session:
 ```python
 ml = DerivaML(hostname=..., catalog_id=..., domain_schemas={"my_project"})
 
-# The four built-in vocabularies should be populated
-for v in ["Asset_Type", "Workflow_Type", "Dataset_Type", "Execution_Status"]:
+# The five seeded built-in vocabularies should be populated
+for v in ["Asset_Type", "Asset_Role", "Workflow_Type", "Dataset_Type", "Execution_Status"]:
     terms = list_vocabulary_terms(hostname=..., catalog_id=..., schema="deriva-ml", table=v)
     print(f"{v}: {len(terms)} terms")
 
@@ -197,7 +197,7 @@ The defaults (`UPLOAD_IF_MISSING`, complete-provenance `terminal_tables`, `Dangl
 |---|---|---|
 | `create_ml_catalog(hostname, project_name, catalog_alias=None)` | `deriva_ml.schema.create_schema` (Python) | Create a fresh catalog with ACLs + deriva-ml schema in one call. Branch 1 entry point. |
 | `create_ml_schema(catalog, schema_name="deriva-ml", project_name=None)` | `deriva_ml.schema.create_schema` (Python) | Add the deriva-ml schema to an existing catalog. **DROPS** the schema with CASCADE if already present. Use for promoting a plain Deriva catalog to deriva-ml. |
-| `initialize_ml_schema(model, schema_name="deriva-ml")` | `deriva_ml.schema.create_schema` (Python) | Populate the four standard vocabularies (Asset_Type, Asset_Role, Dataset_Type, Workflow_Type). Safe to call repeatedly. |
+| `initialize_ml_schema(model, schema_name="deriva-ml")` | `deriva_ml.schema.create_schema` (Python) | Populate the five seeded standard vocabularies (Asset_Type, Asset_Role, Dataset_Type, Workflow_Type, Execution_Status). Safe to call repeatedly. (`Feature_Name` is a sixth vocabulary table, populated per-feature at runtime by `create_feature` — not seeded here.) |
 | `set_catalog_provenance(catalog, name, description, workflow_url)` | `deriva_ml.catalog.provenance` (Python) | Record how the catalog was created. Call once after `create_ml_catalog`. |
 | `clone_via_bag(source_hostname, source_catalog_id, dest_hostname, dest_catalog_id, root_rid=None, anchors=None, output_dir=None, policy=None)` | `deriva_ml.catalog.clone_via_bag` (Python) | Slice-clone. Branch 2 entry point. |
 | `RIDAnchor(table, rids)` | `deriva.bag.anchors` (Python) | Specify slice roots by table + RID list. |
@@ -220,4 +220,4 @@ The defaults (`UPLOAD_IF_MISSING`, complete-provenance `terminal_tables`, `Dangl
 - **`/deriva-ml:execution-lifecycle`** *(this plugin)* — Running workflows against the new catalog.
 - **`/deriva-ml:troubleshoot-execution`** *(this plugin)* — If something during the loader phases produces a failed Execution and you need to recover. Covers the salvage workflow.
 - **`/deriva:create-table`** *(deriva-skills)* — The schema operations you'll need inside the `schema` phase of a from-scratch loader (Branch 1 Step 3).
-- **`/deriva:manage-vocabulary`** *(deriva-skills)* — For any project-specific vocabularies your loader adds beyond the four built-in deriva-ml ones.
+- **`/deriva:manage-vocabulary`** *(deriva-skills)* — For any project-specific vocabularies your loader adds beyond the built-in deriva-ml ones.

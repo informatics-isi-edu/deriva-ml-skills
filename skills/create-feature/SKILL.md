@@ -125,12 +125,14 @@ Since features are multivalued, note whether it's intended for ground truth, mod
 
 Adding values requires knowing what columns a feature has, which are required, and what values are valid. The full inspect → discover-valid-values → add → commit walkthrough lives in `references/workflow.md` under "Add Feature Values"; this section names the rule.
 
-### Script vs MCP rule
+### Writing values: always through an execution
+
+There is **no MCP tool that writes feature values** — `deriva_ml_add_feature_values` was removed in v0.5.0. The MCP feature surface is read-only (`deriva_ml_list_feature_values`, `deriva_ml_get_feature`, `deriva_ml_find_features_referencing`). Every write — even a 1-value smoke test — goes through `exe.add_features(records)` inside a `with ml.create_execution(...) as exe:` block. Read the values back afterward with `deriva_ml_list_feature_values`.
 
 | Situation | Approach |
 |-----------|----------|
-| Verifying a new feature works (1-5 test values) | MCP tools directly — quick and disposable |
-| Production annotations, batch labels, model predictions | Committed script — provides code provenance in the execution record |
+| Verifying a new feature works (1-5 test values) | A short throwaway script (or `--allow-dirty` ad-hoc run) calling `exe.add_features([record])` — disposable, but still inside an execution |
+| Production annotations, batch labels, model predictions | Committed script — same `exe.add_features(...)` path, run via `deriva-ml-run` for code provenance |
 
 **For production data, always write a script first.** The execution record captures the git hash of the committed code. Without a committed script, the execution has provenance (who, when, what) but no code link (how). Use `/deriva-ml:generate-scripts` or `/deriva-ml:dataset-lifecycle`'s script templates to generate the script, commit it, then run via `deriva-ml-run`. Running an uncommitted script raises `DerivaMLDirtyWorkflowError` — use `--allow-dirty` only for debugging iterations (degraded provenance).
 
