@@ -45,9 +45,12 @@ For "set up a fresh ML catalog from scratch" or "set up a fresh ML catalog popul
 
 ## Branch 1: From scratch
 
-This skill ships two **copy-me template scripts** under `scripts/` — copy them into your project's `src/scripts/`, fill the `# TODO: your domain` blocks, commit, and run via `uv run python src/scripts/<name>.py` (no pyproject entry point — these are one-time loaders):
+This skill ships **copy-me template scripts** under `scripts/` — copy them into your project's `src/scripts/`, fill the `# TODO: your domain` blocks, commit, and run via `uv run python src/scripts/<name>.py` (no pyproject entry point — these are one-time loaders):
 
-- **`scripts/phased_loader_template.py`** — a thin orchestrator that wires three resumable phases (schema → assets → datasets) behind one `--phase {all,schema,assets,datasets}` switch.
+- **`scripts/loader_orchestrator_template.py`** — a four-phase orchestrator (`--phase {all,schema,register,upload,cleanup}`) that wires the two-execution ingest model.
+- **`scripts/stage_source_template.py`** — stub for staging the source directory; fill `stage_source()` per its docstring layout contract.
+- **`scripts/register_phase_template.py`** — Execution 1: `add_files` source files as a by-reference File dataset.
+- **`scripts/upload_phase_template.py`** — Execution 2: consume the File dataset as `DatasetSpec(materialize=False)` Input, upload bytes as Output assets, add features.
 - **`scripts/setup_domain_model_template.py`** — the schema-phase body: create the domain vocabulary, the asset table, register it as a dataset element type, and define the feature. Includes an optional `create_ml_catalog` + `set_catalog_provenance` bootstrap for the from-nothing case.
 
 The external `load_cifar10` script in `deriva-ml-model-template` (`src/scripts/load_cifar10.py` + its `_cifar10_schema.py` / `_cifar10_assets.py` / `_cifar10_datasets.py` modules) is the worked **reference implementation** these templates generalize from — read it for a complete, domain-filled example, but start from the bundled templates here.
@@ -111,26 +114,33 @@ The bundled **`scripts/setup_domain_model_template.py`** is a runnable, idempote
 
 ### Step 4: Phase your loader
 
-The bundled **`scripts/phased_loader_template.py`** gives you this three-phase structure as a copy-me orchestrator. It is the recommended shape for any from-scratch loader:
+The bundled **`scripts/loader_orchestrator_template.py`** gives you a copy-me four-phase orchestrator. It is the recommended shape for any from-scratch loader:
 
 | Phase | What it does | Idempotent? |
 |-------|-------------|-------------|
-| **schema** | Creates the domain tables (Subject, Image, etc.), workflow types, dataset types, Chaise annotations. | Yes — re-running on a catalog that already has the schema is safe. |
-| **assets** | Registers source files by reference, uploads asset bytes to Hatrac, inserts catalog rows, populates per-row features (labels, classes). | Mostly — Hatrac uploads are content-addressed and idempotent; row inserts use upsert / truncate-then-write patterns. |
-| **datasets** | Creates the Dataset hierarchy (Training, Testing, Complete, splits, subsets) and adds members. | Re-running typically creates new dataset versions, not duplicate datasets. |
+| **schema** | Creates the domain tables, asset table, feature, workflow/dataset types, Chaise annotations. | Yes — re-running on a catalog that already has the schema is safe. |
+| **register** | Stages the source directory, then `exe.add_files(...)` records the files as a by-reference **File dataset** (Input provenance; bytes NOT uploaded). Its own execution. | Re-running creates a new File dataset version. |
+| **upload** | Consumes the File dataset as a `DatasetSpec(materialize=False)` **Input**, uploads the bytes into Hatrac as hosted assets (Output), then adds features. Two executions — asset upload (2a), then features (2b). | Mostly — Hatrac uploads are content-addressed. The feature step (2b) ships as a `_add_features` stub; when you implement it, truncate prior loader feature rows first (the pattern is in the stub's comments) so retries don't duplicate labels. |
+| **cleanup** | Removes the local source cache. | Yes. |
 
-The template wires these behind a single `--phase {all,schema,assets,datasets}` `argparse` switch so a partial failure can be resumed without re-running the earlier phases — re-run `--phase assets` (or `--phase datasets`) to pick up where it died. `--phase schema` prints the catalog id on completion so a `--create` first run can resume against `--catalog-id` without hunting for it.
+The template wires these behind a single `--phase {all,schema,register,upload,cleanup}` switch so a partial failure resumes without re-running earlier phases. `--phase schema` prints the catalog id so a `--create` first run can resume against `--catalog-id`.
 
-#### The canonical ingest: register-then-upload in one execution
+Adapt the loader to your dataset by editing its **config block** (`SOURCE_ROOT`, `PARTITIONS` — a list, `["."]` for a flat layout — `ASSET_TABLE`, `FILE_TYPES`, `FILE_DATASET_TYPE`, `LABEL_MANIFEST`, the `rename_file` hook) and filling the `stage_source()` stub in `scripts/stage_source_template.py` (its docstring states the layout contract). The register/upload phases are generic and need no edit for a standard layout. The sibling templates: `scripts/register_phase_template.py` (Exec 1) and `scripts/upload_phase_template.py` (Exec 2).
 
-The `assets` phase's file ingest is **two stages inside one execution**, which is what gives uploaded assets provenance back to the exact source files they came from:
+**Then hand off to `/deriva-ml:dataset-lifecycle`** to organize the now-hosted assets into Complete / Training / Testing datasets, splits, and subsamples — that is its job, not the loader's.
 
-1. **Register source files by reference** — `FileSpec.create_filespecs(staged_dir)` + `exe.add_files(specs)` inserts one `File` row per source file (URL + MD5 + length, no bytes copied) and links each as an **Input** of the execution. This records *where the bytes came from*.
-2. **Upload the bytes as output assets** — the per-file `exe.asset_file_path(asset_table, ...)` loop stages each file, and `exe.commit_output_assets()` (after the `with` block) uploads them into Hatrac as typed **Output** asset rows.
+#### The canonical ingest: register, then upload — two executions
 
-Both stages run in the **same** execution, so the resulting asset rows link to the source `File` inputs through that execution's provenance. Don't re-implement the mechanics here — `/deriva-ml:work-with-assets` owns them and ships the two keystone templates: `register_files_template.py` (the `add_files` input-registration path) and `upload_asset.py` (the `asset_file_path` output-upload path). The phased loader template calls into this shape and points at both.
+File ingest is **two separate executions**, and the split is what records source→asset lineage in the catalog:
 
-> **Prerequisite — deriva-ml >= 1.51.14.** The `add_files` directory-tree nesting (intermediate ancestors get datasets, so equal-depth siblings like `train`/`test` nest under a common parent) needs deriva-ml >= 1.51.14. Below that you get flat sibling `File` datasets with no common parent. Pin it in your project's `pyproject.toml`.
+1. **register (Execution 1)** — `FileSpec.create_filespecs(SOURCE_ROOT)` + `exe.add_files(specs, dataset_types=[FILE_DATASET_TYPE], ...)` inserts one `File` row per source file (`tag://` URL + MD5 + length, **no bytes copied**) and links them as **Inputs**, producing a nested File dataset that mirrors the source directory tree. This records *which source files exist*.
+2. **upload (Execution 2)** — declares that File dataset as a `DatasetSpec(rid=..., version=..., materialize=False)` **Input**, then `exe.asset_file_path(asset_name=ASSET_TABLE, ...)` + (post-`with`) `exe.commit_output_assets()` uploads the bytes into Hatrac as typed **Output** assets. A second execution then adds the features.
+
+The `materialize=False` Input declaration is the **catalog-recorded lineage edge** from the source File dataset to the upload execution — an uploaded asset traces back to the exact source file it came from. A single execution cannot express this edge; that is why it is two. (`materialize=False` is **required** — the File rows' `tag://` URLs cannot be materialized into a bag.)
+
+Don't re-implement the mechanics — `/deriva-ml:work-with-assets` owns them: `register_files_template.py` (the `add_files` Input path) and `upload_asset.py` (the `asset_file_path` Output path). The loader's `register_phase_template.py` / `upload_phase_template.py` wire them into the two-execution shape.
+
+> **Prerequisite — deriva-ml >= 1.51.14.** The `add_files` directory-tree nesting needs ≥ 1.51.14, and the upload phase's `DatasetSpec(materialize=False)` input requires the same line. Pin it in your `pyproject.toml`.
 
 ### Step 5: Verify
 
@@ -149,7 +159,7 @@ print(ml.find_datasets())
 print(ml.find_workflows())
 ```
 
-If `find_datasets()` returns nothing and you expected datasets, your `datasets` phase didn't run or didn't commit — check the loader logs.
+If `find_datasets()` returns nothing and you expected hosted assets, check that the `upload` phase ran and committed — check the loader logs. Datasets themselves (grouping uploaded assets) are created via `/deriva-ml:dataset-lifecycle`, not by this loader.
 
 ---
 
@@ -195,14 +205,18 @@ The defaults (`UPLOAD_IF_MISSING`, complete-provenance `terminal_tables`, `Dangl
 | `AssetMode.UPLOAD_IF_MISSING` / `AssetMode.ROWS_ONLY` | `deriva.bag.traversal` (Python) | Whether the destination gets its own asset bytes or references the source's Hatrac. |
 | `DanglingFKStrategy.DELETE` / `FAIL` / `NULLIFY` | `deriva.bag.traversal` (Python) | What to do with orphan FK rows at load time. |
 | `clone_catalog` / `clone_catalog_async` | `deriva-mcp-core` MCP | Whole-catalog same-server clone. **Not for this skill's workflows** — see "Why not `clone_catalog`?" above. |
-| `phased_loader_template.py` + `setup_domain_model_template.py` | this skill's `scripts/` | **Copy-me starting point** for Branch 1 — the three-phase orchestrator and the schema-phase body. Fill the `# TODO: your domain` blocks. |
+| `loader_orchestrator_template.py` | this skill's `scripts/` | **Copy-me four-phase orchestrator** for Branch 1 (`--phase {all,schema,register,upload,cleanup}`). Fill the config block and the `stage_source_template.py` stub. |
+| `stage_source_template.py` | this skill's `scripts/` | Stub for staging the source directory before registration. Fill the `stage_source()` body; the docstring states the layout contract. |
+| `register_phase_template.py` | this skill's `scripts/` | Execution 1 — `add_files` source files as a by-reference File dataset (Input provenance; no bytes copied). |
+| `upload_phase_template.py` | this skill's `scripts/` | Execution 2 — consumes the File dataset as `DatasetSpec(materialize=False)` Input, uploads bytes into Hatrac as Output assets, then adds features. |
+| `setup_domain_model_template.py` | this skill's `scripts/` | Schema-phase body: create domain vocabulary, asset table, element type, and feature. Fill the `# TODO: your domain` blocks. |
 | `load_cifar10` script + `_cifar10_schema.py` / `_cifar10_assets.py` / `_cifar10_datasets.py` | `deriva-ml-model-template` repo (external) | Reference implementation of Branch 1. The bundled templates above are the copy-me starting point; this is the worked, domain-filled example they generalize from. |
 
 ## Related Skills
 
 - **`/deriva-ml:setup-derivaml-project`** *(this plugin)* — Sets up the code repo (uv, pyproject.toml, conventions) that will read/write whichever catalog you set up here. Independent; do these in either order.
 - **`/deriva-ml:dataset-lifecycle`** *(this plugin)* — Once the catalog is populated, this is where dataset work starts.
-- **`/deriva-ml:work-with-assets`** *(this plugin)* — Owns the file-ingest mechanics the `assets` phase uses: `register_files_template.py` (`add_files` input registration) and `upload_asset.py` (`asset_file_path` output upload).
+- **`/deriva-ml:work-with-assets`** *(this plugin)* — Owns the file-ingest mechanics the register and upload phases use: `register_files_template.py` (`add_files` input registration) and `upload_asset.py` (`asset_file_path` output upload).
 - **`/deriva-ml:execution-lifecycle`** *(this plugin)* — Running workflows against the new catalog.
 - **`/deriva-ml:troubleshoot-execution`** *(this plugin)* — If something during the loader phases produces a failed Execution and you need to recover. Covers the salvage workflow.
 - **`/deriva:create-table`** *(deriva-skills)* — The schema operations you'll need inside the `schema` phase of a from-scratch loader (Branch 1 Step 3).

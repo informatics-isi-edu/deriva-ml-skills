@@ -77,21 +77,18 @@ gets — getting it wrong puts bytes in the wrong place or records the wrong rol
 | **One** local input file wired through a **hydra config** | `LocalFile` / `LocalFileConfig` | referenced (stays local) | **Input** | the `LocalFile` section above |
 | **A directory of source files** to register **by reference** (origin provenance) | `add_files` + `FileSpec.create_filespecs` | referenced (stays put) | **Input** | next section; template `scripts/register_files_template.py` |
 
-These are not mutually exclusive — a mature loader often does **two stages in
-one execution**: `add_files` the source directory first (Input provenance for
-*where the data came from*), then `asset_file_path` the bytes into a typed asset
-table (Output). See `/deriva-ml:setup-ml-catalog` for that combined ingest
-pattern.
+These are not mutually exclusive — a mature loader does this as **two separate executions**: the first execution calls `add_files` on the source directory (Input provenance — *which source files exist*), then a second execution consumes that File dataset as a `DatasetSpec(materialize=False)` input and calls `asset_file_path` to upload the bytes into Hatrac (Output). The two-execution split is what records source→asset lineage. See `/deriva-ml:setup-ml-catalog` for the combined loader.
 
 ### Registering a directory of source files by reference (`add_files`)
 
 When you have a **directory of raw source files** and want the catalog to record
 *which files* the run consumed — by reference, without copying bytes into
 Hatrac — use `exe.add_files(...)`. It inserts one `File` row per file (URL +
-MD5 + length), links each as an **Input** of the execution, and returns a
-`Dataset` nested to mirror the directory structure (one dataset per
-sub-directory, auto-tagged with the built-in `File` + `Directory`
-`Dataset_Type` terms).
+MD5 + length) and returns a `Dataset` nested to mirror the directory structure
+(one dataset per sub-directory, auto-tagged with the built-in `File` +
+`Directory` `Dataset_Type` terms), and links that **File dataset** as an
+**Input** of the execution — a single Dataset↔Execution input edge for the
+root, not a per-file edge.
 
 ```python
 from deriva_ml.core.filespec import FileSpec
