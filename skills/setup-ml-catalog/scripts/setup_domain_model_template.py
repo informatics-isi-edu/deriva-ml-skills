@@ -14,10 +14,10 @@ external ``deriva-ml-model-template`` repo; generalized for any domain.
 
 When to use:
     The "schema" phase of a from-scratch catalog load (the first of the
-    three phases the phased loader orchestrates). Run this once against a
-    fresh or existing ML catalog to install your domain model — the
-    vocabulary, the asset table, the dataset element-type registration,
-    and the feature — before any data is loaded.
+    four phases the loader orchestrator runs: schema / register / upload /
+    cleanup). Run this once against a fresh or existing ML catalog to install
+    your domain model — the vocabulary, the asset table, the dataset
+    element-type registration, and the feature — before any data is loaded.
 
 Pattern:
     1. (Optional bootstrap) ``create_ml_catalog`` to make a fresh catalog,
@@ -25,7 +25,7 @@ Pattern:
     2. ``create_vocabulary`` + ``add_term`` to install the controlled
        vocabulary your feature/labels draw from.
     3. ``create_asset`` to create the domain asset table (the thing you
-       will upload bytes into in the assets phase).
+       will upload bytes into in the upload phase).
     4. ``add_dataset_element_type`` to make that asset table a first-class
        dataset member type.
     5. ``create_feature`` to define the per-row labels/scores attached to
