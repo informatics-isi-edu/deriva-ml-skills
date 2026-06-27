@@ -5,7 +5,7 @@ description: "Use when setting up a DerivaML experiment project, adding config g
 
 # Configure ML Experiments with hydra-zen and DerivaML
 
-This covers the structure of a DerivaML experiment project: config groups, how they compose, and project setup. For exact Python API patterns for each config type, see the `write-hydra-config` skill.
+This covers the structure of a DerivaML experiment project: config groups, how they compose, and project setup. The table below is the orientation map — which groups exist and which file each lives in. For the exhaustive per-group **key rules** (required keys, PITFALLs, the Python API patterns for each config type), see `/deriva-ml:write-hydra-config` → `references/config-reference/rules-and-validation.md`.
 
 ## Config Groups
 
