@@ -58,7 +58,7 @@ from deriva_ml.core.enums import BuiltinTypes
 # OPTIONAL BOOTSTRAP — create the catalog itself.
 # Use this only when starting from nothing (no catalog yet). If you already
 # have a catalog id, skip straight to setup_domain_model() and connect with a
-# plain DerivaML(...). The orchestrator template (phased_loader_template.py)
+# plain DerivaML(...). The orchestrator template (loader_orchestrator_template.py)
 # calls one or the other depending on --create vs --catalog-id.
 # ============================================================================
 
