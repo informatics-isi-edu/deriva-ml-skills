@@ -120,7 +120,7 @@ The bundled **`scripts/loader_orchestrator_template.py`** gives you a copy-me fo
 |-------|-------------|-------------|
 | **schema** | Creates the domain tables, asset table, feature, workflow/dataset types, Chaise annotations. | Yes — re-running on a catalog that already has the schema is safe. |
 | **register** | Stages the source directory, then `exe.add_files(...)` records the files as a by-reference **File dataset** (Input provenance; bytes NOT uploaded). Its own execution. | Re-running creates a new File dataset version. |
-| **upload** | Consumes the File dataset as a `DatasetSpec(materialize=False)` **Input**, uploads the bytes into Hatrac as hosted assets (Output), then adds features. Its own execution(s). | Mostly — Hatrac uploads are content-addressed; the feature step truncates prior loader rows first. |
+| **upload** | Consumes the File dataset as a `DatasetSpec(materialize=False)` **Input**, uploads the bytes into Hatrac as hosted assets (Output), then adds features. Two executions — asset upload (2a), then features (2b). | Mostly — Hatrac uploads are content-addressed; the feature step truncates prior loader rows first. |
 | **cleanup** | Removes the local source cache. | Yes. |
 
 The template wires these behind a single `--phase {all,schema,register,upload,cleanup}` switch so a partial failure resumes without re-running earlier phases. `--phase schema` prints the catalog id so a `--create` first run can resume against `--catalog-id`.
@@ -159,7 +159,7 @@ print(ml.find_datasets())
 print(ml.find_workflows())
 ```
 
-If `find_datasets()` returns nothing and you expected datasets, your `datasets` phase didn't run or didn't commit — check the loader logs.
+If `find_datasets()` returns nothing and you expected hosted assets, check that the `upload` phase ran and committed — check the loader logs. Datasets themselves (grouping uploaded assets) are created via `/deriva-ml:dataset-lifecycle`, not by this loader.
 
 ---
 
@@ -216,7 +216,7 @@ The defaults (`UPLOAD_IF_MISSING`, complete-provenance `terminal_tables`, `Dangl
 
 - **`/deriva-ml:setup-derivaml-project`** *(this plugin)* — Sets up the code repo (uv, pyproject.toml, conventions) that will read/write whichever catalog you set up here. Independent; do these in either order.
 - **`/deriva-ml:dataset-lifecycle`** *(this plugin)* — Once the catalog is populated, this is where dataset work starts.
-- **`/deriva-ml:work-with-assets`** *(this plugin)* — Owns the file-ingest mechanics the `assets` phase uses: `register_files_template.py` (`add_files` input registration) and `upload_asset.py` (`asset_file_path` output upload).
+- **`/deriva-ml:work-with-assets`** *(this plugin)* — Owns the file-ingest mechanics the register and upload phases use: `register_files_template.py` (`add_files` input registration) and `upload_asset.py` (`asset_file_path` output upload).
 - **`/deriva-ml:execution-lifecycle`** *(this plugin)* — Running workflows against the new catalog.
 - **`/deriva-ml:troubleshoot-execution`** *(this plugin)* — If something during the loader phases produces a failed Execution and you need to recover. Covers the salvage workflow.
 - **`/deriva:create-table`** *(deriva-skills)* — The schema operations you'll need inside the `schema` phase of a from-scratch loader (Branch 1 Step 3).
