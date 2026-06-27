@@ -99,6 +99,38 @@ a model's claim unchecked" discipline). Outcome:
 > most defensible flip; the others need the per-skill shape decision re-made,
 > not a blanket change. **Do not blanket-flip.**
 
+### Cluster C resolution (2026-06-27, branch `fix/cluster-c-triggers`)
+
+Verified the three frontmatter states against the Claude Code docs first
+(`code.claude.com/docs/en/skills.md`, "Control who invokes a skill"): **(default)** =
+Claude auto-fires + user `/cmd`; **`disable-model-invocation: true`** = `/cmd` only,
+no auto-fire; **`user-invocable: false`** = auto-fire only, hidden from `/` menu.
+So a C1 "flip" = *remove* `disable-model-invocation: true` (keeps the slash command,
+adds auto-firing) — non-destructive.
+
+- **C1 — `new-model` FLIPPED to auto+slash.** It's genuinely guide-shaped (a
+  multi-step authoring workflow, the Build phase of the model lifecycle). Removed
+  `disable-model-invocation: true` and pushed the description so it fires on "write
+  training code / add a training pipeline / start the model file" even when the user
+  doesn't say "model," with do-NOT boundaries vs `execution-lifecycle` / `design-experiment`.
+- **C1 — the other four KEPT slash-only** after per-skill shape review: `setup-ml-catalog`
+  (consequential one-shot bootstrap; `create_ml_schema` can DROP w/ CASCADE — deliberate
+  invocation wanted), `validate-project-setup` (verification = tool-shaped per rubric),
+  `create-web-app` (opt-in, needs the external `deriva-ml-apps` server), `help`
+  (auto-firing would be redundant with the always-on `deriva-ml-context`). The audit's
+  "should auto-fire" was a judgment call; on inspection only `new-model` warranted it.
+- **C2 — `deriva-ml-context` description reworded** from a bare-noun trigger list to an
+  explicit "always-on plugin context … background framing for the whole session, not a
+  selective per-task trigger." (Behavior unchanged — it's still `disable-model-invocation:
+  false`; this just stops the description from *reading* like selective noun-triggers.)
+- **C3 — `create-feature` trigger tightened.** Bare `'classification'` → `'classification
+  categories'` / `'classification labels'`, plus a do-NOT boundary so generic
+  model-classification talk ("this is a classification model", "classification accuracy")
+  doesn't over-fire the feature-authoring skill.
+- **C4 — DROPPED as a false positive.** `user-invocable: false` IS a recognized Claude Code
+  field with exactly the intended semantics (Claude-invoke-only, hidden from `/` menu).
+  `generate-descriptions` and `capture-tacit-knowledge` are correctly flagged; no silent bug.
+
 ## Group D — Context management / progressive disclosure (maintainability)
 
 Always-on (or auto-firing) skills that are heavy:

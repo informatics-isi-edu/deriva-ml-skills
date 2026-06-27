@@ -1,8 +1,7 @@
 ---
 name: new-model
-description: "Use when creating a new DerivaML model function or adding a model to a project. Triggers on: 'create model', 'add model', 'new model', 'scaffold model', 'model function', 'write training code', 'add a training pipeline'. This skill covers authoring the model function itself and wiring it to configs, workflows, and experiments — the end-to-end process for adding a new model to a DerivaML project."
+description: "Use when creating a new DerivaML model function or adding a model to a project — fire as soon as the user starts writing or asks for training/inference code in a DerivaML project, even if they don't say the word 'model'. Triggers on: 'create model', 'add model', 'new model', 'scaffold model', 'model function', 'write training code', 'write the training loop', 'add a training pipeline', 'add inference code', 'start the model file'. This skill covers authoring the model function itself and wiring it to configs, workflows, and experiments — the end-to-end process for adding a new model to a DerivaML project. Do NOT use for running an existing model (use execution-lifecycle) or designing the experiment first (use design-experiment)."
 argument-hint: "[model-name]"
-disable-model-invocation: true
 ---
 
 # Create a New DerivaML Model

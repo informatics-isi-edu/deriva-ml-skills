@@ -77,7 +77,7 @@ per entity).
 - Features: `create-feature` (also auto-fires), `compare-model-runs` (also auto-fires — at the post-run evaluation moment)
 - Assets: `work-with-assets` (also auto-fires — per-asset file I/O), `manage-deriva-storage` (also auto-fires — see below)
 - Experiments / configs: `design-experiment` (also auto-fires — the design-first phase, owns docs/design/{experiment,dataset,feature,model}/), `configure-experiment` (also auto-fires — the lifecycle Phase 2 config seam), `write-hydra-config` (also auto-fires — when editing config files / wiring RIDs)
-- Models: `new-model`, `model-development-workflow`
+- Models: `new-model` (also auto-fires — when authoring model/training/inference code), `model-development-workflow`
 - Notebooks: `setup-notebook-environment`, `run-notebook`
 - Project setup: `setup-derivaml-project`, `setup-ml-catalog`, `validate-project-setup`
 - Apps + visualization: `create-web-app`, `browse-erd`, `use-annotation-builders`
