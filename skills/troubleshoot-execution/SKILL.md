@@ -200,7 +200,7 @@ If the execution is already in a non-`Running` state (`Stopped`, `Failed`, `Pend
 - **Preferred:** drain the pending work first with `ml.commit_pending_executions()`, then refresh.
 - Otherwise, pass `force=True` to refresh anyway — but understand that staged rows may now have stale column references.
 
-For background on pinning and the dirty-tree-vs-schema-pin pairing, see `execution-lifecycle/references/concepts.md` → "Schema Pinning for Long Runs".
+For background on pinning and the dirty-tree-vs-schema-pin pairing, see `/deriva-ml:execution-lifecycle`'s `references/concepts/validation.md` → "Schema Pinning for Long Runs".
 
 ---
 
@@ -227,7 +227,7 @@ For background on pinning and the dirty-tree-vs-schema-pin pairing, see `executi
 
 **Solution**: use a different `working_dir` per catalog (the simplest discipline — one workspace per catalog), or run online against the new catalog with the same `working_dir` to overwrite the cache.
 
-For the full offline-mode contract — what operations stage to SQLite, what triggers the upload drain — see `execution-lifecycle/references/concepts.md` → "Offline Mode".
+For the full offline-mode contract — what operations stage to SQLite, what triggers the upload drain — see `/deriva-ml:execution-lifecycle`'s `references/concepts/validation.md` → "Offline Mode".
 
 ---
 
