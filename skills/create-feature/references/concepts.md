@@ -459,7 +459,7 @@ When the MCP tool's built-in selectors are insufficient, write the script, test 
 
 ## Feature Value Table Naming
 
-When you create a feature, DerivaML creates an association table to store feature values. The table name follows the pattern `{FeatureName}_Feature_Value` — for example, creating a feature named `"Tumor_Classification"` on the `Image` table creates a `Tumor_Classification_Feature_Value` table.
+When you create a feature, DerivaML creates an association table to store feature values. The table name follows the pattern `Execution_{TargetTable}_{FeatureName}` — for example, creating a feature named `"Tumor_Classification"` on the `Image` table creates an `Execution_Image_Tumor_Classification` table.
 
 This table contains columns for:
 - The target record (FK to the target table, e.g., `Image`)

@@ -119,9 +119,11 @@ These are the surface DerivaML adds on top of plain Deriva. Each is stored as on
 |---|---|---|---|
 | **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets carry a type (`Dataset_Type` vocab), an element-type spec, a two-state PEP 440 version (released or dev, per ADR-0003), and can be downloaded as bags. | `dataset-lifecycle` | `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_release_dataset` (dev → released), `deriva_ml_validate_dataset_specs` (pre-flight), `deriva_ml_validate_execution_configuration` (full pre-flight). Bag-cache warming via `manage-deriva-storage/scripts/warm_cache.py`. |
 | **Workflow** | A versioned reference to the code (URL + git commit hash) that knows how to do a thing. A Workflow is content-addressed: same URL + same commit = same Workflow row. Workflows are typed (`Workflow_Type` vocab). | `new-model` (authoring) / `configure-experiment` (wiring) | `deriva_ml_create_workflow`, `deriva_ml_find_workflow_by_url` |
-| **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. Executions have a status (Created → Running → Stopped → Pending_Upload → Uploaded; plus terminal `Failed` / `Aborted`), inputs / outputs links, and an active context manager that stages files in a working directory. **Provenance contract** (deriva-ml ≥ 1.51.5): a run must finish in a terminal state (the `with` block guarantees it; a run stranded in `Created`/`Running`/`Pending_Upload` is a violation); an artifact-producer that declares no input is auto-linked to a seeded *unknown-provenance File sentinel* (warn-and-mark); `ml.audit_provenance()` is the read-only conformance check (`.violations` / `.known_degraded`). Every catalog carries three "Unknown Provenance" sentinels (Workflow/File/Execution) so an unknown origin is recorded explicitly, never as a null. | `execution-lifecycle` | **Authoring**: `execution-lifecycle/scripts/basic_execution.py` (and the other bundled templates) — these are runnable Python that you copy, edit, commit, and run. **Observation** (MCP): `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_find_workflow_executions`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_get_lineage` (provenance traversal — "how did this come to exist?"). |
+| **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. Executions have a status (Created → Running → Stopped → Pending_Upload → Uploaded; plus terminal `Failed` / `Aborted`), inputs / outputs links, and an active context manager that stages files in a working directory. Runs are governed by a **provenance contract** (terminal-state requirement, unknown-provenance sentinels, `ml.audit_provenance()`) — owned by `/deriva-ml:execution-lifecycle` (steps 7–8) and `/deriva-ml:troubleshoot-execution` for the catalog-wide audit. | `execution-lifecycle` | **Authoring**: `execution-lifecycle/scripts/basic_execution.py` (and the other bundled templates) — these are runnable Python that you copy, edit, commit, and run. **Observation** (MCP): `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_find_workflow_executions`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_get_lineage` (provenance traversal — "how did this come to exist?"). |
 | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | **Define the feature** (MCP): `deriva_ml_create_feature`. **Add feature values** (bundled template): `create-feature/scripts/populate_feature_values.py` (or `exe.add_features(records)` inside another execution template). |
 | **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and committed by `exe.commit_output_assets()`. | `work-with-assets` | `deriva_ml_list_assets`, `deriva_ml_lookup_asset`, `deriva_ml_update_asset` |
+
+This table is the *tools & skills* cut. For the complementary *catalog tables* cut — which `deriva-ml` schema tables back each abstraction, with their foreign keys — see `references/concepts/index.md` ("Five abstractions → backing tables").
 
 ### Use direct attribute access on these domain objects
 
@@ -153,6 +155,26 @@ The dot-access rule above is the local case. The broader principle is: **when da
 The reason this matters: when structure decays — when a typed `Execution` becomes a `dict`, a DataFrame becomes a `list[dict]`, a `@dataclass` becomes a tuple — you lose the named-field check at every downstream call site. `getattr(d, "version", "?")` returning `"?"` instead of erroring is the symptom; the disease is that `d` should never have been treated as if its fields were optional in the first place. Same disease shows up as `row["confidence"]` silently returning `None` because the real column is `Confidence`, or `result.get("status")` masking a renamed field.
 
 The rule is not "avoid DataFrames" — DataFrames *are* the typed container for table-of-records. The rule is **don't downgrade**: don't turn a DataFrame into a list-of-dicts, don't turn a Pydantic record into a dict, don't turn a `@dataclass` into a tuple. Each downgrade trades a real schema for stringly-typed lookups, and every downstream call site pays the cost. Two worked examples of the downgrade failure mode (the execution-ranking `list[dict]` and the `denormalize_dataset()` DataFrame) are in [`references/python-idioms.md`](references/python-idioms.md) → "Carry structure — worked examples".
+
+## Two schemas: `deriva-ml` vs your domain schema
+
+A deriva-ml catalog has two kinds of schema, and knowing which is which prevents
+most confusion about where a table lives:
+
+- **The `deriva-ml` schema** — 26 fixed tables that back the five abstractions
+  (Dataset/Workflow/Execution + the asset and vocabulary machinery).
+  Library-managed: you extend it only through the `deriva_ml_*` surface and
+  through `add_term` on its built-in vocabularies — never by hand-editing these
+  tables.
+- **Your domain schema** — your project's own tables (`Subject`, `Image`,
+  `Specimen`, …), named after the project, created per-project. The asset tables
+  and feature tables you create at runtime (`create_asset`, `create_feature`)
+  land in the domain schema, not in `deriva-ml`.
+
+For the concrete table-by-table reference — every `deriva-ml` table, its foreign
+keys, the FK graph, and the five-abstractions → backing-tables mapping — see the
+OKF schema bundle at `references/concepts/index.md`. (For a live visual of a
+specific catalog, use `/deriva-ml:browse-erd`.)
 
 ## The rule: inheritance with override
 
@@ -194,14 +216,27 @@ Both kinds return iterables of typed records (Pydantic models or DerivaML domain
 
 ## Built-in DerivaML vocabularies
 
-DerivaML ships four built-in vocabularies. Extend them via the generic `add_term` tool, passing `schema="deriva-ml"` and the appropriate `table=`:
+Controlled vocabularies are how DerivaML types its abstractions: every dataset, workflow, asset, execution, and feature is classified by a term from a vocabulary table. That typing is what makes entities **findable, filterable, and stable** — a consumer dispatches on `Dataset_Type == "Training"`, not on a name string, and the term's `{project}:{RID}` CURIE survives catalog clones. Extending a vocabulary (adding a term) is therefore the sanctioned way to add a new *kind* of thing, distinct from going around the abstractions with raw inserts.
+
+The `deriva-ml` schema has **six** controlled-vocabulary tables, split by who writes them:
+
+**User-extensible** — add terms via the generic `add_term` tool, passing `schema="deriva-ml"` and the `table=`:
 
 | Vocabulary | How to add a term | Notes |
 |---|---|---|
 | `Dataset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Dataset_Type", name=..., description=...)` | Tag your dataset with this term via `deriva_ml_create_dataset(dataset_types=[...])` |
 | `Workflow_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name=..., description=...)` | Pass to `deriva_ml_create_workflow(workflow_type=...)` |
 | `Asset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Asset_Type", name=..., description=...)` | Tag specific assets via `deriva_ml_update_asset(...)` |
-| `Execution_Status` | (managed automatically by the execution-state machine — do not extend) | Status transitions are driven by the `with ml.create_execution(...) as exe:` context manager + `exe.commit_output_assets()`; values are `Created`, `Running`, `Stopped`, `Failed`, `Pending_Upload`, `Uploaded`, `Aborted`. |
+
+**System-managed — do NOT extend** (populated by the machinery, not by you):
+
+| Vocabulary | Managed by |
+|---|---|
+| `Execution_Status` | the execution-state machine — values `Created`, `Running`, `Stopped`, `Failed`, `Pending_Upload`, `Uploaded`, `Aborted`, driven by the `with ml.create_execution(...) as exe:` context manager + `exe.commit_output_assets()`. |
+| `Asset_Role` | the upload/download machinery — `Input` / `Output`, set on each asset's `*_Execution` association automatically. |
+| `Feature_Name` | `deriva_ml_create_feature` / `create_feature` — one term per feature you create, registered for you. |
+
+For the per-table detail (FKs, full seeded-term lists) see `references/concepts/index.md` (the "Vocabulary" group); for the mechanism — controlled-vocab-as-extension-point, `add_term` vs `create_vocabulary`, built-in vs domain vocabs — see `references/concepts/pattern/vocabulary.md`.
 
 The inheritance rule still applies: even though you are using the generic `add_term` for the term itself (no deriva-ml override exists for it), the **lifecycle of Datasets / Workflows / Executions / Features / Assets** must go through the `deriva_ml_*` tools.
 
