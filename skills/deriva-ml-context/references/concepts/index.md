@@ -33,10 +33,13 @@ library when the schema changes. For a live visual of a *specific* catalog, use
 
 **Satellite** — [Directory_Dataset](table/Directory_Dataset.md)
 
-## Runtime-created patterns
+## Patterns
+
+Cross-cutting concepts behind the fixed tables — the runtime-created table shapes and the vocabulary mechanism:
 
 - [Asset table shape](pattern/asset-table.md) — `create_asset` mints domain asset tables.
 - [Feature table shape](pattern/feature-table.md) — `create_feature` mints `Execution_{Target}_{Feature}` tables.
+- [Controlled vocabulary](pattern/vocabulary.md) — how vocabularies type the abstractions; user-extensible vs system-managed; `add_term` vs `create_vocabulary`.
 
 ## Foreign-key graph (shape)
 
