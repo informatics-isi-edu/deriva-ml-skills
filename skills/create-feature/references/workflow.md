@@ -1,6 +1,6 @@
 # Feature Workflow Reference
 
-Step-by-step MCP tool and Python API examples for creating and populating features. For background concepts (feature types, multivalued features, selection), see `concepts.md`.
+Step-by-step MCP tool and Python API examples for creating and populating features. For background concepts (feature types, multivalued features, selection), see the `concepts/` bundle (`concepts/design.md` for types & multivalued, `concepts/selectors.md` for selection).
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
@@ -48,7 +48,7 @@ Call `deriva_ml_create_feature` with:
 - `comment`: description of what this feature represents
 - `terms` (optional): list of vocabulary table names whose terms can be values (e.g., `["Tumor_Grade"]`)
 - `assets` (optional): list of asset table names that can be referenced (e.g., `["Mask_Image"]`)
-- `metadata` (optional): list of additional columns — see `concepts.md` for format details
+- `metadata` (optional): list of additional columns — see `concepts/design.md` for format details
 
 At least one of `terms` or `assets` is required.
 
@@ -149,7 +149,7 @@ Call `deriva_ml_list_feature_values` with:
 - `workflow`: a Workflow RID or Workflow_Type name to filter by source workflow
 - `execution`: an Execution RID to filter by a specific execution run
 
-Only one of `selector`, `workflow`, or `execution` may be specified. See `concepts.md` for the full Python API including custom selectors.
+Only one of `selector`, `workflow`, or `execution` may be specified. See `concepts/selectors.md` for the full Python API including custom selectors.
 
 ### Fallback: Filtered queries on the feature value table
 
