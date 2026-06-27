@@ -9,11 +9,23 @@ section you can't fill is a design gap — close it now.
 ## Template (copy below this line)
 
 ```markdown
-# Experiment Design: <one-line title>
+---
+type: Experiment Design
+title: <one-line title>
+description: >
+  <one-line goal>
+tags: [experiment, <approach>, <domain>]
+timestamp: <YYYY-MM-DD>
+status: Draft   # Draft | Approved | Built | Validated
+slug: <kebab-case-slug>
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Built | Validated -->
-**Date:** <YYYY-MM-DD>
+# Experiment Design: <one-line title>
 
 ## Goal
 
@@ -56,9 +68,20 @@ How results get evaluated: single-run read of feature values
 
 ## Upstream designs
 
-The design docs this experiment builds on: the `model-design` of the model it
-runs and the `dataset-design` of the dataset it consumes. Naming them makes the
-dependency traceable at the spec layer.
+Link the design docs this experiment builds on, as **OKF bundle-absolute
+Markdown links** (`/entity/slug.md` — from the `docs/design/` bundle root), with
+a **relationship verb** in the prose (OKF links are untyped; the verb conveys the
+edge):
+
+- **runs** [<model-slug>](/model/<model-slug>.md) — the model this experiment runs.
+- **consumes** [<dataset-slug>](/dataset/<dataset-slug>.md) — the dataset it consumes.
+
+**Compound experiment?** If this experiment spans several datasets/models, list
+*all* of them (repeat `consumes`/`runs`). If it is composed of sibling
+experiments, link each with **composed of** [<exp-slug>](/experiment/<exp-slug>.md)
+— only link experiments authored earlier, so the dependency graph stays acyclic.
+A link to a not-yet-written design is fine (OKF tolerates broken links —
+planned-but-unauthored knowledge).
 
 ## Status & links
 
@@ -70,14 +93,26 @@ dependency traceable at the spec layer.
 
 ---
 
-## Worked example
+## Examples
 
 ```markdown
-# Experiment Design: dropout vs unregularized baseline
+---
+type: Experiment Design
+title: dropout vs unregularized baseline
+description: >
+  Does adding dropout 0.25 to the 2-layer CNN reduce overfitting on the small labeled CIFAR-10 split?
+tags: [experiment, dropout-regularization, cifar-10]
+timestamp: 2026-06-22
+status: Approved   # Draft | Approved | Built | Validated
+slug: dropout-vs-baseline
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** dropout-vs-baseline
-**Status:** Approved
-**Date:** 2026-06-22
+# Experiment Design: dropout vs unregularized baseline
 
 ## Goal
 Does adding dropout 0.25 to the 2-layer CNN reduce overfitting on the small
@@ -107,8 +142,8 @@ Single-run read of `Test_Accuracy` via `deriva_ml_list_feature_values`, then
 a two-run comparison against `6-ABC1` via `/deriva-ml:compare-model-runs`.
 
 ## Upstream designs
-- Model design: `cifar10-2layer-cnn` (the model this experiment runs).
-- Dataset design: `cifar10-dev-subset` (the dataset it consumes).
+- **runs** [cifar10-2layer-cnn](/model/cifar10-2layer-cnn.md) — the model this experiment runs.
+- **consumes** [cifar10-dev-subset](/dataset/cifar10-dev-subset.md) — the dataset it consumes.
 
 ## Status & links
 - **Config:** `dropout_quick` in `configs/experiments.py`

@@ -52,6 +52,59 @@ in `references/`:
 - `references/feature-design-template.md`
 - `references/model-design-template.md`
 
+## Design docs follow the Open Knowledge Format (OKF)
+
+The design documents this skill authors conform to the
+[Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+— Markdown with YAML frontmatter — so `docs/design/` is a self-describing OKF
+bundle. The contract an author must uphold:
+
+- Open the file with the OKF frontmatter block from the template: `type`
+  (required — one of `Dataset Design` / `Experiment Design` / `Feature Design`
+  / `Model Design`), plus `title`, `description`, `tags`, `timestamp`, and the
+  DerivaML extension keys `status` and `slug`.
+- **Never add a `resource` field.** A design doc is an abstract specification,
+  not a physical resource — even after the entity is built. The produced RID +
+  version belong in the prose "Status & links" section and `tacit-knowledge.md`,
+  not in frontmatter.
+- The body stays human-readable Markdown; the worked example uses the `##
+  Examples` heading (OKF convention).
+- **Maintain `docs/design/index.md`** — the OKF bundle root (a `type: Index`
+  directory listing). When you author a design doc, add/update its line there as
+  a link, under the right entity subsection. Create `index.md` from
+  `references/index-template.md` if it doesn't exist yet.
+
+### Link related specs together (the connected-corpus payoff)
+
+OKF treats the bundle as a graph — links between design docs are its edges, and
+that is what turns isolated specs into a navigable dependency graph (which
+dataset feeds which experiment, which models a compound experiment composes).
+The link is **untyped**; the **prose beside it names the relationship** with a
+verb from this consistent, greppable set:
+
+| Verb | Edge |
+|---|---|
+| **consumes** | experiment / model → dataset |
+| **runs** | experiment → model |
+| **produced by** | output-feature → its producing model |
+| **trains on** | model → input feature |
+| **composed of** | experiment → sub-experiment(s) |
+| **extends** | model → prior model (checkpoint lineage) |
+| **precondition on members** | dataset → element-feature (a data-property reference, *not* a build dependency) |
+
+Wire these into each design's **"Upstream designs"** section as **bundle-absolute
+links** — `[<slug>](/<entity>/<slug>.md)` (leading slash, from the bundle root).
+A **compound experiment** stays a single Experiment Design doc that links all the
+sub-specs it composes (`composed of` for sibling experiments); keep the graph
+acyclic by linking only designs authored earlier. **Broken links are fine** — a
+link to a not-yet-written design is planned-but-unauthored knowledge, not an
+error.
+
+For the OKF background — the full contract, why `resource` is omitted, bundle
+mechanics, link semantics, and the acyclic-graph rationale — see
+[`references/okf-format.md`](references/okf-format.md) (also the local guard if
+the upstream spec URL ever rots).
+
 ## The discipline
 
 1. **Write the design doc first.** One `<slug>.md` per experiment / dataset /
