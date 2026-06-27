@@ -66,4 +66,4 @@ def stage_source(
         "in this module's docstring."
     )
 
-    return source_root  # noqa: W291  (reached once you remove the raise)
+    return source_root  # reached once you remove the raise above
