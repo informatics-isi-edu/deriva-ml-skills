@@ -63,11 +63,14 @@ The design docs this feature builds on, if any. This depends on the feature's
   tree, and the *model-design* that consumes them names *them* upstream (not the
   other way around). Leave this empty.
 - **Output / prediction feature** (the model emits it — predicted label,
-  confidence score): name the `model-design` that **produces** it. This feature
-  is *downstream* of that model. The model-design records this as an output, NOT
-  as one of its own upstream dependencies — so there is no cycle (the model
-  points down to its output feature; the output feature points up to its
-  producing model; nothing points back).
+  confidence score): link the model-design that produces it, as an **OKF
+  bundle-absolute Markdown link** with the verb in prose — **produced by**
+  [<model-slug>](/model/<model-slug>.md). This feature is *downstream* of that
+  model. The model-design records this as an output, NOT as one of its own
+  upstream dependencies — so there is no cycle (the model points down to its
+  output feature; the output feature points up to its producing model; nothing
+  points back). A link to a not-yet-written design is fine (OKF tolerates broken
+  links).
 
 ## Status & links
 

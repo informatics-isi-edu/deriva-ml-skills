@@ -66,10 +66,14 @@ version-pinning expectation (always a released label, never dev/"current" in
 
 ## Upstream designs
 
-A dataset does not depend on a feature, so it names no upstream design. Where a
-split reads a feature its *elements* carry, note that element feature here as a
-precondition on the members — a reference to a data property, not a build
-dependency.
+A dataset does not depend on a feature, so it names no upstream **build**
+design. Where a split or subsample reads a feature its *elements* carry, link
+that element feature with the verb **precondition on members** —
+[<feature-slug>](/feature/<feature-slug>.md) — an OKF bundle-absolute link that
+records a *data-property* reference, not a build dependency. (Linking it keeps
+the relationship traceable; the verb marks it distinct from a true upstream
+dependency. A link to a not-yet-written design is fine — OKF tolerates broken
+links.)
 
 ## Status & links
 
@@ -126,9 +130,10 @@ small-data runs, so full-scale compute isn't spent debugging plumbing.
   a dev label.
 
 ## Upstream designs
-None — a dataset doesn't depend on a feature. The subsample stratifies on the
-class label its Image elements already carry (an element-feature precondition,
-not a build dependency).
+No build dependency — a dataset doesn't depend on a feature. The subsample
+stratifies on the class label its Image elements already carry — **precondition
+on members** [class-label](/feature/class-label.md) (an element-feature
+data-property reference, not a build dependency).
 
 ## Status & links
 - **RID + version:** (filled after the build)

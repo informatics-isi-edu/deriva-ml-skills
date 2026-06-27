@@ -59,12 +59,19 @@ How you'll confirm the model meets its Goal (beyond "the code runs"):
 
 ## Upstream designs
 
-- **Input feature-designs** this model *consumes* (the labels/annotations it
-  trains on). Only inputs go here. Do NOT list the model's own *output*
-  (prediction) features — those are downstream of this model, recorded under
-  Requirements → Output features, and they name this model-design as their
-  producer. Keeping inputs-only here is what makes the dependency graph acyclic.
-- Any prior `model-design` it extends (a checkpoint lineage).
+Link these as **OKF bundle-absolute Markdown links** (`/entity/slug.md`) with a
+**relationship verb** in the prose:
+
+- **trains on** [<feature-slug>](/feature/<feature-slug>.md) — each **input**
+  feature-design this model consumes (the labels/annotations it trains on). Only
+  inputs go here. Do NOT list the model's own *output* (prediction) features —
+  those are downstream of this model, recorded under Requirements → Output
+  features, and they name this model-design as their producer. Keeping
+  inputs-only here is what makes the dependency graph acyclic.
+- **extends** [<prior-model-slug>](/model/<prior-model-slug>.md) — any prior
+  model-design it extends (a checkpoint lineage), if applicable.
+
+A link to a not-yet-written design is fine (OKF tolerates broken links).
 
 ## Status & links
 
@@ -113,7 +120,7 @@ baseline architecture for the project's experiments.
 - Sanity: loss converges, no NaN, softmax outputs sum to 1.
 
 ## Upstream designs
-- Feature design: `class-label` (the training target).
+- **trains on** [class-label](/feature/class-label.md) — the training target.
 
 ## Status & links
 - **Model file + config groups:** (filled after authoring)
