@@ -247,6 +247,8 @@ deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")
 
 Look at the `status` field. The seven legal states and what each one means for salvage:
 
+For the canonical status machine (every transition and what drives it), see `/deriva-ml:execution-lifecycle`'s `references/concepts/status-machine.md`. The table below is the troubleshooting view: which states are salvageable and what to run.
+
 | Status | Terminal? | What happened | What you can do |
 |--------|:--:|---------------|------------------|
 | `Created` | No | The execution row was registered but the work never started. | Re-run the committed script (a fresh execution; the existing `Created` row can be garbage-collected). |
