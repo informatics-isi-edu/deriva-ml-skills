@@ -95,21 +95,14 @@ When `cite_url` is `None` on a row (best-effort failure or a thinly-built ref), 
 
 ### Cold-start orientation: call the primer before the first MCP call
 
-The deriva MCP server ships its orientation material as a single primer:
-`deriva_ml_primer` (a tool, a `/<server>:deriva_ml_primer` prompt, and a
-`deriva://deriva-ml/primer` resource — all returning the same text). It
-inlines the concepts frame and the getting-started operating contract (the
-pagination contract, error-envelope conventions, the `(hostname,
-catalog_id)` rule) and advertises a manifest of on-demand guides for the
-generic-catalog tool groups. Claude Code does not auto-inject this — the
-agent calls the primer (or the `using-deriva-mcp` skill prompts it to).
-
-This skill (`deriva-ml-context`) teaches the resource-vs-tool *rule*; the
-`/deriva-ml:using-deriva-mcp` skill makes sure you have called the primer
-the rule is grounded in. Both should be active before the first MCP call.
-Skip `using-deriva-mcp` only when the entire interaction stays on the
-shell/Python side (`load-cifar10`, `deriva-ml-run`, direct `deriva-ml`
-library calls in a script) and never crosses the MCP boundary.
+This skill (`deriva-ml-context`) teaches the resource-vs-tool *rule* above; the
+cold-start *procedure* it's grounded in — calling `deriva_ml_primer` before the
+first MCP call, then fetching on-demand guides — is owned by
+`/deriva-ml:using-deriva-mcp` *(auto-loaded before the first MCP call)*. Both
+should be active before the first MCP call. Skip `using-deriva-mcp` only when the
+entire interaction stays on the shell/Python side (`load-cifar10`,
+`deriva-ml-run`, direct `deriva-ml` library calls) and never crosses the MCP
+boundary.
 
 ## The five core abstractions
 
