@@ -85,7 +85,7 @@ Built-in terms by axis:
 
 Apply at least one type per relevant axis — untyped datasets are hard to discover. Compose freely across axes (`Training` + `Labeled` + `Fundus` + `Split_Partition`); never compound them into one tag (`TrainingLabeled` is wrong).
 
-For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, the role/origin distinction that lets you filter partition-role datasets vs corpus-role datasets, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the canonical three-axis framing with the full inheritance/propagation rules, see `references/concepts.md` § "The three axes of `Dataset_Type`". For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
+For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, the role/origin distinction that lets you filter partition-role datasets vs corpus-role datasets, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the canonical three-axis framing with the full inheritance/propagation rules, see `references/concepts/dataset-types.md` § "The three axes of `Dataset_Type`". For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
 
 ### `Dataset_Type` is the primary signal of what a dataset is for
 
@@ -217,7 +217,7 @@ These don't appear on the MCP tool surface; reach for them from notebook code or
 - [ ] `src/configs/datasets.py` `DatasetSpecConfig(...)` entries reflect the new RID + released version (use `deriva_ml_get_dataset_spec` to generate the line)
 - [ ] `src/configs/datasets.py` committed to git on the branch the run will use
 
-For the full versioning rules, common mistakes, and version history API, see `references/concepts.md` under "Dataset Versioning."
+For the full versioning rules, common mistakes, and version history API, see `references/concepts/versioning.md` § "Dataset Versioning."
 
 ## Phase 7: Use
 
@@ -301,7 +301,7 @@ For what to do with the bag after it lands — restructure for PyTorch, build tr
 
 - `scripts/subset_filters.py` — Filter registry with built-in filters. Copy to user's `src/scripts/` on first use.
 - `scripts/generate_subset_template.py` — Template for generated dataset scripts. Fill in placeholders per use case.
-- `references/concepts.md` — Full background: what datasets are, types, element types, versioning, navigation, consumption, bag downloads
+- `references/concepts/` — OKF bundle: [index](references/concepts/index.md), [types + element types](references/concepts/dataset-types.md), [structure + splits](references/concepts/structure-and-splits.md), [versioning](references/concepts/versioning.md), [navigation + download](references/concepts/navigation.md), [lifecycle ops](references/concepts/lifecycle-ops.md)
 - `references/workflow.md` — Bootstrap procedure, MCP-tool-only path, explicit-splits pattern, 7-step explore/browse depth, every step-by-step example
 - `references/curated-subsets.md` — Phase 3b workflow: filter types, scaffolding, the 8-step subset workflow, catalog-query path using `feature_values()` for label-based filters
 - `references/bags.md` — BDBag contents, FK traversal, materialization, caching, timeouts
