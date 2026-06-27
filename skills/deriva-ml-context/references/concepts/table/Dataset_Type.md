@@ -14,7 +14,7 @@ example `Training` + `Labeled`).
 
 The three-axis framing (completeness, split role, label status) that gives
 these terms their structure is documented in
-[/deriva-ml:dataset-lifecycle](/deriva-ml:dataset-lifecycle).
+`/deriva-ml:dataset-lifecycle`.
 
 ## Foreign Keys
 

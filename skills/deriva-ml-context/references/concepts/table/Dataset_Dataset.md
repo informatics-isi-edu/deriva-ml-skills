@@ -12,10 +12,14 @@ nesting. The `Dataset` column is the **parent** (the containing collection);
 `Nested_Dataset` is a **member** (a sub-dataset inside that collection).
 
 Typical use: a `Complete` parent dataset contains `Training`, `Testing`, and
-`Validation` children as a three-way split. Note that `split_dataset` does
-**not** create these edges — the split is an execution input and the nested
-datasets are outputs; the edge between input and output lives in
-[Dataset_Version](Dataset_Version.md) via the `Execution` FK, not here.
+`Validation` children as a three-way split. Note that `split_dataset` is the
+**exception**: it does **not** create a `Dataset_Dataset` row. Instead it
+records the source dataset as an execution input (via `Dataset_Execution`) and
+produces the split children as outputs whose producing execution is recorded in
+`Dataset_Version.Execution`. To trace the origin of a split child, follow its
+producing execution's input datasets — not a `Dataset_Dataset` row. Manual
+grouping and structured collections that should model explicit parent-child
+nesting are the primary use case for this table.
 
 ## Foreign Keys
 
