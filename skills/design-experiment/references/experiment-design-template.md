@@ -9,11 +9,23 @@ section you can't fill is a design gap — close it now.
 ## Template (copy below this line)
 
 ```markdown
-# Experiment Design: <one-line title>
+---
+type: Experiment Design
+title: <one-line title>
+description: >
+  <one-line goal>
+tags: [experiment, <approach>, <domain>]
+timestamp: <YYYY-MM-DD>
+status: Draft   # Draft | Approved | Built | Validated
+slug: <kebab-case-slug>
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** <kebab-case-slug>
-**Status:** Draft   <!-- Draft | Approved | Built | Validated -->
-**Date:** <YYYY-MM-DD>
+# Experiment Design: <one-line title>
 
 ## Goal
 
@@ -70,14 +82,26 @@ dependency traceable at the spec layer.
 
 ---
 
-## Worked example
+## Examples
 
 ```markdown
-# Experiment Design: dropout vs unregularized baseline
+---
+type: Experiment Design
+title: dropout vs unregularized baseline
+description: >
+  Does adding dropout 0.25 to the 2-layer CNN reduce overfitting on the small labeled CIFAR-10 split?
+tags: [experiment, dropout-regularization, cifar-10]
+timestamp: 2026-06-22
+status: Approved   # Draft | Approved | Built | Validated
+slug: dropout-vs-baseline
+# This document follows the Open Knowledge Format (OKF):
+#   https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+# `resource` is intentionally omitted — a design doc is an abstract specification,
+#   not a physical resource. Artifact linkage lives in tacit-knowledge.md +
+#   the "Status & links" section below.
+---
 
-**Slug:** dropout-vs-baseline
-**Status:** Approved
-**Date:** 2026-06-22
+# Experiment Design: dropout vs unregularized baseline
 
 ## Goal
 Does adding dropout 0.25 to the 2-layer CNN reduce overfitting on the small
