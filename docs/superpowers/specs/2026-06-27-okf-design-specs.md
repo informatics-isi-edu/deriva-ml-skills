@@ -191,16 +191,73 @@ The link target is the OKF spec URL above. This requirement is what makes the
 corpus *self-describing about its own format*, which is the point of adopting a
 named open format rather than an ad-hoc convention.
 
+### Inter-spec linking (the connected-corpus payoff)
+
+OKF treats a bundle as a *connected graph*: a Markdown link from concept A to
+concept B asserts a relationship, and **the link itself is untyped — the prose
+around it names the relationship kind** (depends-on, consumes, composed-of).
+This is the highest-value part of adopting OKF for design docs: the specs stop
+being isolated files and become a navigable dependency graph (which dataset
+feeds which experiment, which model a compound experiment composes), traversable
+by a human or an agent.
+
+The current templates already capture these dependencies in their **"Upstream
+designs"** sections — but by **bare slug name** (`` `cifar10-dev-subset` ``),
+which a reader can't follow and an agent can't resolve. This change converts
+those references to real OKF links.
+
+**Link form.** Use OKF **bundle-absolute** Markdown links — paths from the
+`docs/design/` bundle root, leading slash — because they survive a doc moving
+between subdirectories:
+
+```markdown
+- Dataset design: [cifar10-dev-subset](/dataset/cifar10-dev-subset.md) — the
+  dataset this experiment **consumes**.
+- Model design: [cifar10-2layer-cnn](/model/cifar10-2layer-cnn.md) — the model
+  this experiment **runs**.
+```
+
+(Relative links — `../dataset/cifar10-dev-subset.md` — are also OKF-valid; prefer
+bundle-absolute for stability.)
+
+**Relationship vocabulary (prose, not frontmatter).** OKF has no typed-link
+field, so the relationship kind lives in the prose beside the link. Use a small,
+consistent, greppable verb set so the edge types can be inferred uniformly:
+
+| Verb | Edge | Example |
+|---|---|---|
+| **consumes** | experiment/model → dataset | "consumes [cifar10-dev-subset](/dataset/…)" |
+| **runs** | experiment → model | "runs [cifar10-2layer-cnn](/model/…)" |
+| **produces** | model → output-feature; (consumer side) | "produces [pred-label](/feature/…)" |
+| **trains on** / **keys on** | model/dataset → input-feature | "trains on [class-label](/feature/…)" |
+| **composed of** / **builds on** | experiment → sub-experiment(s) | "composed of [phase-1-sweep](/experiment/…)" |
+| **extends** | model → prior model (checkpoint lineage) | "extends [baseline-cnn](/model/…)" |
+| **precondition on members** | dataset → element-feature (not a build dep) | "stratifies on [class-label](/feature/…) its elements carry" |
+
+**Compound experiments.** A compound experiment (one built from several
+datasets/models, or composed of sibling sub-experiments) is **still a single
+Experiment Design doc** — no new OKF type. Its "Upstream designs" links *all* the
+sub-specs it composes: multiple `consumes`/`runs` links, and `composed of` links
+to any sibling experiment-designs it builds on. The acyclic invariant the
+templates already enforce (input-vs-output feature roles) extends to
+experiment→experiment edges: only link experiments that already exist / were
+authored earlier, so the graph stays a DAG.
+
+**Broken links are allowed.** Per OKF, a link to a not-yet-written spec is *not*
+an error — it represents planned-but-unauthored knowledge. So an experiment
+design may link a dataset design that's still `Draft` or doesn't exist yet; the
+`validate-project-setup` check must NOT treat a dangling design link as a defect.
+
 ## Files changed
 
 | File | Change |
 |---|---|
-| `skills/design-experiment/references/dataset-design-template.md` | Replace prose header with OKF frontmatter (incl. `resource`-omitted comment) in both the template and worked example; rename "Worked example"→`## Examples`. |
-| `skills/design-experiment/references/experiment-design-template.md` | Same, `type: Experiment Design`. |
-| `skills/design-experiment/references/feature-design-template.md` | Same, `type: Feature Design`. |
-| `skills/design-experiment/references/model-design-template.md` | Same, `type: Model Design`. |
-| `skills/design-experiment/SKILL.md` | Document the OKF frontmatter contract, the four `type` values, the `resource`-is-abstract rule, the body-heading alignment, the `docs/design/index.md` upkeep step (authoring a design adds/updates its index line), and an explicit "these design docs follow OKF" statement linking the spec. |
-| `skills/validate-project-setup/SKILL.md` | The `docs/design/` checklist row gains an "OKF frontmatter present (`type` at minimum)" validation point. Keep "not yet used is normal on a new project". |
+| `skills/design-experiment/references/dataset-design-template.md` | Replace prose header with OKF frontmatter (incl. `resource`-omitted comment) in both the template and worked example; rename "Worked example"→`## Examples`. **Linking:** "Upstream designs" element-feature precondition links the feature-design (verb: "precondition on members"). |
+| `skills/design-experiment/references/experiment-design-template.md` | Same, `type: Experiment Design`. **Linking:** "Upstream designs" converts bare-slug refs to OKF bundle-absolute links (`consumes` dataset-design, `runs` model-design); shows the compound-experiment multi-link / `composed of` case. |
+| `skills/design-experiment/references/feature-design-template.md` | Same, `type: Feature Design`. **Linking:** output-feature "Upstream designs" links the producing model-design (verb: "produced by"). |
+| `skills/design-experiment/references/model-design-template.md` | Same, `type: Model Design`. **Linking:** "Upstream designs" links input feature-designs (`trains on`) and any prior model-design (`extends`). |
+| `skills/design-experiment/SKILL.md` | Document the OKF frontmatter contract, the four `type` values, the `resource`-is-abstract rule, the body-heading alignment, the `docs/design/index.md` upkeep step (authoring a design adds/updates its index line), an explicit "these design docs follow OKF" statement linking the spec, **and the inter-spec linking guidance: bundle-absolute Markdown links, the relationship-verb vocabulary, the compound-experiment pattern, and the broken-links-are-OK rule.** |
+| `skills/validate-project-setup/SKILL.md` | The `docs/design/` checklist row gains an "OKF frontmatter present (`type` at minimum)" validation point. Keep "not yet used is normal on a new project". **A dangling inter-spec link is NOT a defect (OKF tolerates broken links — planned-but-unauthored knowledge).** |
 | `docs/design/index.md` | **Not created by this change** — it's authored per-project by `design-experiment` on first design. The template/skill documents its shape; the plugin repo doesn't ship a project's `docs/design/`. |
 
 Note the last row: the plugin **ships skills**, not a user's `docs/design/`
@@ -228,6 +285,11 @@ old prose-header form to the frontmatter form.
   template.
 - `design-experiment` SKILL.md documents the contract and the `index.md` step;
   `description` frontmatter unchanged (no trigger change needed).
+- **Linking:** each template's "Upstream designs" uses OKF bundle-absolute
+  Markdown links (`/entity/slug.md`) with a relationship verb in the prose, not
+  bare slugs; the index listing links each design doc. The SKILL.md carries the
+  relationship-verb vocabulary + compound-experiment pattern. `validate-project-setup`
+  explicitly does NOT flag a dangling design link (OKF broken-links rule).
 - No dangling cross-references introduced (grep for old header-shape quotes).
 - `validate-project-setup` checklist updated, "absent is normal early" preserved.
 
