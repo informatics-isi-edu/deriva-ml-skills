@@ -42,6 +42,30 @@ justifies building it.
   (`deriva_ml_list_dataset_element_types`); register missing ones first.
 - **Balance constraints:** per-class minimums, stratification column, etc.
 
+## Ingest plan
+
+*(Fill this ONLY when the source data is raw files on disk that must be ingested
+into the catalog. If the members already exist in the catalog, skip this section
+— go straight to Structure plan.)*
+
+Specify how the raw files become catalog assets. The pipeline mechanics are owned
+by `/deriva-ml:setup-ml-catalog` (the phased `register → upload` loader); this
+section is the *spec* the loader config implements:
+
+- **Source location & layout:** where the files are (path/URL) and the directory
+  shape — flat, or partitioned (e.g. `train/`, `test/`). This sets the loader's
+  `SOURCE_ROOT` + `PARTITIONS`.
+- **Asset table & types:** which hosted asset table the bytes land in (e.g.
+  `Image`) and the `Asset_Type` tag(s) — created in the loader's schema phase.
+- **File (source) Dataset_Type:** the `Dataset_Type` for the by-reference File
+  dataset the *register* phase creates (default `Source`; or the built-in `File`).
+  Note any new vocabulary terms the loader must seed.
+- **Phasing:** register (add_files → by-reference File dataset) → upload (bytes →
+  Hatrac assets) → features (per-row labels, if any). Note what each execution
+  produces.
+- **Handoff:** after upload, organizing the hosted assets into the dataset(s)
+  described in *Structure plan* below is `/deriva-ml:dataset-lifecycle`'s job.
+
 ## Structure plan
 
 - **Pattern:** standalone / split (train/test/val) / subsample / curated
