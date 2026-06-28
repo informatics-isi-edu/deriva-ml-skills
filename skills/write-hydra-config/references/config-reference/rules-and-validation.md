@@ -89,6 +89,7 @@ General principles — descriptions should be specific, quantified, purposeful, 
 **Experiments** — State the goal or hypothesis, not just parameters. Parameters are already in the config; the description explains *why* the experiment exists:
 - Good: "Test whether dropout 0.25 reduces overfitting compared to the unregularized baseline"
 - Bad: "50 epochs, 64->128 channels, dropout 0.25"
+- **Link the design doc when one exists.** If the experiment has a `docs/design/experiment/<slug>.md` (it should — `/deriva-ml:design-experiment` is Phase 1), append its **committed URL** to the description so the execution record points back at the design the run implements: `"… See design: https://github.com/<org>/<repo>/blob/<commit-or-main>/docs/design/experiment/<slug>.md"`. The description lands in the Execution row's metadata, so this makes every run one click from its hypothesis + validation criteria. Use the committed GitHub URL (the same durable form as the workflow's git URL), not a bare local path. This is the config→design link; the design doc's "Status & links" already points the other way (design→config + execution RIDs).
 
 **Multiruns** — State what question the sweep answers and what the parameter range covers:
 - Good: "Sweep learning rates [1e-4, 1e-3, 1e-2, 1e-1] to find the optimal convergence/stability tradeoff for the 2-layer CNN on the small labeled split"
