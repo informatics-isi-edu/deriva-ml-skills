@@ -95,21 +95,14 @@ When `cite_url` is `None` on a row (best-effort failure or a thinly-built ref), 
 
 ### Cold-start orientation: call the primer before the first MCP call
 
-The deriva MCP server ships its orientation material as a single primer:
-`deriva_ml_primer` (a tool, a `/<server>:deriva_ml_primer` prompt, and a
-`deriva://deriva-ml/primer` resource — all returning the same text). It
-inlines the concepts frame and the getting-started operating contract (the
-pagination contract, error-envelope conventions, the `(hostname,
-catalog_id)` rule) and advertises a manifest of on-demand guides for the
-generic-catalog tool groups. Claude Code does not auto-inject this — the
-agent calls the primer (or the `using-deriva-mcp` skill prompts it to).
-
-This skill (`deriva-ml-context`) teaches the resource-vs-tool *rule*; the
-`/deriva-ml:using-deriva-mcp` skill makes sure you have called the primer
-the rule is grounded in. Both should be active before the first MCP call.
-Skip `using-deriva-mcp` only when the entire interaction stays on the
-shell/Python side (`load-cifar10`, `deriva-ml-run`, direct `deriva-ml`
-library calls in a script) and never crosses the MCP boundary.
+This skill (`deriva-ml-context`) teaches the resource-vs-tool *rule* above; the
+cold-start *procedure* it's grounded in — calling `deriva_ml_primer` before the
+first MCP call, then fetching on-demand guides — is owned by
+`/deriva-ml:using-deriva-mcp` *(auto-loaded before the first MCP call)*. Both
+should be active before the first MCP call. Skip `using-deriva-mcp` only when the
+entire interaction stays on the shell/Python side (`load-cifar10`,
+`deriva-ml-run`, direct `deriva-ml` library calls) and never crosses the MCP
+boundary.
 
 ## The five core abstractions
 
@@ -203,16 +196,7 @@ The provenance graph is **walkable in one tool call**: `deriva_ml_get_lineage(ri
 
 ## Python API method naming: `find_*` vs `list_*`
 
-The Python `DerivaML` API uses two prefixes for accessor methods, and **they mean different things**. Use the right one for what you want to do.
-
-- **`find_*`** — search the catalog for entities of a kind, optionally filtered. The argument (if any) is a *filter*, not a scope.
-  - Examples: `ml.find_features()`, `ml.find_features(table)`, `ml.find_datasets()`, `ml.find_workflows()`, `ml.find_executions()`, `ml.find_experiments()`, `ml.find_assets()`, `ml.find_incomplete_executions()`.
-- **`list_*`** — enumerate things scoped to a specific parent entity. The first argument **is the scope** (and is typically required).
-  - Examples: `ml.list_assets(asset_table)`, `dataset.list_dataset_members(...)`, `ml.list_workflow_executions(workflow)`, `ml.list_vocabulary_terms(table)`.
-
-**There is no `ml.list_features()`.** Features aren't scoped to a parent entity in the way dataset members are scoped to a dataset, so there's no place for a scope-less `list_*` flavor. Use `find_features()` for the catalog-wide enumeration — and when you hit `AttributeError: ... has no attribute 'list_features'. Did you mean: 'find_features'?`, that's the muscle-memory failure mode, not a bug.
-
-Both kinds return iterables of typed records (Pydantic models or DerivaML domain objects), not raw rows. `feature_values()` is the same shape but named without the `find`/`list` prefix because it returns *values of one feature*, not an enumeration of feature definitions. The full want→call disambiguation table (filter-vs-scope worked out for features, datasets, members, workflow executions, assets) is in [`references/python-idioms.md`](references/python-idioms.md) → "`find_*` vs `list_*` — full call table".
+`find_*` searches the catalog for entities of a kind (its argument is a *filter*); `list_*` enumerates entities scoped to a specific parent (its first argument *is* the scope). The full taxonomy with examples lives in `/deriva-ml:api-naming-conventions` *(auto-loaded)* — consult it when choosing a method.
 
 ## Built-in DerivaML vocabularies
 
@@ -292,20 +276,15 @@ When the user mentions an entity by name, OR when the user asks to create a new 
 
 6. **Description handling on create.** Every `create_*` / `add_*` tool that accepts a `description` (or `comment`) argument SHOULD receive a non-empty, user-confirmed one — never empty, never placeholder text like `"TODO"`, never a fabricated description without showing the user. The full discipline (gather context → draft → confirm → create) and the autonomous-agent fallback live in the always-on `/deriva:generate-descriptions` (generic entities) and `/deriva-ml:generate-descriptions` (ML entities) skills.
 
-### Why this workflow matters
+The cost of wrong resolution is data corruption or silent FK errors; the cost of right resolution is one or two extra round-trips. **Always prefer the round-trips.**
 
-The cost of getting it wrong:
-- **Fabricating a name** leads to FK-violation errors at best, or silent data corruption at worst (e.g. a typo'd `"Trianing"` Dataset_Type that creates a duplicate vocab term).
-- **Skipping the picker** when there are multiple matches lets the LLM commit the user to an entity they didn't intend.
-- **Empty descriptions** destroy catalog discoverability — a catalog with 500 datasets all described as `""` is indistinguishable from a catalog with 500 datasets nobody can find.
-
-The cost of doing it right is one or two extra round-trips per operation. **Always prefer the round-trips.**
+The expanded rationale, the read-through-index caveat, and the structured-vs-fuzzy examples are in `references/entity-resolution.md`. The underlying find-before-create discipline is owned by `/deriva:semantic-awareness` *(deriva-skills, auto-loaded)*.
 
 ### Related always-on skills
 
 Several always-on skills reinforce this workflow:
 
-- **`/deriva:semantic-awareness`** *(deriva-skills)* — find-before-you-create discipline; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
+- **`/deriva:semantic-awareness`** *(deriva-skills)* — **owns the find-before-create discipline**; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
 - **`/deriva:generate-descriptions`** *(deriva-skills)* — description-generation guidance for generic catalog entities (tables, columns, vocabularies, vocabulary terms).
 - **`/deriva-ml:generate-descriptions`** *(this plugin)* — description-generation guidance for DerivaML entities (Datasets, Workflows, Executions, Features, Assets, Experiments). The deriva-skills and this plugin's description skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
 

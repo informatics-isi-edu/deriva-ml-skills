@@ -283,6 +283,22 @@ bag.restructure_assets(
 )
 ```
 
+## Upload Tuning
+
+When uploading large assets, the default timeouts may not suffice. Pass these to `exe.commit_output_assets()`:
+
+```python
+# Large files on a slow connection
+exe.commit_output_assets(
+    timeout=(1800, 1800),         # 30 min per chunk
+    chunk_size=25 * 1024 * 1024,  # 25 MB chunks
+    max_retries=5,
+    retry_delay=10.0,
+)
+```
+
+See the `troubleshoot-execution` skill's execution lifecycle reference for the full `commit_output_assets()` parameter documentation.
+
 ## ML Framework Integration
 
 ### PyTorch ImageFolder
@@ -491,8 +507,12 @@ bag.restructure_assets(
 |-----------------|---------|
 | Python API `dataset.download_dataset_bag(version)` | Download bag (supports `exclude_tables`, `timeout`, `materialize`) |
 | Python API `bag.restructure_assets()` | Organize assets into ML-ready directory layouts |
+| Python API `exe.download_asset(rid)` | Download a single asset by RID (Execution method) |
+| Python API `exe.asset_file_path()` | Register a file for upload |
+| Python API `exe.commit_output_assets()` | Commit staged files to catalog (uploads + writes rows + transitions execution to `Uploaded`) |
 | `deriva_ml_denormalize_dataset` | Schema shape + size estimates (no dataset needed), or flatten dataset tables with `dataset_rid` + `limit` |
 | `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest per table |
 | `deriva_ml_list_feature_values` | Access feature values from the catalog (or `bag.feature_values()` from a downloaded bag) |
 | `deriva_ml_get_dataset` | Dataset details including version and element types |
 | `deriva_ml_list_features` | Available features for building training labels |
+| Creating an asset table | No dedicated tool; use the manual `create_table` recipe — see `work-with-assets/references/concepts.md` |

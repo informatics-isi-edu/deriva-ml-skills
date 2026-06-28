@@ -178,52 +178,14 @@ The response includes the execution's metadata + output assets. Look for entries
 
 You can also use the `deriva://catalog/{h}/{c}/deriva-ml/execution/{rid}` resource — same data, no pagination cost.
 
-### Step 3: Generate the local Python script
+### Step 3: Hand off to local Python — download, parse, rank
 
-Tell the user to run something like this in a notebook or local Python session (the MCP server has no local filesystem from the calling user's perspective, so it cannot do this for them):
+The MCP server cannot download bytes; the user runs the analysis locally. The full local-Python script — JSONL download loop, final-epoch extraction, ranking, and the plotting variant for loss curves — is in `references/jsonl-asset-pattern.md` (Steps 3–4).
 
-```python
-import json
-
-# The analysis runs inside its own execution, so the downloads are
-# recorded as inputs. `execution` is created via run_notebook(...) —
-# see the `run-notebook` skill. `download_asset` is an Execution
-# method; there is no non-execution `ml.download_asset`.
-
-execution_to_metrics_asset = {
-    "1-EXEC-A": "1-ASSET-A",
-    "1-EXEC-B": "1-ASSET-B",
-    # ... fill in from Step 2 results
-}
-
-results = {}
-for exec_rid, asset_rid in execution_to_metrics_asset.items():
-    # Download the JSONL file (recorded as an input of this execution)
-    local_path = execution.download_asset(asset_rid)
-
-    # Parse one JSON object per line
-    records = []
-    with open(local_path) as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                records.append(json.loads(line))
-
-    # Pick out the metric of interest -- conventionally the LAST record
-    # (final epoch) is the "final" result, but the actual aggregation
-    # depends on the user's recording convention.
-    final = records[-1] if records else {}
-    results[exec_rid] = final.get("accuracy")  # or "f1", "loss", etc.
-
-# Rank
-ranked = sorted(results.items(), key=lambda x: x[1] or 0, reverse=True)
-for rid, score in ranked:
-    print(f"  {rid}: accuracy = {score}")
-```
-
-### Step 4: Have the user paste the output back
-
-Once the user runs the script and pastes the results back into the conversation, present the ranking to them. If the metric column isn't `"accuracy"`, ask which field they recorded.
+Key points for this path:
+- `execution.download_asset(asset_rid)` is an Execution method (no non-execution `ml.download_asset`).
+- Parse one JSON object per line; pick the last record for "final epoch" (or ask the user if their convention differs).
+- Have the user paste the ranked output back into the conversation.
 
 ## Phase 2C — Compare via prediction CSV assets (download + parse locally)
 

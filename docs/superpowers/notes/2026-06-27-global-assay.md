@@ -200,3 +200,35 @@ Controller verified A1, A2, A3, B4-roadmap, G-feature-removal against source.
 Cross-model agreement (the **[BOTH]** marks) is the strongest signal; single-source
 findings carry a **re-verify before fixing** flag where they assert a source fact.
 Builds on `2026-06-25-global-skill-audit.md` (defects + compaction, shipped v1.11.3/.4).
+
+---
+
+## Cluster D/E/F resolution (2026-06-27, branch `chore/def-maintainability-wave`)
+
+One dependency-ordered PR (E → F → D), executed via subagent-driven-development
+(fresh implementer + task review per task). Spec: `docs/superpowers/specs/2026-06-27-def-maintainability-wave-design.md`.
+Plan: `docs/superpowers/plans/2026-06-27-def-maintainability-wave.md`.
+
+**Phase E — OKF decomposition (4 reference files → bundles, 4-6 typed docs each):**
+- `execution-lifecycle/references/concepts.md` (687L) → `concepts/` bundle: index + `status-machine` (canonical — F/T9 points here), `structure`, `authoring`, `validation` (carries Schema Pinning + Offline Mode), `data-flow`.
+- `write-hydra-config/references/config-reference.md` (1271L) → `config-reference/` bundle: index + `base-and-connection`, `data-configs`, `model-and-experiments`, `multiruns-and-notebooks`, `rules-and-validation`. (Review caught + fixed a dropped `### Common Issues` table — restored verbatim.)
+- `dataset-lifecycle/references/concepts.md` (854L) → `concepts/` bundle: index + `dataset-types`, `structure-and-splits`, `versioning`, `navigation`, `lifecycle-ops`.
+- `create-feature/references/concepts.md` (597L) + `feature-selectors.md` (179L) → `concepts/` bundle: index + `feature-vs-column`, `design`, `selectors` (absorbed feature-selectors.md), `usage`. (Review caught + fixed 3 dangling `concepts.md` refs in workflow.md.)
+- All 4 monoliths + feature-selectors.md deleted. Every bundle doc carries OKF `type:` frontmatter; every relative sibling link resolves (verified).
+
+**Phase F — dedup (one owner + pointer):**
+- `restructure-guide.md` ×2 → collapsed to ml-data-engineering's canonical copy (merged work-with-assets's unique Upload Tuning + ref rows; the 3 other "unique" sections were verified canonical-superset renames). work-with-assets repointed.
+- find/list taxonomy → api-naming-conventions owns; deriva-ml-context trimmed to a 1-line pointer (Case A: owner already had the examples).
+- MCP cold-start procedure → using-deriva-mcp owns; deriva-ml-context kept the resource-first *principle*, pointed the *procedure* out.
+- status machine → execution-lifecycle's `status-machine.md` is canonical; troubleshoot-execution kept its salvage-decision table + added a pointer.
+- **Config-Groups (F) was a FALSE POSITIVE** — the audit conflated configure-experiment's group→file *orientation map* with write-hydra-config's *per-group key rules* (different granularities). Kept the orientation map, strengthened the cross-pointer. (User-adjudicated.)
+
+**Phase D — compaction (depth → references, behavior stays inline):**
+- `troubleshoot-execution` 500→368L (salvage workflow → `references/salvage-guide.md`; symptom + salvage-decision tables stay).
+- `capture-tacit-knowledge` 301→132L (entry-format mechanics → `references/entry-format.md`; the WRITE/GUIDANCE/FORENSIC firing discipline + do-NOT boundary stay).
+- `compare-model-runs` 358→320L (Pattern B code → existing reference; Pattern A common-path stays inline).
+- `deriva-ml-context` →323L (entity-resolution rationale → `references/entity-resolution.md`; the 6 numbered steps stay; + F's find/list & MCP-primer trims).
+
+**Verification:** repo-wide sweep clean (no dangling refs to deleted monoliths after fixing 2 deferred cross-skill pointers in troubleshoot-execution); OKF `type:` conformance across all 5 bundles; all bundle sibling links resolve. No SKILL.md `description:`/trigger changed (body + reference only).
+
+**G1** (`deriva_ml_describe_rid` zero coverage) confirmed deferred to Cluster B (domain-scientist skill) — out of this wave's scope.

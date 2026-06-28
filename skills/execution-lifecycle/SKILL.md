@@ -7,7 +7,7 @@ description: "ALWAYS use this skill when running ML experiments, creating execut
 
 An execution is the fundamental unit of provenance in DerivaML. It records what work was done, with what inputs (datasets, assets), what outputs were produced, and what code and configuration were used.
 
-For background on the execution hierarchy, statuses, workflows, nested executions, dry run mode, and the working directory layout, see `references/concepts.md`.
+For background on the execution hierarchy, statuses, workflows, nested executions, dry run mode, and the working directory layout, see the `references/concepts/` bundle ([index](references/concepts/index.md)).
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
 
@@ -19,9 +19,9 @@ DerivaML enforces that all code is committed before running catalog-mutating ope
 - This applies to all `deriva-ml-run` and `deriva-ml-run-notebook` invocations.
 - Simple one-off MCP tool operations (adding a vocabulary term, updating a description) are not affected.
 
-> **Schema pinning (the catalog-side counterpart).** Git-clean-tree freezes the *code* the run will see; `ml.pin_schema(reason=...)` freezes the *catalog shape* the run will see. Both should be in place for any production run on a shared catalog where a concurrent migration could change column names or table structure mid-run. See `references/concepts.md` → "Schema Pinning for Long Runs" for when and how.
+> **Schema pinning (the catalog-side counterpart).** Git-clean-tree freezes the *code* the run will see; `ml.pin_schema(reason=...)` freezes the *catalog shape* the run will see. Both should be in place for any production run on a shared catalog where a concurrent migration could change column names or table structure mid-run. See `references/concepts/validation.md` → "Schema Pinning for Long Runs" for when and how.
 
-> **Offline mode (laptop / batch / disconnected work).** `DerivaML(mode=ConnectionMode.offline)` stages every write to local SQLite and drains via `ml.commit_pending_executions()` when you reconnect. Requires a previously-populated schema cache in the same `working_dir`. See `references/concepts.md` → "Offline Mode" for the full pattern.
+> **Offline mode (laptop / batch / disconnected work).** `DerivaML(mode=ConnectionMode.offline)` stages every write to local SQLite and drains via `ml.commit_pending_executions()` when you reconnect. Requires a previously-populated schema cache in the same `working_dir`. See `references/concepts/validation.md` → "Offline Mode" for the full pattern.
 
 ## Phase 1: Pre-Flight Validation
 
@@ -79,7 +79,7 @@ The lifecycle inside every template is the same:
 3. Inside the `with` block: download inputs (`exe.download_dataset_bag()`, `exe.download_asset()`), do the work, stage outputs (`exe.asset_file_path()`, `exe.add_features()`, `exe.create_dataset()`).
 4. After the `with` block: `exe.commit_output_assets()` — uploads staged bytes, writes asset rows, transitions `Stopped → Pending_Upload → Uploaded`. Idempotent on re-call.
 
-**Automatic metadata:** Every execution captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records — see `references/concepts.md`.
+**Automatic metadata:** Every execution captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records — see `references/concepts/authoring.md`.
 
 **Notebook outputs:** When running notebooks via `deriva-ml-run-notebook`, the executed `.ipynb` and converted `.md` are automatically uploaded as execution assets alongside any files registered via `asset_file_path()` — see `references/workflow.md`.
 
@@ -130,7 +130,7 @@ Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/d
 
 ## Reference Resources
 
-- `references/concepts.md` — Execution hierarchy, status state machine, workflows, source code detection, nested executions, metadata auto-generation, dry run, working directory, data flow
+- `references/concepts/` — OKF bundle: [status machine](references/concepts/status-machine.md), [structure](references/concepts/structure.md), [authoring](references/concepts/authoring.md), [validation](references/concepts/validation.md), [data flow](references/concepts/data-flow.md)
 - `references/workflow.md` — Step-by-step MCP and Python API workflows, notebook output handling, complete examples, full pre-flight walkthrough
 - `references/cli-reference.md` — `deriva-ml-run` CLI commands, Hydra overrides, multirun syntax
 - `rag_search("training experiments", doc_type="catalog-data")` — find executions by workflow or status
