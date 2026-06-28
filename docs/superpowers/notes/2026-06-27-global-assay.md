@@ -232,3 +232,41 @@ Plan: `docs/superpowers/plans/2026-06-27-def-maintainability-wave.md`.
 **Verification:** repo-wide sweep clean (no dangling refs to deleted monoliths after fixing 2 deferred cross-skill pointers in troubleshoot-execution); OKF `type:` conformance across all 5 bundles; all bundle sibling links resolve. No SKILL.md `description:`/trigger changed (body + reference only).
 
 **G1** (`deriva_ml_describe_rid` zero coverage) confirmed deferred to Cluster B (domain-scientist skill) — out of this wave's scope.
+
+---
+
+## Cluster B1-B3 resolution (2026-06-27, branch `feat/explore-results-skill`)
+
+Scoped to B1-B3 (the domain-scientist read gap); B4-B7 deferred. Spec:
+`docs/superpowers/specs/2026-06-27-explore-results-design.md`. Plan:
+`docs/superpowers/plans/2026-06-27-explore-results-skill.md`. Executed via
+subagent-driven development.
+
+- **New skill `skills/explore-results/SKILL.md` (105L, guide-shaped, READ-ONLY)** — the
+  domain-scientist read path, 4 resource-first journeys: (1) "what is this RID?" →
+  `deriva_ml_describe_rid` (**lands G1** — was referenced in zero skills); (2) "where did
+  this come from?" → the `lineage/{rid}` resource + `get_lineage`, *delegating* the deep
+  reproduce-walk to compare-model-runs (no duplication); (3) "show me the labels" → the
+  `features/{table}` resource + `list_feature_values` with `newest`/`majority_vote`
+  selectors; (4) "see it in the browser" → surface `cite_url` → Chaise. Every tool, resource,
+  and selector verified real against the MCP plugin source.
+- **B2 — create-feature trigger split.** Re-narrowed create-feature's `description:` to
+  *authoring* and moved the read-side phrases (`show feature values`, `browse features`,
+  `what are the labels`, etc.) to explore-results — so the two don't double-fire. Added a
+  body pointer atop create-feature's "Query and Explore Feature Values" phase. (The one
+  deliberate `description:` change in this wave.)
+- **B3 — sharpened on inspection.** Lineage wasn't *homeless* — compare-model-runs already
+  owned a full "Trace an artifact's provenance" section (developer/reproduction-framed) and
+  troubleshoot-execution already routed there. So B3 was "the door is developer-framed."
+  Fix: explore-results gives the domain-scientist *entry*; compare-model-runs keeps the deep
+  walk + gained a routing note atop that section. Bidirectional, no duplication.
+- **B1 — deriva-ml-context start-here row** added ("read / inspect existing results without
+  writing code → explore-results"); table edit only, no trigger change.
+- **Verification:** all 8 outbound cross-links resolve; all 3 wiring skills point inbound at
+  explore-results; read-browse phrases live only in explore-results (no double-fire);
+  read-only invariant holds (no mutating tool in the skill).
+- **Deferred:** B4 (curator QA recipe), B5 (sweep recipe), B6 (cycle-zero→experiment trigger),
+  B7 (browse-erd fallback) — separate efforts.
+
+**This closes the executable portion of the 2026-06-27 assay** (Clusters A, C, D/E/F, B1-B3).
+Remaining open items are the deferred B4-B7 and A7/A8.
