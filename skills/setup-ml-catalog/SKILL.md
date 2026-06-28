@@ -8,6 +8,14 @@ disable-model-invocation: true
 
 This skill covers the **bootstrap moment** for a deriva-ml catalog — getting a working ML catalog populated and ready for `/deriva-ml:dataset-lifecycle`, `/deriva-ml:execution-lifecycle`, and the rest of the lifecycle skills to operate against.
 
+> **Arrived here from "load a new dataset"?** That phrase auto-routes through
+> `/deriva-ml:dataset-lifecycle` (the front door); it sends you here when the data
+> is **raw files on disk** that need ingesting. The phased loader below
+> (`scripts/loader_orchestrator_template.py`) is that ingest path — it registers
+> and uploads the bytes, then hands back to dataset-lifecycle to organize them
+> into Datasets. (If your data is already in the catalog and you just want to
+> group it into a Dataset, you don't need this skill — that's dataset-lifecycle.)
+
 Two entry paths, depending on where your data is coming from:
 
 | Branch | When to use | Key tool |
