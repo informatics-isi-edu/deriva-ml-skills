@@ -1,6 +1,6 @@
 ---
 name: create-feature
-description: "ALWAYS use this skill when creating features, adding labels or annotations to records, setting up classification categories on catalog records, querying or exploring feature values, or working with feature values in DerivaML. Covers: feature-vs-column decision, discovering existing features, single vs multi-column design, creating vocabularies and features, adding feature values with provenance, querying/browsing feature values, selecting among multiple annotations, caching, and how features integrate with datasets. Triggers on: 'create feature', 'add labels', 'annotate images', 'classification categories', 'classification labels', 'ground truth', 'confidence score', 'feature values', 'what features exist', 'explore annotations', 'show feature values', 'query features', 'what are the labels', 'list annotations', 'browse features', 'feature preview'. Do NOT trigger on generic model-classification discussion (e.g. 'this is a classification model', 'classification accuracy') that isn't about authoring or reading feature values on records."
+description: "ALWAYS use this skill when CREATING features or ADDING labels/annotations/values to records in DerivaML — the authoring side. Covers: the feature-vs-column decision, discovering whether a feature already exists before creating one, single vs multi-column design, creating vocabularies and features, and adding feature values with provenance. Triggers on: 'create feature', 'add labels', 'add annotations', 'annotate images', 'set up classification categories', 'ground truth labels', 'record predictions', 'what features exist' (when deciding whether to create one). For READING/BROWSING existing feature values — 'show me the labels', 'what annotations exist', 'browse the feature values', 'the consensus label' — use /deriva-ml:explore-results instead. Do NOT trigger on generic model-classification discussion ('this is a classification model', 'classification accuracy') that isn't about authoring a feature."
 disable-model-invocation: false
 ---
 
@@ -171,6 +171,11 @@ in `tacit-knowledge.md`. Then proceed to query/explore (next section) for
 ongoing use.
 
 ## Phase 7: Query and Explore Feature Values
+
+> **Reading existing values?** Browsing labels/annotations that are already in the
+> catalog — "show me the labels", "what's the consensus", a feature preview — is
+> the read path, owned by `/deriva-ml:explore-results`. This skill covers *creating*
+> features and *adding* values; reach for explore-results to inspect what's there.
 
 Feature queries fall into two categories. **Always choose the right one — never use preview tools to retrieve feature values.**
 
