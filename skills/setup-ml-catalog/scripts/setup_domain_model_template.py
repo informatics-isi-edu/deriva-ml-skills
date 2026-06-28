@@ -267,6 +267,35 @@ def setup_domain_model(ml: DerivaML) -> None:
             ml.add_term(table="Dataset_Type", term_name=name, description=desc)
             print(f"  Added Dataset_Type term: {name}")
 
+    # ---- 7. OPTIONAL parent-entity tables (Subject → Observation → Image) ---
+    # Leave this block commented out for a FLAT dataset (asset rows with no
+    # parent). Uncomment + fill it only when each asset belongs under a PARENT
+    # entity — e.g. a multimodal set grouping SLO/OCT/VF Images under one
+    # Observation, or a per-subject cohort. This is the schema half of the
+    # upload phase's create_parents/asset_metadata seams: it creates the parent
+    # TABLE(s) and adds the FK column on the asset table that points at them;
+    # the loader's CREATE_PARENTS hook then populates the rows and
+    # ASSET_METADATA sets each asset's parent FK at upload time.
+    #
+    # Mirror the asset-table block above — use /deriva:create-table for the
+    # exact recipes (a plain parent table + a FK column on the asset table):
+    #
+    #   from deriva.core.ermrest_model import Column, builtin_types, ForeignKey
+    #   # 7a. parent table (e.g. "Observation"), if absent:
+    #   if "Observation" not in existing_tables:
+    #       ml.model.schemas[ml.default_schema].create_table(Table.define(
+    #           "Observation",
+    #           column_defs=[Column.define("Source_Id", builtin_types.text)],  # join key
+    #           comment="TODO: your domain — the parent grouping entity",
+    #       ))
+    #   # 7b. FK column on the asset table pointing at the parent:
+    #   #     add an "Observation" column + ForeignKey to Observation on the
+    #   #     asset table (see /deriva:create-table for the add-FK recipe), so
+    #   #     asset_metadata={"Observation": <obs_rid>} at upload time resolves.
+    #
+    # Keep it to one parent (and at most one grandparent) — a generic
+    # entity-graph loader is intentionally out of scope for this copy-me template.
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])

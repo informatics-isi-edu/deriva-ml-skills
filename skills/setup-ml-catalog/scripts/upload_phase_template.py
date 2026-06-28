@@ -50,6 +50,8 @@ def run_upload_phase(
     asset_types: list[str],
     partitions: list[str],
     rename_file: Callable[[str, Path], str] | None = None,
+    create_parents: Callable[[DerivaML, Any], dict] | None = None,
+    asset_metadata: Callable[[str, Path], dict | None] | None = None,
 ) -> dict[str, Any]:
     """Upload the registered source files into Hatrac as typed assets.
 
@@ -62,6 +64,21 @@ def run_upload_phase(
             against each child dataset's ``source_directory``.
         rename_file: Optional ``(partition, local_path) -> new_name`` hook;
             ``None`` keeps the original filename.
+        create_parents: OPTIONAL parent-grouping hook (Seam 2). For datasets
+            with a parent entity layer (e.g. ``Subject → Observation → Image``,
+            or a multimodal set grouping SLO/OCT/VF under one ``Observation``),
+            pass ``(ml, exe) -> dict``: it creates/looks up the parent rows
+            BEFORE the upload loop and returns whatever lookup the metadata hook
+            needs (e.g. ``{source_id: observation_rid}``). ``None`` (default) =
+            flat dataset, no parent layer — nothing runs. The parent TABLES
+            themselves are created in the schema phase (see
+            ``setup_domain_model_template`` step 7).
+        asset_metadata: OPTIONAL per-asset extra-column hook (Seam 1). Pass
+            ``(partition, local_path) -> dict | None`` to set extra columns on
+            each asset row at registration time — a parent FK, a modality tag,
+            etc. (e.g. ``{"Observation": obs_rid, "Image_Modality": "SLO"}``).
+            Threaded into ``exe.asset_file_path(metadata=...)`` (deriva-ml >=
+            1.54.0). ``None`` (default) = flat asset with no extra columns.
 
     Returns:
         Stats dict ``{"assets_uploaded": int, "features_added": int}``.
@@ -98,6 +115,12 @@ def run_upload_phase(
 
     uploaded = 0
     with ml.create_execution(config) as exe:
+        # Seam 2: create/look up the parent entity rows BEFORE the upload loop,
+        # so the per-asset metadata hook can reference them. No-op for flat
+        # datasets (create_parents is None).
+        if create_parents is not None:
+            create_parents(ml, exe)
+
         for partition in partitions:
             # "." is the flat-layout SENTINEL in the caller's PARTITIONS list
             # (meaning "the root dataset itself, no partition children") — it is
@@ -113,12 +136,17 @@ def run_upload_phase(
                 local_path = tag_url_to_path(file_rec["URL"])
                 # TODO: skip the label manifest / non-asset files here if your
                 #   layout registers them alongside the assets.
+                # Seam 1: extra columns on this asset row (parent FK, modality
+                # tag, …) — None for flat datasets, so the asset row gets only
+                # the standard columns.
+                extra = asset_metadata(partition, local_path) if asset_metadata else None
                 exe.asset_file_path(
                     asset_name=asset_table,
                     file_name=str(local_path),
                     asset_types=asset_types,
                     copy_file=True,
                     rename_file=rename_file(partition, local_path),
+                    metadata=extra,  # deriva-ml >= 1.54.0; None = no extra columns
                 )
                 uploaded += 1
 
