@@ -252,6 +252,8 @@ The complete local-Python script for all three parts — per-RID download loop, 
 
 ## Trace an artifact's provenance
 
+> **Simple "where did this come from?"** — a domain scientist who just wants to *see* what produced an artifact (not reproduce it) starts at `/deriva-ml:explore-results` (Journey 2): the bundled `lineage/{rid}` resource plus the `cite_url` to open the record. The section below is the **developer** depth — the two-step lineage-walk → workflow-record pattern that recovers the git URL + commit for reproduction.
+
 After comparing runs (or any time the question is "where did this output come from?" or "why does this prediction look wrong?"), walk the data-flow chain in one call:
 
 ```
