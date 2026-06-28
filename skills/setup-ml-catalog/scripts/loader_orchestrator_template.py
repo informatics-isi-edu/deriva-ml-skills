@@ -57,6 +57,28 @@ def rename_file(partition: str, path: Path) -> str:  # noqa: ARG001
     return path.name
 
 
+# ----------------------------------------------------------------------------
+# OPTIONAL parent-entity seams — leave both as-is (None / no-op) for a FLAT
+# dataset (source files → asset rows → a per-asset feature). Fill them only when
+# each asset belongs under a PARENT entity, e.g. Subject → Observation → Image,
+# or a multimodal set grouping SLO/OCT/VF Images under one Observation. The two
+# hooks below cover one-parent (and one-grandparent) cases; a generic
+# entity-graph loader is deliberately out of scope (keeps this a copy-me
+# template, not a framework).
+# ----------------------------------------------------------------------------
+
+# Seam 2: create/look up the parent rows once, before the upload loop. Return
+# the lookup the metadata hook needs (e.g. source-id → Observation RID). The
+# parent TABLES are created in setup_domain_model_template step 7.
+CREATE_PARENTS = None  # or: def create_parents(ml, exe) -> dict: ...
+
+# Seam 1: extra columns on each asset row (a parent FK, a modality tag) — set at
+# registration time via exe.asset_file_path(metadata=...) (deriva-ml >= 1.54.0).
+# Return None for assets that need no extra columns.
+ASSET_METADATA = None  # or: def asset_metadata(partition, path) -> dict | None: ...
+#   e.g. lambda partition, path: {"Observation": _obs_for(path), "Image_Modality": partition}
+
+
 # ============================================================================
 # ORCHESTRATOR
 # ============================================================================
@@ -145,7 +167,11 @@ def main() -> int:
     if args.phase in ("all", "upload") and not args.dry_run:
         if source_rid is None:
             source_rid = _find_latest_source_dataset_rid(ml)
-        run_upload_phase(ml, source_rid, ASSET_TABLE, FILE_TYPES, PARTITIONS, rename_file)
+        run_upload_phase(
+            ml, source_rid, ASSET_TABLE, FILE_TYPES, PARTITIONS, rename_file,
+            create_parents=CREATE_PARENTS,   # None for flat datasets (Seam 2)
+            asset_metadata=ASSET_METADATA,   # None for flat datasets (Seam 1)
+        )
         if args.phase == "upload":
             print(f"\nUpload phase complete. Catalog ID: {catalog_id}")
             _print_handoff()
