@@ -1,30 +1,95 @@
 # Entry Format — Template, Field Guidance, and Conventions
 
+## File header — OKF Log frontmatter
+
+`tacit-knowledge.md` is an **OKF Log document**: an append-only journal, which is
+exactly the shape the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+reserves for a `log`. The file opens with a single YAML frontmatter block, then the
+`# Tacit Knowledge` H1, then the `tk-…` entries as the body:
+
+```markdown
+---
+type: Log
+title: Tacit Knowledge — <project name>
+description: >
+  The why behind this project's DerivaML decisions — rationale, dead ends, and
+  cross-discipline consequences that the catalog records but does not explain.
+  Append-only; each entry is a dated tk-… decision record.
+tags: [tacit-knowledge, provenance, deriva-ml]
+---
+
+# Tacit Knowledge
+
+<the boundary-explaining header paragraph, then the tk-… entries>
+```
+
+Frontmatter rules: `type: Log` is required (it's what makes the file a conformant
+OKF Log). `title`/`description`/`tags` are recommended. **`resource` is intentionally
+omitted** — the journal is the knowledge itself, not a pointer to an external
+artifact (the same reason the design-doc templates omit it). The frontmatter is
+written **once at file creation** and not touched per entry — entries are appended
+to the body below the H1, exactly as before. This is a file-level wrapper; it does
+not change the per-entry format documented in the rest of this file.
+
 ## Entry header
 
 Every entry starts with an HTML anchor line and a four-line header. The anchor gives the entry a stable, link-target identifier; the header places it in time, names its author, and names its antecedents. Together they let future entries reference *this* entry with a click-through markdown link, let a future reader walk back through the chain of supporting decisions, and align the file's attribution with the catalog's `RMB` (Row-Modified-By) column so the same human is named the same way in both systems.
 
 ```markdown
-<a id="tk-NNN"></a>
-### tk-NNN — <short descriptive title> ([<entity-kind RID>](<citation URL>))
+<a id="tk-[branch-]NNN"></a>
+### tk-[branch-]NNN — <short descriptive title> ([<entity-kind RID>](<citation URL>))
 **When:** <ISO 8601 timestamp with timezone>
 **By:** <display name> (<identity URI>)
-**Supported by:** [tk-NNN](#tk-NNN) (parenthetical), [tk-MMM](#tk-MMM) (parenthetical)
+**Supported by:** [tk-…](#tk-…) (parenthetical), [tk-…](#tk-…) (parenthetical)
 ```
+
+The identifier is `tk-NNN` on the trunk branch and `tk-<branch>-NNN` on any other
+branch — see "entry identifier" below for the rule and the merge-collision
+rationale. The anchor id and the title must use the **same** identifier so
+`[tk-…](#tk-…)` links resolve.
 
 The `<a id="tk-NNN"></a>` line is what makes `[tk-NNN](#tk-NNN)` references elsewhere in the file (and in `**Supported by:**`) click-through in any markdown viewer that follows the HTML anchor (GitHub, IDE preview, mdbook, browser-rendered Markdown). The explicit anchor is stable even if the title text gets edited later — the link target doesn't depend on slugged heading text.
 
 The parenthetical RID in the title is itself a markdown link to a deriva-ml **citation URL** (see "Title includes the durable catalog handle" below) — clicking it opens the snapshot-pinned record for that catalog entity. Every RID reference in an entry, anywhere, is rendered the same way.
 
-### `tk-NNN` — entry identifier
+### `tk-[branch-]NNN` — entry identifier (branch-scoped to avoid merge collisions)
 
-Every entry gets a unique sequential identifier of the form `tk-NNN`, where `NNN` is a three-digit zero-padded integer (`tk-001`, `tk-002`, ..., `tk-042`, ...). The next entry's number is *one more than the highest existing `tk-NNN` in the file* — count from the file, not from the catalog.
+Every entry gets a unique identifier. The form depends on where you're authoring it:
 
-The identifier is stable because the file is append-only: nothing is ever renumbered, and `tk-042` always refers to the same decision. This stability is what makes the **Supported by** chain possible.
+- **On `main`** (or whatever the trunk branch is): `tk-NNN`, where `NNN` is a
+  three-digit zero-padded integer (`tk-001`, `tk-002`, …). The next number is *one
+  more than the highest existing trunk `tk-NNN` in the file*.
+- **On any other branch** (a feature/work branch whose `tacit-knowledge.md` edits
+  will later merge into trunk): `tk-<branch>-NNN`, where `<branch>` is a short slug
+  of the current git branch and `NNN` is sequential *within that branch's entries*
+  (`tk-ingest-001`, `tk-ingest-002`, …). Derive `<branch>` from `git rev-parse
+  --abbrev-ref HEAD`: lowercase, drop any `feat/`/`fix/`/`chore/`/`docs/` prefix,
+  replace non-alphanumerics with `-`, and trim to ~12 chars (e.g.
+  `feat/ingest-spec-routing` → `ingest-spec`). Keep it stable for the life of the
+  branch.
 
-`tk-NNN` is *the entry's* identifier — distinct from the catalog RID in the title. The title's RID identifies the *catalog artifact* the entry is about; `tk-NNN` identifies *the decision record itself*. Both coexist because they serve different lookup needs: `tk-019` lets entries point at other entries; `8KG` lets entries point at catalog artifacts.
+**Why branch-scope the number.** `tacit-knowledge.md` is append-only and lives in
+the repo, so two branches editing it in parallel both reach for the next sequential
+`tk-NNN` — and on merge they either collide on the same number/anchor or silently
+duplicate it. Scoping the number to the branch (`tk-ingest-001` vs `tk-explore-001`)
+makes concurrent-branch entries **collision-free by construction**: distinct anchors,
+no renumbering, a clean three-way merge. Trunk entries keep the bare `tk-NNN` so the
+common single-line-of-work case is unchanged and existing entries stay valid.
 
-Three digits gives 999 entries before extending to four — more than enough headroom for any project. If a project ever reaches `tk-999`, the next entry is `tk-1000` and the file just gets a bit wider in that column.
+The identifier is stable because the file is append-only: nothing is ever
+renumbered, and `tk-042` / `tk-ingest-001` always refers to the same decision. This
+stability is what makes the **Supported by** chain possible — `Supported by:` and
+in-body links use the full identifier exactly as authored (`[tk-ingest-001](#tk-ingest-001)`),
+so cross-branch references keep resolving after the merge.
+
+`tk-[branch-]NNN` is *the entry's* identifier — distinct from the catalog RID in the
+title. The title's RID identifies the *catalog artifact* the entry is about; the
+`tk-` id identifies *the decision record itself*. Both coexist because they serve
+different lookup needs: `tk-019` lets entries point at other entries; `8KG` lets
+entries point at catalog artifacts.
+
+Three digits gives 999 entries per branch (and per trunk) before extending to four —
+ample headroom. At `tk-999` the next is `tk-1000`; the column just gets a bit wider.
 
 ### `**When:**` — required ISO 8601 timestamp with timezone
 
@@ -116,7 +181,7 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 
 - **Heading level is `###`.** Each entry is a sibling under the file's top-level `# Tacit Knowledge` heading.
 - **Append new entries at the bottom.** The file reads top-to-bottom as the project's history; chronology is the structure.
-- **Title starts with `tk-NNN`**, the entry's unique identifier (see "Entry header" above). The next entry's number is one more than the highest existing `tk-NNN` in the file.
+- **Title starts with the entry identifier** — `tk-NNN` on trunk, `tk-<branch>-NNN` on a work branch (see "entry identifier" above). The next number is one more than the highest existing identifier *in the same scope* (trunk numbers count trunk entries; a branch's numbers count that branch's entries).
 - **No dates in titles.** Time information lives in the `**When:**` header field, not the title; embedding a date in the title duplicates that field and rots if the entry is later edited.
 - **No author names in titles.** Attribution lives in the `**By:**` header field. Embedding a name in the title (`### tk-042 — Carl's animal subset`) duplicates the field and forces a title edit if attribution changes (e.g., adding a second decider).
 - **Title includes the durable catalog handle in parentheses, written as a click-through markdown link** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts, then render it via the deriva-ml citation API so the link is browser-openable and snapshot-pinned:

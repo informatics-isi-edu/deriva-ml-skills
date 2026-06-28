@@ -63,6 +63,34 @@ Everything you do follows one arc — **Specify → Build → Validate**: write 
 
 > **One term, three meanings — "experiment".** (1) the *experiment cycle* (one turn of the experiment lifecycle); (2) an *experiment config preset* (a named entry in `configs/experiments.py` composing model + dataset + params); (3) the *experiment repository* (the project repo itself). Keep them distinct.
 
+## Never guess — ground truth is observable
+
+DerivaML work is reproducible only because every fact is recorded somewhere
+authoritative. So the governing rule for this whole domain: **never guess, invent,
+or assume a fact you could observe.** If you don't know a value — a RID, a version,
+a vocabulary term, a column name, a file path, a config value, whether a dataset
+exists — **look it up; do not make it up.** Ground truth lives in exactly four
+places, and one of them has the answer:
+
+- **The catalog** — RIDs, dataset/feature/workflow/execution records, vocabulary
+  terms, schema, lineage. Read it via the `deriva://…` resources / `deriva_ml_*`
+  tools / `rag_search` (see the resolution workflow below).
+- **The project repo** — config values, model code, design docs
+  (`docs/design/`), and the rationale journal (`tacit-knowledge.md`). Read the
+  files; check `git`.
+- **The working directory** — what the current execution staged: files written to
+  `exe.asset_file_path(...)` paths, the working-dir layout. Inspect it.
+- **The cache** — downloaded dataset bags and assets (`deriva_ml_bag_info`,
+  the cache dir). Check what's materialized before assuming it is or isn't.
+
+If none of the four answers the question, **ask the user or say you don't know** —
+never fabricate a plausible-looking RID, term, version, or path. A wrong-but-
+plausible guess is worse than an admitted gap: it corrupts the catalog (a typo'd
+vocab term, a fabricated RID that FK-violates) or silently produces an
+unreproducible result. The specific don't-fabricate rules elsewhere in this skill
+(don't invent a name in entity resolution, don't fabricate a `cite_url`, don't
+write a placeholder description) are all instances of this one principle.
+
 ## Read-side questions: fetch the resource first
 
 For **read-side questions about an existing entity** — "show me X by RID," "what's in Y," "what did Z produce / consume," "what's the current version of W" — fetch the matching `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/...` resource *before* reaching for `deriva_ml_*` tools or generic catalog CRUD (`get_entities`, `query_attribute`, `list_foreign_keys`). The resource family is purpose-built for these lookups: a single fetch returns the entity's summary plus its associated children (a dataset's members and version, an execution's inputs/outputs/metadata, a workflow's executions, etc.) in a stable bundled shape, while the equivalent tool path typically takes 2–7 round trips of fetch + filter + join.

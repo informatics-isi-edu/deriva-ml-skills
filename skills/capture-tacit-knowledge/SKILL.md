@@ -50,7 +50,7 @@ If the user is asking a question the file would answer — *why* did we choose X
 
 ### Honesty rule (both modes)
 
-**If the file is silent on the question, say so explicitly. Do not invent a rationale to fill the gap.** Frame any reconstruction from current state as exactly that — a reconstruction, not a recalled decision — so the user can choose whether to treat it as authoritative or look further. When the file does have an entry, cite it (entity RID + entry title) so the user can verify and follow back-references.
+**If the file is silent on the question, say so explicitly. Do not invent a rationale to fill the gap.** (This is the provenance-honesty application of the plugin-wide rule — `deriva-ml-context` → "Never guess — ground truth is observable"; here the observable source is the journal itself.) Frame any reconstruction from current state as exactly that — a reconstruction, not a recalled decision — so the user can choose whether to treat it as authoritative or look further. When the file does have an entry, cite it (entity RID + entry title) so the user can verify and follow back-references.
 
 ## Provenance markers
 

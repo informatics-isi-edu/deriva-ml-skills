@@ -49,5 +49,9 @@ rows.
 | Multiple RAG candidates | Show a 3–5 item picker with canonical name + description + RID; let the user pick |
 | No RAG hits | Ask a clarifying question — do NOT fabricate |
 
+The "do NOT fabricate" row is the entity-resolution instance of the SKILL's
+canonical rule (deriva-ml-context → "Never guess — ground truth is observable"):
+a name you can't resolve is a name to look up or ask about, never to invent.
+
 The find-before-create discipline that governs all of these choices is owned by
 `/deriva:semantic-awareness` *(deriva-skills, auto-loaded)*.
