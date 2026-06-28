@@ -84,7 +84,7 @@ A project can use any combination — features for per-image confidence, JSONL f
 - "Compute ROC / AUC for each run" → prediction CSVs (Pattern C)
 - "Show me a leaderboard from a prior comparison" → summary CSV from Pattern C (if one was already written) or feature values (Pattern A)
 
-If you can't tell, **ask the user which pattern they're using**. Don't guess.
+If you can't tell, **ask the user which pattern they're using**. Don't guess — the metric-storage pattern is observable in the catalog, not something to assume (the general rule: `deriva-ml-context` → "Never guess — ground truth is observable").
 
 ## Phase 2A — Compare via feature values (single round-trip)
 
