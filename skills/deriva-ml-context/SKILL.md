@@ -58,6 +58,7 @@ Everything you do follows one arc — **Specify → Build → Validate**: write 
 | Working pipeline, want to test a hypothesis | `/deriva-ml:experiment-lifecycle` |
 | Need one specific entity | `/deriva-ml:dataset-lifecycle`, `/deriva-ml:create-feature`, `/deriva-ml:new-model`, or `/deriva-ml:work-with-assets` |
 | About to plan any of the above | `/deriva-ml:design-experiment` (the Specify phase for all four) |
+| Want to read / inspect existing results without writing code | `/deriva-ml:explore-results` |
 | Something broke / am I up to date | `/deriva-ml:troubleshoot-execution` |
 
 > **One term, three meanings — "experiment".** (1) the *experiment cycle* (one turn of the experiment lifecycle); (2) an *experiment config preset* (a named entry in `configs/experiments.py` composing model + dataset + params); (3) the *experiment repository* (the project repo itself). Keep them distinct.
