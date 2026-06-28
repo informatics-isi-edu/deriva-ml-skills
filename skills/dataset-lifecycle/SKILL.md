@@ -1,6 +1,6 @@
 ---
 name: dataset-lifecycle
-description: "Use for ALL DerivaML dataset operations — creating, populating, splitting, subsampling, versioning, browsing, navigating parent/child hierarchies, downloading BDBags, restructuring assets for ML frameworks, and wiring resulting RIDs into src/configs/datasets.py. Also covers the three-axis Dataset_Type framing (role / content / origin) and the Split_Partition / Subsample origin tags. After any operation that produces a RID + version downstream code may consume, proactively offer to add it to src/configs/datasets.py — this skill owns that offer. Triggers include 'create / split / stratify / subsample / browse / download / denormalize a dataset', 'smaller variant of a dataset', 'stratified subset', 'partition by element vs row', 'Split_Partition tag', 'dataset version', 'training data setup', 'curated subset', 'filter by class / by feature', 'BDBag', 'DatasetSpecConfig', 'wire dataset into config'. Do NOT use for: creating features/labels (use create-feature), creating tables (use create-table), running experiments (use execution-lifecycle), uploading assets (use work-with-assets), or managing vocabularies (use manage-vocabulary)."
+description: "Use for ALL DerivaML dataset operations — and as the FRONT DOOR for 'load / ingest a new dataset' (it routes: raw files on disk go to the phased loader, data already in the catalog gets grouped into a Dataset here). Covers creating, populating, splitting, subsampling, versioning, browsing, navigating parent/child hierarchies, downloading BDBags, restructuring assets for ML frameworks, and wiring resulting RIDs into src/configs/datasets.py. Also covers the three-axis Dataset_Type framing (role / content / origin) and the Split_Partition / Subsample origin tags. After any operation that produces a RID + version downstream code may consume, proactively offer to add it to src/configs/datasets.py — this skill owns that offer. Triggers include 'load a dataset', 'load a new dataset', 'ingest a dataset', 'add a dataset to the catalog', 'import data', 'create / split / stratify / subsample / browse / download / denormalize a dataset', 'smaller variant of a dataset', 'stratified subset', 'partition by element vs row', 'Split_Partition tag', 'dataset version', 'training data setup', 'curated subset', 'filter by class / by feature', 'BDBag', 'DatasetSpecConfig', 'wire dataset into config'. For the actual raw-file ingest mechanics (add_files → upload → organize), this skill ROUTES to the phased loader in /deriva-ml:setup-ml-catalog. Do NOT use for: creating features/labels (use create-feature), creating tables (use create-table), running experiments (use execution-lifecycle), uploading single assets (use work-with-assets), or managing vocabularies (use manage-vocabulary)."
 ---
 
 # Dataset Lifecycle
@@ -8,6 +8,17 @@ description: "Use for ALL DerivaML dataset operations — creating, populating, 
 This skill covers the full lifecycle of a DerivaML dataset: assessing whether one is needed, planning its structure and types, creating and populating it, versioning for reproducibility, and consuming it in experiments.
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
+
+## "Load a new dataset" — route first
+
+"Load a dataset" means two different things; pick the path before doing anything:
+
+| Where is the data now? | What "load" means | Go to |
+|---|---|---|
+| **Raw files on disk** (a directory, CSVs, an image folder — not yet in the catalog) | Ingest the bytes: `add_files` to register source files → upload into Hatrac as typed assets → organize into a Dataset. | The **phased loader** in `/deriva-ml:setup-ml-catalog` — its `scripts/loader_orchestrator_template.py` runs the two-execution register → upload pipeline (`--phase {schema,register,upload}`). That loader **hands back here** for the final "organize the uploaded assets into Datasets" step. |
+| **Already in the catalog** (assets/records exist; you want to group them) | Create a `Dataset` and add the existing members — no byte upload. | **Stay here** — Phase 2 (Assess) → Phase 4 (Create & populate) below. |
+
+If you're not sure, ask which one: a non-coder loading a fresh data drop is almost always the **raw-files** path (→ setup-ml-catalog loader); someone curating a training subset from existing catalog data is the **already-in-catalog** path (stays here).
 
 **Check project context first.** Before running any commands, look for catalog references in the project: `tacit-knowledge.md` records which catalog/hostname previous operations used; `src/configs/deriva.py` carries hydra-zen connection configs; `CLAUDE.md` may specify the working catalog. Use the catalog the project is actively working with, NOT the original source catalog (e.g., the clone on dev.facebase.org, not the source on www.facebase.org). If you don't know the catalog ID, read `deriva://registry/{hostname}` to see available catalogs and aliases.
 
