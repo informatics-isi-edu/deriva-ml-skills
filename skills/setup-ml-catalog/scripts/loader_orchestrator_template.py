@@ -67,12 +67,16 @@ def _find_latest_source_dataset_rid(ml: DerivaML) -> str:
 
     When ``--phase upload`` runs in isolation, the RID isn't threaded from
     register — find it from the catalog: newest dataset typed FILE_DATASET_TYPE
-    whose ``source_directory`` is the root (``"."``).
+    that is the root of the add_files tree (``is_source_root``). Use
+    ``is_source_root``, not ``source_directory == "."``: the root's path string
+    is the legacy ``"."`` only on old catalogs; modern catalogs record the
+    source basename, so the string compare silently finds nothing.
+    ``is_source_root`` is the structural, name-independent predicate.
     """
     candidates = [
         d
         for d in ml.find_datasets(sort=True)  # newest first
-        if FILE_DATASET_TYPE in d.dataset_types and d.source_directory == "."
+        if FILE_DATASET_TYPE in d.dataset_types and d.is_source_root
     ]
     if not candidates:
         raise RuntimeError(

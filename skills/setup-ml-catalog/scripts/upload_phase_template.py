@@ -99,6 +99,11 @@ def run_upload_phase(
     uploaded = 0
     with ml.create_execution(config) as exe:
         for partition in partitions:
+            # "." is the flat-layout SENTINEL in the caller's PARTITIONS list
+            # (meaning "the root dataset itself, no partition children") — it is
+            # NOT read from the catalog, so it is unaffected by the root's
+            # Directory_Dataset.Path. Non-"." names match a child's
+            # source_directory (e.g. "train"/"test").
             part_ds = source_ds if partition == "." else children.get(partition)
             if part_ds is None:
                 print(f"  WARNING: no child dataset for partition {partition!r}; skipping")
