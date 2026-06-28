@@ -43,6 +43,29 @@ DerivaML entities are part of the provenance graph; once created they are refere
 - **Why** does it exist (the experimental question, the workflow purpose)?
 - **How** is it produced or consumed (which Workflow / Execution / Dataset)?
 - **What does it contain** (composition, key characteristics, parameters)?
+- **Where's the design?** — if the entity has a design doc, link it (see below).
+
+## Link the design doc when one exists
+
+DerivaML entities are designed before they're built — `/deriva-ml:design-experiment`
+owns `docs/design/{experiment,dataset,feature,model}/<slug>.md`. When the entity you're
+describing has a matching design doc, **append its committed GitHub URL to the
+description** so the built thing is one click from the design it implements:
+
+```
+… See design: https://github.com/<org>/<repo>/blob/<commit-or-main>/docs/design/<type>/<slug>.md
+```
+
+This applies to every design-backed entity type this skill covers — a **Dataset**
+(→ `docs/design/dataset/`), a **Feature** (→ `feature/`), an **Experiment** /
+**multirun** (→ `experiment/`), and a **model** config (→ `model/`). The description
+lands in the catalog (the entity row / execution metadata), so the link is the
+entity→design half of the cross-reference the design doc's "Status & links" section
+provides in reverse. Rules:
+
+- Use the **committed** GitHub URL (the durable form, same as the workflow's git URL) — not a local path that won't resolve for another reader.
+- **Omit it when no design doc exists** — check `docs/design/<type>/` first; never fabricate a plausible-looking URL (the never-guess rule, `deriva-ml-context`).
+- Entities with no natural design doc (a raw Workflow row, an auto-described Execution-metadata asset) simply don't carry the link.
 
 ## Quality checklist
 
