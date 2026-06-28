@@ -139,6 +139,8 @@ Adapt the loader to your dataset by editing its **config block** (`SOURCE_ROOT`,
 
 #### The canonical ingest: register, then upload — two executions
 
+> **The loader is Python; `deriva_ml_*` MCP tools don't belong inside it.** Every loader phase is a committed Python script run via `deriva-ml-run`: `ml.add_term`, `exe.add_files`, `exe.asset_file_path`, `exe.commit_output_assets`. The `deriva_ml_*` **MCP** tools are a separate *session* surface (observation, plus the post-load reindex in Step 5) — do **not** call them from loader code. Concretely: a tool like `deriva_ml_reindex_vocabularies` has no deriva-ml Python-API equivalent (no `reindex` symbol in the package), so a script that calls it won't run; and even where an MCP tool exists, the loader's job is authorship, not session actions. (This is the MCP-is-session / Python-authors boundary from `/deriva-ml:deriva-ml-context` — restated here because the loader is exactly where you're heads-down in Python and most likely to reach for the wrong surface.)
+
 File ingest is **two separate executions**, and the split is what records source→asset lineage in the catalog:
 
 1. **register (Execution 1)** — `FileSpec.create_filespecs(SOURCE_ROOT)` + `exe.add_files(specs, dataset_types=[FILE_DATASET_TYPE], ...)` inserts one `File` row per source file (`tag://` URL + MD5 + length, **no bytes copied**) and links them as **Inputs**, producing a nested File dataset that mirrors the source directory tree. This records *which source files exist*.
@@ -149,6 +151,12 @@ The `materialize=False` Input declaration is the **catalog-recorded lineage edge
 Don't re-implement the mechanics — `/deriva-ml:work-with-assets` owns them: `register_files_template.py` (the `add_files` Input path) and `upload_asset.py` (the `asset_file_path` Output path). The loader's `register_phase_template.py` / `upload_phase_template.py` wire them into the two-execution shape.
 
 > **Prerequisite — deriva-ml >= 1.51.14.** The `add_files` directory-tree nesting needs ≥ 1.51.14, and the upload phase's `DatasetSpec(materialize=False)` input requires the same line. Pin it in your `pyproject.toml`.
+
+#### Post-load (MCP, not the loader): refresh the search index
+
+The loader's `add_term` and dataset/asset creation do **not** auto-reindex the RAG search index, so a freshly loaded catalog's new vocabulary terms and datasets won't surface in `rag_search` until you refresh it. Once the load completes, run the MCP tools `deriva_ml_reindex_vocabularies` (for the new terms) and `deriva_ml_reindex_rows` (for Dataset/Workflow/Execution row indexes) so the result is discoverable.
+
+This is a **discoverability refresh, not a correctness step** — `add_term` makes a term FK-usable immediately; the reindex only affects fuzzy `rag_search` recall. And it is an **MCP-session action run *after* the loader, never inside it** (see the boundary callout above): these are `deriva_ml_*` MCP tools with no Python-API equivalent, so they belong in your session, not in the committed loader script.
 
 ### Step 5: Verify
 

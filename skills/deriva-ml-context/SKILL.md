@@ -214,7 +214,7 @@ The five abstractions above are where the override mostly lands. Going around th
 - **FK validation across the Dataset / Workflow / Execution graph** — DerivaML enforces invariants (every Execution links to a Workflow, every output Dataset links to its producing Execution); raw inserts can create dangling references.
 - **Provenance tracking** — each mutation links back to the active Execution; raw inserts have no Execution context.
 - **Version management** — Datasets carry a two-state PEP 440 version (released / dev) per ADR-0003. The mutation tools (`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, dataset-type changes) flip the dataset to a dev label; `deriva_ml_release_dataset` promotes a dev period to a released version. Raw inserts skip the version flip entirely, leaving consumers pointed at stale data.
-- **RAG re-indexing** — Dataset/Workflow/Execution rows are indexed **read-through**: the `deriva_ml_*` mutation tools fire a surgical re-index so freshly mutated rows are searchable on the next `rag_search`, and the read tools (`deriva_ml_list_*` / `deriva_ml_get_*`) warm each row they return, so listing/fetching a row also makes it searchable (`deriva_ml_reindex_rows` warms a whole catalog's rows on demand). Raw inserts fire none of this, so the row never enters the index.
+- **RAG re-indexing** — Dataset/Workflow/Execution rows are indexed **read-through**: the `deriva_ml_*` mutation tools fire a surgical re-index so freshly mutated rows are searchable on the next `rag_search`, and the read tools (`deriva_ml_list_*` / `deriva_ml_get_*`) warm each row they return, so listing/fetching a row also makes it searchable (`deriva_ml_reindex_rows` warms a whole catalog's rows on demand). Raw inserts fire none of this, so the row never enters the index. **Vocabulary *terms* are the exception that bites:** `add_term` / `delete_term` (the deriva-mcp-core tools) fire **no** re-index hook, so a freshly added term is *not* `rag_search`-discoverable until you run `deriva_ml_reindex_vocabularies` — see "Built-in DerivaML vocabularies" below for the rule. (`deriva_ml_create_vocabulary` *does* self-reindex when it creates the table; only the per-term `add_term` is uncovered.)
 - **Audit emission** — every `deriva_ml_*` mutation emits an audit event with the operation name, hostname, catalog, and result; raw inserts use the generic core audit which lacks DerivaML-specific context.
 
 ## What DerivaML adds on top
@@ -240,6 +240,18 @@ The `deriva-ml` schema has **six** controlled-vocabulary tables, split by who wr
 | `Dataset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Dataset_Type", name=..., description=...)` | Tag your dataset with this term via `deriva_ml_create_dataset(dataset_types=[...])` |
 | `Workflow_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name=..., description=...)` | Pass to `deriva_ml_create_workflow(workflow_type=...)` |
 | `Asset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Asset_Type", name=..., description=...)` | Tag specific assets via `deriva_ml_update_asset(...)` |
+
+> **After adding terms, reindex for discoverability.** `add_term` (and `delete_term`)
+> fire **no** RAG re-index hook — so a new term is FK-usable *immediately* (you can
+> tag a dataset/workflow/asset with it right away) but will **not** surface in
+> `rag_search` until you run the MCP tool `deriva_ml_reindex_vocabularies`. This is a
+> **discoverability refresh, not a correctness step**. It applies wherever terms are
+> added: a session `add_term`, a `create-feature` vocabulary, or a from-scratch
+> loader's term-seeding (the loader case runs it as an explicit post-load step,
+> since the loader's Python `ml.add_term` likewise doesn't reindex — see
+> `/deriva-ml:setup-ml-catalog`). Creating the vocabulary *table* itself via
+> `deriva_ml_create_vocabulary` *does* self-reindex; only per-term `add_term` needs
+> the manual refresh.
 
 **System-managed — do NOT extend** (populated by the machinery, not by you):
 
