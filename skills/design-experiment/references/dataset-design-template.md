@@ -42,13 +42,57 @@ justifies building it.
   (`deriva_ml_list_dataset_element_types`); register missing ones first.
 - **Balance constraints:** per-class minimums, stratification column, etc.
 
+## Ingest plan
+
+*(Fill this ONLY when the source data is raw files on disk that must be ingested
+into the catalog. If the members already exist in the catalog, skip this section
+— go straight to Structure plan.)*
+
+Specify how the raw files become catalog assets. The pipeline mechanics are owned
+by `/deriva-ml:setup-ml-catalog` (the phased `register → upload` loader); this
+section is the *spec* the loader config implements:
+
+- **Source location & layout:** where the files are (path/URL) and the directory
+  shape — flat, or partitioned (e.g. `train/`, `test/`). This sets the loader's
+  `SOURCE_ROOT` + `PARTITIONS`.
+- **Asset table & types:** which hosted asset table the bytes land in (e.g.
+  `Image`) and the `Asset_Type` tag(s) — created in the loader's schema phase.
+- **File (source) Dataset_Type:** the `Dataset_Type` for the by-reference File
+  dataset the *register* phase creates (default `Source`; or the built-in `File`).
+  Note any new vocabulary terms the loader must seed.
+- **Phasing:** register (add_files → by-reference File dataset) → upload (bytes →
+  Hatrac assets) → features (per-row labels, if any). Note what each execution
+  produces.
+- **Handoff:** after upload, organizing the hosted assets into the dataset(s)
+  described in *Structure plan* below is `/deriva-ml:dataset-lifecycle`'s job.
+
 ## Structure plan
 
 - **Pattern:** standalone / split (train/test/val) / subsample / curated
   subset / manual nesting.
-- **Dataset_Type tags (three axes):** Role (Training/Testing/…), Content
-  (Labeled/…/domain tags), Origin (Split/Split_Partition/Subsample — set by
-  the producing operation). List the tags you intend each output to carry.
+
+### Datasets produced
+
+**Enumerate every dataset this design creates** — a single design often yields
+several (e.g. a Complete dataset plus Training/Testing partitions, or a
+subsample). One entry per dataset; fill all four columns:
+
+| Dataset (name / slug) | Dataset_Type tags (Role / Content / Origin) | Description | Members — what's in it |
+|---|---|---|---|
+| `<name>` | Role `<…>`, Content `<…>`, Origin `<…>` | one line: what this dataset is for | which element types + how many, the selection/filter that defines membership, and (for partitions) how it relates to its siblings |
+| … | … | … | … |
+
+Notes on the columns:
+- **Dataset_Type tags (three axes):** Role (Training/Testing/Complete/…), Content
+  (Labeled/…/domain tags), Origin (Split/Split_Partition/Subsample — auto-applied
+  by the producing operation). State the tags each output will carry.
+- **Description** is the human-readable `description` the dataset row gets at
+  creation — write it here so the build uses it verbatim (no empty/placeholder
+  descriptions). See `/deriva-ml:generate-descriptions` for the quality bar.
+- **Members** is the substantive part: for each dataset say *what* its members are
+  (which element type(s), the count or count-rule, the inclusion/exclusion filter
+  that defines the set) and, for a split/subsample, how membership partitions
+  relative to the parent and sibling datasets (disjoint? stratified on what?).
 
 ## Validation
 
@@ -116,8 +160,16 @@ small-data runs, so full-scale compute isn't spent debugging plumbing.
 
 ## Structure plan
 - **Pattern:** subsample (single stratified output, no partitioning).
-- **Dataset_Type tags:** Role `Complete`, Content `Labeled` + `CIFAR_10`,
-  Origin `Subsample` (auto-applied by `subsample`).
+
+### Datasets produced
+
+| Dataset (name / slug) | Dataset_Type tags (Role / Content / Origin) | Description | Members — what's in it |
+|---|---|---|---|
+| `cifar10_dev` | Role `Complete`, Content `Labeled` + `CIFAR_10`, Origin `Subsample` (auto-applied by `subsample`) | 500-image class-balanced CIFAR-10 subset for rapid pipeline validation and small-data runs | `Image` members only — 500 images, exactly 50 per class across all 10 classes, drawn from `cifar10_complete` @ `1.0.0` by stratified sampling on the class label |
+
+*(A split design would list several rows here — e.g. `cifar10_train` / `cifar10_test`
+with Role `Training` / `Testing`, Origin `Split_Partition`, and Members noting the
+disjoint per-class partition of the parent. This subsample produces just one.)*
 
 ## Validation
 - Counts: 50 ± 0 per class, 500 total.
