@@ -1,5 +1,36 @@
 # Entry Format — Template, Field Guidance, and Conventions
 
+## File header — OKF Log frontmatter
+
+`tacit-knowledge.md` is an **OKF Log document**: an append-only journal, which is
+exactly the shape the [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+reserves for a `log`. The file opens with a single YAML frontmatter block, then the
+`# Tacit Knowledge` H1, then the `tk-…` entries as the body:
+
+```markdown
+---
+type: Log
+title: Tacit Knowledge — <project name>
+description: >
+  The why behind this project's DerivaML decisions — rationale, dead ends, and
+  cross-discipline consequences that the catalog records but does not explain.
+  Append-only; each entry is a dated tk-… decision record.
+tags: [tacit-knowledge, provenance, deriva-ml]
+---
+
+# Tacit Knowledge
+
+<the boundary-explaining header paragraph, then the tk-… entries>
+```
+
+Frontmatter rules: `type: Log` is required (it's what makes the file a conformant
+OKF Log). `title`/`description`/`tags` are recommended. **`resource` is intentionally
+omitted** — the journal is the knowledge itself, not a pointer to an external
+artifact (the same reason the design-doc templates omit it). The frontmatter is
+written **once at file creation** and not touched per entry — entries are appended
+to the body below the H1, exactly as before. This is a file-level wrapper; it does
+not change the per-entry format documented in the rest of this file.
+
 ## Entry header
 
 Every entry starts with an HTML anchor line and a four-line header. The anchor gives the entry a stable, link-target identifier; the header places it in time, names its author, and names its antecedents. Together they let future entries reference *this* entry with a click-through markdown link, let a future reader walk back through the chain of supporting decisions, and align the file's attribution with the catalog's `RMB` (Row-Modified-By) column so the same human is named the same way in both systems.
