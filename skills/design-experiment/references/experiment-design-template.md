@@ -88,6 +88,15 @@ planned-but-unauthored knowledge).
 - **Config:** the experiment name + `configs/experiments.py` entry that
   implements this design.
 - **Executions:** RID(s) produced by the run(s).
+- **Outcome:** the verdict against the **Validation** criteria above —
+  **confirmed** / **refuted** / **inconclusive** — in one line, with a link to
+  the producing execution. *Link, don't transcribe:* the metrics themselves live
+  on the Execution / feature values (read them via
+  `deriva_ml_list_feature_values` / `deriva_ml_get_lineage`), and the reasoning /
+  what-we-learned lives in `tacit-knowledge.md`. This line just records *which
+  way the question resolved* so the doc is self-contained as question → criteria
+  → verdict. (Set `status: Validated` once filled.) Leave blank until the run
+  concludes.
 - **tacit-knowledge.md:** link to the journal entries this run generated.
 ```
 
@@ -148,5 +157,6 @@ a two-run comparison against `6-ABC1` via `/deriva-ml:compare-model-runs`.
 ## Status & links
 - **Config:** `dropout_quick` in `configs/experiments.py`
 - **Executions:** (filled after the run)
+- **Outcome:** (filled after the run — e.g. "Confirmed: dropout 0.25 raised test accuracy +3.4% over baseline, see [execution 8KG](…); details in tk-042")
 - **tacit-knowledge.md:** (filled after the run)
 ```

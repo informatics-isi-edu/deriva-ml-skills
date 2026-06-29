@@ -146,9 +146,14 @@ the upstream spec URL ever rots).
    **Requirement** in the design is satisfied. A requirement with no
    corresponding config/dataset decision is a gap.
 4. **Close the loop.** After the run/build, update the doc's **Status & links**
-   with the resulting RID(s) / execution(s) / config entries and a link to the
-   `tacit-knowledge.md` entries the work produced. The design doc is then a
-   complete record: plan → implementation → outcome.
+   with the resulting RID(s) / execution(s) / config entries, the **Outcome** line
+   (the verdict against the Validation criteria — confirmed/refuted/inconclusive
+   for an experiment, validated/which-check-failed for a dataset/feature/model),
+   and a link to the `tacit-knowledge.md` entries the work produced. Set
+   `status: Validated` once the Outcome is filled. **Link, don't transcribe** —
+   the metrics live in the catalog and the learnings in the journal; the Outcome
+   line just records *which way it resolved*. The design doc is then a complete
+   record: plan → implementation → outcome.
 
 **Before building, look for an existing design.** When you start configuring
 or building something, first check the matching `docs/design/<entity>/`

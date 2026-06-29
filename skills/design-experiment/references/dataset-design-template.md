@@ -123,6 +123,13 @@ links.)
 
 - **RID + version:** the produced dataset RID and released version.
 - **configs/datasets.py:** the `DatasetSpecConfig` entry that pins it.
+- **Outcome:** the result against the **Validation** criteria above — did the
+  built dataset pass (balance, no leakage, bag parity, counts)? One line:
+  **validated** (set `status: Validated`) or which check failed + what you did.
+  *Link, don't transcribe:* the counts/parity live in the catalog (read via
+  `deriva_ml_list_dataset_members` / `deriva_ml_bag_info`); this records the
+  verdict so the doc is self-contained as plan → checks → outcome. Leave blank
+  until built.
 - **tacit-knowledge.md:** link to journal entries from the build.
 ```
 
@@ -190,5 +197,6 @@ data-property reference, not a build dependency).
 ## Status & links
 - **RID + version:** (filled after the build)
 - **configs/datasets.py:** (filled after the build)
+- **Outcome:** (filled after the build — e.g. "Validated: 50 ± 0 per class, 500 total, no train/test overlap")
 - **tacit-knowledge.md:** (filled after the build)
 ```
