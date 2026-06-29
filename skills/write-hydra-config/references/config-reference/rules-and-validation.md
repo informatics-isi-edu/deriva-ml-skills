@@ -75,6 +75,23 @@ Two mechanisms exist — use the right one for the context:
 
 Descriptions are recorded in execution metadata and make experiments self-documenting. Before writing descriptions, look up catalog details via `deriva_ml_get_dataset(hostname=..., catalog_id=..., dataset_rid=...)` (or the resource `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/dataset/{rid}`) and `deriva_ml_lookup_asset(hostname=..., catalog_id=..., asset_rid=...)`.
 
+> **Link the design doc — for ANY entity that has one (general rule).** DerivaML
+> entities are designed before they're built (`/deriva-ml:design-experiment` owns
+> `docs/design/{experiment,dataset,feature,model}/<slug>.md`). Whenever you set a
+> `description`/`comment` on an entity that has a design doc — an **experiment** or
+> **multirun** config, a **dataset** (`with_description` / `deriva_ml_create_dataset`),
+> a **feature** (`deriva_ml_create_feature` comment), a **model** config
+> (`zen_meta`), or a **workflow** — append the design doc's **committed GitHub URL**
+> to the description: `"… See design: https://github.com/<org>/<repo>/blob/<commit-or-main>/docs/design/<type>/<slug>.md"`.
+> The description lands in the catalog (execution metadata / the entity row), so
+> this makes the built thing one click from the design it implements — the
+> entity→design half of the link the design doc's "Status & links" provides in
+> reverse. Use the committed URL (the durable form, like the workflow git URL), not
+> a local path; **omit it when no design doc exists** (don't fabricate a URL). The
+> per-type rules below are instances of this one rule. (The same rule for
+> *non-config* entity descriptions — Datasets/Features created via MCP tools — is
+> stated in `/deriva-ml:generate-descriptions`; this is its config-side statement.)
+
 ### Good Descriptions
 
 General principles — descriptions should be specific, quantified, purposeful, and version-aware:
@@ -89,6 +106,7 @@ General principles — descriptions should be specific, quantified, purposeful, 
 **Experiments** — State the goal or hypothesis, not just parameters. Parameters are already in the config; the description explains *why* the experiment exists:
 - Good: "Test whether dropout 0.25 reduces overfitting compared to the unregularized baseline"
 - Bad: "50 epochs, 64->128 channels, dropout 0.25"
+- **Link the design doc when one exists.** If the experiment has a `docs/design/experiment/<slug>.md` (it should — `/deriva-ml:design-experiment` is Phase 1), append its **committed URL** to the description so the execution record points back at the design the run implements: `"… See design: https://github.com/<org>/<repo>/blob/<commit-or-main>/docs/design/experiment/<slug>.md"`. The description lands in the Execution row's metadata, so this makes every run one click from its hypothesis + validation criteria. Use the committed GitHub URL (the same durable form as the workflow's git URL), not a bare local path. This is the config→design link; the design doc's "Status & links" already points the other way (design→config + execution RIDs).
 
 **Multiruns** — State what question the sweep answers and what the parameter range covers:
 - Good: "Sweep learning rates [1e-4, 1e-3, 1e-2, 1e-1] to find the optimal convergence/stability tradeoff for the 2-layer CNN on the small labeled split"

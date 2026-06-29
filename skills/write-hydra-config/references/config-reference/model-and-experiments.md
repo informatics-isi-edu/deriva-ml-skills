@@ -145,7 +145,13 @@ experiment_store(
             {"override /model_config": "cifar10_quick"},
             {"override /datasets": "cifar10_small_labeled_split"},
         ],
-        description="Quick CIFAR-10 training: 3 epochs, 32->64 channels, batch size 128",
+        # Goal-oriented, not parameter-restating; design URL appended so the
+        # Execution row links back to the hypothesis it implements.
+        description=(
+            "Smoke-test the pipeline on a small split before a full run — "
+            "is the plumbing correct end to end? "
+            "See design: https://github.com/<org>/<repo>/blob/main/docs/design/experiment/cifar10-quick.md"
+        ),
         bases=(DerivaModelConfig,),
     ),
     name="cifar10_quick",
@@ -158,7 +164,11 @@ experiment_store(
             {"override /model_config": "cifar10_extended"},
             {"override /datasets": "cifar10_small_labeled_split"},
         ],
-        description="Extended CIFAR-10 training: 50 epochs, 64->128 channels, full regularization",
+        description=(
+            "Does the extended architecture (64->128 channels) + full regularization "
+            "beat the quick baseline by enough to justify ~10x training time? "
+            "See design: https://github.com/<org>/<repo>/blob/main/docs/design/experiment/cifar10-extended.md"
+        ),
         bases=(DerivaModelConfig,),
     ),
     name="cifar10_extended",
