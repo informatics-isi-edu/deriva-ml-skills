@@ -28,8 +28,9 @@ DerivaML enforces that all code is committed before running catalog-mutating ope
 Before running an experiment, validate that everything is in place. **Stop and fix any issues.** The full pre-flight walkthrough (`--list-configs` / `--cfg job` invocations, per-RID validation calls, staging script patterns) lives in `references/workflow.md`; this section names what to validate.
 
 1. **Resolve the configuration.** For CLI runs, dump the resolved config with `uv run deriva-ml-run +experiment=<name> --cfg job` (use `--list-configs` first if you need the menu of registered options). Extract dataset RIDs, asset RIDs, and versions from the resolved `datasets` and `assets` groups. For MCP-tool / Python-API runs, collect the RIDs from the call site.
-2. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for pinned dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
-3. **Check data readiness.** For the dataset's **current** version, the lead path is the bag-preview resource `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` (one round trip, no parameters). For a **pinned version** or to **exclude tables**, use the tool: `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`. Both return size info AND cache status:
+2. **Confirm authentication first.** Before the first catalog read, check `ml.is_authenticated()` (one network call) so a missing/expired credential fails clearly *now* rather than as a confusing 401 mid-run. Not logged in → tell the user to `deriva-globus-auth-utils login --host <host>` and stop. (Authentication, not authorization — a valid session can still be ACL-refused on a specific write. Canonical rule: `/deriva-ml:deriva-ml-context` → "Confirm authentication before the first catalog operation".)
+3. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for pinned dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
+4. **Check data readiness.** For the dataset's **current** version, the lead path is the bag-preview resource `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` (one round trip, no parameters). For a **pinned version** or to **exclude tables**, use the tool: `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`. Both return size info AND cache status:
 
    | Status | Meaning |
    |---|---|
@@ -38,9 +39,9 @@ Before running an experiment, validate that everything is in place. **Stop and f
    | `cached_materialized` | Ready to go |
    | `cached_incomplete` | Needs re-materialization |
 
-4. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — use the bundled `skills/manage-deriva-storage/scripts/warm_cache.py` template to pre-fetch into the local cache before the execution starts. Individual assets (model weights) — `skills/work-with-assets/scripts/download_asset.py`. Staging populates the local cache without creating execution records.
-5. **Code and environment checks (CLI runs).** `git status` clean (`DerivaMLDirtyWorkflowError` if not — use `--allow-dirty` only for debugging). Version current (`bump_version("patch")` or `uv run bump-version patch|minor`). Lock file valid (`uv lock --check`).
-6. **User confirmation.** Present commit hash + version + branch + experiment name + key parameters + dataset versions and cache status. Get explicit approval before production runs.
+5. **Stage if needed.** Small datasets (< 100 MB) — let the execution download. Large datasets (> 1 GB) — use the bundled `skills/manage-deriva-storage/scripts/warm_cache.py` template to pre-fetch into the local cache before the execution starts. Individual assets (model weights) — `skills/work-with-assets/scripts/download_asset.py`. Staging populates the local cache without creating execution records.
+6. **Code and environment checks (CLI runs).** `git status` clean (`DerivaMLDirtyWorkflowError` if not — use `--allow-dirty` only for debugging). Version current (`bump_version("patch")` or `uv run bump-version patch|minor`). Lock file valid (`uv lock --check`).
+7. **User confirmation.** Present commit hash + version + branch + experiment name + key parameters + dataset versions and cache status. Get explicit approval before production runs.
 
 ## Phase 2: Create and Run
 

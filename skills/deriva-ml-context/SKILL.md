@@ -91,6 +91,37 @@ unreproducible result. The specific don't-fabricate rules elsewhere in this skil
 (don't invent a name in entity resolution, don't fabricate a `cite_url`, don't
 write a placeholder description) are all instances of this one principle.
 
+## Confirm authentication before the first catalog operation
+
+Before the **first catalog operation** against a catalog in a session — any read
+or write — confirm the user is actually authenticated to *that* catalog, so they
+learn up-front rather than hitting a blanket-401 mid-operation (which surfaces as a
+confusing failure deep in a run). The check is a Python-API call on the `DerivaML`
+instance:
+
+```python
+ml = DerivaML(hostname=..., catalog_id=...)
+if not ml.is_authenticated():        # one network call: GET /authn/session
+    raise SystemExit(
+        "Not authenticated to <host>. Log in first:\n"
+        "  deriva-globus-auth-utils login --host <host>"
+    )
+# ml.whoami() returns the identity dict (id, display_name, email, …) if you
+# want to show *who* is logged in, or None if not.
+```
+
+- `is_authenticated()` / `whoami()` are the real methods (deriva-ml ≥ 1.54;
+  Python-API only — there is no MCP auth tool). Do **not** pass a `check_auth=`
+  kwarg to `DerivaML(...)` — that is not a constructor parameter and will
+  `TypeError`; the check is the explicit `is_authenticated()` call after construction.
+- It confirms **authentication** (the server knows who you are), not
+  **authorization** — a write to a read-only table can still be ACL-refused with a
+  valid session. So a `True` result means "logged in," not "every operation will
+  pass."
+- The bundled execution / loader templates do this guard right after building the
+  `DerivaML` instance; the `execution-lifecycle` / `setup-ml-catalog` pre-flight
+  steps call it out. This section is the canonical statement they point at.
+
 ## Read-side questions: fetch the resource first
 
 For **read-side questions about an existing entity** — "show me X by RID," "what's in Y," "what did Z produce / consume," "what's the current version of W" — fetch the matching `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/...` resource *before* reaching for `deriva_ml_*` tools or generic catalog CRUD (`get_entities`, `query_attribute`, `list_foreign_keys`). The resource family is purpose-built for these lookups: a single fetch returns the entity's summary plus its associated children (a dataset's members and version, an execution's inputs/outputs/metadata, a workflow's executions, etc.) in a stable bundled shape, while the equivalent tool path typically takes 2–7 round trips of fetch + filter + join.
