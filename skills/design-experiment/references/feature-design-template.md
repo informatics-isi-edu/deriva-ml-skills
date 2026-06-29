@@ -76,6 +76,12 @@ The design docs this feature builds on, if any. This depends on the feature's
 
 - **Feature name + target table:** the created feature.
 - **Vocabulary:** the controlled vocabulary RID/name, if term-based.
+- **Outcome:** the result against the **Validation** criteria above — once values
+  are populated, did it pass (coverage, value sanity, provenance, the consumer
+  can read it)? One line: **validated** (set `status: Validated`) or which check
+  failed. *Link, don't transcribe:* the values live in the catalog (read via
+  `deriva_ml_list_feature_values`); this records the verdict. Leave blank until
+  populated.
 - **tacit-knowledge.md:** link to journal entries from creating/populating it.
 ```
 
@@ -125,5 +131,6 @@ None (human-annotated, not model-produced).
 ## Status & links
 - **Feature name + target table:** (filled after creation)
 - **Vocabulary:** (filled after creation)
+- **Outcome:** (filled after population — e.g. "Validated: 4,980/5,000 images labeled, all terms in vocab, each value linked to its producing execution")
 - **tacit-knowledge.md:** (filled after creation)
 ```

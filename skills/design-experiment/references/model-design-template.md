@@ -77,6 +77,12 @@ A link to a not-yet-written design is fine (OKF tolerates broken links).
 
 - **Model file + config groups:** the authored model fn and its `model_config`.
 - **Workflow:** the registered Workflow.
+- **Outcome:** the result against the **Validation** criteria above — does the
+  authored model satisfy its design (interface contract, smoke run produces the
+  expected outputs)? One line: **validated** (set `status: Validated`) or what's
+  outstanding. The model's *performance* is judged per-experiment in the
+  experiment designs that run it, not here — this records that the model itself
+  works as designed. Leave blank until built.
 - **tacit-knowledge.md:** link to journal entries from building it.
 ```
 
@@ -125,5 +131,6 @@ baseline architecture for the project's experiments.
 ## Status & links
 - **Model file + config groups:** (filled after authoring)
 - **Workflow:** (filled after registration)
+- **Outcome:** (filled after build — e.g. "Validated: ml_instance/execution inject correctly, dry-run produced the expected Execution_Asset outputs")
 - **tacit-knowledge.md:** (filled after build)
 ```
