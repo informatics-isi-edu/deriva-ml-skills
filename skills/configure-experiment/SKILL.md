@@ -60,6 +60,7 @@ Example: `uv run deriva-ml-run +experiment=cifar10_quick` loads base defaults, t
 1. Clone the model template or create `configs/` directory
 2. Configure each group in order: `deriva.py` → `datasets.py` → `assets.py` → `workflow.py` → `<model>.py` → `base.py` → `experiments.py`
 3. Verify the config tree composes: `uv run deriva-ml-run --list-configs` (the menu of registered options), then `uv run deriva-ml-run +experiment=<name> --cfg job` to confirm a specific experiment resolves
+4. **Update `Experiments.md`** so the registry matches the config you just wrote — regenerate or hand-edit its row, link the experiment's design doc, and commit it in the same change as the config (see "Keeping the planning artifacts in sync" below)
 
 For the full project structure, `base.py` template, and setup walkthrough, read `references/workflow.md`.
 
@@ -109,9 +110,36 @@ For projects with many experiments, consider maintaining an `Experiments.md` fil
 
 If maintained, include `Experiments.md` in the same commit as the config changes — it should travel with the code it describes.
 
+### Keeping the planning artifacts in sync
+
+The four planning artifacts (the design doc, the executable config, `Experiments.md`, and the design index) describe the same experiment from different angles, so they drift the moment one changes without the others. They're cheap to keep aligned if you treat one change as touching all of them. **Whenever you add or change an experiment config, in the same commit:**
+
+1. **Update `Experiments.md`** — regenerate or hand-edit the experiment's row (and its multiruns row) so the registry reflects the config that now exists. `Experiments.md` is *derived from* the config; a stale row is a lie about what's runnable.
+2. **Link the design doc both ways** — the `Experiments.md` entry links to `docs/design/experiment/<slug>.md`, and that design doc's "Status & links" links back to the config (and to `Experiments.md`). The shared `<slug>` is what joins them; the links make the join navigable.
+3. **Update `docs/design/index.md`** — if this is a new experiment, add its line to the design corpus index so the plan view and the config view both list it.
+
+The direction of truth is **config → `Experiments.md`** (the registry is regenerated from the source) and **design doc ↔ config** (the doc is the contract, the config is its implementation — when they disagree, reconcile, don't silently let the config win). For the full file-roles map and which view owns what, see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts — and how they connect".
+
 ### Format
 
+`Experiments.md` is an **OKF document** (Markdown + YAML frontmatter) — it opens
+with a frontmatter block, then the `# Experiments` H1 and the registry tables. It
+is the config-derived counterpart to the design bundle's `docs/design/index.md`
+(also `type: Index`); both list "all experiments," one from configs and one from
+design docs (see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts").
+
 ```markdown
+---
+type: Index
+title: Experiments — <project name>
+description: >
+  Config-derived registry of every defined experiment and multirun in this
+  project — config-group overrides, key parameters, and a link to each
+  experiment's design doc. Generated from src/configs/experiments.py and
+  multiruns.py.
+tags: [experiments, configs, deriva-ml]
+---
+
 # Experiments
 
 Human-readable registry of all defined experiments and multiruns.
@@ -119,9 +147,9 @@ Generated from `src/configs/experiments.py` and `src/configs/multiruns.py`.
 
 ## Experiments
 
-| Experiment | Model Config | Dataset | Description |
-|------------|-------------|---------|-------------|
-| `name` | `model_config_name` | `dataset_name` | Brief purpose |
+| Experiment | Model Config | Dataset | Design | Description |
+|------------|-------------|---------|--------|-------------|
+| `name` | `model_config_name` | `dataset_name` | [design](docs/design/experiment/name.md) | Brief purpose |
 
 ## Multiruns
 
@@ -136,7 +164,10 @@ Generated from `src/configs/experiments.py` and `src/configs/multiruns.py`.
 - **Config group overrides**: `model_config=X`, `datasets=Y`
 - **Parameters**: epochs, channels, batch size, learning rate, etc.
 - **Purpose**: Why this experiment exists
+- **Design doc**: link to `docs/design/experiment/<slug>.md` (the plan + Validation criteria + Outcome) when one exists — omit if not yet designed
 ```
+
+`Experiments.md` is the **runnable/config view** of experiments; `docs/design/experiment/<slug>.md` is the **plan view** (Goal, Validation, Outcome). They share the experiment `<slug>` — link each Experiments.md entry to its design doc (and the design doc's "Status & links" points back at the config). The two registries — `Experiments.md` (config) and `docs/design/index.md` (design corpus) — are connected by these links, not merged; see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts — and how they connect".
 
 ## Configuring storage locations in `configs/deriva.py`
 
