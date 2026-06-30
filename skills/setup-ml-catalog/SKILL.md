@@ -91,8 +91,16 @@ ml = DerivaML(
     hostname="ml.example.org",
     catalog_id=str(catalog_id),
     domain_schemas={"my_project"},
-    check_auth=True,
 )
+# Before the first catalog operation, confirm you're authenticated to THIS
+# catalog — so a missing/expired credential fails clearly now, not with a 401
+# mid-load. (When connecting to an EXISTING catalog with --catalog-id rather than
+# creating one, this guard is essential; after create_ml_catalog the session is
+# already proven.) `is_authenticated()` is the real check — there is no
+# `check_auth=` constructor kwarg. See /deriva-ml:deriva-ml-context →
+# "Confirm authentication before the first catalog operation".
+if not ml.is_authenticated():
+    raise SystemExit("Not authenticated to ml.example.org — run: deriva-globus-auth-utils login --host ml.example.org")
 
 set_catalog_provenance(
     ml.catalog,

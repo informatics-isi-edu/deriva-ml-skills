@@ -280,7 +280,11 @@ from deriva_ml import DerivaML, ExecutionConfiguration
 from deriva_ml.execution import LocalFile
 
 def main(hostname: str, catalog_id: str, csv_path: Path) -> int:
-    ml = DerivaML(hostname=hostname, catalog_id=catalog_id, check_auth=True)
+    ml = DerivaML(hostname=hostname, catalog_id=catalog_id)
+    # Confirm auth before the first catalog op (clear failure now, not a 401
+    # mid-populate). `check_auth=` is not a DerivaML kwarg; the check is this call.
+    if not ml.is_authenticated():
+        raise SystemExit(f"Not authenticated to {hostname} — run: deriva-globus-auth-utils login --host {hostname}")
 
     # 1. Validate the CSV up front — fail loudly before any catalog mutation.
     df = pd.read_csv(csv_path)

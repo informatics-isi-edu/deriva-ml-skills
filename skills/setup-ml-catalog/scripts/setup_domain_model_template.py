@@ -101,8 +101,10 @@ def bootstrap_catalog(hostname: str, project_name: str) -> DerivaML:
         hostname=hostname,
         catalog_id=str(catalog_id),
         domain_schemas={project_name},
-        check_auth=True,
     )
+    # (No auth guard needed here — create_ml_catalog above already required and
+    # proved an authenticated session. `check_auth=` is not a DerivaML kwarg;
+    # the explicit guard, where it's needed, is `ml.is_authenticated()`.)
 
     set_catalog_provenance(
         ml.catalog,
@@ -326,8 +328,14 @@ def main() -> int:
             hostname=args.hostname,
             catalog_id=str(args.catalog_id),
             domain_schemas={args.domain_schema} if args.domain_schema else None,
-            check_auth=True,
         )
+        # Confirm auth before the first catalog operation (clear failure now,
+        # not a 401 mid-install). `check_auth=` is not a DerivaML kwarg.
+        if not ml.is_authenticated():
+            raise SystemExit(
+                f"Not authenticated to {args.hostname}. Log in first:\n"
+                f"  deriva-globus-auth-utils login --host {args.hostname}"
+            )
 
     if args.dry_run:
         print("[dry-run] Would install domain vocabulary, asset table, "

@@ -137,9 +137,17 @@ def main() -> int:
             hostname=args.hostname,
             catalog_id=str(args.catalog_id),
             domain_schemas={args.domain_schema} if args.domain_schema else None,
-            check_auth=True,
         )
         catalog_id = args.catalog_id
+
+    # Confirm auth before the first catalog operation, so a missing/expired
+    # credential fails here with a clear message, not mid-load with a 401.
+    # (is_authenticated() is the real check — there is no check_auth= kwarg.)
+    if not ml.is_authenticated():
+        raise SystemExit(
+            f"Not authenticated to {args.hostname}. Log in first:\n"
+            f"  deriva-globus-auth-utils login --host {args.hostname}"
+        )
 
     source_rid: str | None = None
 
