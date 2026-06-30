@@ -60,6 +60,7 @@ Example: `uv run deriva-ml-run +experiment=cifar10_quick` loads base defaults, t
 1. Clone the model template or create `configs/` directory
 2. Configure each group in order: `deriva.py` → `datasets.py` → `assets.py` → `workflow.py` → `<model>.py` → `base.py` → `experiments.py`
 3. Verify the config tree composes: `uv run deriva-ml-run --list-configs` (the menu of registered options), then `uv run deriva-ml-run +experiment=<name> --cfg job` to confirm a specific experiment resolves
+4. **Update `Experiments.md`** so the registry matches the config you just wrote — regenerate or hand-edit its row, link the experiment's design doc, and commit it in the same change as the config (see "Keeping the planning artifacts in sync" below)
 
 For the full project structure, `base.py` template, and setup walkthrough, read `references/workflow.md`.
 
@@ -108,6 +109,16 @@ For projects with many experiments, consider maintaining an `Experiments.md` fil
 4. **Write `Experiments.md`** with a quick-reference table, a multiruns table, and a detail section per experiment
 
 If maintained, include `Experiments.md` in the same commit as the config changes — it should travel with the code it describes.
+
+### Keeping the planning artifacts in sync
+
+The four planning artifacts (the design doc, the executable config, `Experiments.md`, and the design index) describe the same experiment from different angles, so they drift the moment one changes without the others. They're cheap to keep aligned if you treat one change as touching all of them. **Whenever you add or change an experiment config, in the same commit:**
+
+1. **Update `Experiments.md`** — regenerate or hand-edit the experiment's row (and its multiruns row) so the registry reflects the config that now exists. `Experiments.md` is *derived from* the config; a stale row is a lie about what's runnable.
+2. **Link the design doc both ways** — the `Experiments.md` entry links to `docs/design/experiment/<slug>.md`, and that design doc's "Status & links" links back to the config (and to `Experiments.md`). The shared `<slug>` is what joins them; the links make the join navigable.
+3. **Update `docs/design/index.md`** — if this is a new experiment, add its line to the design corpus index so the plan view and the config view both list it.
+
+The direction of truth is **config → `Experiments.md`** (the registry is regenerated from the source) and **design doc ↔ config** (the doc is the contract, the config is its implementation — when they disagree, reconcile, don't silently let the config win). For the full file-roles map and which view owns what, see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts — and how they connect".
 
 ### Format
 

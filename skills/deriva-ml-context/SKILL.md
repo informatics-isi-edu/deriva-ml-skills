@@ -87,6 +87,15 @@ Bottom line: **`Experiments.md` = the runnable view (from configs); `docs/design
 explicit links, not merged.** Owned by `/deriva-ml:configure-experiment`
 (Experiments.md) and `/deriva-ml:design-experiment` (the design bundle).
 
+**Keeping them in sync:** because these are views of one experiment, a change to
+one usually means a change to the others — the direction of truth is config →
+`Experiments.md` (the registry is regenerated from the config) and design doc ↔
+config (the doc is the contract). When you add or change an experiment config,
+update `Experiments.md`, link the design doc both ways, and add the design-index
+line **in the same commit**. The full sync checklist lives in
+`/deriva-ml:configure-experiment` → "Keeping the planning artifacts in sync"; the
+end-to-end design → config → update-registry → run flow is `/deriva-ml:experiment-lifecycle`.
+
 **Which skill do I start with?**
 
 | Your situation | Start with |
