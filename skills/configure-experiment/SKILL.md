@@ -119,9 +119,9 @@ Generated from `src/configs/experiments.py` and `src/configs/multiruns.py`.
 
 ## Experiments
 
-| Experiment | Model Config | Dataset | Description |
-|------------|-------------|---------|-------------|
-| `name` | `model_config_name` | `dataset_name` | Brief purpose |
+| Experiment | Model Config | Dataset | Design | Description |
+|------------|-------------|---------|--------|-------------|
+| `name` | `model_config_name` | `dataset_name` | [design](docs/design/experiment/name.md) | Brief purpose |
 
 ## Multiruns
 
@@ -136,7 +136,10 @@ Generated from `src/configs/experiments.py` and `src/configs/multiruns.py`.
 - **Config group overrides**: `model_config=X`, `datasets=Y`
 - **Parameters**: epochs, channels, batch size, learning rate, etc.
 - **Purpose**: Why this experiment exists
+- **Design doc**: link to `docs/design/experiment/<slug>.md` (the plan + Validation criteria + Outcome) when one exists — omit if not yet designed
 ```
+
+`Experiments.md` is the **runnable/config view** of experiments; `docs/design/experiment/<slug>.md` is the **plan view** (Goal, Validation, Outcome). They share the experiment `<slug>` — link each Experiments.md entry to its design doc (and the design doc's "Status & links" points back at the config). The two registries — `Experiments.md` (config) and `docs/design/index.md` (design corpus) — are connected by these links, not merged; see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts — and how they connect".
 
 ## Configuring storage locations in `configs/deriva.py`
 

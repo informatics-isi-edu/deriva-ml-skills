@@ -90,6 +90,13 @@ bundle. The contract an author must uphold:
   directory listing). When you author a design doc, add/update its line there as
   a link, under the right entity subsection. Create `index.md` from
   `references/index-template.md` if it doesn't exist yet.
+  - **Relationship to `Experiments.md`:** `docs/design/index.md` is the *design*
+    (plan) index; the root `Experiments.md` is the *config* (runnable) index of
+    experiments — two views of the same experiments, joined by `<slug>`, not
+    merged. Keep the experiment design doc's **Status & links** pointing at its
+    config entry, and `Experiments.md`'s entry pointing back at the design doc, so
+    a reader can move between plan and runnable view. (The full file-roles map is
+    in `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts".)
 
 ### Link related specs together (the connected-corpus payoff)
 
