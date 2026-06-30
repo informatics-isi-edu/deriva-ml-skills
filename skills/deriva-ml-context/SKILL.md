@@ -152,17 +152,28 @@ For **read-side questions about an existing entity** — "show me X by RID," "wh
 
 The URI is constructable from the catalog hostname + ID + entity RID — no tool search needed. Reach for tools when the resource doesn't cover the question (paginated browsing of large asset tables → `deriva_ml_list_assets`; element-type discovery → `deriva_ml_list_dataset_element_types`; mutations and complex queries → the appropriate `deriva_ml_*` tool).
 
-### Render RIDs as links to `cite_url`
+### Always render a RID as a click-through link — never bare text
 
-When presenting RIDs from a bundle resource to the user, render them as Markdown links to the row's `cite_url` field rather than as bare strings. The bundle resources carry per-row `cite_url` on `DatasetDetail`, `ExecutionInputDatasetRef`, and `ExecutionAssetRef`. The URL form is the `/id/`-resolver (`https://{host}/id/{cat}/{rid}[@snaptime]`):
+**Global rule for the whole plugin: anywhere a RID appears in Markdown — your chat
+output AND any document you write (design docs under `docs/design/`,
+`tacit-knowledge.md`, READMEs, `Experiments.md`, PR descriptions) — render it as a
+click-through Markdown link, never as a bare string.** A bare RID is a dead end: a
+reader cannot follow it back to the catalog without hand-reconstructing a URL. The
+link form is the `/id/`-resolver (`https://{host}/id/{cat}/{rid}[@snaptime]`):
 
-- For **datasets** at a released version, `cite_url` is snapshot-pinned (`...@{snaptime}`) — clicking it lands on the dataset state at that release.
-- For **datasets** at a dev version (PEP 440 `is_devrelease`, e.g. `0.4.0.post1.dev3` per ADR-0003), `cite_url` has no snaptime — clicking it lands on the live catalog state.
-- For **assets / executions / workflows / features**, `cite_url` is always the live form (no snaptime) — those entities are not versioned the way datasets are.
+- For **datasets** at a released version it is snapshot-pinned (`...@{snaptime}`) — clicking lands on the dataset state at that release.
+- For **datasets** at a dev version (PEP 440 `is_devrelease`, e.g. `0.4.0.post1.dev3` per ADR-0003) it has no snaptime — clicking lands on the live catalog state.
+- For **assets / executions / workflows / features** it is always the live form (no snaptime) — those entities aren't versioned the way datasets are.
 
-Example: a one-row asset summary should render as `[8N4](https://localhost/id/1407/8N4) cifar10_cnn_weights.pt`, not as `8N4 cifar10_cnn_weights.pt`. Bare RIDs in human-facing tables are a missed-handoff — the reader cannot follow back to the catalog without copy-pasting and reconstructing a URL by hand.
+**Where the URL comes from, by context:**
+- **Presenting RIDs from a bundle resource** (chat output): use the row's `cite_url` field — the bundle resources (`DatasetDetail`, `ExecutionInputDatasetRef`, `ExecutionAssetRef`, …) carry per-row `cite_url`.
+- **Writing a RID into a document** (you have a `ml = DerivaML(...)` in scope — the author of a design doc or journal entry does): call `ml.cite(rid)`, which returns the same permanent `/id/` URL (snapshot-pinned by default; `ml.cite(rid, current=True)` for the live form). Paste the returned URL into the Markdown link.
 
-When `cite_url` is `None` on a row (best-effort failure or a thinly-built ref), fall back to displaying the bare RID — but flag the gap rather than fabricating a URL.
+Example: `[8N4](https://localhost/id/1407/8N4) cifar10_cnn_weights.pt`, not `8N4 cifar10_cnn_weights.pt`. The same applies to a design doc's "Outcome" execution RID, a `tacit-knowledge.md` entry's catalog handle, an `Experiments.md` row — every one is `[label](cite-url)`.
+
+This is the **citation URL** (for a human to click through), distinct from the `deriva://catalog/…` **resource URI** (for programmatic/MCP fetches against the live catalog). Use the citation URL whenever the audience is a reader.
+
+When no `cite_url` is available (a best-effort failure, a thinly-built ref, or `ml.cite()` can't resolve the RID), fall back to the bare RID — but **flag the gap rather than fabricating a URL** (the never-guess rule).
 
 ### Cold-start orientation: call the primer before the first MCP call
 

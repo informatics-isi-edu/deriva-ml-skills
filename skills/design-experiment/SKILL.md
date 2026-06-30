@@ -77,6 +77,13 @@ bundle. The contract an author must uphold:
   not a physical resource — even after the entity is built. The produced RID +
   version belong in the prose "Status & links" section and `tacit-knowledge.md`,
   not in frontmatter.
+- **Render every catalog RID as a click-through link, not bare text.** When you
+  fill "Status & links" (the produced RID, the Outcome's execution, a baseline
+  RID), write each RID as a Markdown link to its `ml.cite(rid)` citation URL —
+  `[execution 8KG](https://localhost/id/96/8KG@2P-XYZW)` — so a reader can click
+  from the design doc to the catalog record. This is the plugin-wide rule, owned
+  by `/deriva-ml:deriva-ml-context` → "Always render a RID as a click-through
+  link"; it applies to design docs exactly as it does to `tacit-knowledge.md`.
 - The body stays human-readable Markdown; the worked example uses the `##
   Examples` heading (OKF convention).
 - **Maintain `docs/design/index.md`** — the OKF bundle root (a `type: Index`
