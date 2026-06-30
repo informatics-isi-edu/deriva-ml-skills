@@ -529,7 +529,7 @@ dependencies = [
 
 [[package]]
 name = "deriva-ml-skills"
-version = "1.13.5"
+version = "1.13.6"
 source = { virtual = "." }
 
 [package.dev-dependencies]
