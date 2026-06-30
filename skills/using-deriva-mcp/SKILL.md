@@ -41,6 +41,20 @@ registered as — commonly `deriva`, sometimes `dev-localhost`, sometimes
 project-specific. If `ListMcpResourcesTool({server: "<name>"})` returns
 successfully, that's the right name.
 
+**Step 1.5 — confirm the server is authenticated to the target catalog.**
+Before the first *catalog* operation against a host/catalog (especially a fresh
+session, a host you haven't touched, or after 401-looking failures), call
+`deriva_ml_check_authentication(hostname, catalog_id)`. It returns
+`{"authenticated": bool, "identity": {...}|null}` — the **MCP server's** session
+for *that* catalog (the server holds the per-request credential, not your local
+machine). `authenticated: false` → tell the user they're not logged in before you
+fan out catalog reads/writes; a connection/DNS/TLS failure returns `{"error": ...}`
+instead (a different problem — that's `/deriva:troubleshoot-deriva-errors`). This
+confirms *authentication*, not *authorization* — see
+`/deriva-ml:deriva-ml-context` → "Confirm authentication before the first catalog
+operation" for the canonical rule (and the parallel `ml.is_authenticated()` check
+on the Python side).
+
 **Step 2 — fetch a guide on demand, only when you reach its tool group.**
 The primer's manifest names the available guides but does not inline their
 bodies. Fetch a guide the first time you are about to use the tools it
