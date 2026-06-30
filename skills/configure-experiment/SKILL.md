@@ -111,7 +111,24 @@ If maintained, include `Experiments.md` in the same commit as the config changes
 
 ### Format
 
+`Experiments.md` is an **OKF document** (Markdown + YAML frontmatter) — it opens
+with a frontmatter block, then the `# Experiments` H1 and the registry tables. It
+is the config-derived counterpart to the design bundle's `docs/design/index.md`
+(also `type: Index`); both list "all experiments," one from configs and one from
+design docs (see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts").
+
 ```markdown
+---
+type: Index
+title: Experiments — <project name>
+description: >
+  Config-derived registry of every defined experiment and multirun in this
+  project — config-group overrides, key parameters, and a link to each
+  experiment's design doc. Generated from src/configs/experiments.py and
+  multiruns.py.
+tags: [experiments, configs, deriva-ml]
+---
+
 # Experiments
 
 Human-readable registry of all defined experiments and multiruns.

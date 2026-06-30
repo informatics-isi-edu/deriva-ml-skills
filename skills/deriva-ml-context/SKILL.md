@@ -59,7 +59,7 @@ a substitute for another:
 |---|---|---|---|
 | `docs/design/<entity>/<slug>.md` | **The plan & verdict** for one experiment / dataset / feature / model — Goal, Validation criteria, Outcome | hand-authored up-front (`/deriva-ml:design-experiment`), Outcome filled after the run | OKF concept doc (`Experiment Design`, …) |
 | `docs/design/index.md` | **The design corpus index** — one line per design doc across all four entity types | maintained as docs are authored | OKF `type: Index` (bundle root) |
-| `Experiments.md` (project root) | **The runnable/config view** — every *configured* experiment + multirun, with config-group overrides, key params, purpose | generated from `src/configs/experiments.py` + `multiruns.py` | free-form Markdown registry |
+| `Experiments.md` (project root) | **The runnable/config view** — every *configured* experiment + multirun, with config-group overrides, key params, purpose, and a link to each experiment's design doc | generated from `src/configs/experiments.py` + `multiruns.py` | OKF `type: Index` (config-derived registry; the runnable-view sibling of `docs/design/index.md`) |
 | `src/configs/experiments.py` | **The executable definition** — the hydra-zen config the run actually loads | hand-authored | Python (hydra-zen) |
 | `tacit-knowledge.md` | **The running journal** — *why* decisions were made, what was learned | appended as you work | OKF `Log` |
 
