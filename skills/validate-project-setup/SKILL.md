@@ -36,12 +36,11 @@ The validation walks five categories. For each item, report **present**, **parti
 | `src/` | present | Python source tree |
 | `notebooks/` | present | Jupyter notebook directory (may be empty if the project doesn't use notebooks) |
 | `tests/` | present | Test suite directory |
-| `tacit-knowledge.md` | present | Auto-maintained by `capture-tacit-knowledge`; captures decisions over time |
+| `tacit-knowledge.md` (root) | present, tracked in git, opens with `type: Log` frontmatter, not gitignored | The append-only tacit-knowledge Log, scaffolded by `seed_tk_topics.py` (see `/deriva-ml:setup-derivaml-project` → "Seed the tacit-knowledge system"); captures decisions over time |
 | `docs/design/` | present once any design exists (optional early) | Design docs — the up-front Specify-phase contracts, in per-entity subdirs `docs/design/{experiment,dataset,feature,model}/<slug>.md`. Authored by `design-experiment`; the "before" companion to `tacit-knowledge.md`. Absent on a brand-new project; expected once the user has designed an experiment/dataset/feature/model. Design docs follow OKF (Markdown + YAML frontmatter); when present, each `<entity>/<slug>.md` should open with frontmatter carrying at least `type` (one of `Dataset Design` / `Experiment Design` / `Feature Design` / `Model Design`). A `docs/design/index.md` bundle listing is expected once any design exists. |
 | `Experiments.md` | present (optional but strongly recommended) | Human-readable registry of named experiments and multiruns |
 | `README.md` | present | Project description (may be the template's default; flag if so) |
 | `.gitignore` | present | Should ignore `outputs/`, `multirun/`, `.deriva-ml/`, etc. |
-| `tacit-knowledge.md` (root) | present, tracked in git, opens with `type: Log` frontmatter, not gitignored | The append-only tacit-knowledge Log, scaffolded by `seed_tk_topics.py` (see `/deriva-ml:setup-derivaml-project` → "Seed the tacit-knowledge system") |
 | `docs/tacit-knowledge/topics.md` | present, OKF controlled-term list, reviewed (not just the raw seed) | The topic CV — human-reviewed, not left as the raw seed output |
 | `docs/tacit-knowledge/index.md` | present, `type: Index`, has `covers_through` | Derived retrieval index — do not hand-edit; rebuilt by `capture-tacit-knowledge` |
 | `docs/domain/index.md` | present | Domain-background bundle root — the `type: Concept` docs for durable, non-episodic domain facts |
