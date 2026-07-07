@@ -46,16 +46,23 @@ def test_log_frontmatter_is_okf_log():
 
 def test_gitattributes_has_three_drivers():
     ga = s.render_gitattributes()
-    assert "tacit-knowledge.md" in ga and "merge=union" in ga
+    assert "tacit-knowledge.md" in ga
     assert "docs/tacit-knowledge/topics.md" in ga
-    assert "docs/tacit-knowledge/index.md" in ga and "merge=ours" in ga
+    assert "docs/tacit-knowledge/index.md" in ga
+    # All three tacit-knowledge files use merge=union on their driver lines
+    # (index included — it's a cache, so a union'd merge is harmless and
+    # discarded by the next rebuild; merge=ours would need per-clone git
+    # config nothing here registers).
+    driver_lines = [
+        line for line in ga.splitlines() if line and not line.strip().startswith("#")
+    ]
+    assert len(driver_lines) == 3
+    assert all(line.strip().endswith("merge=union") for line in driver_lines)
 
 
 def test_domain_index_is_concept_bundle_root():
     md = s.render_domain_index_md()
-    assert (
-        "type: Concept" in md or "type: Index" in md
-    )  # bundle root is an Index over Concepts
+    assert "type: Index" in md  # bundle root is an Index over Concept docs
 
 
 def test_is_gitignored_detects_direct_match(tmp_path):

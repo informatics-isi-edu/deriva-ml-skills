@@ -20,33 +20,8 @@ Example:
 from __future__ import annotations
 
 import argparse
-import shutil
 import sys
 from pathlib import Path
-
-
-def _find_uv() -> str | None:
-    """Locate the uv binary under a possibly-minimal PATH.
-
-    Claude Code (especially the Desktop app) may not source shell profiles, so
-    $PATH can be incomplete. Try shutil.which first, then well-known install
-    locations.
-
-    Returns:
-        Absolute path to uv, or None if it cannot be found.
-
-    Example:
-        >>> _find_uv() is None or _find_uv().endswith("uv")
-        True
-    """
-    found = shutil.which("uv")
-    if found:
-        return found
-    for base in ("~/.local/bin", "~/.cargo/bin", "/opt/homebrew/bin", "/usr/local/bin"):
-        candidate = Path(base).expanduser() / "uv"
-        if candidate.exists():
-            return str(candidate)
-    return None
 
 
 def fixed_baseline_topics() -> list[dict]:
@@ -220,7 +195,9 @@ def render_gitattributes() -> str:
     """Render the .gitattributes merge drivers for the tacit-knowledge files.
 
     Returns:
-        Three merge-driver lines (union for Log + CV, ours for the derived index).
+        Three merge-driver lines, all `merge=union` (Log, topic CV, and the
+        derived index — the index is a cache, so a union'd merge is harmless
+        and discarded whole by the next capture-triggered rebuild).
 
     Example:
         >>> "merge=union" in render_gitattributes()
@@ -229,11 +206,15 @@ def render_gitattributes() -> str:
     return "\n".join(
         [
             "# Tacit-knowledge merge drivers (see capture-tacit-knowledge D12).",
-            "# Log and topic CV union-merge (both branches append); the derived index is",
-            "# regenerated post-merge, never hand-merged.",
+            "# All three union-merge. Log and topic CV union because both branches",
+            "# append; the derived index unions too — it's a cache, so a union'd",
+            "# merge is harmless and gets discarded whole by the next",
+            "# capture-triggered rebuild. merge=union needs no extra git config",
+            "# (it's a built-in driver); merge=ours would need per-clone config",
+            "# nothing here registers.",
             "tacit-knowledge.md             merge=union",
             "docs/tacit-knowledge/topics.md merge=union",
-            "docs/tacit-knowledge/index.md  merge=ours",
+            "docs/tacit-knowledge/index.md  merge=union",
             "",
         ]
     )
@@ -278,10 +259,16 @@ def render_domain_index_md() -> str:
 
 
 def is_gitignored(repo_root: str, relpath: str) -> bool:
-    """Check whether relpath would be ignored by the repo's .gitignore.
+    """Check whether relpath appears as a direct line match in .gitignore.
 
-    Uses `git check-ignore` when git is available; falls back to a direct
-    line-match against .gitignore otherwise. The Log must never be gitignored.
+    Pure line-matching, no `git` invocation: reads .gitignore and compares
+    each non-comment, non-blank line (trailing slash stripped) against
+    relpath. This does NOT evaluate glob or directory patterns — a rule like
+    `*.md` or `docs/` will NOT be detected even though `git check-ignore`
+    would treat tacit-knowledge.md as ignored by it. Only an exact-line match
+    (e.g. a literal `tacit-knowledge.md` entry) is caught. The Log must never
+    be gitignored, but a glob-based exclusion can currently slip past this
+    check.
 
     Args:
         repo_root: Absolute path to the repository root.

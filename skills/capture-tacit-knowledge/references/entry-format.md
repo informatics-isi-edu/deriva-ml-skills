@@ -249,11 +249,17 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
    - Domain concept → the **`docs/domain/` subject**
      (`### tk-049 — Staining varies across the two sites (domain: staining-variance)`)
 
-   For a catalog artifact the URL inside the markdown link comes from `ml.cite(rid)`
-   (see below); for Family B/C anchors there is no citation URL — the bare handle is
-   the anchor.
-
-   The URL inside the markdown link comes from `ml.cite(rid)` — the deriva-ml citation API. The persona writing the entry already has a `ml = DerivaML(...)` instance in scope (the same one being used for the action this entry records); call `ml.cite("8KG")` and it returns `https://{host}/id/{catalog}/8KG@{snapshot_time}` — a **permanent citation URL** that pins the catalog snapshot at write-time so the link still resolves to the same record years later, even after subsequent catalog writes. Default behavior is the permanent (snapshot-pinned) URL; `ml.cite(rid, current=True)` returns the current-state URL without a snapshot suffix, but the snapshot-pinned form is what you want for tacit-knowledge entries.
+   For a catalog artifact the URL inside the markdown link comes from `ml.cite(rid)` —
+   the deriva-ml citation API; for Family B/C anchors there is no citation URL, since
+   the bare handle is the anchor. The persona writing the entry already has a
+   `ml = DerivaML(...)` instance in scope (the same one being used for the action this
+   entry records); call `ml.cite("8KG")` and it returns
+   `https://{host}/id/{catalog}/8KG@{snapshot_time}` — a **permanent citation URL**
+   that pins the catalog snapshot at write-time so the link still resolves to the same
+   record years later, even after subsequent catalog writes. Default behavior is the
+   permanent (snapshot-pinned) URL; `ml.cite(rid, current=True)` returns the
+   current-state URL without a snapshot suffix, but the snapshot-pinned form is what
+   you want for tacit-knowledge entries.
 
    The link is markdown — `[execution 8KG](url-from-cite)` — not bare text. This is the **durable** way to reference catalog entities from a markdown-rendered document: a reader in any viewer (GitHub, IDE preview, mdbook, browser-rendered Markdown) can click through and land on the catalog record.
 

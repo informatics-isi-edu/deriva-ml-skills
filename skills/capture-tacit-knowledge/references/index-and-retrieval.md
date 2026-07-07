@@ -66,6 +66,13 @@ keyword summary.
 **Goal: context-window economy.** Load only what is required so as not to blow the
 context store. The index bounds the token cost; the Log's front is never scanned.
 
+**v1 scope note (D8).** The index's `generated_from` is `tacit-knowledge.md` only —
+retrieval in v1 indexes and reads the **Log**, not the domain-background Concept docs
+in `docs/domain/`. A domain doc is reached indirectly, via a Family-C anchor recorded
+on a Log entry, not by direct index lookup. Weaving domain-background retrieval and
+decision retrieval into a single dual-source loop (`generated_from` spanning both the
+Log and `docs/domain/`) is a **deferred phase**, not part of this build.
+
 Two-part read along the cold/warm boundary:
 
 1. **Cold history (the bulk):** read the **index** → collect candidates by anchor and
@@ -158,13 +165,20 @@ cleanly:
 ```
 tacit-knowledge.md             merge=union
 docs/tacit-knowledge/topics.md merge=union
-docs/tacit-knowledge/index.md  merge=ours    # regenerated post-merge; never hand-merged
+docs/tacit-knowledge/index.md  merge=union   # regenerated post-merge; never hand-merged
 ```
 
 - **Log = union merge.** Both branches append at EOF; union concatenates both sides.
   Branch-scoped IDs guarantee the union is well-formed.
-- **Index = `merge=ours` + regenerate.** A merged index is meaningless; the next
-  capture-triggered rebuild reconciles it against the merged Log.
+- **Index = union merge + regenerate.** A union'd index is a meaningless cache — rows
+  from both branches interleaved with no guaranteed structure — but that's harmless,
+  not corrupting: the very next capture-triggered rebuild discards the merged file
+  wholesale and re-derives it fresh from the merged Log. Using `merge=union` here
+  (rather than `merge=ours`) matters because `merge=ours` is not a git built-in — it
+  requires `git config merge.ours.driver true` registered per-clone, which nothing
+  here sets up, so an unconfigured clone gets a real merge *conflict* on concurrent
+  index edits instead of a clean merge. `merge=union` is a built-in driver and needs
+  no such setup.
 - **Topic CV = union merge.** Human-gated terms are real content, so it can't be
   regenerated; union keeps both branches' terms and the next discovery pass surfaces
   near-duplicates for human merge-into-synonym.

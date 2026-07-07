@@ -37,9 +37,9 @@ user-invocable in the loop):
 |---|---|---|
 | The Log | `tacit-knowledge.md` (project root) | OKF `Log` — append-only |
 | Derived retrieval index | `docs/tacit-knowledge/index.md` | OKF `Index` — cache, rebuilt whole |
-| Topic CV | `docs/tacit-knowledge/topics.md` | OKF controlled-term list — human-gated |
+| Topic CV | `docs/tacit-knowledge/topics.md` | OKF `Index` (controlled-term list) — human-gated |
 | Domain-background bundle | `docs/domain/` (+ `index.md`) | OKF `Concept` docs — refined in place |
-| Merge drivers | `.gitattributes` | `merge=union` (Log, CV) + `merge=ours` (index) |
+| Merge drivers | `.gitattributes` | `merge=union` (Log, CV, and index) |
 
 Run it once:
 
@@ -56,12 +56,18 @@ five artifacts lives in `deriva-ml-model-template`.
 
 ### The `.gitattributes` merge drivers matter
 
-`merge=union` needs no extra git config (it's a built-in driver). It makes the Log and
-topic CV merge cleanly when two teammates append in parallel. The index uses
-`merge=ours` because it's a cache — the next capture-triggered rebuild reconciles it
-against the merged Log. See `references/index-and-retrieval.md` → "Merge and the
-normalizer" for why, and for the post-merge normalizer that repairs any line-level
-interleaving `merge=union` can introduce.
+`merge=union` needs no extra git config (it's a built-in driver), and all three
+tacit-knowledge files use it. It makes the Log and topic CV merge cleanly when two
+teammates append in parallel. The index also unions — a union'd index is a
+meaningless cache (rows from both branches interleaved with no guaranteed
+structure), but that's harmless: the next capture-triggered rebuild discards it
+whole and reconciles a fresh index against the merged Log. (`merge=ours` was
+considered and rejected for the index: it is not a git built-in — it requires
+`git config merge.ours.driver true` registered per-clone, which nothing sets up, so
+an unconfigured clone would hit a real merge conflict instead.) See
+`references/index-and-retrieval.md` → "Merge and the normalizer" for why, and for
+the post-merge normalizer that repairs any line-level interleaving `merge=union`
+can introduce.
 
 ## Relationship to other project files
 
