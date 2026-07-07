@@ -82,7 +82,27 @@ DerivaML projects follow these conventions:
 - **Notebook hygiene**: Install `nbstripout` (covered in `/deriva-ml:setup-notebook-environment`) so notebook outputs never get committed.
 - **No data files in Git**: Store data in Deriva catalogs and pin dataset versions in experiment configs. The catalog IS the data store; the repo is for code.
 
-## Step 5: Verify and move on
+## Step 5: Seed the tacit-knowledge system
+
+Every DerivaML project accumulates *why*-knowledge in a tacit-knowledge system (the
+append-only Log + a derived retrieval index + a topic CV + a domain-background bundle).
+Scaffold all of it in one step:
+
+```bash
+uv run python \
+  <deriva-ml-skills>/skills/capture-tacit-knowledge/scripts/seed_tk_topics.py \
+  --repo-root . --project-name "<Project Name>"
+```
+
+Then **augment the seed topic CV with project-specific guesses**: read the repo, the
+catalog's controlled vocabularies, and the project's domain, and propose 5–15
+project-specific topic terms (authored to the `term-naming-strategy` discipline) into
+`docs/tacit-knowledge/topics.md` under the matching axis heading. Present the combined
+seed + augmentation for the user to review before committing — the CV is human-gated.
+See `/deriva-ml:capture-tacit-knowledge` → `references/index-and-retrieval.md` for how
+the CV is used.
+
+## Step 6: Verify and move on
 
 After bootstrap, run `/deriva-ml:validate-project-setup` to confirm the project conforms to the expected layout (`src/configs/`, `src/models/`, `src/scripts/`, `notebooks/`, `pyproject.toml` entry points, `tacit-knowledge.md`, `Experiments.md`).
 
