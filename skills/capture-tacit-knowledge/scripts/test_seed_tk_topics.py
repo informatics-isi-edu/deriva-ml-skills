@@ -66,3 +66,31 @@ def test_is_gitignored_detects_direct_match(tmp_path):
 def test_is_gitignored_false_when_absent(tmp_path):
     (tmp_path / ".gitignore").write_text("*.pyc\n")
     assert s.is_gitignored(str(tmp_path), "tacit-knowledge.md") is False
+
+
+def test_main_appends_merge_drivers_to_existing_gitattributes(tmp_path):
+    # A repo that already has a .gitattributes with unrelated rules should get
+    # the tacit-knowledge merge drivers appended, even without --overwrite.
+    ga = tmp_path / ".gitattributes"
+    ga.write_text("*.pyc binary\n")
+
+    rc = s.main(["--repo-root", str(tmp_path), "--project-name", "X"])
+
+    assert rc == 0
+    text = ga.read_text()
+    assert "*.pyc binary" in text
+    assert "merge=union" in text
+
+
+def test_main_gitattributes_append_is_idempotent(tmp_path):
+    ga = tmp_path / ".gitattributes"
+    ga.write_text("*.pyc binary\n")
+
+    s.main(["--repo-root", str(tmp_path), "--project-name", "X"])
+    s.main(["--repo-root", str(tmp_path), "--project-name", "X"])
+
+    text = ga.read_text()
+    # The rendered driver block itself contains two merge=union lines by
+    # design (Log + topic CV); assert the whole block appears once, not that
+    # the substring count is 1.
+    assert text.count("Tacit-knowledge merge drivers") == 1

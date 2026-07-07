@@ -348,25 +348,35 @@ def main(argv: list[str] | None = None) -> int:
         "docs/tacit-knowledge/topics.md": render_topics_md(fixed_baseline_topics()),
         "docs/tacit-knowledge/index.md": render_empty_index_md(),
         "docs/domain/index.md": render_domain_index_md(),
-        ".gitattributes": render_gitattributes(),
     }
     written = []
+
+    # .gitattributes is handled first and separately: a pre-existing file with
+    # unrelated rules must get the tacit-knowledge merge drivers appended even
+    # without --overwrite. It must NOT go through the generic skip-if-exists
+    # guard below, which would (and did) short-circuit the append entirely.
+    gitattributes_content = render_gitattributes()
+    ga_dest = root / ".gitattributes"
+    if ga_dest.exists():
+        if "tacit-knowledge.md" not in ga_dest.read_text():
+            with ga_dest.open("a") as fh:
+                fh.write("\n" + gitattributes_content)
+            print("append (merge drivers): .gitattributes")
+            written.append(".gitattributes")
+        else:
+            print("skip (already has drivers): .gitattributes")
+    else:
+        ga_dest.parent.mkdir(parents=True, exist_ok=True)
+        ga_dest.write_text(gitattributes_content)
+        written.append(".gitattributes")
+
     for rel, content in artifacts.items():
         dest = root / rel
         if dest.exists() and not args.overwrite:
             print(f"skip (exists): {rel}")
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        # .gitattributes may already exist with unrelated rules — append, don't clobber.
-        if (
-            rel == ".gitattributes"
-            and dest.exists()
-            and "tacit-knowledge.md" not in dest.read_text()
-        ):
-            with dest.open("a") as fh:
-                fh.write("\n" + content)
-        else:
-            dest.write_text(content)
+        dest.write_text(content)
         written.append(rel)
 
     if written:
