@@ -235,12 +235,23 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 - **Title starts with the entry identifier** — `tk-NNN` on trunk, `tk-<branch>-NNN` on a work branch (see "entry identifier" above). The next number is one more than the highest existing identifier *in the same scope* (trunk numbers count trunk entries; a branch's numbers count that branch's entries).
 - **No dates in titles.** Time information lives in the `**When:**` header field, not the title; embedding a date in the title duplicates that field and rots if the entry is later edited.
 - **No author names in titles.** Attribution lives in the `**By:**` header field. Embedding a name in the title (`### tk-042 — Carl's animal subset`) duplicates the field and forces a title edit if attribution changes (e.g., adding a second decider).
-- **Title includes the durable catalog handle in parentheses, written as a click-through markdown link** — the navigation anchor for what the entry refers to. Pick the RID a reader would use to find related artifacts, then render it via the deriva-ml citation API so the link is browser-openable and snapshot-pinned:
+- **Title includes the entry's anchor in parentheses** — the navigation handle for what the entry is *about*, drawn from the anchor taxonomy (see `references/anchor-taxonomy.md`). An anchor can be a catalog artifact (Family A), a process (Family B), or a socio-technical/domain subject (Family C) — not only a RID. When the anchor is a catalog artifact, render it as a click-through markdown link via the deriva-ml citation API so the link is browser-openable and snapshot-pinned:
    - Model run → **execution RID** (`### tk-042 — ... ([execution 8KG](https://localhost/id/96/8KG@2P-XYZW))`)
    - Feature creation → **feature RID** (`### tk-043 — ... ([feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW))`)
    - Vocabulary addition (terms only) → **vocabulary RID** (`### tk-044 — ... ([vocabulary 9PR0](https://localhost/id/96/9PR0@2P-XYZW))`)
    - Dataset creation or split → **dataset RID with version** (`### tk-045 — ... ([dataset 7KE v0.4.0](https://localhost/id/96/7KE@2P-XYZW))`)
    - Schema change → **table RID** (`### tk-046 — ... ([table 5-AB12](https://localhost/id/96/5-AB12@2P-XYZW))`)
+   - Process knowledge (how the work is done) → **the owning skill name**, as bare
+     text, no `ml.cite` (`### tk-047 — Convention — we always dry-run a sweep first (dataset-lifecycle)`)
+   - Social/team fact → a short **role/convention phrase**, no RID
+     (`### tk-048 — QC criteria owned by the pathology reviewer`) — observe the
+     Family-C privacy constraint in `references/anchor-taxonomy.md`
+   - Domain concept → the **`docs/domain/` subject**
+     (`### tk-049 — Staining varies across the two sites (domain: staining-variance)`)
+
+   For a catalog artifact the URL inside the markdown link comes from `ml.cite(rid)`
+   (see below); for Family B/C anchors there is no citation URL — the bare handle is
+   the anchor.
 
    The URL inside the markdown link comes from `ml.cite(rid)` — the deriva-ml citation API. The persona writing the entry already has a `ml = DerivaML(...)` instance in scope (the same one being used for the action this entry records); call `ml.cite("8KG")` and it returns `https://{host}/id/{catalog}/8KG@{snapshot_time}` — a **permanent citation URL** that pins the catalog snapshot at write-time so the link still resolves to the same record years later, even after subsequent catalog writes. Default behavior is the permanent (snapshot-pinned) URL; `ml.cite(rid, current=True)` returns the current-state URL without a snapshot suffix, but the snapshot-pinned form is what you want for tacit-knowledge entries.
 
@@ -250,7 +261,7 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 
    Describing the *kinds* of supporting artifacts ("three terms were created"; "model weights, training log, prediction CSV are linked to the execution") is fine and helpful. Reference RIDs sparingly, but **always name at least one representative supporting RID** a cross-domain reader can click through to ("the 8KG run that established the 20% baseline"). Every RID mentioned anywhere in the entry — title parenthetical, body prose, `**Supported by:**` parentheticals — is rendered as `[label](ml.cite(rid))`, never as bare text. Don't enumerate every supporting RID — they go stale, and the catalog already has them linked to the title's handle.
 
-   For entries that don't correspond to a single catalog artifact (conventions, recurring patterns, cross-cutting reasoning entries), the parenthetical handle can be omitted — the `tk-NNN` is sufficient identifier on its own.
+   For entries that don't correspond to a single catalog artifact, prefer a Family B (process = skill name) or Family C (domain subject / role phrase) anchor from `references/anchor-taxonomy.md` — it makes the entry retrievable by the generalization walk. Only when *no* anchor from any family fits (a purely cross-cutting reasoning entry) may the parenthetical be omitted, with `tk-NNN` as the sole identifier.
 - **Length is set by content.** Long enough to answer the six entry parts; short enough to scan in one pass (~5–15 lines in practice).
 - Past tense — these are settled records, not plans.
 
