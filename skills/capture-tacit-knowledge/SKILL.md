@@ -32,6 +32,23 @@ The companion rule for audits: **before writing a numerical or distinctness clai
 
 If you have just made or recorded a decision the file would document, append an entry. Append silently — don't ask permission, don't announce. The bar is **intent**, not "alternatives were weighed": first runs, baselines, and pipeline-validation runs all qualify even when the choice felt obvious. Skip routine read-only operations (querying, listing, browsing schemas) — they leave no entry.
 
+**When an action overrides a prior decision, add a supersession edge.** If what you're
+recording invalidates an earlier entry (not merely builds on it), declare
+`**Supersedes:** [tk-NNN](#tk-NNN)` on the new entry and append `> Superseded by
+[tk-MMM](#tk-MMM)` to the old one — never rewrite the old entry. See
+`references/entry-format.md` → "`**Supersedes:**`". This is what keeps "is this still
+right?" answerable: superseded entries are excluded from retrieval by default.
+
+**Two silent side-effects of appending an entry** (no user action, documented in
+`references/index-and-retrieval.md`):
+1. **Classify** the new entry against the topic CV (`docs/tacit-knowledge/topics.md`) —
+   reuse an existing term via synonym-aware lookup; propose (don't adopt) a new one into
+   the index's `candidate-terms` list if the theme is clearly recurrent and unmatched.
+2. **Check the rebuild throttle** — if ≥ 10 entries have accumulated past the index's
+   `covers_through`, rebuild `docs/tacit-knowledge/index.md` whole in the same turn and
+   note it in one line ("refreshed the tacit-knowledge index — N new entries folded in").
+   Never prompt; never auto-commit the rebuilt index.
+
 ## When to read — two distinct modes
 
 ### Mode A: Guidance (before you act)
@@ -41,6 +58,14 @@ If you have just made or recorded a decision the file would document, append an 
 The bar is low: if the file mentions the entity (by RID) or the change-type ("we tried label smoothing 0.1 on training runs"), surface what it says *before* doing the action. Don't paraphrase — **quote the relevant entry** and let the user decide whether to proceed, adjust, or abandon. The cost of a wasted file-read is seconds; the cost of repeating a documented dead end is hours-to-weeks.
 
 When prior experience contradicts the proposed action, hand the decision back with concrete options rather than blocking — the user may know the original constraints no longer hold.
+
+**How to scan efficiently (don't read the whole Log).** Read the derived index
+(`docs/tacit-knowledge/index.md`) for candidates by anchor and keyword, then read only
+the un-indexed tail by seeking to the index's `covers_through` boundary — not a full
+Log scan. Match anchors by a **generalization walk** (instance → type → abstraction →
+process → social/domain), exclude superseded entries **structurally**, then quote the
+survivors. Full procedure: `references/index-and-retrieval.md`. If the index is absent,
+fall back to a supersession-aware Log scan (read entries, drop tombstoned ones, quote).
 
 ### Mode B: Forensic (when asked why)
 
@@ -69,6 +94,11 @@ Every claim in an entry should be readable as one of three things: *what was dir
 
 For the entry format — the template, field-by-field guidance, and worked examples — see [`references/entry-format.md`](references/entry-format.md).
 
+An entry's **anchor** (what it's about — used for retrieval) can be a catalog artifact,
+a process (a skill name), or a socio-technical/domain subject — not only a RID. See
+[`references/anchor-taxonomy.md`](references/anchor-taxonomy.md) for the three families
+and the Family-C privacy constraint on naming individuals.
+
 ## What doesn't belong here
 
 This file records *why*, not *what*. The catalog is the source of record for facts; this file points at facts but doesn't replicate them. Concretely, **don't write**:
@@ -94,6 +124,15 @@ This file records *why*, not *what*. The catalog is the source of record for fac
 **Do write**: why the dataset was created, why the workflow's type was chosen, why a hyperparameter was selected, what alternatives were rejected and why, what would invalidate this decision, what a future reader needs to know to evaluate whether the decision still holds. Reference catalog entities by their RID rendered as a `ml.cite(rid)` markdown link rather than inlining their fields.
 
 The rule of thumb: **if the catalog could go stale and break what you wrote, the catalog should answer the question, not this file.**
+
+**Durable domain background is a different artifact — put it in `docs/domain/`.** Facts
+about the target domain that aren't tied to one dated decision (staining varies across
+sites; sensitivity is valued over specificity in this field) are *semantic*, not
+*episodic* — they belong in the domain-background bundle (`docs/domain/`, `type: Concept`
+docs refined in place), not in a dated `tk-NNN` Log entry. A domain-concept Log entry
+may *anchor* to a `docs/domain/` subject (Family C of the anchor taxonomy), but the
+durable explanation lives in the Concept doc. Link the catalog term when one exists;
+don't restate it.
 
 ## Examples
 
