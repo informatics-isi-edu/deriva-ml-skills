@@ -41,6 +41,7 @@ Every entry starts with an HTML anchor line and a four-line header. The anchor g
 **When:** <ISO 8601 timestamp with timezone>
 **By:** <display name> (<identity URI>)
 **Supported by:** [tk-…](#tk-…) (parenthetical), [tk-…](#tk-…) (parenthetical)
+**Supersedes:** [tk-…](#tk-…) (what changed) — *only when this entry overrides a prior one*
 ```
 
 The identifier is `tk-NNN` on the trunk branch and `tk-<branch>-NNN` on any other
@@ -136,6 +137,56 @@ Three things to know about this field:
 2. **Provenance markers apply.** A `Supported by:` reference can be `[stated]` (the author told me), `[inferred from action]` (the agent saw them read the prior entry before writing), or `[inferred from pattern]` (the agent guessed based on topic adjacency). Mark each reference if its provenance differs from the default (stated).
 
 3. **Optional, not required.** Not every entry has antecedents. The first few entries in a fresh project, conventions about external constraints, dead-end discoveries — these often have no prior entries to lean on. Write the entry without the `**Supported by:**` line in those cases.
+
+### `**Supersedes:**` — optional forward edge that overrides a prior entry
+
+When a new decision **invalidates** an earlier one (not merely builds on it — that's
+`Supported by:`), the new entry declares a forward edge and the old entry gets an
+appended tombstone. This is how currency is expressed without ever rewriting history.
+
+Two coordinated edits, both additive:
+
+1. **On the new (superseding) entry**, add a header field:
+
+   ```markdown
+   **Supersedes:** [tk-018](#tk-018) (QC/diagnostic separation reversed — pools merged)
+   ```
+
+   Same link form as `Supported by:` — a markdown link to the superseded entry's
+   anchor, plus a short parenthetical naming *what changed*. List multiple
+   comma-separated if one decision retires several.
+
+2. **On the old (superseded) entry**, append a tombstone as the last line of its body
+   (never edit the entry's existing prose — append only):
+
+   ```markdown
+   > Superseded by [tk-047](#tk-047)
+   ```
+
+   The `>` blockquote makes it visually distinct; the link points *forward* to the
+   entry that replaced it. The old entry's original text stays byte-for-byte intact —
+   the tombstone is the only addition. This is the **one narrow exception** to "an
+   entry's text doesn't change once written": the entry's existing prose is never
+   edited, but exactly one line may be appended after it, and only ever this line.
+
+**Direction is the mirror of `Supported by:`.** `Supported by:` points backward to
+antecedents; `Supersedes:` points forward to what a decision *replaces*. Together with
+the tombstone's forward link, an entry knows both what it overrode and (if later
+overridden) what overrode it.
+
+**Currency lives in these edges, never in a separate "current list."** "Is this still
+right?" is answered by reading the edges: an entry with a tombstone is superseded; an
+entry without one is current. There is no authoritative live list to keep in sync.
+
+**Retrieval excludes superseded entries by default — structurally, not by reading the
+tombstone text.** See `references/index-and-retrieval.md` → "Supersession is structural
+at retrieval": a superseded `tk-NNN` is dropped from candidate results before the LLM
+ever quotes it, so stale knowledge is never served as current. The tombstone is the
+human-readable breadcrumb; the *structural* exclusion (the index's `superseded-by`
+column, or the on-the-fly edge scan when there's no index) is what actually protects
+retrieval. A tombstone alone, relied on as a text marker, is not sufficient — under
+similarity retrieval a stale entry is served 15–40% of the time when both versions
+match (report §3.6). Never delete a superseded entry; never serve it as if current.
 
 ### Walking the chain
 
