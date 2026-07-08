@@ -274,6 +274,75 @@ def test_lookup_warm_tail_excludes_catalog_superseded_without_tombstone(tmp_path
     assert all(r["id"] != "tk-004" for r in result)
 
 
+def test_lookup_catalog_hit_excluded_by_tombstone_when_column_stale(tmp_path):
+    # Post-supersession, pre-rebuild: the catalog row's superseded-by cell is
+    # still empty (the catalog hasn't been rebuilt yet — the 10-entry throttle
+    # hasn't fired), but the Log span for that same entry already carries a
+    # `> Superseded by ...` tombstone (tombstones are written at capture time,
+    # independent of the catalog rebuild cadence). A catalog HIT (not a
+    # warm-tail entry) must still be excluded — the Log tombstone is the
+    # authoritative backstop over the whole result set, regardless of which
+    # path (catalog vs. warm tail) surfaced the id.
+    root = _make_project(tmp_path)
+
+    # tk-002 is a normal catalog entry (covered by covers_through) with no
+    # tombstone. Add one directly to its Log span to simulate a supersession
+    # that hasn't been reflected in the catalog's superseded-by column yet.
+    log = root / "tacit-knowledge.md"
+    text = log.read_text()
+    text = text.replace(
+        "Bumped label smoothing to 0.1 to fix overconfidence on vehicle classes.\n",
+        "Bumped label smoothing to 0.1 to fix overconfidence on vehicle classes.\n"
+        "\n> Superseded by [tk-999](#tk-999)\n",
+    )
+    log.write_text(text)
+
+    # Catalog row for tk-002 is untouched: superseded-by cell is still empty.
+    catalog = root / "docs" / "tacit-knowledge" / "retrieval-catalog.md"
+    assert "| tk-002 |" in catalog.read_text()
+    rows = t.parse_catalog_rows(str(root))
+    r2 = next(r for r in rows if r["id"] == "tk-002")
+    assert r2["superseded_by"] == ""  # stale: catalog doesn't know yet
+
+    # tk-002 would otherwise be a catalog HIT for "label-smoothing" (see
+    # test_lookup_returns_entry_text) — but the Log tombstone must exclude it.
+    result = t.lookup(str(root), ["label-smoothing"])
+    assert all(r["id"] != "tk-002" for r in result)
+
+
+def test_lookup_warm_tail_matching_is_word_boundary_bounded(tmp_path):
+    # The warm-tail path must use the same bounded-match rule as match_rows
+    # (_needle_matches), not a raw substring test. A short query term ("ml")
+    # must not match a tail entry purely because its span contains an
+    # unrelated token that happens to embed it ("yaml-config"). It SHOULD
+    # match a tail entry via a term that legitimately word-boundary-matches
+    # ("pipeline").
+    root = _make_project(tmp_path)
+    log = root / "tacit-knowledge.md"
+    text = log.read_text()
+    # tk-004: a warm-tail entry (past covers_through: tk-002), NOT in the
+    # catalog. Its span contains "yaml-config" (should NOT match "ml") and
+    # "pipeline" (should match on its own term as a word-boundary control).
+    text += textwrap.dedent("""
+        <a id="tk-004"></a>
+        ### tk-004 — Switched to a yaml-config pipeline ([execution 9ZZ](url))
+        **When:** 2026-06-05T09:00:00-07:00
+        **By:** A (a@x)
+
+        Moved preprocessing to a yaml-config driven pipeline.
+        """)
+    log.write_text(text)
+
+    # "ml" must NOT match tk-004 via the incidental substring inside
+    # "yaml-config" — that's the bug: raw `"ml" in hay` would match here.
+    result_ml = t.lookup(str(root), ["ml"])
+    assert all(r["id"] != "tk-004" for r in result_ml)
+
+    # A real word-boundary match on the same tail entry must still work.
+    result_pipeline = t.lookup(str(root), ["pipeline"])
+    assert any(r["id"] == "tk-004" for r in result_pipeline)
+
+
 # --- graceful degradation ---
 
 

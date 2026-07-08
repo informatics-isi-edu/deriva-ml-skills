@@ -286,7 +286,7 @@ is **no user-invocable reindex command** (zero-touch).
   commit-prompt bar on purpose.)
 - If the count ≥ `N`, **rebuild the index whole in the same turn** — no prompt, no
   permission. Re-read the Log, re-emit every row, recompute `covers_through` to the last
-  entry, run the discovery pass (below), and write `index.md`.
+  entry, run the discovery pass (below), and write `retrieval-catalog.md`.
 - **Visibility: silent but noted in one line** — e.g. "refreshed the tacit-knowledge
   index — 12 new entries folded in." Never a question or a blocker; an honest breadcrumb.
 - **Do NOT auto-commit the rebuilt index.** It travels with the next normal commit (a

@@ -400,15 +400,22 @@ def lookup(root: str, terms: list[str]) -> list[dict]:
         if span is None:
             continue
         hay = span.lower()
-        if any(x.lower() in hay for x in expanded if x.strip()):
+        if any(_needle_matches(x.lower(), hay) for x in expanded if x.strip()):
             # 4b. tail supersession filter (read the tombstone directly)
             if not _entry_is_superseded(span):
                 ids.append(tk_id)
 
+    # 5. extract + final tombstone backstop: authoritative over the whole
+    # result set (catalog hits AND warm-tail entries alike), regardless of
+    # whether the catalog's superseded-by column has caught up yet. Between a
+    # supersession happening and the next catalog rebuild (normal — the
+    # rebuild is throttled to every 10th tail entry), a catalog row can still
+    # show an empty superseded-by cell while the Log span already carries the
+    # tombstone. Re-checking here closes that window.
     results: list[dict] = []
     for tk_id in ids:
         span = extract_entry(root, tk_id)
-        if span is None:
+        if span is None or _entry_is_superseded(span):
             continue
         title = _title_of(span)
         results.append({"id": tk_id, "title": title, "text": span})
