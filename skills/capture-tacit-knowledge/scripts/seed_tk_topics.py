@@ -13,7 +13,7 @@ becomes the CV.
 Example:
     $ uv run python seed_tk_topics.py --repo-root /path/to/project --project-name EyeAI
     Wrote tacit-knowledge.md, docs/tacit-knowledge/topics.md,
-    docs/tacit-knowledge/retrieval-index.md, docs/domain/index.md, .gitattributes.
+    docs/tacit-knowledge/retrieval-catalog.md, docs/domain/index.md, .gitattributes.
     Review docs/tacit-knowledge/topics.md before committing.
 """
 
@@ -137,92 +137,64 @@ def render_topics_md(topics: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def render_empty_index_md() -> str:
-    """Render the derived-index placeholder (no entries indexed yet).
+def render_empty_catalog_md() -> str:
+    """Render the retrieval-catalog placeholder (no entries indexed yet).
 
-    The placeholder shows every section the populated index carries so the shape
-    is the contract even before the first rebuild. Every field is *descriptive
-    and derived* — mirrored from the Log's entries, regenerated whole each
-    rebuild — never an independent source of truth (D4: cache, not record).
+    A conformant OKF *document* of a custom `type: RetrievalCatalog` — YAML
+    frontmatter (required) + a Markdown table body (OKF favors tables). It is
+    NOT the reserved `index.md` browse-convention; it is a machine lookup
+    structure over the Log's entries, consumed by `tk_lookup.py` (or a hand-grep
+    fallback), never loaded whole. Lean by design: only the columns retrieval
+    actually greps on.
 
     Returns:
-        Markdown OKF type:RetrievalIndex with covers_through pointing before the
-        first entry.
+        Markdown OKF type:RetrievalCatalog with covers_through before the first entry.
 
     Example:
-        >>> "type: RetrievalIndex" in render_empty_index_md()
+        >>> "type: RetrievalCatalog" in render_empty_catalog_md()
         True
     """
     return "\n".join(
         [
             "---",
-            "type: RetrievalIndex",
-            "title: Tacit Knowledge — retrieval index",
+            "type: RetrievalCatalog",
+            "title: Tacit Knowledge — retrieval catalog",
             "description: >",
-            "  Derived candidate index over tacit-knowledge.md. Cache, not record —",
-            "  rebuilt whole by the capture side-effect. Never hand-edit; never hand-merge.",
-            "  Every field mirrors the Log's entries; the index originates no authority.",
-            "version: 0                        # rebuild generation; increments each rebuild",
+            "  Derived lookup over tacit-knowledge.md — one greppable row per entry.",
+            "  Cache, not record: rebuilt whole by the capture side-effect; every row",
+            "  mirrors the Log and originates no authority. Queried by tk_lookup.py",
+            "  (hand-grep is the fallback); never loaded whole. Not an OKF index.md.",
             "generated_from: tacit-knowledge.md",
             "generated_at: (not yet built)",
             "generator: capture-tacit-knowledge rebuild",
-            "owners: []                        # derived: the distinct **By:** authors across entries",
             "covers_through:",
             "  id: (none)",
             "  offset: 0",
-            "tags: [tacit-knowledge, retrieval-index, deriva-ml]",
+            "tags: [tacit-knowledge, retrieval-catalog, deriva-ml]",
             "---",
             "",
-            "# Tacit Knowledge — Retrieval Index",
+            "# Tacit Knowledge — Retrieval Catalog",
             "",
-            "_No entries indexed yet. This file is rebuilt whole as a silent side-effect of",
-            "capture once entries accumulate past the rebuild threshold. All sections below",
-            "are derived from `tacit-knowledge.md`; see",
-            "`skills/capture-tacit-knowledge/references/index-and-retrieval.md`._",
-            "",
-            "## Summary",
-            "",
-            "_0 entries · 0 superseded · id range (none) · last rebuild (not yet built)._",
-            "",
-            "## Start here",
-            "",
-            "_Recommended entry points — the most-referenced / root entries. Populated on",
-            "rebuild._",
-            "",
-            "## Inventory by anchor family",
-            "",
-            "Descriptive partition by the D13 anchor family each entry carries (deterministic —",
-            "every entry has a known family; this is NOT the deferred free-theme clustering, D6).",
-            "",
-            "### Family A — catalog artifacts",
-            "",
-            "_none yet_",
-            "",
-            "### Family B — process (skills)",
-            "",
-            "_none yet_",
-            "",
-            "### Family C — socio-technical / domain",
-            "",
-            "_none yet_",
+            "_No entries indexed yet. Rebuilt whole as a silent side-effect of capture once",
+            "entries accumulate past the threshold. Queried by `tk_lookup.py`; hand-grep is",
+            "the fallback. See `skills/capture-tacit-knowledge/references/index-and-retrieval.md`._",
             "",
             "## Rows",
             "",
-            "The machine hot-path: retrieval **greps this table** for rows matching the current",
-            "anchor/keywords (it never loads the whole index), so **each entry is one row on a",
-            "single line** with its `tk-NNN`, anchor handles, and keywords as **literal**",
-            "matchable text. `tk-NNN` is also a click-through link to the entry's anchor;",
-            "`relationships` mirrors the entry's `Supported by:` / `Supersedes:` edges (the",
-            "authoritative DAG lives in the entries); `aliases` mirrors the topic-CV synonyms of",
-            "the row's keywords. Cost of finding candidates is O(matches), not O(entries).",
+            "**One entry per line, greppable.** Each row carries the entry's `tk-NNN`, **all",
+            "anchor scopes** it applies at (instance RID *and* type *and* abstraction *and*",
+            "process/skill — so the generalization walk's widened greps all hit), and its",
+            "**keywords including topic-CV synonyms** (so a query using a synonym still",
+            "matches). `superseded-by` mirrors the entry's tombstone edge (D2). Cost of",
+            "finding candidates is O(matches), not O(entries).",
             "",
-            "| tk-NNN (link) | anchor | concept keywords | aliases | relationships | superseded-by |",
-            "|---|---|---|---|---|---|",
+            "| tk-NNN | anchors (all scopes) | keywords (+ synonyms) | superseded-by |",
+            "|---|---|---|---|",
             "",
             "_Example populated row (illustrative):_",
-            "`[tk-042](../../tacit-knowledge.md#tk-042)` | `execution 8KG`, `Dataset` |"
-            " `model-configuration` | `label-smoothing` | supports: [tk-019]; supersedes: — |"
-            " (none)",
+            "`[tk-042](../../tacit-knowledge.md#tk-042)` | execution 8KG · Dataset_Type=Animal_Subset"
+            " · Dataset · execution-lifecycle | model-configuration · label-smoothing ·"
+            " regularization | (none)",
             "",
             "## candidate-terms (proposed, awaiting human review)",
             "",
@@ -295,9 +267,9 @@ def _gitattributes_driver_lines() -> list[str]:
         3
     """
     return [
-        "tacit-knowledge.md                      merge=union",
-        "docs/tacit-knowledge/topics.md          merge=union",
-        "docs/tacit-knowledge/retrieval-index.md merge=union",
+        "tacit-knowledge.md                        merge=union",
+        "docs/tacit-knowledge/topics.md            merge=union",
+        "docs/tacit-knowledge/retrieval-catalog.md merge=union",
     ]
 
 
@@ -330,49 +302,46 @@ def render_gitattributes() -> str:
 
 
 def render_domain_index_md() -> str:
-    """Render the docs/domain/ bundle root (a ConceptBundle over Concept docs).
+    """Render docs/domain/index.md — a conformant OKF `index.md`.
+
+    This is the one true OKF index in the layout: it enumerates its directory's
+    Concept docs. Per the OKF spec, an `index.md` is the sole document type that
+    carries **NO frontmatter**; its body is `# heading` sections of
+    `* [title](url) - description` bullets linking the directory's files. (The
+    `Concept` docs it lists DO carry frontmatter; the index itself does not.)
 
     Returns:
-        Markdown OKF type:ConceptBundle describing the domain-background bundle.
+        Markdown OKF index.md — no frontmatter, a bullet-list body.
 
     Example:
-        >>> "type: ConceptBundle" in render_domain_index_md()
+        >>> render_domain_index_md().startswith("# Domain Background")
         True
+        >>> render_domain_index_md().startswith("---")   # no frontmatter
+        False
     """
     return "\n".join(
         [
-            "---",
-            "type: ConceptBundle",
-            "title: Domain Background",
-            "description: >",
-            "  Semantic, refined-in-place background about the target domain — facts,",
-            "  confounds, methodological conventions a cross-disciplinary newcomer needs.",
-            "  One type:Concept doc per subject. Distinct from the episodic tacit-knowledge",
-            "  Log and from docs/design/ up-front plans.",
-            "tags: [domain, concept, deriva-ml]",
-            "---",
-            "",
             "# Domain Background",
             "",
-            "One `type: Concept` doc per subject (e.g. `staining-variance.md`). Refined in",
-            "place over time. Link catalog vocabulary-term descriptions by RID rather than",
-            "restating them. A tacit-knowledge Log entry may *anchor* to a subject here",
-            "(Family C of the anchor taxonomy).",
+            "Semantic, refined-in-place background about the target domain — facts,",
+            "confounds, and methodological conventions a cross-disciplinary newcomer needs.",
+            "One `type: Concept` doc per subject (e.g. `staining-variance.md`), refined in",
+            "place over time. Distinct from the episodic tacit-knowledge Log and from",
+            "`docs/design/` up-front plans. Link catalog vocabulary-term descriptions by RID",
+            "rather than restating them. A tacit-knowledge Log entry may *anchor* to a subject",
+            "here (Family C of the anchor taxonomy).",
             "",
-            "**Tag each Concept doc to tell it apart from its siblings.** Because these docs",
-            "share one directory, give each a `tags:` line that *discriminates* it — the",
-            "facets that distinguish this subject from the others (e.g.",
-            "`tags: [domain, site-effect, imaging]` on `staining-variance.md` vs.",
-            "`tags: [domain, cohort, sampling-bias]` on `cohort-skew.md`). This is OKF",
-            "document-level metadata, meant for a human (or a coarse search) to scan the",
-            "bundle and find the right concept file — it is **descriptive, not the retrieval",
-            "key**. The LLM reaches a Concept doc through its Family-C *anchor* (a Log entry",
-            "pointing at the subject), not by matching tags. Keep the tags stable once set,",
-            "and prefer facets a reader would actually filter on.",
+            "This file is the bundle's OKF `index.md`: it lists the Concept docs below, each",
+            "as `* [title](file.md) - description`, with the description taken from the",
+            "Concept doc's own frontmatter. It carries no frontmatter of its own. Give each",
+            "Concept doc a discriminating `tags:` line (e.g. `[domain, site-effect, imaging]`",
+            "vs. `[domain, cohort, sampling-bias]`) so a human can tell siblings apart —",
+            "descriptive only; the LLM reaches a Concept doc via its Family-C anchor, not tags.",
             "",
             "## Subjects",
             "",
-            "_none yet_",
+            "_none yet — add one bullet per Concept doc, e.g._",
+            "_`* [Staining variance](staining-variance.md) - stain differences across sites`_",
             "",
         ]
     )
@@ -460,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
     artifacts = {
         "tacit-knowledge.md": render_log_frontmatter(args.project_name),
         "docs/tacit-knowledge/topics.md": render_topics_md(fixed_baseline_topics()),
-        "docs/tacit-knowledge/retrieval-index.md": render_empty_index_md(),
+        "docs/tacit-knowledge/retrieval-catalog.md": render_empty_catalog_md(),
         "docs/domain/index.md": render_domain_index_md(),
     }
 

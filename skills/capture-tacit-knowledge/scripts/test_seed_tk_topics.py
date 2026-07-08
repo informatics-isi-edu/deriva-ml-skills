@@ -51,46 +51,55 @@ def test_topics_md_is_okf_controlled_term_list():
     assert "# " in md  # a heading
 
 
-def test_index_md_declares_derived_and_covers_through():
-    md = s.render_empty_index_md()
-    assert "type: RetrievalIndex" in md  # richer type: not the generic Index
+def test_catalog_is_conformant_okf_document():
+    # A conformant OKF *document* (custom type + frontmatter + table body) —
+    # NOT the reserved frontmatter-free index.md convention.
+    md = s.render_empty_catalog_md()
+    assert md.startswith("---")  # has frontmatter (required for a normal OKF doc)
+    assert "type: RetrievalCatalog" in md  # custom type, not "Index"
     assert "generated_from: tacit-knowledge.md" in md
     assert "covers_through" in md
 
 
-def test_index_md_tags_match_type_not_stale_index():
-    # The tags must not still say the generic "index" (a rename leftover).
-    md = s.render_empty_index_md()
-    assert "retrieval-index" in md  # the corrected tag
-    assert "tags: [tacit-knowledge, index" not in md  # the stale tag is gone
+def test_catalog_tags_not_stale_index():
+    # Tags must not carry the "index" leftover; the file is a catalog, not an index.
+    md = s.render_empty_catalog_md()
+    assert "retrieval-catalog" in md
+    assert "retrieval-index" not in md
+    assert "tags: [tacit-knowledge, index" not in md
 
 
-def test_index_md_has_full_okf_index_anatomy():
-    # Full OKF-index parity: bundle metadata, inventory, relationships,
-    # navigation, and search/discovery elements are all present as sections.
-    md = s.render_empty_index_md()
-    # bundle metadata
-    assert "version:" in md
-    assert "owners:" in md
-    # navigation
-    assert "## Summary" in md
-    assert "## Start here" in md
-    # inventory: categories by anchor family
-    assert "## Inventory by anchor family" in md
-    assert "Family A" in md and "Family B" in md and "Family C" in md
-    # rows carry a click-through link, relationships, and aliases
-    assert "tk-NNN (link)" in md
-    assert "relationships" in md
-    assert "aliases" in md
-    # the illustrative row links into the Log by anchor
+def test_catalog_is_lean_greppable_table():
+    # The lean schema: exactly the columns retrieval greps on. The parity cruft
+    # (version/owners/relationships/aliases/browse-sections) is gone.
+    md = s.render_empty_catalog_md()
+    # the four lean columns
+    assert "tk-NNN" in md and "anchors" in md and "keywords" in md
+    assert "superseded-by" in md
+    # parity cruft removed
+    assert "version:" not in md
+    assert "owners:" not in md
+    assert "## Summary" not in md
+    assert "## Start here" not in md
+    assert "Inventory by anchor family" not in md
+    # keywords include synonyms; anchors span all scopes (scenario-driven)
+    assert "synonym" in md.lower()
+    assert "all scopes" in md.lower()
+    # rows still link into the Log by anchor for human navigation
     assert "../../tacit-knowledge.md#tk-042" in md
 
 
-def test_index_rows_are_descriptive_not_stateful():
-    # D4 guardrail: the index mirrors the entries, it never originates authority.
-    md = s.render_empty_index_md()
-    assert "originates no authority" in md
-    assert "mirrors the entry" in md or "mirrors the Log" in md
+def test_domain_index_is_frontmatter_free_okf_index():
+    # OKF: index.md is the ONE document type with NO frontmatter; body is a
+    # bullet list linking the directory's Concept docs.
+    md = s.render_domain_index_md()
+    assert not md.startswith("---")  # NO frontmatter block (the index.md exception)
+    # first non-blank line is the H1, not a frontmatter fence
+    first = next(line for line in md.splitlines() if line.strip())
+    assert first.startswith("# ")
+    assert "# Domain Background" in md
+    assert "## Subjects" in md
+    assert "ConceptBundle" not in md  # the invented type is gone (index.md carries no type)
 
 
 def test_log_frontmatter_is_okf_log():
@@ -104,7 +113,7 @@ def test_gitattributes_has_three_drivers():
     ga = s.render_gitattributes()
     assert "tacit-knowledge.md" in ga
     assert "docs/tacit-knowledge/topics.md" in ga
-    assert "docs/tacit-knowledge/retrieval-index.md" in ga
+    assert "docs/tacit-knowledge/retrieval-catalog.md" in ga
     # All three tacit-knowledge files use merge=union on their driver lines
     # (index included — it's a cache, so a union'd merge is harmless and
     # discarded by the next rebuild; merge=ours would need per-clone git
@@ -116,9 +125,6 @@ def test_gitattributes_has_three_drivers():
     assert all(line.strip().endswith("merge=union") for line in driver_lines)
 
 
-def test_domain_index_is_concept_bundle_root():
-    md = s.render_domain_index_md()
-    assert "type: ConceptBundle" in md  # richer type: bundle root over Concept docs
 
 
 def test_is_gitignored_detects_direct_match(tmp_path):
@@ -174,7 +180,7 @@ def test_is_gitignored_detects_directory_rule(tmp_path):
     # A `docs/` directory rule hides the index/CV/domain artifacts.
     _git_init(tmp_path)
     (tmp_path / ".gitignore").write_text("docs/\n")
-    assert s.is_gitignored(str(tmp_path), "docs/tacit-knowledge/retrieval-index.md") is True
+    assert s.is_gitignored(str(tmp_path), "docs/tacit-knowledge/retrieval-catalog.md") is True
 
 
 def test_is_gitignored_false_for_tracked_path(tmp_path):
@@ -202,14 +208,14 @@ def test_main_appends_only_missing_driver_lines(tmp_path):
     # would wrongly treat it as complete and skip). Use the exact Log driver
     # line the script emits so the "present" half matches.
     ga = tmp_path / ".gitattributes"
-    ga.write_text("tacit-knowledge.md                      merge=union\n")
+    ga.write_text("tacit-knowledge.md                        merge=union\n")
 
     rc = s.main(["--repo-root", str(tmp_path), "--project-name", "X"])
 
     assert rc == 0
     text = ga.read_text()
-    assert "docs/tacit-knowledge/topics.md          merge=union" in text
-    assert "docs/tacit-knowledge/retrieval-index.md merge=union" in text
+    assert "docs/tacit-knowledge/topics.md            merge=union" in text
+    assert "docs/tacit-knowledge/retrieval-catalog.md merge=union" in text
 
 
 def test_log_frontmatter_quotes_yaml_significant_title(tmp_path):
