@@ -36,10 +36,10 @@ user-invocable in the loop):
 | Artifact | Path | Type |
 |---|---|---|
 | The Log | `tacit-knowledge.md` (project root) | `Log` — append-only |
-| Derived retrieval index | `docs/tacit-knowledge/retrieval-index.md` | `RetrievalIndex` — cache, rebuilt whole |
+| Derived retrieval catalog | `docs/tacit-knowledge/retrieval-catalog.md` | `RetrievalCatalog` — cache, rebuilt whole |
 | Topic CV | `docs/tacit-knowledge/topics.md` | `Vocabulary` (controlled-term list) — human-gated |
-| Domain-background bundle | `docs/domain/` (+ `index.md`) | `ConceptBundle` root over `Concept` docs — refined in place |
-| Merge drivers | `.gitattributes` | `merge=union` (Log, CV, and index) |
+| Domain-background bundle | `docs/domain/` (+ `index.md`) | `index.md` (no frontmatter) over `Concept` docs — refined in place |
+| Merge drivers | `.gitattributes` | `merge=union` (Log, CV, and catalog) |
 
 Run it once:
 
@@ -60,43 +60,53 @@ The whole system in one place — the directory tree, and the OKF `type` of ever
 
 ```
 <project root>/
-├── tacit-knowledge.md              type: Log             — the append-only journal of *why*
-├── .gitattributes                  (git config)          — merge=union for the three files below
+├── tacit-knowledge.md              type: Log              — the append-only journal of *why*
+├── .gitattributes                  (git config)           — merge=union for the three files below
 └── docs/
     ├── tacit-knowledge/
-    │   ├── retrieval-index.md      type: RetrievalIndex  — derived retrieval index (cache, rebuilt whole)
-    │   └── topics.md               type: Vocabulary      — the topic CV (controlled-term list)
+    │   ├── retrieval-catalog.md    type: RetrievalCatalog — derived lookup over the Log (cache, rebuilt whole)
+    │   └── topics.md               type: Vocabulary       — the topic CV (controlled-term list)
     └── domain/
-        ├── index.md                type: ConceptBundle   — bundle root, lists the Concept docs below
-        ├── staining-variance.md    type: Concept         — one subject per file
-        └── cohort-skew.md          type: Concept         — …refined in place over time
+        ├── index.md                (OKF index.md — NO frontmatter) — lists the Concept docs below
+        ├── staining-variance.md    type: Concept          — one subject per file
+        └── cohort-skew.md          type: Concept          — …refined in place over time
 ```
 
-**Why `retrieval-index.md`, not `index.md`.** OKF reserves the filename `index.md` for a
-document that *enumerates its own directory's contents*. The tacit-knowledge retrieval
-index does something different — it catalogs the **Log's entries**, not its directory —
-so naming it `index.md` would overload the reserved name and mislead a generic OKF
-consumer. It is named `retrieval-index.md` and typed `RetrievalIndex` instead. The
-**domain** bundle's `index.md` keeps the reserved name correctly: it *does* enumerate its
-directory (it lists the sibling `Concept` docs), which is exactly what OKF `index.md`
-means.
+**Two OKF levels — don't conflate them.**
 
-**What each OKF `type` means here.** OKF's `type` is open and extensible (values are
-"descriptive and self-explanatory"; consumers tolerate unknown types), so each file
-declares the specific role it plays rather than a generic shape — a consumer knows what
-it is holding from the frontmatter alone, with no path-inference.
+- The **OKF file format** binds every OKF document: YAML frontmatter with a non-empty
+  `type` + a free-form Markdown body (tables allowed). Custom `type` values are
+  conformant; extra frontmatter keys are allowed and preserved.
+- The **`index.md` convention** is a *special reserved filename*: the **one** OKF document
+  that carries **no frontmatter**, whose body is `# heading` sections of
+  `* [title](url) - description` bullets enumerating **its own directory's files**, for
+  human browsing.
+
+So: `tacit-knowledge.md`, `retrieval-catalog.md`, `topics.md`, and each `Concept` doc are
+normal OKF **documents** (frontmatter + `type`). Only `docs/domain/index.md` is the
+frontmatter-free `index.md` convention — because it, and only it, enumerates its
+directory's files.
+
+**Why the catalog is `retrieval-catalog.md`, not `index.md`.** It catalogs the **Log's
+entries**, not its directory — that is a lookup structure, not a directory browse-list, so
+it is a normal OKF document (`type: RetrievalCatalog`, frontmatter kept) and does **not**
+take the reserved `index.md` name. The `docs/domain/index.md` correctly *does* take the
+name and *correctly carries no frontmatter*: it lists the sibling `Concept` docs, exactly
+what OKF `index.md` means.
+
+**The document `type` values here** (all conformant custom types — OKF `type` is
+open/extensible; consumers tolerate unknown types):
 
 | `type` | What it is | In this system |
 |---|---|---|
 | `Log` | append-only journal; dated entries | `tacit-knowledge.md` — the source of *why*; never reorganized |
-| `RetrievalIndex` | a derived, whole-rebuilt catalog pointing at Log entries (descriptive rows only, never stateful) | `docs/tacit-knowledge/retrieval-index.md` — the retrieval accelerator; a cache, not a record |
+| `RetrievalCatalog` | a derived, whole-rebuilt lookup over Log entries — one greppable row per entry (descriptive only, never stateful) | `docs/tacit-knowledge/retrieval-catalog.md` — the retrieval accelerator; a cache, not a record |
 | `Vocabulary` | a controlled-term list the entries are classified against | `docs/tacit-knowledge/topics.md` — the topic CV; human-gated |
-| `ConceptBundle` | the root of a bundle; lists its member `Concept` docs | `docs/domain/index.md` — the domain-background bundle root |
 | `Concept` | a semantic doc about one subject, refined in place | each `docs/domain/<subject>.md` |
+| *(none — `index.md`)* | the frontmatter-free directory browse-list | `docs/domain/index.md` — NOT a `type`; the OKF index convention |
 
-`RetrievalIndex`, `Vocabulary`, and `ConceptBundle` are all the same underlying OKF
-*shape* — a descriptive catalog of members — but each names its distinct **job** so the
-three are no longer indistinguishable behind a generic `Index`.
+There is no `ConceptBundle` type — a "bundle" is just a directory of `Concept` docs with a
+frontmatter-free `index.md` listing them.
 
 ## Concepts, files, tags, and type — the relationships, concisely
 
@@ -104,24 +114,25 @@ Four terms get confused; here is each, once:
 
 - **A Concept is a file.** In the `docs/domain/` bundle, one `type: Concept` markdown
   file = one subject (staining variance, cohort skew). The bundle is just the directory
-  of those files, with an `index.md` (`type: ConceptBundle`) at its root that lists them.
-- **`type`** is the OKF *kind* of a file (`Log` / `RetrievalIndex` / `Vocabulary` /
-  `ConceptBundle` / `Concept`) — it says what the file is and how it behaves (append-only
-  journal vs. regenerable retrieval cache vs. controlled-term list vs. bundle root vs.
-  refined-in-place subject doc). One value per file, in its frontmatter.
+  of those files, with a frontmatter-free `index.md` at its root that lists them.
+- **`type`** is the OKF *kind* of a document (`Log` / `RetrievalCatalog` / `Vocabulary` /
+  `Concept`) — it says what the file is and how it behaves (append-only journal vs.
+  regenerable retrieval cache vs. controlled-term list vs. refined-in-place subject doc).
+  One value per file, in its frontmatter. (The `index.md` is the exception — it carries
+  **no** `type` and no frontmatter; it is a convention, not a document type.)
 - **`tags`** is OKF *document-level* descriptive metadata — free keywords describing the
   *whole file*. Its job is to let a human (or coarse search) tell sibling files apart
   within a directory (which Concept doc is about site-effects vs. cohort-effects). It is
   **not read by retrieval**; the LLM never matches on it.
 - **`concept keywords`** (note: *not* the same as a `type: Concept` doc, despite the
   word) are the **per-entry classification** of a Log entry, drawn from the topic CV
-  (`topics.md`) and stored as a column in the *derived index* — **not** in the entry and
+  (`topics.md`) and stored as a column in the *derived retrieval catalog* — **not** in the entry and
   **not** in `tags`. This is the LLM-managed, human-gated classification.
 - **`anchor`** is the **primary retrieval key** — *what a Log entry is about* (a RID, a
   type, a process/skill, or a `docs/domain/` subject). Retrieval walks anchors, not tags.
 
 The one-line mental model: **`type` = what kind of file; `tags` = how a human tells
-sibling files apart; `concept keywords` = how a Log entry is classified (in the index);
+sibling files apart; `concept keywords` = how a Log entry is classified (in the catalog);
 `anchor` = what a Log entry points at (how the LLM retrieves it).** A `type: Concept`
 *file* and an entry's `concept keywords` are unrelated despite sharing the word "concept."
 

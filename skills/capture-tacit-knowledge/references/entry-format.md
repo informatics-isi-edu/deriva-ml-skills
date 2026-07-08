@@ -37,7 +37,7 @@ is written once, and is **not read by retrieval** — the LLM never keys on it t
 match entries. Don't confuse it with an entry's **`concept keywords`**: those are the
 per-entry classification drawn from the repo-local topic CV
 (`docs/tacit-knowledge/topics.md`, LLM-managed, human-gated), and they live as a column
-in the *derived index* (`docs/tacit-knowledge/retrieval-index.md`), **not** in the entry or its
+in the *derived retrieval catalog* (`docs/tacit-knowledge/retrieval-catalog.md`), **not** in the entry or its
 frontmatter. The Log entry itself carries no keyword field — classification is derived,
 so it stays out of the append-only record. See
 `references/index-and-retrieval.md` → "Classifying entries against the topic CV" for the

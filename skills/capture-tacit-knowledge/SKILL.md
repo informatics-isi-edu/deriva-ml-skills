@@ -40,7 +40,7 @@ right?" answerable: superseded entries are excluded from retrieval by default.
    reuse an existing term via synonym-aware lookup; propose (don't adopt) a new one into
    the index's `candidate-terms` list if the theme is clearly recurrent and unmatched.
 2. **Check the rebuild throttle** — if ≥ 10 entries have accumulated past the index's
-   `covers_through`, rebuild `docs/tacit-knowledge/retrieval-index.md` whole in the same turn and
+   `covers_through`, rebuild `docs/tacit-knowledge/retrieval-catalog.md` whole in the same turn and
    note it in one line ("refreshed the tacit-knowledge index — N new entries folded in").
    Never prompt; never auto-commit the rebuilt index. The rebuild is also where the
    knowledge **reorganizes** — the discovery pass refines the topic CV (add / retire /
@@ -60,7 +60,7 @@ The bar is low: if the file mentions the entity (by RID) or the change-type ("we
 When prior experience contradicts the proposed action, hand the decision back with concrete options rather than blocking — the user may know the original constraints no longer hold.
 
 **How to scan efficiently (don't read the whole Log — or the whole index).** `Grep` the
-derived index (`docs/tacit-knowledge/retrieval-index.md`) for rows matching the current
+derived index (`docs/tacit-knowledge/retrieval-catalog.md`) for rows matching the current
 anchor/keywords — do **not** load the index whole; grep it for the handful of matching
 rows to get candidate `tk-NNN` ids. Then read only the un-indexed tail by seeking to the
 index's `covers_through` boundary — not a full Log scan. Match anchors by a

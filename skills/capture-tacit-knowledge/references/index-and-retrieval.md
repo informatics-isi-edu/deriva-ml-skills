@@ -1,10 +1,17 @@
-# Index and Retrieval Mechanics
+# Retrieval Catalog and Retrieval Mechanics
 
-This reference documents the *derived retrieval index* and how the LLM reads,
-rebuilds, and classifies against it. It is the machinery behind SKILL.md's
-retrieval and write steps. None of this is compiled code — the "index builder" is
-the LLM re-reading the Log during a capture side-effect. The corpus is permanently
-small (a few hundred entries), so the whole loop is a read-and-rewrite of small files.
+This reference documents the *derived retrieval catalog*
+(`docs/tacit-knowledge/retrieval-catalog.md`) and how retrieval reads, rebuilds, and
+classifies against it. It is the machinery behind SKILL.md's retrieval and write steps.
+The corpus is permanently small (a few hundred entries), so the whole loop is a
+read-and-rewrite of small files.
+
+> **Terminology.** This doc says "the catalog" and "the index" interchangeably for the
+> *same* file, `retrieval-catalog.md` — a derived lookup over the Log. It is a machine
+> catalog, not the OKF `index.md` browse-convention (see "The retrieval catalog" below).
+> **Primary path is the bundled `tk_lookup.py` script** (see "The lookup script"); the
+> hand-grep procedure documented here is the fallback the LLM uses when the script is
+> unavailable, and the reference spec the script implements.
 
 **The one thing to get right about how this works.** Entries live in
 `tacit-knowledge.md` and **never leave it** — they are never moved, copied, or split
@@ -20,116 +27,74 @@ because it would destroy chronology-as-structure, break the in-document `Support
 links, and forfeit clean append-only merges. The only sanctioned split is by *time*
 — archived eras in the same Log format — never by topic.)
 
-## The derived index (`docs/tacit-knowledge/retrieval-index.md`)
+## The retrieval catalog (`docs/tacit-knowledge/retrieval-catalog.md`)
 
-An OKF `type: RetrievalIndex` document — a **cache, not a record**. Delete it and
-retrieval still works (it degrades to a supersession-aware Log scan); a stale index only
-slows retrieval, never corrupts it. It is **rebuilt whole, never incrementally patched**.
-(`RetrievalIndex` is this project's descriptive OKF type for the retrieval accelerator —
-OKF `type` is open/extensible; see `references/file-mechanics.md` → "OKF layout at a
-glance" for all five types.)
+A conformant OKF **document** of a custom `type: RetrievalCatalog` — YAML frontmatter
+(required by the OKF file format) + a Markdown table body (OKF favors tables). It is
+**not** the reserved `index.md` browse-convention: it is a machine *lookup* over the
+Log's entries, not a directory browse-list, so it is a normal OKF document that keeps its
+frontmatter and does not take the `index.md` name. (`docs/domain/index.md` is the one true
+OKF `index.md` here — frontmatter-free, lists its directory. See
+`references/file-mechanics.md` → "OKF layout at a glance".)
+
+It is a **cache, not a record**: delete it and retrieval still works (it degrades to a
+supersession-aware Log scan); a stale catalog only slows retrieval, never corrupts it. It
+is **rebuilt whole, never incrementally patched**, and every row is a *descriptive
+reflection* of the Log — it originates no authority (D4).
 
 ### Frontmatter
 
 ```yaml
 ---
-type: RetrievalIndex
-title: Tacit Knowledge — retrieval index
-description: Derived candidate index over tacit-knowledge.md. Cache, not record — rebuilt whole.
-version: <N>                        # rebuild generation; increments each rebuild
+type: RetrievalCatalog
+title: Tacit Knowledge — retrieval catalog
+description: Derived lookup over tacit-knowledge.md — one greppable row per entry. Cache, not record.
 generated_from: tacit-knowledge.md
 generated_at: <ISO 8601 timestamp of the rebuild>
 generator: capture-tacit-knowledge rebuild
-owners: [<distinct **By:** authors across the Log>]   # derived, descriptive
 covers_through:
-  id: tk-NNN        # the last tk-… id folded into this index (correctness boundary)
+  id: tk-NNN        # the last tk-… id folded into the catalog (correctness boundary)
   offset: 12345     # byte offset of the END of that entry in the Log (fast-path)
-tags: [tacit-knowledge, retrieval-index, deriva-ml]
+tags: [tacit-knowledge, retrieval-catalog, deriva-ml]
 ---
 ```
 
-`covers_through` is the boundary between what the index covers and the **un-indexed
-tail** (entries appended since the last rebuild). It does double duty: retrieval seeks
-to it to read only the tail (below), and the rebuild counts entries past it to decide
-when to fire (D7). `generated_at` is a human-readable audit field, **not** the
-retrieval boundary — the id/offset pair is. `version` and `owners` are descriptive
-bundle metadata: `version` is the rebuild count; `owners` is the *derived* set of
-distinct `**By:**` authors across the Log (the index has no author of its own — it is
-machine-derived).
+`covers_through` is the boundary between what the catalog covers and the **un-indexed
+tail** (entries appended since the last rebuild). It does double duty: retrieval seeks to
+it to read only the tail (below), and the rebuild counts entries past it to decide when
+to fire (D7). `generated_at` is a human-readable audit field, **not** the retrieval
+boundary — the id/offset pair is.
 
-### The everything-is-derived rule (D4)
+### Rows — lean and greppable (the only body)
 
-The retrieval index carries the full OKF-index anatomy — bundle metadata, an inventory,
-relationships, navigation, and search/discovery fields — but **every field is a
-*descriptive reflection* of the Log, never an independent source of truth.** An OKF
-`Index` may carry per-member descriptive metadata (title, tags/keywords, relationships)
-but **not** *stateful* semantics ("this is the current one"); the index mirrors what the
-entries already say and is regenerated whole each rebuild. So a richer index is still a
-**cache, not a record** — delete it and every field is re-derivable from the Log. This
-is the guardrail for all the sections below: if a field could not be recomputed from the
-entries, it does not belong in the index.
+One row per entry, one line each. The catalog carries **only** the fields retrieval
+actually greps on — the "full OKF-index" enrichment (version/owners/relationships/aliases
+columns, browse sections) was reverted because it was built against a wrong model of an
+OKF index and taxed the grep hot path for no retrieval gain.
 
-### Two audiences, one file: the greppable Rows table vs. the human-browse sections
+| column | what it holds | derived from |
+|---|---|---|
+| **`tk-NNN`** | the entry id — the deref key (grep the Log's `<a id="tk-NNN">`). MAY be rendered as a click-through link `[tk-042](../../tacit-knowledge.md#tk-042)` for human navigation, but the raw `tk-NNN` string MUST appear literally so grep matches it. | the entry's `<a id>` anchor |
+| **`anchors (all scopes)`** | **every** anchor scope the entry applies at — instance RID **and** its type/`*_Type` **and** the abstraction **and** the process/skill — as literal text. The generalization walk greps each widened scope, so a row that only carried the instance RID would be missed by the type-grep. | the entry's title handle + body (anchor taxonomy) |
+| **`keywords (+ synonyms)`** | topic-CV terms the entry classifies under, **including their CV synonyms** as literal text — so a query using a synonym ("oversample") still hits an entry that used a different word ("SMOTE"). This is the substring/vocabulary-gap fix. | the classification pass + `topics.md` synonyms |
+| **`superseded-by`** | `tk-MMM` if a later entry superseded this one, else empty — mirrors the entry's tombstone (D2); the catalog never *originates* currency. | the entry's tombstone edge |
 
-The index serves two consumers with opposite needs, and the layout keeps them from
-taxing each other:
+Below the table, a **candidate-terms** list — topic-CV keywords the discovery pass (below)
+proposes but a human has not confirmed. A *proposal queue*, not authority; regenerated
+each rebuild.
 
-- **The retrieval hot path (machine, every turn)** reads **only the Rows table**, and
-  reads it by **`Grep`**, never whole (above). So the Rows table is the load-bearing part
-  and it obeys one hard rule: **one entry per single line, with its `tk-NNN`, anchor
-  handles, and keywords as literal matchable text on that line.** That is what makes a
-  row greppable and what keeps candidate-finding O(matches). Do not wrap a row across
-  lines; do not hide an anchor value behind a link label the grep can't see (put the raw
-  handle in the row text).
-- **The human/tool browse path (occasional)** reads the **Summary / Start here / Inventory
-  by anchor family** sections. These are navigation and presentation — a human scanning
-  the bundle, or a tool building a view. **The LLM's retrieval loop does not read these**
-  (it greps the Rows table instead), so their size never touches the hot path. They may
-  repeat entries that also appear in the Rows table; that duplication is fine because only
-  one of the two is on the hot path.
+**Determinism.** The rows are a deterministic function of the Log — same Log in, same rows
+out. Only `candidate-terms` is non-deterministic (LLM discovery pass), which is fine
+because candidate terms carry no authority.
 
-**Net:** richness lives in the browse sections and in extra Rows columns that grep simply
-skips past; the hot path only ever pulls the handful of Rows lines that match. Index size
-scales freely — the cost of finding candidates is set by the number of *matches*, not the
-number of *entries*.
+**Greppability is the one hard rule.** Each entry is one line with its `tk-NNN`, anchors,
+and keywords+synonyms as literal matchable text — that is what makes the row greppable and
+keeps candidate-finding O(matches), not O(entries). Do not wrap a row across lines; do not
+hide an anchor behind a link label grep can't see.
 
-### Sections the rebuild emits
-
-The rebuild regenerates all of these from the Log, in order:
-
-1. **Summary** — a one-line at-a-glance header: entry count, superseded count, id range,
-   last-rebuild time. Pure derived counts. *(Browse path.)*
-2. **Start here** — *navigation.* A short list of recommended entry points — the
-   most-referenced entries (most in-links via `Supported by:`) and the DAG roots. Derived
-   from the entries' own edges; a convenience pointer, not authority. *(Browse path.)*
-3. **Inventory by anchor family** — *categories.* Entries grouped under the **D13 anchor
-   family** each carries (A catalog artifact / B process / C socio-technical+domain). This
-   is a **deterministic** partition — every entry has a known family — and is therefore
-   **not** the deferred free-theme clustering (D6), which is statistical and
-   non-deterministic. Families give the "categories/sections" an OKF index expects without
-   re-opening D6.
-4. **Rows** — the dereferenceable catalog, one row per entry:
-
-   | column | what it holds | derived from |
-   |---|---|---|
-   | **`tk-NNN` (link)** | the entry id **as a click-through link** — `[tk-042](../../tacit-knowledge.md#tk-042)` (relative to the index's dir) — so the index literally *links to its members* and a human can navigate | the entry's `<a id>` anchor |
-   | **`anchor`** | one or more handles from the anchor taxonomy (`references/anchor-taxonomy.md`) — RID / `*_Type` / abstraction / schema entity / skill / social / domain subject | the entry's title handle + body |
-   | **`concept keywords`** | topic-CV terms (`docs/tacit-knowledge/topics.md`) the entry was classified under | the classification pass |
-   | **`aliases`** | *search/discovery.* the topic-CV **synonyms** of the row's keywords, so a search on a synonym still finds the entry | mirrors `topics.md` synonyms |
-   | **`relationships`** | *relationships.* the entry's `Supported by:` and `Supersedes:` edges (`supports: [tk-019]; supersedes: —`) — a **reflection** of the DAG; the authoritative DAG lives in the entries | the entry's `**Supported by:**` / `**Supersedes:**` |
-   | **`superseded-by`** | `tk-MMM` if a later entry superseded this one, else empty — mirrors the entry's tombstone (D2); the index never *originates* currency | the entry's tombstone edge |
-
-5. **candidate-terms** — topic-CV keywords the discovery pass (below) proposes but a
-   human has not confirmed. A *proposal queue*, not authority; regenerated each rebuild.
-
-**Determinism note.** The rows, families, relationships, summary, and start-here list are
-a **deterministic** function of the Log — same Log in, same output. Only the
-`candidate-terms` list is non-deterministic (it comes from the LLM discovery pass), which
-is fine because candidate terms carry no authority.
-
-**Rows are descriptive, never stateful.** The index is a phonebook: the LLM uses it to
-find *candidates*, then opens and **quotes the actual entries** (via the `tk-NNN` link →
-the Grep/Read extraction above), never the index's keyword summary.
+**Descriptive, never stateful.** The catalog is a phonebook: retrieval uses it to find
+*candidates*, then opens and **quotes the actual entries** (via the `tk-NNN` → Grep/Read
+extraction above), never the catalog's keyword summary.
 
 ## Retrieval at the moment of action (Mode A)
 
@@ -153,7 +118,7 @@ Two-part read along the cold/warm boundary:
 
    ```
    Grep(pattern='Patient_Split|Dataset|dataset-lifecycle',
-        path='docs/tacit-knowledge/retrieval-index.md',
+        path='docs/tacit-knowledge/retrieval-catalog.md',
         output_mode='content')
    → the handful of rows whose anchor/keywords match → their tk-NNN ids
    ```
@@ -307,9 +272,9 @@ The tacit-knowledge files use `.gitattributes` merge drivers so collaborators me
 cleanly:
 
 ```
-tacit-knowledge.md                      merge=union
-docs/tacit-knowledge/topics.md          merge=union
-docs/tacit-knowledge/retrieval-index.md merge=union   # regenerated post-merge; never hand-merged
+tacit-knowledge.md                        merge=union
+docs/tacit-knowledge/topics.md            merge=union
+docs/tacit-knowledge/retrieval-catalog.md merge=union   # regenerated post-merge; never hand-merged
 ```
 
 - **Log = union merge.** Both branches append at EOF; union concatenates both sides.
