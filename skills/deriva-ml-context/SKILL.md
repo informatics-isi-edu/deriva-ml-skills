@@ -122,7 +122,13 @@ places, and one of them has the answer:
 
 - **The catalog** — RIDs, dataset/feature/workflow/execution records, vocabulary
   terms, schema, lineage. Read it via the `deriva://…` resources / `deriva_ml_*`
-  tools / `rag_search` (see the resolution workflow below).
+  tools / `rag_search` (see the resolution workflow below). For **raw table shape**
+  — the exact columns, keys, or foreign keys of a *named* table (e.g. "columns on
+  `Subject`", "does `Image` have a `Diagnosis` FK") — there is no `deriva_ml_*`
+  surface; that is a generic-catalog fact, so fall through to `/deriva`'s
+  `deriva://catalog/{hostname}/{catalog_id}/table/{schema}/{table}` resource (or
+  `get_table` / `get_schema`). Read the exact resource, not `rag_search` — semantic
+  search finds *which* table by concept, but can return a partial column list.
 - **The project repo** — config values, model code, design docs
   (`docs/design/`), and the rationale journal (`tacit-knowledge.md`). Read the
   files; check `git`.
