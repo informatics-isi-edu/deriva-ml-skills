@@ -43,6 +43,9 @@ so it stays out of the append-only record. See
 `references/index-and-retrieval.md` → "Classifying entries against the topic CV" for the
 mechanism, and `references/anchor-taxonomy.md` for the `anchor` (the primary retrieval
 key — *what the entry is about*, distinct again from both `tags` and `concept keywords`).
+For the whole picture in one place — the directory layout, every file's OKF `type`, and
+how `type`/`tags`/`concept keywords`/`anchor` relate — see
+`references/file-mechanics.md` → "OKF layout at a glance."
 
 ## Entry header
 

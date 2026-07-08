@@ -54,6 +54,61 @@ After running, **review `docs/tacit-knowledge/topics.md`** (the seed CV is a
 hypothesis meant to be wrong at the edges) and commit. The canonical example of all
 five artifacts lives in `deriva-ml-model-template`.
 
+## OKF layout at a glance
+
+The whole system in one place — the directory tree, and the OKF `type` of every file.
+
+```
+<project root>/
+├── tacit-knowledge.md              type: Log      — the append-only journal of *why*
+├── .gitattributes                  (git config)   — merge=union for the three files below
+└── docs/
+    ├── tacit-knowledge/
+    │   ├── index.md                type: Index    — derived retrieval index (cache, rebuilt whole)
+    │   └── topics.md               type: Index    — the topic CV (controlled-term list)
+    └── domain/
+        ├── index.md                type: Index    — bundle root: an Index *over* the Concept docs
+        ├── staining-variance.md    type: Concept  — one subject per file
+        └── cohort-skew.md          type: Concept  — …refined in place over time
+```
+
+**What each OKF `type` means here:**
+
+| `type` | OKF role | In this system |
+|---|---|---|
+| `Log` | append-only journal; entries are dated records | `tacit-knowledge.md` — the source of *why*; never reorganized |
+| `Index` | a catalog of members carrying *descriptive* metadata (never stateful) | three uses: the retrieval index (points at Log entries), the topic CV (catalogs the classification terms), and the domain bundle root (catalogs the Concept docs) |
+| `Concept` | a semantic doc about one subject, refined in place | each `docs/domain/<subject>.md` |
+
+`type: Index` is reused for three different jobs because they are all the same OKF
+shape — a descriptive catalog of members — not because they are the same thing.
+
+## Concepts, files, tags, and type — the relationships, concisely
+
+Four terms get confused; here is each, once:
+
+- **A Concept is a file.** In the `docs/domain/` bundle, one `type: Concept` markdown
+  file = one subject (staining variance, cohort skew). The bundle is just the directory
+  of those files, with an `index.md` (`type: Index`) at its root that lists them.
+- **`type`** is the OKF *kind* of a file (`Log` / `Index` / `Concept`) — it says what
+  shape the file is and how it behaves (append-only journal vs. regenerable catalog vs.
+  refined-in-place subject doc). One value per file, in its frontmatter.
+- **`tags`** is OKF *document-level* descriptive metadata — free keywords describing the
+  *whole file*. Its job is to let a human (or coarse search) tell sibling files apart
+  within a directory (which Concept doc is about site-effects vs. cohort-effects). It is
+  **not read by retrieval**; the LLM never matches on it.
+- **`concept keywords`** (note: *not* the same as a `type: Concept` doc, despite the
+  word) are the **per-entry classification** of a Log entry, drawn from the topic CV
+  (`topics.md`) and stored as a column in the *derived index* — **not** in the entry and
+  **not** in `tags`. This is the LLM-managed, human-gated classification.
+- **`anchor`** is the **primary retrieval key** — *what a Log entry is about* (a RID, a
+  type, a process/skill, or a `docs/domain/` subject). Retrieval walks anchors, not tags.
+
+The one-line mental model: **`type` = what kind of file; `tags` = how a human tells
+sibling files apart; `concept keywords` = how a Log entry is classified (in the index);
+`anchor` = what a Log entry points at (how the LLM retrieves it).** A `type: Concept`
+*file* and an entry's `concept keywords` are unrelated despite sharing the word "concept."
+
 ### The `.gitattributes` merge drivers matter
 
 `merge=union` needs no extra git config (it's a built-in driver), and all three
