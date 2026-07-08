@@ -6,7 +6,6 @@ depend on a real DerivaML project.
 
 import textwrap
 
-import pytest
 
 import tk_lookup as t
 
