@@ -69,15 +69,39 @@ entries already say and is regenerated whole each rebuild. So a richer index is 
 is the guardrail for all the sections below: if a field could not be recomputed from the
 entries, it does not belong in the index.
 
+### Two audiences, one file: the greppable Rows table vs. the human-browse sections
+
+The index serves two consumers with opposite needs, and the layout keeps them from
+taxing each other:
+
+- **The retrieval hot path (machine, every turn)** reads **only the Rows table**, and
+  reads it by **`Grep`**, never whole (above). So the Rows table is the load-bearing part
+  and it obeys one hard rule: **one entry per single line, with its `tk-NNN`, anchor
+  handles, and keywords as literal matchable text on that line.** That is what makes a
+  row greppable and what keeps candidate-finding O(matches). Do not wrap a row across
+  lines; do not hide an anchor value behind a link label the grep can't see (put the raw
+  handle in the row text).
+- **The human/tool browse path (occasional)** reads the **Summary / Start here / Inventory
+  by anchor family** sections. These are navigation and presentation — a human scanning
+  the bundle, or a tool building a view. **The LLM's retrieval loop does not read these**
+  (it greps the Rows table instead), so their size never touches the hot path. They may
+  repeat entries that also appear in the Rows table; that duplication is fine because only
+  one of the two is on the hot path.
+
+**Net:** richness lives in the browse sections and in extra Rows columns that grep simply
+skips past; the hot path only ever pulls the handful of Rows lines that match. Index size
+scales freely — the cost of finding candidates is set by the number of *matches*, not the
+number of *entries*.
+
 ### Sections the rebuild emits
 
 The rebuild regenerates all of these from the Log, in order:
 
 1. **Summary** — a one-line at-a-glance header: entry count, superseded count, id range,
-   last-rebuild time. Pure derived counts.
+   last-rebuild time. Pure derived counts. *(Browse path.)*
 2. **Start here** — *navigation.* A short list of recommended entry points — the
    most-referenced entries (most in-links via `Supported by:`) and the DAG roots. Derived
-   from the entries' own edges; a convenience pointer, not authority.
+   from the entries' own edges; a convenience pointer, not authority. *(Browse path.)*
 3. **Inventory by anchor family** — *categories.* Entries grouped under the **D13 anchor
    family** each carries (A catalog artifact / B process / C socio-technical+domain). This
    is a **deterministic** partition — every entry has a known family — and is therefore
@@ -121,8 +145,28 @@ Log and `docs/domain/`) is a **deferred phase**, not part of this build.
 
 Two-part read along the cold/warm boundary:
 
-1. **Cold history (the bulk):** read the **index** → collect candidates by anchor and
-   by keyword. Cheap regardless of Log size — the index stands in for the Log's front.
+1. **Cold history (the bulk): *grep* the index — never load it whole.** The index is a
+   file of rows, one per entry, so it grows with the corpus. Do **not** read the whole
+   file to find candidates — that would reintroduce the O(N) cost the index exists to
+   avoid, just one layer up. Instead **`Grep` the index for rows matching the current
+   anchor(s) and keyword(s)** and read only the matching rows:
+
+   ```
+   Grep(pattern='Patient_Split|Dataset|dataset-lifecycle',
+        path='docs/tacit-knowledge/retrieval-index.md',
+        output_mode='content')
+   → the handful of rows whose anchor/keywords match → their tk-NNN ids
+   ```
+
+   You read ~5 matching rows, not all 500. **This is what makes the index scalable:
+   retrieval cost is O(matches), not O(entries) — a 5,000-row index costs the same to
+   query as a 50-row one, because you never load it whole.** It also means the index's
+   *rich* columns (relationships, aliases, per-family sections, navigation) are **free on
+   the hot path** — they sit in rows you never read unless they match, so richness for
+   humans/tools costs the retrieval loop nothing. Grep is substring, not semantic, so the
+   **generalization walk** (below) is done by grepping for *each* widened term (the
+   instance RID, then its type, then the abstraction, then the process/skill) — a handful
+   of bounded greps, still never a full read.
 
 2. **Warm tail (the few un-indexed):** the entries appended since the last rebuild —
    the only ones the index doesn't cover. **Reading the tail does NOT require scanning

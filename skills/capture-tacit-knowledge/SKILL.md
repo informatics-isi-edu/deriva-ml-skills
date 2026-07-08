@@ -59,13 +59,17 @@ The bar is low: if the file mentions the entity (by RID) or the change-type ("we
 
 When prior experience contradicts the proposed action, hand the decision back with concrete options rather than blocking — the user may know the original constraints no longer hold.
 
-**How to scan efficiently (don't read the whole Log).** Read the derived index
-(`docs/tacit-knowledge/retrieval-index.md`) for candidates by anchor and keyword, then read only
-the un-indexed tail by seeking to the index's `covers_through` boundary — not a full
-Log scan. Match anchors by a **generalization walk** (instance → type → abstraction →
-process → social/domain), exclude superseded entries **structurally**, then quote the
-survivors. Full procedure: `references/index-and-retrieval.md`. If the index is absent,
-fall back to a supersession-aware Log scan (read entries, drop tombstoned ones, quote).
+**How to scan efficiently (don't read the whole Log — or the whole index).** `Grep` the
+derived index (`docs/tacit-knowledge/retrieval-index.md`) for rows matching the current
+anchor/keywords — do **not** load the index whole; grep it for the handful of matching
+rows to get candidate `tk-NNN` ids. Then read only the un-indexed tail by seeking to the
+index's `covers_through` boundary — not a full Log scan. Match anchors by a
+**generalization walk** (instance → type → abstraction → process → social/domain, one
+grep per widened term), exclude superseded entries **structurally**, then extract each
+surviving entry by grepping its `<a id="tk-NNN">` in the Log and reading that span (never
+the whole Log). Full procedure: `references/index-and-retrieval.md`. If the index is
+absent, fall back to a supersession-aware Log scan (read entries, drop tombstoned ones,
+quote). Cost scales with *matches*, not corpus size — at both layers.
 
 ### Mode B: Forensic (when asked why)
 
