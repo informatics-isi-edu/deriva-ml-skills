@@ -6,6 +6,20 @@ retrieval and write steps. None of this is compiled code — the "index builder"
 the LLM re-reading the Log during a capture side-effect. The corpus is permanently
 small (a few hundred entries), so the whole loop is a read-and-rewrite of small files.
 
+**The one thing to get right about how this works.** Entries live in
+`tacit-knowledge.md` and **never leave it** — they are never moved, copied, or split
+into per-topic files. Progressive disclosure ("load only what's required") does **not**
+come from scattering entries across files. It comes from a **derived index of
+pointers**: the rebuild reads the Log and emits one small row per entry (anchor,
+keywords, `tk-NNN`) that *points back at* the entry. At retrieval the LLM reads the
+compact index to decide *which* entries are relevant, then opens `tacit-knowledge.md`
+and reads **only those few entries** — not the whole Log. The index is a phonebook, not
+the phone: it tells you which entries to open; the entries stay in one append-only book
+that only grows. (Splitting entries by topic was explicitly rejected — design spec D1 —
+because it would destroy chronology-as-structure, break the in-document `Supported by:`
+links, and forfeit clean append-only merges. The only sanctioned split is by *time*
+— archived eras in the same Log format — never by topic.)
+
 ## The derived index (`docs/tacit-knowledge/retrieval-index.md`)
 
 An OKF `type: RetrievalIndex` document — a **cache, not a record**. Delete it and
