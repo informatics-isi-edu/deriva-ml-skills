@@ -61,6 +61,9 @@ For the full restructuring guide — `targets` and `target_transform` shapes, pe
 Best for tabular ML, feature engineering, or interactive exploration.
 
 **Step 1 — Explore the schema shape (no dataset needed):**
+
+Don't guess the table names. If you don't already know them, list the catalog's tables live first — read `ReadMcpResourceTool(uri="deriva://catalog/{hostname}/{catalog_id}/tables")` (or `rag_search` for concept-based discovery, e.g. "imaging tables") — then pass the real names into `include_tables`.
+
 ```
 deriva_ml_denormalize_dataset(
     hostname="data.example.org",
