@@ -117,6 +117,60 @@ Two-part read along the cold/warm boundary:
    Surface only genuinely-relevant survivors; when unsure, **stay silent** — a false
    "you've done this before" is worse than none.
 
+### Extracting one entry by id — the concrete tool sequence
+
+The index hands you a `tk-…` id; here is exactly how to pull *that one entry* out of
+`tacit-knowledge.md` without reading the whole file. The id is the join key: the same
+string is the index's `tk-NNN` column **and** the entry's `<a id="tk-NNN">` anchor line
+in the Log. Every entry is a span from its own anchor to the next one:
+
+```markdown
+<a id="tk-042"></a>
+### tk-042 — <title> ([execution 8KG](…))
+**When:** …
+**By:** …
+<body…>
+                          ← blank line
+<a id="tk-043"></a>       ← the NEXT entry's anchor marks the end of tk-042
+```
+
+**Two-step extraction (the low-token path):**
+
+1. **Locate the entry by its anchor** — `Grep` for the literal anchor string and get its
+   line number:
+
+   ```
+   Grep(pattern='<a id="tk-042">', path='tacit-knowledge.md', output_mode='content', -n=true)
+   → tk-042 begins at, say, line 812
+   ```
+
+2. **Read only that span** — `Read` a bounded window starting at that line. Entries run
+   ~5–15 lines (entry-format.md), so a `limit` of ~30 comfortably captures one and stops
+   well short of the next:
+
+   ```
+   Read(path='tacit-knowledge.md', offset=812, limit=30)
+   → the tk-042 entry (stop quoting at the next `<a id="tk-…">` line you see in the window)
+   ```
+
+   Reading the window, not the file, is the whole point: you pulled one entry out of a
+   several-hundred-entry Log at the cost of ~30 lines.
+
+**Batch shortcut.** With several ids to fetch, one `Grep` over all their anchors returns
+all the start lines at once (`Grep(pattern='<a id="tk-(042|118|231)">', …, -n=true)`), then
+one `Read` per span. Don't loop a whole-file read per id.
+
+**The un-indexed tail is the exception — no per-id grep needed.** Warm-tail entries
+(step 2 above) are already a contiguous block from `covers_through.offset` to EOF, so you
+read that block once and split it on `<a id="tk-…">` markers; you don't grep each tail id
+individually.
+
+**Why no compiled retriever.** There is no extraction *function* — the "retriever" is you
+(the LLM) running `Grep` → `Read`. The `<a id="tk-NNN">` anchor makes each entry
+addressable by a unique, stable string, which is what turns "find one entry in a big
+Markdown file" into a cheap two-tool lookup instead of a full read. This is viable
+precisely because the corpus is permanently small and the id is exact.
+
 ### The generalization walk (anchor matching)
 
 Anchor match is **not** exact-RID — it widens across the anchor families and merges the
