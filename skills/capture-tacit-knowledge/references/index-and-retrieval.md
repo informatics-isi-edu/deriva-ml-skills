@@ -36,12 +36,15 @@ glance" for all five types.)
 type: RetrievalIndex
 title: Tacit Knowledge — retrieval index
 description: Derived candidate index over tacit-knowledge.md. Cache, not record — rebuilt whole.
+version: <N>                        # rebuild generation; increments each rebuild
 generated_from: tacit-knowledge.md
 generated_at: <ISO 8601 timestamp of the rebuild>
 generator: capture-tacit-knowledge rebuild
+owners: [<distinct **By:** authors across the Log>]   # derived, descriptive
 covers_through:
   id: tk-NNN        # the last tk-… id folded into this index (correctness boundary)
   offset: 12345     # byte offset of the END of that entry in the Log (fast-path)
+tags: [tacit-knowledge, retrieval-index, deriva-ml]
 ---
 ```
 
@@ -49,34 +52,60 @@ covers_through:
 tail** (entries appended since the last rebuild). It does double duty: retrieval seeks
 to it to read only the tail (below), and the rebuild counts entries past it to decide
 when to fire (D7). `generated_at` is a human-readable audit field, **not** the
-retrieval boundary — the id/offset pair is.
+retrieval boundary — the id/offset pair is. `version` and `owners` are descriptive
+bundle metadata: `version` is the rebuild count; `owners` is the *derived* set of
+distinct `**By:**` authors across the Log (the index has no author of its own — it is
+machine-derived).
 
-### Rows — descriptive only
+### The everything-is-derived rule (D4)
 
-One flat row per entry (a table or list; the model-template example fixes the exact
-Markdown shape). Each row carries:
+The retrieval index carries the full OKF-index anatomy — bundle metadata, an inventory,
+relationships, navigation, and search/discovery fields — but **every field is a
+*descriptive reflection* of the Log, never an independent source of truth.** An OKF
+`Index` may carry per-member descriptive metadata (title, tags/keywords, relationships)
+but **not** *stateful* semantics ("this is the current one"); the index mirrors what the
+entries already say and is regenerated whole each rebuild. So a richer index is still a
+**cache, not a record** — delete it and every field is re-derivable from the Log. This
+is the guardrail for all the sections below: if a field could not be recomputed from the
+entries, it does not belong in the index.
 
-- **`anchor`** — one or more handles from the anchor taxonomy
-  (`references/anchor-taxonomy.md`): a catalog artifact (instance RID / `*_Type` term /
-  abstraction / schema entity), a process (skill name), a social/team fact, or a domain
-  subject. A single entry may list several.
-- **`concept keywords`** — a flat list of topic-CV terms (`docs/tacit-knowledge/topics.md`)
-  the entry was classified under. Not clustering structure — a flat column.
-- **`tk-NNN`** — the entry id, the deref target.
-- **`superseded-by`** — mirrors the entry's own `Supersedes:`/tombstone edge (D2). Empty
-  for current entries; `tk-MMM` for a superseded one. The index does not *originate*
-  currency — it copies what the entries already say.
+### Sections the rebuild emits
 
-The index also carries a **`candidate-terms` list** — topic-CV keywords the discovery
-pass (below) proposes but a human has not yet confirmed. A *proposal queue*, not
-authority: unconfirmed terms are not used to organize, and the list is regenerated each
-rebuild like everything else. Rows are a **deterministic** function of the Log;
-the candidate-terms list is **not** (it comes from the LLM discovery pass) — which is
-fine, because candidate terms carry no authority.
+The rebuild regenerates all of these from the Log, in order:
+
+1. **Summary** — a one-line at-a-glance header: entry count, superseded count, id range,
+   last-rebuild time. Pure derived counts.
+2. **Start here** — *navigation.* A short list of recommended entry points — the
+   most-referenced entries (most in-links via `Supported by:`) and the DAG roots. Derived
+   from the entries' own edges; a convenience pointer, not authority.
+3. **Inventory by anchor family** — *categories.* Entries grouped under the **D13 anchor
+   family** each carries (A catalog artifact / B process / C socio-technical+domain). This
+   is a **deterministic** partition — every entry has a known family — and is therefore
+   **not** the deferred free-theme clustering (D6), which is statistical and
+   non-deterministic. Families give the "categories/sections" an OKF index expects without
+   re-opening D6.
+4. **Rows** — the dereferenceable catalog, one row per entry:
+
+   | column | what it holds | derived from |
+   |---|---|---|
+   | **`tk-NNN` (link)** | the entry id **as a click-through link** — `[tk-042](../../tacit-knowledge.md#tk-042)` (relative to the index's dir) — so the index literally *links to its members* and a human can navigate | the entry's `<a id>` anchor |
+   | **`anchor`** | one or more handles from the anchor taxonomy (`references/anchor-taxonomy.md`) — RID / `*_Type` / abstraction / schema entity / skill / social / domain subject | the entry's title handle + body |
+   | **`concept keywords`** | topic-CV terms (`docs/tacit-knowledge/topics.md`) the entry was classified under | the classification pass |
+   | **`aliases`** | *search/discovery.* the topic-CV **synonyms** of the row's keywords, so a search on a synonym still finds the entry | mirrors `topics.md` synonyms |
+   | **`relationships`** | *relationships.* the entry's `Supported by:` and `Supersedes:` edges (`supports: [tk-019]; supersedes: —`) — a **reflection** of the DAG; the authoritative DAG lives in the entries | the entry's `**Supported by:**` / `**Supersedes:**` |
+   | **`superseded-by`** | `tk-MMM` if a later entry superseded this one, else empty — mirrors the entry's tombstone (D2); the index never *originates* currency | the entry's tombstone edge |
+
+5. **candidate-terms** — topic-CV keywords the discovery pass (below) proposes but a
+   human has not confirmed. A *proposal queue*, not authority; regenerated each rebuild.
+
+**Determinism note.** The rows, families, relationships, summary, and start-here list are
+a **deterministic** function of the Log — same Log in, same output. Only the
+`candidate-terms` list is non-deterministic (it comes from the LLM discovery pass), which
+is fine because candidate terms carry no authority.
 
 **Rows are descriptive, never stateful.** The index is a phonebook: the LLM uses it to
-find *candidates*, then opens and **quotes the actual entries**, never the index's
-keyword summary.
+find *candidates*, then opens and **quotes the actual entries** (via the `tk-NNN` link →
+the Grep/Read extraction above), never the index's keyword summary.
 
 ## Retrieval at the moment of action (Mode A)
 

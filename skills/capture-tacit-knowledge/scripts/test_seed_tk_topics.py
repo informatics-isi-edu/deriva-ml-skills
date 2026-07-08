@@ -58,6 +58,41 @@ def test_index_md_declares_derived_and_covers_through():
     assert "covers_through" in md
 
 
+def test_index_md_tags_match_type_not_stale_index():
+    # The tags must not still say the generic "index" (a rename leftover).
+    md = s.render_empty_index_md()
+    assert "retrieval-index" in md  # the corrected tag
+    assert "tags: [tacit-knowledge, index" not in md  # the stale tag is gone
+
+
+def test_index_md_has_full_okf_index_anatomy():
+    # Full OKF-index parity: bundle metadata, inventory, relationships,
+    # navigation, and search/discovery elements are all present as sections.
+    md = s.render_empty_index_md()
+    # bundle metadata
+    assert "version:" in md
+    assert "owners:" in md
+    # navigation
+    assert "## Summary" in md
+    assert "## Start here" in md
+    # inventory: categories by anchor family
+    assert "## Inventory by anchor family" in md
+    assert "Family A" in md and "Family B" in md and "Family C" in md
+    # rows carry a click-through link, relationships, and aliases
+    assert "tk-NNN (link)" in md
+    assert "relationships" in md
+    assert "aliases" in md
+    # the illustrative row links into the Log by anchor
+    assert "../../tacit-knowledge.md#tk-042" in md
+
+
+def test_index_rows_are_descriptive_not_stateful():
+    # D4 guardrail: the index mirrors the entries, it never originates authority.
+    md = s.render_empty_index_md()
+    assert "originates no authority" in md
+    assert "mirrors the entry" in md or "mirrors the Log" in md
+
+
 def test_log_frontmatter_is_okf_log():
     fm = s.render_log_frontmatter("MyProject")
     assert "type: Log" in fm
