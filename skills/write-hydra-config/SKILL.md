@@ -79,6 +79,8 @@ When any of those skills surfaces a new RID, the user-facing offer comes from th
 
 ### Generating the canonical entry line
 
+Before hardcoding any RID, dataset name, or version into a config, verify it against the live catalog — a fabricated RID or a guessed version fails only at run time, long after the config is committed. Don't invent one: use `deriva_ml_get_dataset_spec(...)` to confirm a dataset RID + version, `deriva_ml_lookup_asset(...)` to confirm an asset, or `rag_search` / `ReadMcpResourceTool(uri="deriva://catalog/{hostname}/{catalog_id}/tables")` to discover what actually exists first.
+
 The Python-API generators below produce the exact string to paste into the config file. They handle PEP-440-correct version formatting (released, no dev labels) and ensure every required field is set.
 
 | Entry kind | Generator | Why prefer it over hand-typing |

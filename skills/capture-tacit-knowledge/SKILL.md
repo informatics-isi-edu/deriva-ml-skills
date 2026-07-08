@@ -6,31 +6,48 @@ user-invocable: false
 
 # Capture and Consult Tacit Knowledge
 
-`tacit-knowledge.md` (project root) is the project's accumulating record of **tacit knowledge** about its models and data — the intent and reasoning that the catalog cannot store. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage). This file is the source of truth for *why*. Entries connect: a follow-up run often references prior runs by RID, so the file reads top-to-bottom as the project's history of how its understanding evolved.
+`tacit-knowledge.md` (project root) is the project's accumulating record of **tacit knowledge** — the *why* behind its models and data that the catalog cannot store. Tacit knowledge (experience-earned, context-dependent, hard to codify) can't be fully written down; what this file captures is its **externalizable shell** — the decisions made, the alternatives rejected, and the reasoning a future teammate would otherwise re-learn the hard way. The catalog is the source of truth for *what* exists (RIDs, configs, numbers, lineage); this file is the source of truth for *why*. The division is load-bearing and runs through everything below: **anything the catalog can go stale on, the catalog should answer — this file links to it, never replicates it.** Entries connect (a follow-up run references prior runs by RID), so the file reads top-to-bottom as the history of how the project's understanding evolved.
 
-**Don't ask this file for catalog-stored facts.** If the question is *what* — what datasets exist, what vocabulary terms are defined, what assets a workflow produced, which version of a dataset is current — fetch the catalog directly (`deriva://catalog/{host}/{cat}/deriva-ml/...` resources first; tools next). If the question is *why* — why this dataset was created, why this hyperparameter was chosen, why a previous approach was abandoned — read this file. Entries reference catalog entities by RID rendered as a `ml.cite(rid)` markdown link (click-through, snapshot-pinned), not by inlining their contents.
+It is also the **cross-domain bridge** on multidisciplinary teams: the ML designer writes entries the domain expert needs to *understand* (and vice versa) — decisions and rationale in language the other side can read, not directives for them to act on. What the reader does with that understanding is their call, in their own time.
 
-This file is also the **cross-domain bridge** on multidisciplinary teams. The ML designer writes entries the domain expert needs to *understand* (and vice versa) — not directives for the other discipline to act on. Each entry captures decisions and their rationale in language the other side can read; what the reader chooses to do with that understanding is their decision, in their own time. Neither side writes only for themselves. The entry conventions below name this responsibility explicitly.
-
-## Relationship to catalog semantic awareness
-
-This file and the catalog's **semantic-awareness layer** (controlled vocabularies, table/column descriptions, RIDs, synonyms, and the `rag_search` index over them — see `/deriva:semantic-awareness`) are complementary halves of the same problem. Semantic awareness answers *what exists and what is it called*; tacit knowledge answers *why does it exist*. Each makes the other usable: the catalog's stable canonical names and RIDs are what let `tk-042` still resolve to a real entity five years from now, and a tacit entry recording *"we considered and rejected the vehicles-only subset because variance dominated the signal"* is what stops a future `rag_search` for `"vehicle subset"` from triggering a duplicate creation. When you find yourself reaching for a name that semantic awareness should have resolved, fix it in the catalog (better description, add a synonym, rename a term) — don't paper over it with a tacit entry. When you find yourself drafting a tacit entry that's really just restating a catalog fact, link the catalog instead. The two layers stay sharp by keeping their jobs distinct.
+Its complement is the catalog's **semantic-awareness layer** (`/deriva:semantic-awareness` — controlled vocabularies, descriptions, RIDs, synonyms, `rag_search`). Semantic awareness answers *what exists and what is it called*; this file answers *why does it exist*. They keep each other sharp: stable catalog names/RIDs are what let `tk-042` still resolve years later, and an entry recording *"we rejected the vehicles-only subset because variance dominated the signal"* is what stops a future `rag_search` from re-creating it. When a name doesn't resolve, fix it in the catalog (better description, synonym, rename) — don't paper over it with an entry; when an entry is just restating a catalog fact, link the catalog instead.
 
 ## What this file is not
 
-- **Not a TODO list.** Don't write "Analyst should run roc_analysis next" or "we need to release dataset X." Those are workflow directives aimed at a specific person at a specific time; they belong in handoff sections, issue trackers, or a task tool — not here. This file records what *was* decided, not what *should* be done.
-- **Not a process or workflow specification.** Don't write step-by-step procedures for a future contributor to follow. Skills, README files, and runbooks own that material. The exception is **recurring-pattern entries** — see Conventions: *"whenever we do X, we also do Y because Z"* is tacit knowledge about a project convention, not a directive. The form is observational ("the pattern in this project is..."), not imperative ("you should...").
-- **Not a status board.** Don't write "in progress: training run X." Catalog `Execution_Status` carries that, and it changes; this file's entries don't change once written. If the run finishes, the next entry could reference the *settled outcome*, not a transient state.
-- **Not a snapshot of mutable catalog state.** A claim that's true *at audit time* but becomes false the next time the catalog is normally written is not a durable entry — even if the audit itself was correct. The most common shape is a count, a distinctness claim, or a shape claim about a table other personas will write to ("1500 rows, no duplicates, no need for the `newest` selector"). On the next normal write, the claim silently rots and a future reader who quotes it in good faith is misled. If the audit produced a useful finding, record either the **scoped** version of the claim (the partition or filter that *will* remain true — "the loader-execution rows form a clean GT layer") or the **convention** that explains why the snapshot was that shape ("this feature table is dual-purpose; filter by execution or by `Confidence IS NULL` for GT-only"). The convention is what doesn't age; the raw count is what does.
-- **Not a replacement for the catalog.** See "What doesn't belong here" below — RIDs, versions, vocab contents, schema shape, lineage edges all live in the catalog. This file links to them, doesn't replicate them.
+Every entry is a **past-tense, settled record**. If something might change tomorrow, it belongs in the system responsible for that state — this file accumulates, it doesn't track. Concretely, it is **not**:
 
-The unifying rule: **entries are past-tense, settled records.** If something might change tomorrow, it doesn't belong here — it belongs in the system that's actually responsible for that state. This file accumulates; it doesn't track.
+- **A TODO list.** "Analyst should run roc_analysis next" is a directive aimed at a person at a time — it belongs in a handoff, issue tracker, or task tool. Record what *was* decided, not what *should* be done.
+- **A process spec.** Skills, READMEs, and runbooks own step-by-step procedures. The one exception is a **recurring-pattern entry** — *"whenever we do X in this project we also do Y because Z"* is observational ("the pattern is…"), not imperative ("you should…").
+- **A status board.** "In progress: run X" is transient — catalog `Execution_Status` carries it. Entries don't change once written; a later entry can reference the settled *outcome*.
+- **A snapshot of mutable catalog state.** A claim true at audit time but false after the next normal write is not durable — a count, distinctness, or shape claim about a table other personas write to ("1500 rows, no duplicates") silently rots and misleads a future reader who quotes it. Before writing any numerical/distinctness claim, ask whether the next normal write keeps it true; if not, record the **scoped** claim that *will* stay true ("the loader-execution rows form a clean GT layer") or the **convention** that explains the shape ("this feature table is dual-purpose; filter by `Confidence IS NULL` for GT-only"). The convention doesn't age; the raw count does.
 
-The companion rule for audits: **before writing a numerical or distinctness claim, ask whether the next normal catalog write will keep it true.** If the table will be written to by another persona's routine work (predictions into a shared GT+predictions feature, new members into a dataset, new terms into a vocab), scope the claim or capture the convention instead of the snapshot.
+The full catalog-data-vs-tacit boundary (which specific facts live in the catalog, and the PR-number-vs-behaviour rule) is in [`references/entry-format.md`](references/entry-format.md) → "What doesn't belong here."
 
 ## When to write
 
 If you have just made or recorded a decision the file would document, append an entry. Append silently — don't ask permission, don't announce. The bar is **intent**, not "alternatives were weighed": first runs, baselines, and pipeline-validation runs all qualify even when the choice felt obvious. Skip routine read-only operations (querying, listing, browsing schemas) — they leave no entry.
+
+**When an action overrides a prior decision, add a supersession edge.** If what you're
+recording invalidates an earlier entry (not merely builds on it), declare
+`**Supersedes:** [tk-NNN](#tk-NNN)` on the new entry and append `> Superseded by
+[tk-MMM](#tk-MMM)` to the old one — never rewrite the old entry. See
+`references/entry-format.md` → "`**Supersedes:**`". This is what keeps "is this still
+right?" answerable: superseded entries are excluded from retrieval by default.
+
+**Two silent side-effects of appending an entry** (no user action, documented in
+`references/index-and-retrieval.md`):
+1. **Classify** the new entry against the topic CV (`docs/tacit-knowledge/topics.md`) —
+   reuse an existing term via synonym-aware lookup; propose (don't adopt) a new one into
+   the index's `candidate-terms` list if the theme is clearly recurrent and unmatched.
+2. **Check the rebuild throttle** — if ≥ 10 entries have accumulated past the index's
+   `covers_through`, rebuild `docs/tacit-knowledge/retrieval-catalog.md` whole in the same turn and
+   note it in one line ("refreshed the tacit-knowledge index — N new entries folded in").
+   Never prompt; never auto-commit the rebuilt index. The rebuild is also where the
+   knowledge **reorganizes** — the discovery pass refines the topic CV (add / retire /
+   split / merge terms) so structure tracks what accreted. This reorganizes the
+   *derived* layer only; **entries are never moved or rewritten** (chronology is the
+   structure). Full mechanism + a worked example: `references/index-and-retrieval.md`
+   → "How the knowledge reorganizes as entries accumulate."
 
 ## When to read — two distinct modes
 
@@ -41,6 +58,28 @@ If you have just made or recorded a decision the file would document, append an 
 The bar is low: if the file mentions the entity (by RID) or the change-type ("we tried label smoothing 0.1 on training runs"), surface what it says *before* doing the action. Don't paraphrase — **quote the relevant entry** and let the user decide whether to proceed, adjust, or abandon. The cost of a wasted file-read is seconds; the cost of repeating a documented dead end is hours-to-weeks.
 
 When prior experience contradicts the proposed action, hand the decision back with concrete options rather than blocking — the user may know the original constraints no longer hold.
+
+**How to scan efficiently — run the lookup script first.** The primary path is the
+bundled **`tk_lookup.py`**: it does the whole retrieval deterministically — synonym
+expansion, the generalization walk, the supersession filter, the warm-tail merge, and
+entry extraction — and returns the surviving entries to quote:
+
+```bash
+uv run python <deriva-ml-skills>/skills/capture-tacit-knowledge/scripts/tk_lookup.py \
+  --repo-root . <anchor / keyword / skill terms>
+```
+
+If the script is unavailable (not installed, wrong env) or returns "fall back to
+hand-grep", do it by hand: `Grep` the retrieval catalog
+(`docs/tacit-knowledge/retrieval-catalog.md`) for rows matching the current
+anchor/keywords — **never load it whole**; grep for the handful of matching rows to get
+candidate `tk-NNN` ids. Then read only the un-indexed tail by seeking to `covers_through`
+(not a full Log scan). Match anchors by a **generalization walk** (instance → type →
+abstraction → process → social/domain, one grep per widened term), exclude superseded
+entries **structurally**, then extract each surviving entry by grepping its
+`<a id="tk-NNN">` in the Log and reading that span. Full procedure:
+`references/index-and-retrieval.md`. Either way, cost scales with *matches*, not corpus
+size — at both layers.
 
 ### Mode B: Forensic (when asked why)
 
@@ -69,59 +108,38 @@ Every claim in an entry should be readable as one of three things: *what was dir
 
 For the entry format — the template, field-by-field guidance, and worked examples — see [`references/entry-format.md`](references/entry-format.md).
 
-## What doesn't belong here
+An entry's **anchor** (what it's about — used for retrieval) can be a catalog artifact,
+a process (a skill name), or a socio-technical/domain subject — not only a RID. See
+[`references/anchor-taxonomy.md`](references/anchor-taxonomy.md) for the three families
+and the Family-C privacy constraint on naming individuals.
 
-This file records *why*, not *what*. The catalog is the source of record for facts; this file points at facts but doesn't replicate them. Concretely, **don't write**:
+## Domain background is a different artifact
 
-- **Vocabulary term lists.** "The `Workflow_Type` vocab has terms X, Y, Z" goes stale the next time a term is added. Link to `deriva://catalog/{host}/{cat}/deriva-ml/vocabularies/deriva-ml/Workflow_Type` and let the reader fetch.
-- **Dataset RID / type / description tables.** "13 datasets: 96E (Complete, Labeled, …), 96R (Split, …), …" is catalog data. Link to `deriva://catalog/{host}/{cat}/deriva-ml/datasets` instead. (A *short* table mapping the user-facing config name to a stable RID is fine when those names are themselves project decisions — the catalog doesn't store the mapping from `cifar10_small_labeled_split` to `CRR`. That's tacit.)
-- **Schema field types or column lists.** Catalog data; fetch `deriva://catalog/{h}/{c}/schema` or the table resource.
-- **Workflow URLs / checksums / version strings.** Catalog data; live in `Workflow` rows.
-- **Asset MD5s, file sizes, lengths.** Catalog data.
-- **Execution status, start/stop times, lineage edges.** Catalog data; fetch `deriva://catalog/{h}/{c}/deriva-ml/execution/{rid}` or `…/ml/lineage/{rid}`.
-- **PR numbers, commit SHAs, issue IDs.** Git/forge coordinates are *archaeology*, not behaviour — they tell a reader *where the change landed*, not *what the change actually does*. The thing future readers need is the durable behavioural claim ("auto-composed Execution descriptions only fire when a Hydra experiment preset is in use"); the PR number is incidental and rots when the repo is mirrored, renumbered, or migrated. Name the behaviour. If git traceability genuinely adds value, the catalog's `Workflow.URL` column already pins the commit SHA — link to that, not to a PR.
-
-  **Wrong** (cites a transient PR coordinate as the thing being said):
-
-  > "PR #46 makes auto-composed Execution descriptions only fire for `+experiment=` overrides; bare `model_config=` runs default to 'Simple model run'."
-
-  **Right** (the durable behaviour is the subject; the PR number is gone):
-
-  > "Auto-composed `Execution.description` strings only fire when a Hydra experiment preset is in use (`+experiment=...`). Bare `model_config=` / `datasets=` overrides without an experiment preset fall back to the literal string 'Simple model run'. Workaround: define a one-line experiment preset for the variation you want a meaningful description for; don't try to pass `description=` directly, which Hydra's grammar rejects for free-form strings."
-
-  The shape to learn: PR numbers describe the *change*; tacit entries describe the *behaviour the change left in place*. Always write the behaviour.
-
-**Do write**: why the dataset was created, why the workflow's type was chosen, why a hyperparameter was selected, what alternatives were rejected and why, what would invalidate this decision, what a future reader needs to know to evaluate whether the decision still holds. Reference catalog entities by their RID rendered as a `ml.cite(rid)` markdown link rather than inlining their fields.
-
-The rule of thumb: **if the catalog could go stale and break what you wrote, the catalog should answer the question, not this file.**
+**Durable domain background goes in `docs/domain/`, not here.** Facts
+about the target domain that aren't tied to one dated decision (staining varies across
+sites; sensitivity is valued over specificity in this field) are *semantic*, not
+*episodic* — they belong in the domain-background bundle (`docs/domain/`, `type: Concept`
+docs refined in place), not in a dated `tk-NNN` Log entry. A domain-concept Log entry
+may *anchor* to a `docs/domain/` subject (Family C of the anchor taxonomy), but the
+durable explanation lives in the Concept doc. Link the catalog term when one exists;
+don't restate it.
 
 ## Examples
 
-Five worked examples — covering a model run with cross-domain implications, a
-non-run event (feature/vocab creation), a dead end, snapshot-vs-convention, and
-confirmatory inquiry — live in
-[`references/entry-examples.md`](references/entry-examples.md). Read the one
-that matches the entry you're about to write; the rules above are the contract,
-those examples are the rules applied end-to-end. The canonical Mode-A
-"consult before acting" illustration stays inline directly below.
-
-## Worked example — Mode A firing on a proposed action
+Five worked *write* examples — a model run with cross-domain implications, a non-run event (feature/vocab creation), a dead end, snapshot-vs-convention, and confirmatory inquiry — live in [`references/entry-examples.md`](references/entry-examples.md). Read the one that matches the entry you're about to write. The canonical **Mode-A "consult before acting"** illustration stays inline:
 
 **User**: "Add a 'blurry' term to the Image_Annotation vocabulary so we can mark unusable slides."
 
-**Response** *(before adding, the skill consults `tacit-knowledge.md` and finds the QC entry above)*:
+**Response** *(before adding, the skill consults `tacit-knowledge.md` and finds a QC entry)*:
 
 > Before adding, I checked `tacit-knowledge.md` and found:
 >
 > > ### tk-018 — QC status feature added to Image table ([feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW))
 > > Kept QC concerns separate from diagnostic concerns rather than extending Image_Annotation with a "blurry" diagnosis term: the two review workflows have different reviewers, criteria, and consumers, so collapsing them would entangle the queues.
 >
-> Adding `blurry` to `Image_Annotation` would reverse the decision in [**tk-018**](#tk-018). Two options: (a) add the term to the existing `Image_QC_Status` [vocabulary 9PR0](https://localhost/id/96/9PR0@2P-XYZW) (backing [feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW)), which preserves the separation, or (b) revisit the original rationale if the constraints have changed (e.g., the two review pools have merged, or you're explicitly opting into a single combined queue). Which do you want?
+> Adding `blurry` to `Image_Annotation` would reverse the decision in [**tk-018**](#tk-018). Two options: (a) add the term to the existing `Image_QC_Status` [vocabulary 9PR0](https://localhost/id/96/9PR0@2P-XYZW) (backing [feature 9PQ4](https://localhost/id/96/9PQ4@2P-XYZW)), which preserves the separation, or (b) revisit the original rationale if the constraints have changed. Which do you want?
 
-Three things this example demonstrates:
-1. **Consult before act** — the skill fires on the proposed action, not on a "why" question.
-2. **Quote, don't paraphrase** — the user can see the original entry and judge its weight themselves.
-3. **Hand decision back with concrete options** — don't block, don't auto-proceed; the user may know the original constraints no longer hold.
+The moves that matter here — fire on the *action* not a "why" keyword, *quote* the entry rather than paraphrase, and *hand the decision back* with options rather than block — are the Mode-A rules above, applied end-to-end.
 
 ## Commit prompting
 
