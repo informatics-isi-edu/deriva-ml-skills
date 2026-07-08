@@ -20,8 +20,38 @@ Example:
 from __future__ import annotations
 
 import argparse
+import shutil
+import subprocess
 import sys
 from pathlib import Path
+
+
+def _yaml_quote(value: str) -> str:
+    """Quote a string for safe use as a YAML scalar value.
+
+    Plain (unquoted) YAML scalars break or change meaning when the value
+    contains YAML-significant characters — a colon-space (``: ``) starts a
+    mapping, a leading ``#`` is a comment, and leading/trailing whitespace is
+    stripped. Project names routinely carry subtitles (``EyeAI: pilot``), so any
+    value interpolated into frontmatter must be quoted.
+
+    Wraps the value in double quotes and escapes embedded backslashes and double
+    quotes, which is sufficient for the flow double-quoted YAML scalar style.
+
+    Args:
+        value: The raw string to embed as a YAML scalar.
+
+    Returns:
+        A double-quoted, escaped YAML scalar safe to place after ``key:``.
+
+    Example:
+        >>> _yaml_quote("EyeAI: pilot")
+        '"EyeAI: pilot"'
+        >>> _yaml_quote('a "b" c')
+        '"a \\\\"b\\\\" c"'
+    """
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
 
 
 def fixed_baseline_topics() -> list[dict]:
@@ -170,7 +200,7 @@ def render_log_frontmatter(project_name: str) -> str:
         [
             "---",
             "type: Log",
-            f"title: Tacit Knowledge — {project_name}",
+            f"title: {_yaml_quote(f'Tacit Knowledge — {project_name}')}",
             "description: >",
             "  The why behind this project's DerivaML decisions — rationale, dead ends,",
             "  and cross-discipline consequences that the catalog records but does not",
@@ -191,13 +221,37 @@ def render_log_frontmatter(project_name: str) -> str:
     )
 
 
+def _gitattributes_driver_lines() -> list[str]:
+    """Return the three tacit-knowledge merge-driver lines (no comments).
+
+    The single source of truth for which drivers a project needs. ``main()``
+    uses it to detect which lines a pre-existing ``.gitattributes`` is missing
+    (appending only the shortfall), and ``render_gitattributes`` embeds it in
+    the full commented block. All three are ``merge=union`` — a git built-in
+    needing no per-clone config.
+
+    Returns:
+        The three ``<path> merge=union`` lines, exactly as they appear on disk.
+
+    Example:
+        >>> len(_gitattributes_driver_lines())
+        3
+    """
+    return [
+        "tacit-knowledge.md             merge=union",
+        "docs/tacit-knowledge/topics.md merge=union",
+        "docs/tacit-knowledge/index.md  merge=union",
+    ]
+
+
 def render_gitattributes() -> str:
     """Render the .gitattributes merge drivers for the tacit-knowledge files.
 
     Returns:
-        Three merge-driver lines, all `merge=union` (Log, topic CV, and the
-        derived index — the index is a cache, so a union'd merge is harmless
-        and discarded whole by the next capture-triggered rebuild).
+        A commented header plus the three merge-driver lines, all `merge=union`
+        (Log, topic CV, and the derived index — the index is a cache, so a
+        union'd merge is harmless and discarded whole by the next
+        capture-triggered rebuild).
 
     Example:
         >>> "merge=union" in render_gitattributes()
@@ -212,9 +266,7 @@ def render_gitattributes() -> str:
             "# capture-triggered rebuild. merge=union needs no extra git config",
             "# (it's a built-in driver); merge=ours would need per-clone config",
             "# nothing here registers.",
-            "tacit-knowledge.md             merge=union",
-            "docs/tacit-knowledge/topics.md merge=union",
-            "docs/tacit-knowledge/index.md  merge=union",
+            *_gitattributes_driver_lines(),
             "",
         ]
     )
@@ -259,28 +311,43 @@ def render_domain_index_md() -> str:
 
 
 def is_gitignored(repo_root: str, relpath: str) -> bool:
-    """Check whether relpath appears as a direct line match in .gitignore.
+    """Check whether relpath would be ignored by git.
 
-    Pure line-matching, no `git` invocation: reads .gitignore and compares
-    each non-comment, non-blank line (trailing slash stripped) against
-    relpath. This does NOT evaluate glob or directory patterns — a rule like
-    `*.md` or `docs/` will NOT be detected even though `git check-ignore`
-    would treat tacit-knowledge.md as ignored by it. Only an exact-line match
-    (e.g. a literal `tacit-knowledge.md` entry) is caught. The Log must never
-    be gitignored, but a glob-based exclusion can currently slip past this
-    check.
+    Prefers ``git check-ignore``, which evaluates the *actual* ignore rules git
+    applies — glob patterns (``*.md``), directory patterns (``docs/``), nested
+    ``.gitignore`` files, and the global/core excludes file — so a Log excluded
+    by a glob is correctly refused. When git is unavailable or ``repo_root`` is
+    not a git work tree, falls back to a conservative exact-line match against a
+    top-level ``.gitignore`` (which cannot see glob/directory rules); the caller
+    is still protected against the common literal-path case.
 
     Args:
         repo_root: Absolute path to the repository root.
         relpath: Path relative to repo_root to test.
 
     Returns:
-        True if the path is ignored.
+        True if the path is ignored (by git, or by a literal .gitignore line in
+        the fallback path).
 
     Example:
-        >>> is_gitignored("/nonexistent", "x")  # no .gitignore -> not ignored
+        >>> is_gitignored("/nonexistent", "x")  # not a dir / no rules -> False
         False
     """
+    git = shutil.which("git")
+    if git is not None:
+        try:
+            result = subprocess.run(  # noqa: S603 - fixed argv, no shell
+                [git, "check-ignore", "-q", "--", relpath],
+                cwd=repo_root,
+                capture_output=True,
+            )
+        except OSError:
+            result = None
+        # exit 0 = ignored, 1 = not ignored, 128 = not a git repo / other error.
+        if result is not None and result.returncode in (0, 1):
+            return result.returncode == 0
+        # returncode 128 (or the OSError above) falls through to the line-match.
+
     gitignore = Path(repo_root) / ".gitignore"
     if not gitignore.exists():
         return False
@@ -322,33 +389,43 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: --repo-root {root} is not a directory", file=sys.stderr)
         return 2
 
-    if is_gitignored(str(root), "tacit-knowledge.md"):
-        print(
-            "error: tacit-knowledge.md is gitignored; fix .gitignore first "
-            "(the Log must be tracked)",
-            file=sys.stderr,
-        )
-        return 2
-
     artifacts = {
         "tacit-knowledge.md": render_log_frontmatter(args.project_name),
         "docs/tacit-knowledge/topics.md": render_topics_md(fixed_baseline_topics()),
         "docs/tacit-knowledge/index.md": render_empty_index_md(),
         "docs/domain/index.md": render_domain_index_md(),
     }
+
+    # Every generated artifact must be trackable, not just the Log — an index or
+    # CV excluded by a `docs/` or `*.md` glob would be written and silently
+    # ignored. Refuse if git would ignore any of them.
+    for rel in artifacts:
+        if is_gitignored(str(root), rel):
+            print(
+                f"error: {rel} is gitignored; fix .gitignore first "
+                "(the tacit-knowledge artifacts must be tracked)",
+                file=sys.stderr,
+            )
+            return 2
+
     written = []
 
-    # .gitattributes is handled first and separately: a pre-existing file with
-    # unrelated rules must get the tacit-knowledge merge drivers appended even
-    # without --overwrite. It must NOT go through the generic skip-if-exists
-    # guard below, which would (and did) short-circuit the append entirely.
+    # .gitattributes is handled first and separately: a pre-existing file must
+    # get whichever tacit-knowledge merge-driver lines it is MISSING appended,
+    # even without --overwrite. It must NOT go through the generic skip-if-exists
+    # guard below (which would short-circuit the append), and a substring check
+    # on one line would wrongly treat a partially-configured file as complete.
     gitattributes_content = render_gitattributes()
     ga_dest = root / ".gitattributes"
     if ga_dest.exists():
-        if "tacit-knowledge.md" not in ga_dest.read_text():
+        existing = ga_dest.read_text()
+        missing = [
+            line for line in _gitattributes_driver_lines() if line not in existing
+        ]
+        if missing:
             with ga_dest.open("a") as fh:
                 fh.write("\n" + gitattributes_content)
-            print("append (merge drivers): .gitattributes")
+            print(f"append (merge drivers): .gitattributes ({len(missing)} missing)")
             written.append(".gitattributes")
         else:
             print("skip (already has drivers): .gitattributes")
