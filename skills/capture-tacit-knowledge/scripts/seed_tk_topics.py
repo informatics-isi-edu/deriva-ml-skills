@@ -61,52 +61,111 @@ def fixed_baseline_topics() -> list[dict]:
     entity-free (process, domain, tooling, team — because not all tacit
     knowledge is about a catalog object).
 
+    High-value terms carry a `synonyms` list so the synonym-expansion retrieval
+    path (tk_lookup.expand_synonyms) is live from the first commit rather than
+    dormant until a human hand-adds synonyms. Terms with no natural synonym set
+    carry an empty list (no `synonyms:` clause is emitted for them).
+
     Returns:
-        A list of {"term", "axis", "description"} dicts, authored to the
-        term-naming-strategy discipline (one dimension, substitution test).
+        A list of {"term", "axis", "description", "synonyms"} dicts, authored to
+        the term-naming-strategy discipline (one dimension, substitution test).
+        `synonyms` is a (possibly empty) list of alternate query words.
 
     Example:
         >>> terms = fixed_baseline_topics()
         >>> "dataset-construction" in {t["term"] for t in terms}
         True
+        >>> mc = next(t for t in terms if t["term"] == "model-configuration")
+        >>> "hyperparameter" in mc["synonyms"]
+        True
     """
     entity_anchored = [
-        ("dataset-construction", "how a dataset was assembled, split, or subsampled"),
-        ("dataset-versioning", "why a dataset version was cut or pinned"),
-        ("feature-design", "why a feature exists and how it is shaped"),
-        ("model-configuration", "hyperparameter and architecture choices for a model"),
-        ("workflow-typing", "why a workflow was classified as it was"),
+        (
+            "dataset-construction",
+            "how a dataset was assembled, split, or subsampled",
+            ["dataset", "dataset-assembly", "subsample", "split"],
+        ),
+        ("dataset-versioning", "why a dataset version was cut or pinned", []),
+        (
+            "feature-design",
+            "why a feature exists and how it is shaped",
+            ["feature", "feature-engineering"],
+        ),
+        (
+            "model-configuration",
+            "hyperparameter and architecture choices for a model",
+            ["hyperparameter", "hyperparameters", "architecture", "config"],
+        ),
+        ("workflow-typing", "why a workflow was classified as it was", []),
         (
             "execution-provenance",
             "what an execution consumed, produced, or established",
+            ["provenance", "lineage", "execution"],
         ),
     ]
     entity_free = [
-        ("process-convention", "a recurring 'whenever we do X we also do Y' pattern"),
-        ("domain-background", "target-domain facts, confounds, and conventions"),
-        ("tooling-gotcha", "a non-obvious behavior of the toolchain or platform"),
-        ("team-ownership", "role/process facts about who owns or decides what"),
-        ("dead-end", "an approach that was tried and abandoned, and why"),
+        (
+            "process-convention",
+            "a recurring 'whenever we do X we also do Y' pattern",
+            [],
+        ),
+        ("domain-background", "target-domain facts, confounds, and conventions", []),
+        (
+            "tooling-gotcha",
+            "a non-obvious behavior of the toolchain or platform",
+            ["gotcha", "bug", "workaround"],
+        ),
+        ("team-ownership", "role/process facts about who owns or decides what", []),
+        (
+            "dead-end",
+            "an approach that was tried and abandoned, and why",
+            ["tried", "abandoned", "negative-result"],
+        ),
     ]
     topics: list[dict] = []
-    for term, desc in entity_anchored:
-        topics.append({"term": term, "axis": "entity-anchored", "description": desc})
-    for term, desc in entity_free:
-        topics.append({"term": term, "axis": "entity-free", "description": desc})
+    for term, desc, syns in entity_anchored:
+        topics.append(
+            {
+                "term": term,
+                "axis": "entity-anchored",
+                "description": desc,
+                "synonyms": syns,
+            }
+        )
+    for term, desc, syns in entity_free:
+        topics.append(
+            {
+                "term": term,
+                "axis": "entity-free",
+                "description": desc,
+                "synonyms": syns,
+            }
+        )
     return topics
 
 
 def render_topics_md(topics: list[dict]) -> str:
     """Render the topic CV as an OKF controlled-term list.
 
+    Each term becomes one bullet: ``- **term** — description``. When the term
+    carries a non-empty `synonyms` list, a ``synonyms: a, b, c`` clause is
+    appended to the SAME line, in the exact form tk_lookup.expand_synonyms
+    parses (single line, comma-separated) — so synonym expansion is live on a
+    freshly-seeded project. Terms with no synonyms emit no clause.
+
     Args:
-        topics: The term dicts from fixed_baseline_topics (+ any augmentation).
+        topics: The term dicts from fixed_baseline_topics (+ any augmentation);
+            each may carry an optional `synonyms` list.
 
     Returns:
-        Markdown with OKF frontmatter and one entry per term, grouped by axis.
+        Markdown with OKF frontmatter and one entry per term, grouped by axis;
+        terms with synonyms carry a trailing ``synonyms:`` clause on their line.
 
     Example:
-        >>> render_topics_md(fixed_baseline_topics()).startswith("---")
+        >>> md = render_topics_md(fixed_baseline_topics())
+        >>> md.startswith("---")
+        True
+        >>> "synonyms:" in md
         True
     """
     lines = [
@@ -132,7 +191,13 @@ def render_topics_md(topics: list[dict]) -> str:
         lines.append("")
         for t in topics:
             if t["axis"] == axis:
-                lines.append(f"- **{t['term']}** — {t['description']}")
+                bullet = f"- **{t['term']}** — {t['description']}"
+                syns = t.get("synonyms") or []
+                if syns:
+                    # Keep the clause on ONE line so expand_synonyms's per-line
+                    # parser (term regex + `synonyms:` search) round-trips it.
+                    bullet += f". synonyms: {', '.join(syns)}"
+                lines.append(bullet)
         lines.append("")
     return "\n".join(lines)
 

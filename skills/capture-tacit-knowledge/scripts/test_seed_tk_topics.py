@@ -51,6 +51,31 @@ def test_topics_md_is_okf_controlled_term_list():
     assert "# " in md  # a heading
 
 
+def test_rendered_topics_emit_synonyms_clause():
+    # Without a synonyms: clause on the seed terms, tk_lookup.expand_synonyms
+    # has nothing to parse and the whole synonym-expansion retrieval path is
+    # dormant on a freshly-seeded project. At least one baseline term must emit
+    # a `synonyms: a, b, c` clause in the exact form expand_synonyms parses.
+    md = s.render_topics_md(s.fixed_baseline_topics())
+    assert "synonyms:" in md
+
+
+def test_rendered_topics_round_trip_through_expand_synonyms(tmp_path):
+    # End-to-end: write the rendered topics.md into the layout tk_lookup reads
+    # (docs/tacit-knowledge/topics.md) and confirm a query using a seeded
+    # synonym ("hyperparameter") actually expands to its CV term
+    # ("model-configuration"). This proves the emitted line round-trips through
+    # expand_synonyms's parser, so synonym expansion is live on a fresh project.
+    import tk_lookup
+
+    topics_dir = tmp_path / "docs" / "tacit-knowledge"
+    topics_dir.mkdir(parents=True)
+    (topics_dir / "topics.md").write_text(s.render_topics_md(s.fixed_baseline_topics()))
+
+    expanded = tk_lookup.expand_synonyms(str(tmp_path), ["hyperparameter"])
+    assert "model-configuration" in expanded
+
+
 def test_catalog_is_conformant_okf_document():
     # A conformant OKF *document* (custom type + frontmatter + table body) —
     # NOT the reserved frontmatter-free index.md convention.

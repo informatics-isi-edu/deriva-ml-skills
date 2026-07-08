@@ -170,6 +170,26 @@ def test_superseded_rows_excluded(tmp_path):
     assert "tk-002" in {r["id"] for r in kept}
 
 
+def test_names_superseder_matches_only_real_tk_ids():
+    # A real tk- id (bare, link-wrapped, or branch-scoped) counts as a superseder.
+    assert t._names_superseder("tk-9") is True
+    assert t._names_superseder("[tk-003](#tk-003)") is True
+    assert t._names_superseder("tk-eyeai-12") is True
+
+
+def test_names_superseder_rejects_non_ids():
+    # Empty / placeholder / free text that merely EMBEDS "tk-" must not count.
+    # "gtk-3" and "toolkit-2" contain the substring "tk-" but are not tk- ids;
+    # "tk-topics" has no trailing digit so it is not an id either. Matching any
+    # of these would wrongly mark the current entry as superseded — permanently
+    # unreachable via lookup().
+    assert t._names_superseder("(none)") is False
+    assert t._names_superseder("") is False
+    assert t._names_superseder("see gtk-3 notes") is False
+    assert t._names_superseder("toolkit-2 rewrite") is False
+    assert t._names_superseder("tk-topics") is False
+
+
 def test_drop_superseded_treats_none_placeholder_as_current():
     # The seed template's illustrative row used to render the literal "(none)"
     # for an empty superseded-by cell; "(none)".strip() is truthy, so the old
@@ -210,6 +230,21 @@ def test_entry_is_superseded_is_case_insensitive():
     assert t._entry_is_superseded("> superseded by [tk-9](#tk-9)") is True
 
 
+# --- title extraction ---
+
+
+def test_title_of_preserves_mid_sentence_parenthetical():
+    # A title with a mid-sentence parenthetical must be preserved whole; the
+    # old non-greedy `(?:\s+\(|$)` truncated at the first "(" → "Use SMOTE".
+    span = "### tk-043 — Use SMOTE (not ADASYN) for imbalance\nbody text"
+    assert t._title_of(span) == "Use SMOTE (not ADASYN) for imbalance"
+
+
+def test_title_of_plain_title():
+    span = "### tk-1 — Label smoothing\nbody text"
+    assert t._title_of(span) == "Label smoothing"
+
+
 # --- end-to-end lookup ---
 
 
@@ -232,6 +267,46 @@ def test_lookup_end_to_end_excludes_superseded(tmp_path):
     result_current = t.lookup(str(root), ["label-smoothing"])
     assert result_current != []
     assert any(r["id"] == "tk-002" for r in result_current)
+
+
+def test_lookup_warns_on_duplicate_anchor(tmp_path, capsys):
+    # A botched union-merge can keep both branches' tk-100 entries verbatim
+    # (tacit-knowledge.md is merge=union). extract_entry returns only the first
+    # span; lookup() must not do so SILENTLY — it must warn to stderr so the
+    # duplicate is surfaced, while still returning a valid first span.
+    root = _make_project(tmp_path)
+    log = root / "tacit-knowledge.md"
+    text = log.read_text()
+    # Append a second, verbatim tk-002 anchor+entry (the union-merge artifact),
+    # with distinct body text so we can prove the FIRST span is the one served.
+    text += textwrap.dedent("""
+        <a id="tk-002"></a>
+        ### tk-002 — Label smoothing 0.1 baseline ([execution 8KG](url))
+        **When:** 2026-05-26T14:00:00-07:00
+        **By:** B (b@x)
+
+        DUPLICATE-FROM-OTHER-BRANCH body for label smoothing.
+        """)
+    log.write_text(text)
+
+    result = t.lookup(str(root), ["label-smoothing"])
+
+    err = capsys.readouterr().err
+    assert "tk-002" in err
+    assert "duplicate" in err.lower()
+    # Still returns a valid FIRST span (the original, not the duplicate branch).
+    entry = next(r for r in result if r["id"] == "tk-002")
+    assert "label smoothing to 0.1" in entry["text"].lower()
+    assert "DUPLICATE-FROM-OTHER-BRANCH" not in entry["text"]
+
+
+def test_lookup_no_duplicate_warning_when_anchors_unique(tmp_path, capsys):
+    # The happy path must stay quiet: no duplicate warning when every anchor
+    # appears once.
+    root = _make_project(tmp_path)
+    t.lookup(str(root), ["label-smoothing"])
+    err = capsys.readouterr().err
+    assert "duplicate" not in err.lower()
 
 
 def test_lookup_returns_entry_text(tmp_path):

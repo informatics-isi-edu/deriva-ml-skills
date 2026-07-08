@@ -250,6 +250,13 @@ def _names_superseder(cell: str) -> bool:
     "not superseded"; only a cell that names a tk- id (bare, e.g. `tk-003`,
     or link-wrapped, e.g. `[tk-003](#tk-003)`) counts as a real superseder.
 
+    Matches the strict tk-id shape (`tk-` + optional branch segment + digits,
+    the same shape parse_catalog_rows anchors on) with a left non-word
+    boundary, so free text that merely EMBEDS the substring `tk-` — e.g.
+    ``gtk-3`` or ``toolkit-2`` — does NOT count, and a digit-less token like
+    ``tk-topics`` is not mistaken for an id. Otherwise a stray mention would
+    mark the current entry superseded and make it permanently unreachable.
+
     Args:
         cell: The raw `superseded_by` table-cell text.
 
@@ -261,8 +268,10 @@ def _names_superseder(cell: str) -> bool:
         False
         >>> _names_superseder("[tk-9](#tk-9)")
         True
+        >>> _names_superseder("see gtk-3 notes")
+        False
     """
-    return bool(re.search(r"tk-", cell))
+    return bool(re.search(r"(?<![a-z0-9])tk-(?:[a-z0-9-]+-)?\d+", cell))
 
 
 def drop_superseded(rows: list[dict]) -> list[dict]:
@@ -278,7 +287,7 @@ def drop_superseded(rows: list[dict]) -> list[dict]:
         Only the rows that are still current.
 
     Example:
-        >>> drop_superseded([{"id": "a", "superseded_by": "tk-b"}])
+        >>> drop_superseded([{"id": "a", "superseded_by": "tk-9"}])
         []
         >>> drop_superseded([{"id": "a", "superseded_by": "(none)"}])
         [{'id': 'a', 'superseded_by': '(none)'}]
@@ -316,6 +325,39 @@ def extract_entry(root: str, tk_id: str) -> str | None:
     return text[start:end].strip()
 
 
+def _duplicated_anchor_ids(root: str) -> set[str]:
+    """Return the set of tk- ids that appear more than once in the Log.
+
+    A union-merge of tacit-knowledge.md (it is ``merge=union``, D12) can keep
+    both branches' copies of an entry verbatim, so the same ``<a id>`` anchor
+    lands twice. extract_entry serves only the first span (its (root, tk_id)
+    contract cannot disambiguate identical ids); this helper lets lookup() warn
+    on the duplicate rather than silently serving one of two. Missing Log →
+    empty set.
+
+    Args:
+        root: The project root directory.
+
+    Returns:
+        The tk- ids that occur more than once (empty if the Log is absent or
+        every anchor is unique).
+
+    Example:
+        >>> _duplicated_anchor_ids("/nonexistent")
+        set()
+    """
+    text = _read(root, _LOG)
+    if text is None:
+        return set()
+    seen: set[str] = set()
+    dupes: set[str] = set()
+    for tk_id in _ANCHOR_RE.findall(text):
+        if tk_id in seen:
+            dupes.add(tk_id)
+        seen.add(tk_id)
+    return dupes
+
+
 def _warm_tail_ids(root: str) -> list[str]:
     """Return the ids of Log entries not yet in the catalog (the warm tail).
 
@@ -347,8 +389,22 @@ def _warm_tail_ids(root: str) -> list[str]:
 def _entry_is_superseded(span: str) -> bool:
     """True if an entry span carries a tombstone (`> Superseded by …`).
 
-    Case-insensitive so a lowercased hand-edited tombstone (e.g.
-    ``> superseded by [tk-9](#tk-9)``) is still recognized.
+    The authoritative supersession signal read straight from the Log span
+    (the catalog's superseded-by column can lag; the tombstone is written at
+    capture time). Case-insensitive so a lowercased hand-edited tombstone
+    (e.g. ``> superseded by [tk-9](#tk-9)``) is still recognized.
+
+    Args:
+        span: An entry span extracted from the Log (see extract_entry).
+
+    Returns:
+        True if the span contains a ``> Superseded by [tk-…`` tombstone line.
+
+    Example:
+        >>> _entry_is_superseded("### tk-1 — X\\n\\n> Superseded by [tk-9](#tk-9)")
+        True
+        >>> _entry_is_superseded("### tk-1 — X\\n\\nStill current.")
+        False
     """
     return bool(re.search(r">\s*Superseded by\s+\[tk-", span, re.IGNORECASE))
 
@@ -412,19 +468,49 @@ def lookup(root: str, terms: list[str]) -> list[dict]:
     # rebuild is throttled to every 10th tail entry), a catalog row can still
     # show an empty superseded-by cell while the Log span already carries the
     # tombstone. Re-checking here closes that window.
+    #
+    # Duplicate-anchor guard: extract_entry serves the FIRST span for a given
+    # id, but a botched union-merge (D12) can leave the same anchor twice.
+    # Warn — loudly, to stderr — for any surfaced id that appears more than
+    # once, so the merge artifact is surfaced rather than silently half-served.
+    duplicated = _duplicated_anchor_ids(root)
     results: list[dict] = []
     for tk_id in ids:
         span = extract_entry(root, tk_id)
         if span is None or _entry_is_superseded(span):
             continue
+        if tk_id in duplicated:
+            print(
+                f"warning: duplicate anchor {tk_id} in Log — extracting first only",
+                file=sys.stderr,
+            )
         title = _title_of(span)
         results.append({"id": tk_id, "title": title, "text": span})
     return results
 
 
 def _title_of(span: str) -> str:
-    """Pull the short title from an entry span's `### tk-NNN — <title>` line."""
-    m = re.search(r"^###\s+tk-\S+\s+—\s+(.+?)(?:\s+\(|$)", span, re.MULTILINE)
+    """Pull the short title from an entry span's `### tk-NNN — <title>` line.
+
+    Captures the whole title to end-of-line. The heading line is already just
+    the title, so a mid-sentence parenthetical (e.g. ``(not ADASYN)``) is
+    ordinary punctuation and must be preserved — an earlier non-greedy pattern
+    truncated the title at the first ``(``, which dropped everything after it.
+
+    Args:
+        span: An entry span whose first heading is ``### tk-NNN — <title>``.
+
+    Returns:
+        The title text (trailing whitespace stripped), or "" if the span has
+        no conforming heading line.
+
+    Example:
+        >>> _title_of("### tk-043 — Use SMOTE (not ADASYN) for imbalance\\nbody")
+        'Use SMOTE (not ADASYN) for imbalance'
+        >>> _title_of("### tk-1 — Label smoothing\\nbody")
+        'Label smoothing'
+    """
+    m = re.search(r"^###\s+tk-\S+\s+—\s+(.+)$", span, re.MULTILINE)
     return m.group(1).strip() if m else ""
 
 
