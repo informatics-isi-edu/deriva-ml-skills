@@ -275,7 +275,31 @@ These are the cross-cutting rules — how entries are titled, ordered, and groun
 
 - **Dead ends are valid standalone entries.** When alternatives were weighed and the chosen path didn't pan out, write the dead-end entry on its own — no successor decision required. Dead ends are the highest-leverage tacit knowledge on a multidisciplinary team: the ML designer doesn't know that "we tried using FFPE stain type as a model input and it didn't work because staining variance dominated the signal" was a year of unproductive work the previous lab burned through. Title it after the dead-end action itself (`### tk-026 — Tried stain_type as model input; abandoned ([execution 3-XYZ](url-from-ml.cite))`).
 - **Recurring patterns are also valid.** Entries of the form *"whenever we do X in this project, we also do Y because Z"* are tacit knowledge about the project's conventions — not directives. They're statements about *what this project's pattern is*, written for a future reader who's about to do X and would benefit from knowing the pattern exists. Example: `### tk-031 — Convention — releasing a dataset bumps src/configs/datasets.py` (rationale: experiment configs pin by version, so a release that isn't reflected in the config is unreachable from runners). The reader chooses whether to follow the pattern; the entry explains why the pattern exists. Convention entries usually have no catalog-RID handle in the parenthetical — the `tk-NNN` is sufficient identifier.
-- **Reference RIDs and include quantitative evidence** (counts, sizes) when known — but as evidence for the reasoning, not as a replacement for it. See "What doesn't belong here" below for what's catalog data vs. what's tacit.
+- **Reference RIDs and include quantitative evidence** (counts, sizes) when known — but as evidence for the reasoning, not as a replacement for it. See "What doesn't belong here — catalog data vs. tacit" below.
+
+## What doesn't belong here — catalog data vs. tacit
+
+An entry records *why*, not *what*. The catalog is the source of record for facts; an entry points at facts but doesn't replicate them, because anything the catalog can go stale on will silently rot what you wrote. Concretely, **don't write**:
+
+- **Vocabulary term lists.** "The `Workflow_Type` vocab has terms X, Y, Z" goes stale the next time a term is added. Link to `deriva://catalog/{host}/{cat}/deriva-ml/vocabularies/deriva-ml/Workflow_Type` and let the reader fetch.
+- **Dataset RID / type / description tables.** "13 datasets: 96E (Complete, Labeled, …), 96R (Split, …), …" is catalog data. Link to `deriva://catalog/{host}/{cat}/deriva-ml/datasets` instead. (A *short* table mapping the user-facing config name to a stable RID is fine when those names are themselves project decisions — the catalog doesn't store the mapping from `cifar10_small_labeled_split` to `CRR`. That's tacit.)
+- **Schema field types or column lists.** Catalog data; fetch `deriva://catalog/{h}/{c}/schema` or the table resource.
+- **Workflow URLs / checksums / version strings.** Catalog data; live in `Workflow` rows.
+- **Asset MD5s, file sizes, lengths.** Catalog data.
+- **Execution status, start/stop times, lineage edges.** Catalog data; fetch `deriva://catalog/{h}/{c}/deriva-ml/execution/{rid}` or `…/ml/lineage/{rid}`.
+- **PR numbers, commit SHAs, issue IDs.** Git/forge coordinates are *archaeology*, not behaviour — they tell a reader *where the change landed*, not *what the change actually does*. The thing future readers need is the durable behavioural claim; the PR number is incidental and rots when the repo is mirrored, renumbered, or migrated. Name the behaviour. If git traceability genuinely adds value, the catalog's `Workflow.URL` column already pins the commit SHA — link to that, not to a PR.
+
+  **Wrong** (cites a transient PR coordinate as the thing being said):
+
+  > "PR #46 makes auto-composed Execution descriptions only fire for `+experiment=` overrides; bare `model_config=` runs default to 'Simple model run'."
+
+  **Right** (the durable behaviour is the subject; the PR number is gone):
+
+  > "Auto-composed `Execution.description` strings only fire when a Hydra experiment preset is in use (`+experiment=...`). Bare `model_config=` / `datasets=` overrides without an experiment preset fall back to the literal string 'Simple model run'. Workaround: define a one-line experiment preset for the variation you want a meaningful description for; don't try to pass `description=` directly, which Hydra's grammar rejects for free-form strings."
+
+  The shape to learn: PR numbers describe the *change*; tacit entries describe the *behaviour the change left in place*. Always write the behaviour.
+
+**Do write**: why the dataset was created, why the workflow's type was chosen, why a hyperparameter was selected, what alternatives were rejected and why, what would invalidate this decision, what a future reader needs to know to evaluate whether the decision still holds.
 
 ## When to inquire
 

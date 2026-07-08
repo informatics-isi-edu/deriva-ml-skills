@@ -1,0 +1,33 @@
+{
+  "skill_name": "capture-tacit-knowledge",
+  "evals": [
+    {
+      "id": 0,
+      "name": "write-after-decision",
+      "prompt": "I just retrained cifar10_quick on the animals-only subset (dataset 7KE, v0.4.0) in execution 8KG — bumped label smoothing to 0.1 because the 10-class runs were overconfident on the vehicle classes and I wanted to see if softening the targets helped. Val accuracy landed at 0.71. Going with this for the baseline. There's a tacit-knowledge.md at the project root already.",
+      "expected_output": "Appends a well-formed tk-NNN entry to tacit-knowledge.md capturing WHY (label smoothing chosen to fix overconfidence), anchored on execution 8KG rendered via ml.cite, with the hypothesis + the 0.71 observation, and does NOT replicate catalog facts (RIDs/versions as links, not inlined tables). Does it silently, no permission-asking.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "guidance-before-action",
+      "prompt": "Let's add a 'blurry' term to the Image_Annotation vocabulary so reviewers can flag unusable slides. Go ahead and create it.",
+      "expected_output": "BEFORE creating, consults tacit-knowledge.md, finds the prior tk-018 decision that deliberately kept QC separate from diagnostic annotations, QUOTES it, and hands the decision back with concrete options rather than blindly creating the term. Does not just create it.",
+      "files": ["seed-tacit-knowledge.md"]
+    },
+    {
+      "id": 2,
+      "name": "forensic-why-question",
+      "prompt": "Why is our training data pinned to the animals-only subset instead of the full 10-class CIFAR? Is that still the right call?",
+      "expected_output": "Consults tacit-knowledge.md BEFORE answering, finds and cites the entry recording the variance-dominated-signal rationale for the animals-only subset, quotes it, and frames whether it still holds honestly (reconstruction vs. recalled decision). If the file were silent it would say so rather than inventing a rationale.",
+      "files": ["seed-tacit-knowledge.md"]
+    },
+    {
+      "id": 3,
+      "name": "no-fire-routine-chore",
+      "prompt": "Can you run ruff format on the src/ directory and then run the test suite? Just cleaning up before I commit.",
+      "expected_output": "Does NOT append a tacit-knowledge entry — this is a pure tooling chore with no experiment rationale. The skill's do-NOT-fire boundary should hold; it just does the formatting/tests (or explains it would).",
+      "files": []
+    }
+  ]
+}
