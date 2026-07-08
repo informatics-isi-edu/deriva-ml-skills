@@ -99,7 +99,9 @@ def test_domain_index_is_frontmatter_free_okf_index():
     assert first.startswith("# ")
     assert "# Domain Background" in md
     assert "## Subjects" in md
-    assert "ConceptBundle" not in md  # the invented type is gone (index.md carries no type)
+    assert (
+        "ConceptBundle" not in md
+    )  # the invented type is gone (index.md carries no type)
 
 
 def test_log_frontmatter_is_okf_log():
@@ -123,8 +125,6 @@ def test_gitattributes_has_three_drivers():
     ]
     assert len(driver_lines) == 3
     assert all(line.strip().endswith("merge=union") for line in driver_lines)
-
-
 
 
 def test_is_gitignored_detects_direct_match(tmp_path):
@@ -180,7 +180,10 @@ def test_is_gitignored_detects_directory_rule(tmp_path):
     # A `docs/` directory rule hides the index/CV/domain artifacts.
     _git_init(tmp_path)
     (tmp_path / ".gitignore").write_text("docs/\n")
-    assert s.is_gitignored(str(tmp_path), "docs/tacit-knowledge/retrieval-catalog.md") is True
+    assert (
+        s.is_gitignored(str(tmp_path), "docs/tacit-knowledge/retrieval-catalog.md")
+        is True
+    )
 
 
 def test_is_gitignored_false_for_tracked_path(tmp_path):
