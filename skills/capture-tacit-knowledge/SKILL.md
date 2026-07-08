@@ -42,7 +42,12 @@ right?" answerable: superseded entries are excluded from retrieval by default.
 2. **Check the rebuild throttle** — if ≥ 10 entries have accumulated past the index's
    `covers_through`, rebuild `docs/tacit-knowledge/index.md` whole in the same turn and
    note it in one line ("refreshed the tacit-knowledge index — N new entries folded in").
-   Never prompt; never auto-commit the rebuilt index.
+   Never prompt; never auto-commit the rebuilt index. The rebuild is also where the
+   knowledge **reorganizes** — the discovery pass refines the topic CV (add / retire /
+   split / merge terms) so structure tracks what accreted. This reorganizes the
+   *derived* layer only; **entries are never moved or rewritten** (chronology is the
+   structure). Full mechanism + a worked example: `references/index-and-retrieval.md`
+   → "How the knowledge reorganizes as entries accumulate."
 
 ## When to read — two distinct modes
 

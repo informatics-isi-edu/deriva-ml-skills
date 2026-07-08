@@ -229,3 +229,45 @@ is in scope; **mutating the catalog is human-gated** and out of the tacit layer'
 
 Term authoring follows the `term-naming-strategy` discipline (`/deriva:manage-vocabulary`
 → `references/term-naming-strategy.md`).
+
+## How the knowledge reorganizes as entries accumulate
+
+As the Log grows, the structure keeps up **without touching the entries** — this is what
+"self-organizing" means here, and the boundary is strict:
+
+- **The Log never reorganizes.** Entries are append-only and chronological; you never
+  move, regroup, renumber, rewrite, or re-file an entry as more accumulate. Chronology
+  *is* the structure — it preserves the `Supported by:`/`Supersedes:` DAG, keeps the file
+  reading top-to-bottom as project history, and is what makes the file trivially
+  mergeable. Reorganization happens **only in the derived layer** (the index and the
+  topic CV), which is regenerable and carries no authority.
+- **The topic CV is where organization actually evolves.** Each rebuild's discovery pass
+  (above) is the reorganization: it re-derives which terms the corpus needs, so the
+  vocabulary tracks what accreted rather than what the seed guessed. The index then
+  re-groups entries under the current terms — wholesale, from scratch, every rebuild.
+
+**Worked example — one rebuild, ~40 entries in.** The discovery pass reads the whole Log
+and proposes (into `candidate-terms`, for the human to confirm):
+
+- **Merge (drift):** entries tagged `confidence-filtering` and `qc-thresholding` are the
+  same theme under two names that crept in months apart → fold into one term, the other
+  becomes a synonym. *(This is the temporal-drift fix, made concrete.)*
+- **Retire (unused):** the seed shipped `tooling-gotcha`, but no entry ever matched it →
+  propose retiring it so the CV stays readable.
+- **Add (emergent):** six entries across datasets and models all turn out to be about
+  the same underlying concern — the model not generalizing across the two clinical sites
+  — which no seed term names → propose a new `cross-site-generalization` term, because a
+  future teammate *would* search on it to find those six entries (the findability test).
+
+None of this rewrites an entry. The entries keep their original text and dated order; only
+their `concept keywords` (a derived index column) get recomputed under the refreshed CV,
+and the CV itself gains/loses/merges terms — all human-gated via the queue.
+
+**What is NOT built yet — flat now, clustered later.** The index is intentionally
+**flat**: a single keyword column, no theme hierarchy. Grouping the CV terms into a
+theme tree (so retrieval could browse by theme, not just match by term) is a deliberate
+future evolution — it can be layered over the same flat rows with **no entry touched and
+no data migrated**, so nothing here blocks it, and at the small N this system lives at,
+anchor + flat-keyword lookup is the high-value path. Do not hand-build a cluster
+hierarchy in v1; if theme-browsing is ever needed, it groups the (small, human-reviewed)
+CV terms, not the entries.
