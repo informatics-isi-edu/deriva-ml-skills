@@ -31,6 +31,19 @@ written **once at file creation** and not touched per entry — entries are appe
 to the body below the H1, exactly as before. This is a file-level wrapper; it does
 not change the per-entry format documented in the rest of this file.
 
+**`tags` here is document-level OKF metadata, not the per-entry classification.**
+The `tags` line describes the *whole file* (`[tacit-knowledge, provenance, deriva-ml]`),
+is written once, and is **not read by retrieval** — the LLM never keys on it to find or
+match entries. Don't confuse it with an entry's **`concept keywords`**: those are the
+per-entry classification drawn from the repo-local topic CV
+(`docs/tacit-knowledge/topics.md`, LLM-managed, human-gated), and they live as a column
+in the *derived index* (`docs/tacit-knowledge/index.md`), **not** in the entry or its
+frontmatter. The Log entry itself carries no keyword field — classification is derived,
+so it stays out of the append-only record. See
+`references/index-and-retrieval.md` → "Classifying entries against the topic CV" for the
+mechanism, and `references/anchor-taxonomy.md` for the `anchor` (the primary retrieval
+key — *what the entry is about*, distinct again from both `tags` and `concept keywords`).
+
 ## Entry header
 
 Every entry starts with an HTML anchor line and a four-line header. The anchor gives the entry a stable, link-target identifier; the header places it in time, names its author, and names its antecedents. Together they let future entries reference *this* entry with a click-through markdown link, let a future reader walk back through the chain of supporting decisions, and align the file's attribution with the catalog's `RMB` (Row-Modified-By) column so the same human is named the same way in both systems.
