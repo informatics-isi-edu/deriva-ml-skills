@@ -194,7 +194,7 @@ def render_empty_catalog_md() -> str:
             "_Example populated row (illustrative):_",
             "`[tk-042](../../tacit-knowledge.md#tk-042)` | execution 8KG · Dataset_Type=Animal_Subset"
             " · Dataset · execution-lifecycle | model-configuration · label-smoothing ·"
-            " regularization | (none)",
+            " regularization | ",
             "",
             "## candidate-terms (proposed, awaiting human review)",
             "",
@@ -461,7 +461,7 @@ def main(argv: list[str] | None = None) -> int:
         ]
         if missing:
             with ga_dest.open("a") as fh:
-                fh.write("\n" + gitattributes_content)
+                fh.write("\n" + "\n".join(missing) + "\n")
             print(f"append (merge drivers): .gitattributes ({len(missing)} missing)")
             written.append(".gitattributes")
         else:

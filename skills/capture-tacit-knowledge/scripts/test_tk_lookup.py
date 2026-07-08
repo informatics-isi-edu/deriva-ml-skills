@@ -122,6 +122,30 @@ def test_walk_matches_process_scope(tmp_path):
     assert {r["id"] for r in hits} == {"tk-002"}
 
 
+def test_match_rows_short_needle_requires_word_boundary():
+    # A short (<3 char) needle like "ml" must not match as a bare substring
+    # inside an unrelated token ("yaml-config") — that floods results. It
+    # must still match as a standalone word or inside a hyphenated token
+    # boundary like "ml-pipeline".
+    rows_no_match = [{"id": "a", "raw": "row about yaml-config only"}]
+    assert t.match_rows(rows_no_match, ["ml"]) == []
+
+    rows_hyphen = [{"id": "b", "raw": "uses the ml-pipeline tool"}]
+    assert {r["id"] for r in t.match_rows(rows_hyphen, ["ml"])} == {"b"}
+
+    rows_standalone = [{"id": "c", "raw": "trained via ml this quarter"}]
+    assert {r["id"] for r in t.match_rows(rows_standalone, ["ml"])} == {"c"}
+
+
+def test_match_rows_escapes_regex_metacharacters_in_needle():
+    # Needles containing regex metacharacters (anchors like "Dataset_Type=X"
+    # or keyword separators like "·") must be treated literally, not as
+    # regex syntax, for both the short- and long-needle paths.
+    rows = [{"id": "a", "raw": "anchors: Dataset_Type=X · other"}]
+    assert {r["id"] for r in t.match_rows(rows, ["Dataset_Type=X"])} == {"a"}
+    assert {r["id"] for r in t.match_rows(rows, ["·"])} == {"a"}
+
+
 # --- synonym expansion closes the vocabulary gap (Scenario 4) ---
 
 
@@ -146,6 +170,21 @@ def test_superseded_rows_excluded(tmp_path):
     assert "tk-002" in {r["id"] for r in kept}
 
 
+def test_drop_superseded_treats_none_placeholder_as_current():
+    # The seed template's illustrative row used to render the literal "(none)"
+    # for an empty superseded-by cell; "(none)".strip() is truthy, so the old
+    # implementation wrongly dropped current entries. A cell only means
+    # "superseded" when it actually names a tk-... id (bare or link-wrapped).
+    rows = [
+        {"id": "a", "superseded_by": "(none)"},
+        {"id": "b", "superseded_by": ""},
+        {"id": "c", "superseded_by": "tk-9"},
+        {"id": "d", "superseded_by": "[tk-9](#tk-9)"},
+    ]
+    kept = {r["id"] for r in t.drop_superseded(rows)}
+    assert kept == {"a", "b"}
+
+
 # --- entry extraction from the Log by anchor ---
 
 
@@ -153,9 +192,22 @@ def test_extract_entry_span(tmp_path):
     root = _make_project(tmp_path)
     span = t.extract_entry(str(root), "tk-002")
     assert "label smoothing to 0.1" in span.lower()
-    assert "tk-001" not in span.split("tk-002", 1)[1].split("<a id=")[0] or True
+    # the span starts at tk-002, not earlier: it must not bleed backward into
+    # tk-001's body text (tk-002 legitimately links to tk-001 via a
+    # "Supported by" reference, so we assert on tk-001's unique BODY text,
+    # not on the substring "tk-001" itself).
+    assert "vehicle variance dominated" not in span
     # the span stops before the next entry's anchor
     assert "Reinstated the full 10-class" not in span
+
+
+# --- tombstone detection ---
+
+
+def test_entry_is_superseded_is_case_insensitive():
+    # A hand-edited tombstone with lowercase "superseded by" must still be
+    # recognized (the canonical form capitalizes "Superseded").
+    assert t._entry_is_superseded("> superseded by [tk-9](#tk-9)") is True
 
 
 # --- end-to-end lookup ---
@@ -163,19 +215,63 @@ def test_extract_entry_span(tmp_path):
 
 def test_lookup_end_to_end_excludes_superseded(tmp_path):
     root = _make_project(tmp_path)
-    # Query the animals-only subset by type; tk-001 matches but is superseded,
-    # so end-to-end lookup should surface tk-003 (the superseder) via the walk
-    # only if it matches; here tk-001 is dropped and nothing else matches the
-    # type, so the result is empty — and that's correct (the current answer is
-    # "that decision was reversed").
-    result = t.lookup(str(root), ["Animal_Subset"])
-    assert all(r["id"] != "tk-001" for r in result)
+    # Negative control: query the animals-only subset by type; tk-001 matches
+    # but is superseded, so end-to-end lookup should surface tk-003 (the
+    # superseder) via the walk only if it matches; here tk-001 is dropped and
+    # nothing else matches the type, so the result is empty — and that's
+    # correct (the current answer is "that decision was reversed").
+    result_superseded = t.lookup(str(root), ["Animal_Subset"])
+    assert result_superseded == []
+    assert all(r["id"] != "tk-001" for r in result_superseded)
+
+    # Positive control (same test, so a broken matcher can't hide behind an
+    # empty result on both queries): a query that SHOULD match a current
+    # entry must be non-empty and contain tk-002. Without this, an
+    # accidentally-broken matcher that matches nothing would make the
+    # negative-control assertion above pass vacuously.
+    result_current = t.lookup(str(root), ["label-smoothing"])
+    assert result_current != []
+    assert any(r["id"] == "tk-002" for r in result_current)
 
 
 def test_lookup_returns_entry_text(tmp_path):
     root = _make_project(tmp_path)
     result = t.lookup(str(root), ["label-smoothing"])
     assert any("label smoothing to 0.1" in r["text"].lower() for r in result)
+
+
+def test_lookup_warm_tail_excludes_catalog_superseded_without_tombstone(tmp_path):
+    # A warm-tail entry (past covers_through) can be superseded per the
+    # catalog's superseded-by column even though its Log span carries no
+    # tombstone yet (e.g. the catalog was rebuilt after a later entry
+    # superseded it, but the tombstone edit to the earlier span is still
+    # pending/manual). lookup() must still exclude it — checking the
+    # tombstone alone is not enough.
+    root = _make_project(tmp_path)
+    log = root / "tacit-knowledge.md"
+    text = log.read_text()
+    # Add tk-004: a warm-tail entry (after covers_through: tk-002) with a
+    # unique keyword and NO tombstone in its span.
+    text += textwrap.dedent("""
+        <a id="tk-004"></a>
+        ### tk-004 — Switched augmentation pipeline ([execution 9ZZ](url))
+        **When:** 2026-06-05T09:00:00-07:00
+        **By:** A (a@x)
+
+        Tried a new augmentation-pipeline-widget approach for preprocessing.
+        """)
+    log.write_text(text)
+    # The catalog says tk-004 is superseded by tk-009 (no such entry needs to
+    # exist for this test — only the catalog-consultation behavior matters).
+    catalog = root / "docs" / "tacit-knowledge" / "retrieval-catalog.md"
+    catalog_text = catalog.read_text()
+    catalog_text += (
+        "| tk-004 | execution 9ZZ | augmentation-pipeline-widget | tk-009 |\n"
+    )
+    catalog.write_text(catalog_text)
+
+    result = t.lookup(str(root), ["augmentation-pipeline-widget"])
+    assert all(r["id"] != "tk-004" for r in result)
 
 
 # --- graceful degradation ---

@@ -181,13 +181,45 @@ def expand_synonyms(root: str, terms: list[str]) -> list[str]:
     return result
 
 
+def _needle_matches(needle: str, hay: str) -> bool:
+    """True if `needle` matches `hay`, word-bounded for short needles.
+
+    An unbounded substring match lets a 1-2 char term ("ml", "cv") match
+    inside unrelated tokens (e.g. "ml" inside "yaml-config"). Needles shorter
+    than 3 chars require a word-boundary match instead (bounded by
+    non-alphanumeric on each side, so hyphenated tokens like "ml-pipeline"
+    still match); needles of length >= 3 keep the plain substring match. The
+    needle is regex-escaped either way so metacharacter-bearing text (e.g.
+    "Dataset_Type=X", "·") is matched literally.
+
+    Args:
+        needle: The lowercased query term.
+        hay: The lowercased haystack text.
+
+    Returns:
+        True if the needle is considered a match against the haystack.
+
+    Example:
+        >>> _needle_matches("ml", "yaml-config")
+        False
+        >>> _needle_matches("ml", "ml-pipeline")
+        True
+    """
+    escaped = re.escape(needle)
+    if len(needle) < 3:
+        return bool(re.search(rf"(?<![a-z0-9]){escaped}(?![a-z0-9])", hay))
+    return needle in hay
+
+
 def match_rows(rows: list[dict], terms: list[str]) -> list[dict]:
     """Return rows whose text contains any query term (case-insensitive substring).
 
     This is the generalization walk in code: because each row carries ALL anchor
     scopes (instance, type, abstraction, process) plus keywords+synonyms as
     literal text, a substring match on a widened term (a type, a skill) hits the
-    right rows without the query needing the exact instance handle.
+    right rows without the query needing the exact instance handle. Short (<3
+    char) needles are word-boundary matched to avoid flooding on incidental
+    substrings (see _needle_matches).
 
     Args:
         rows: Catalog rows from parse_catalog_rows.
@@ -205,14 +237,39 @@ def match_rows(rows: list[dict], terms: list[str]) -> list[dict]:
     out: list[dict] = []
     for row in rows:
         hay = row["raw"].lower()
-        if any(n in hay for n in needles) and row["id"] not in seen:
+        if any(_needle_matches(n, hay) for n in needles) and row["id"] not in seen:
             seen.add(row["id"])
             out.append(row)
     return out
 
 
+def _names_superseder(cell: str) -> bool:
+    """True if a `superseded_by` cell actually names a `tk-…` id.
+
+    An empty cell or the seed template's `(none)` placeholder are both
+    "not superseded"; only a cell that names a tk- id (bare, e.g. `tk-003`,
+    or link-wrapped, e.g. `[tk-003](#tk-003)`) counts as a real superseder.
+
+    Args:
+        cell: The raw `superseded_by` table-cell text.
+
+    Returns:
+        True if the cell names a tk- id.
+
+    Example:
+        >>> _names_superseder("(none)")
+        False
+        >>> _names_superseder("[tk-9](#tk-9)")
+        True
+    """
+    return bool(re.search(r"tk-", cell))
+
+
 def drop_superseded(rows: list[dict]) -> list[dict]:
-    """Drop rows whose `superseded_by` is non-empty (D2 structural exclusion).
+    """Drop rows whose `superseded_by` names a real tk- id (D2 exclusion).
+
+    An empty cell or the `(none)` placeholder both mean "still current" and
+    are kept; only a cell that actually names a `tk-…` id causes a drop.
 
     Args:
         rows: Catalog rows.
@@ -221,10 +278,12 @@ def drop_superseded(rows: list[dict]) -> list[dict]:
         Only the rows that are still current.
 
     Example:
-        >>> drop_superseded([{"id": "a", "superseded_by": "b"}])
+        >>> drop_superseded([{"id": "a", "superseded_by": "tk-b"}])
         []
+        >>> drop_superseded([{"id": "a", "superseded_by": "(none)"}])
+        [{'id': 'a', 'superseded_by': '(none)'}]
     """
-    return [r for r in rows if not r.get("superseded_by", "").strip()]
+    return [r for r in rows if not _names_superseder(r.get("superseded_by", ""))]
 
 
 def extract_entry(root: str, tk_id: str) -> str | None:
@@ -286,8 +345,12 @@ def _warm_tail_ids(root: str) -> list[str]:
 
 
 def _entry_is_superseded(span: str) -> bool:
-    """True if an entry span carries a tombstone (`> Superseded by …`)."""
-    return bool(re.search(r">\s*Superseded by\s+\[tk-", span))
+    """True if an entry span carries a tombstone (`> Superseded by …`).
+
+    Case-insensitive so a lowercased hand-edited tombstone (e.g.
+    ``> superseded by [tk-9](#tk-9)``) is still recognized.
+    """
+    return bool(re.search(r">\s*Superseded by\s+\[tk-", span, re.IGNORECASE))
 
 
 def lookup(root: str, terms: list[str]) -> list[dict]:
@@ -315,12 +378,23 @@ def lookup(root: str, terms: list[str]) -> list[dict]:
     expanded = expand_synonyms(root, terms)
 
     # 2. catalog matches, minus superseded
-    catalog_hits = drop_superseded(match_rows(parse_catalog_rows(root), expanded))
+    catalog_rows = parse_catalog_rows(root)
+    catalog_hits = drop_superseded(match_rows(catalog_rows, expanded))
     ids = [r["id"] for r in catalog_hits]
+
+    # ids the catalog already knows are superseded (real tk- superseder, not
+    # empty/"(none)") — consulted below so a warm-tail entry whose Log span
+    # has no tombstone yet, but whose catalog row already names a superseder,
+    # is still excluded.
+    superseded_ids = {
+        r["id"] for r in catalog_rows if _names_superseder(r.get("superseded_by", ""))
+    }
 
     # 3. warm tail: entries past covers_through that match any term
     for tk_id in _warm_tail_ids(root):
         if tk_id in ids:
+            continue
+        if tk_id in superseded_ids:
             continue
         span = extract_entry(root, tk_id)
         if span is None:

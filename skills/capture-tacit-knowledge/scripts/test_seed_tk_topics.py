@@ -159,10 +159,10 @@ def test_main_gitattributes_append_is_idempotent(tmp_path):
     s.main(["--repo-root", str(tmp_path), "--project-name", "X"])
 
     text = ga.read_text()
-    # The rendered driver block itself contains two merge=union lines by
-    # design (Log + topic CV); assert the whole block appears once, not that
-    # the substring count is 1.
-    assert text.count("Tacit-knowledge merge drivers") == 1
+    # Running twice must not duplicate any driver line — the second run finds
+    # all three already present and skips (no append at all).
+    for line in s._gitattributes_driver_lines():
+        assert text.count(line) == 1
 
 
 # --- codex P2 regression tests ---
@@ -219,6 +219,19 @@ def test_main_appends_only_missing_driver_lines(tmp_path):
     text = ga.read_text()
     assert "docs/tacit-knowledge/topics.md            merge=union" in text
     assert "docs/tacit-knowledge/retrieval-catalog.md merge=union" in text
+    # The already-present Log driver line must NOT be duplicated: appending
+    # the full rendered block (comment header + all 3 lines) instead of just
+    # the missing lines would double it up.
+    driver_lines = [
+        line
+        for line in text.splitlines()
+        if line.strip().endswith("merge=union") and not line.strip().startswith("#")
+    ]
+    log_driver_lines = [
+        ln for ln in driver_lines if ln.startswith("tacit-knowledge.md")
+    ]
+    assert len(log_driver_lines) == 1
+    assert text.count("tacit-knowledge.md") == 1  # no duplicate comment mention either
 
 
 def test_log_frontmatter_quotes_yaml_significant_title(tmp_path):
