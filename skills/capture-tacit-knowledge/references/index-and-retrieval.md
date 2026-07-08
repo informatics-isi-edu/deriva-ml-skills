@@ -96,7 +96,34 @@ hide an anchor behind a link label grep can't see.
 *candidates*, then opens and **quotes the actual entries** (via the `tk-NNN` → Grep/Read
 extraction above), never the catalog's keyword summary.
 
-## Retrieval at the moment of action (Mode A)
+## The lookup script (`tk_lookup.py`) — the primary retrieval path
+
+Retrieval runs through the bundled **`scripts/tk_lookup.py`** first. It does the entire
+procedure below deterministically — so the LLM does not hand-execute the multi-step grep
+walk, and the logic has one tested home that can grow (synonym expansion today, semantic
+lookup later) without the skill's prose drifting:
+
+```bash
+uv run python <deriva-ml-skills>/skills/capture-tacit-knowledge/scripts/tk_lookup.py \
+  --repo-root . <anchor / keyword / skill terms>          # add --ids-only for just ids
+```
+
+It: (1) **expands** the query terms through the topic-CV synonyms (`topics.md`) — closing
+the substring/vocabulary gap a raw grep can't; (2) **matches** catalog rows (the
+generalization walk, over rows that carry all anchor scopes as literal text); (3) merges
+the **warm tail** (entries past `covers_through`); (4) applies the **supersession filter**
+(catalog `superseded-by` column + tail tombstones); (5) **extracts** each surviving
+entry's span from the Log. It prints the entries to quote.
+
+**It is the primary path, not a hard dependency.** Every missing file degrades gracefully
+(returns empty / unexpanded, never raises); if the script is unavailable or prints
+`(no matching … — fall back to hand-grep)`, the LLM runs the hand-grep procedure below,
+which is *also* the reference spec the script implements. Correctness never hard-depends
+on the script — same guarantee the catalog gives over the Log. (Bundling a script here is
+consistent with the plugin's other scripts — `seed_tk_topics.py`, `check_versions.py`;
+the retrieval procedure is code-shaped and only getting more so.)
+
+## Retrieval at the moment of action (Mode A) — the hand-grep procedure (fallback + spec)
 
 **Goal: context-window economy.** Load only what is required so as not to blow the
 context store. The index bounds the token cost; the Log's front is never scanned.

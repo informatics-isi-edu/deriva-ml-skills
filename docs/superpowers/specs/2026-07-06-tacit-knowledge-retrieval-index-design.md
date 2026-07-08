@@ -844,6 +844,49 @@ cross-discipline knowledge is exactly what the system exists to preserve.
   assumes a RID via `ml.cite(rid)`; it must allow a handle from any family: `*_Type` term
   or abstraction (A), a skill name (B), or a `docs/domain/` subject (C).
 
+## D14 — Retrieval-artifact OKF conformance + the lookup script (2026-07-08 corrections)
+
+Implementation-phase corrections to D4/D5/D8, made after re-reading the OKF spec and
+validating retrieval against concrete scenarios. Recorded here so the reasoning survives
+(this plugin repo has no project `tacit-knowledge.md` of its own — its decision log *is*
+this spec). Full working record: `docs/superpowers/plans/2026-07-08-tk-retrieval-catalog-and-lookup-script.md`.
+
+- **(a) The retrieval index is a conformant OKF *document*, not an `index.md`.** OKF has
+  two levels: the *file format* (every doc = frontmatter with a `type` + free-form body;
+  custom types conformant; tables allowed) and the reserved *`index.md` convention* (the
+  ONE frontmatter-free doc, a bullet-list of a directory's files, for browsing). The
+  retrieval index is a machine *lookup over the Log's entries*, not a directory
+  browse-list — so it is a normal OKF document (`type: RetrievalCatalog`, frontmatter
+  kept, table body) and is **renamed off `index.md`** → `docs/tacit-knowledge/retrieval-catalog.md`.
+  D4's `type: Index` is superseded by `type: RetrievalCatalog`.
+- **(b) `docs/domain/index.md` must be frontmatter-free.** Symmetric bug: it was carrying
+  `type: ConceptBundle` frontmatter, but OKF `index.md` files carry NO frontmatter. Fixed
+  to a conformant OKF index — no frontmatter, a bullet list of the Concept docs. There is
+  no `ConceptBundle` type; a "bundle" is just a directory of `Concept` docs + a
+  frontmatter-free `index.md`.
+- **(c) The catalog rows are LEAN, and consumed by GREP not load.** A brief "full
+  OKF-index parity" enrichment (version/owners/relationships/aliases/browse-sections) was
+  **reverted** — it was built against the wrong (a) model and taxed the hot path. The
+  schema is the scenario-minimal `tk-NNN | anchors(all scopes) | keywords(+synonyms) |
+  superseded-by`. Retrieval **greps** the catalog for matching rows (never loads it
+  whole), so cost is O(matches) not O(entries) and the catalog scales without a size
+  ceiling. Two row requirements are load-bearing: *all anchor scopes per row* (the
+  generalization walk greps each widened scope) and *synonym-rich keywords* (a query using
+  a different word than the entry still matches).
+- **(d) Retrieval's PRIMARY path is a bundled script, `tk_lookup.py`.** The procedure
+  (synonym expansion + walk + supersession filter + warm-tail merge + extraction) lives in
+  tested code, not LLM-executed prose, because it is only getting more sophisticated
+  (evolving keywords, future semantic lookup) and code runs it identically where prose
+  drifts. It is an **optional accelerator with graceful degradation**: every missing file
+  returns empty/unchanged, never raises; if unavailable, the LLM hand-greps (the same spec
+  the script implements). This does not violate a "no compiled code" principle — there was
+  never such a constraint; the plugin already ships `seed_tk_topics.py` and
+  `check_versions.py`. Rot mitigation: the script and the seed renderer share the column
+  contract, pinned by a test.
+- **Explicitly rejected this round:** splitting entries into per-type subdirectories (would
+  reverse D1 — the one append-only Log); reshaping the catalog into an OKF `index.md`
+  bullet-list.
+
 ---
 
 ## File layout (decided)
