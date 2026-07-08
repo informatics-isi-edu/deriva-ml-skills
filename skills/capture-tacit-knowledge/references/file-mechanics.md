@@ -36,7 +36,7 @@ user-invocable in the loop):
 | Artifact | Path | Type |
 |---|---|---|
 | The Log | `tacit-knowledge.md` (project root) | `Log` — append-only |
-| Derived retrieval index | `docs/tacit-knowledge/index.md` | `RetrievalIndex` — cache, rebuilt whole |
+| Derived retrieval index | `docs/tacit-knowledge/retrieval-index.md` | `RetrievalIndex` — cache, rebuilt whole |
 | Topic CV | `docs/tacit-knowledge/topics.md` | `Vocabulary` (controlled-term list) — human-gated |
 | Domain-background bundle | `docs/domain/` (+ `index.md`) | `ConceptBundle` root over `Concept` docs — refined in place |
 | Merge drivers | `.gitattributes` | `merge=union` (Log, CV, and index) |
@@ -64,13 +64,22 @@ The whole system in one place — the directory tree, and the OKF `type` of ever
 ├── .gitattributes                  (git config)          — merge=union for the three files below
 └── docs/
     ├── tacit-knowledge/
-    │   ├── index.md                type: RetrievalIndex  — derived retrieval index (cache, rebuilt whole)
+    │   ├── retrieval-index.md      type: RetrievalIndex  — derived retrieval index (cache, rebuilt whole)
     │   └── topics.md               type: Vocabulary      — the topic CV (controlled-term list)
     └── domain/
         ├── index.md                type: ConceptBundle   — bundle root, lists the Concept docs below
         ├── staining-variance.md    type: Concept         — one subject per file
         └── cohort-skew.md          type: Concept         — …refined in place over time
 ```
+
+**Why `retrieval-index.md`, not `index.md`.** OKF reserves the filename `index.md` for a
+document that *enumerates its own directory's contents*. The tacit-knowledge retrieval
+index does something different — it catalogs the **Log's entries**, not its directory —
+so naming it `index.md` would overload the reserved name and mislead a generic OKF
+consumer. It is named `retrieval-index.md` and typed `RetrievalIndex` instead. The
+**domain** bundle's `index.md` keeps the reserved name correctly: it *does* enumerate its
+directory (it lists the sibling `Concept` docs), which is exactly what OKF `index.md`
+means.
 
 **What each OKF `type` means here.** OKF's `type` is open and extensible (values are
 "descriptive and self-explanatory"; consumers tolerate unknown types), so each file
@@ -80,7 +89,7 @@ it is holding from the frontmatter alone, with no path-inference.
 | `type` | What it is | In this system |
 |---|---|---|
 | `Log` | append-only journal; dated entries | `tacit-knowledge.md` — the source of *why*; never reorganized |
-| `RetrievalIndex` | a derived, whole-rebuilt catalog pointing at Log entries (descriptive rows only, never stateful) | `docs/tacit-knowledge/index.md` — the retrieval accelerator; a cache, not a record |
+| `RetrievalIndex` | a derived, whole-rebuilt catalog pointing at Log entries (descriptive rows only, never stateful) | `docs/tacit-knowledge/retrieval-index.md` — the retrieval accelerator; a cache, not a record |
 | `Vocabulary` | a controlled-term list the entries are classified against | `docs/tacit-knowledge/topics.md` — the topic CV; human-gated |
 | `ConceptBundle` | the root of a bundle; lists its member `Concept` docs | `docs/domain/index.md` — the domain-background bundle root |
 | `Concept` | a semantic doc about one subject, refined in place | each `docs/domain/<subject>.md` |

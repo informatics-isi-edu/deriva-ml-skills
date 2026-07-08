@@ -13,7 +13,7 @@ becomes the CV.
 Example:
     $ uv run python seed_tk_topics.py --repo-root /path/to/project --project-name EyeAI
     Wrote tacit-knowledge.md, docs/tacit-knowledge/topics.md,
-    docs/tacit-knowledge/index.md, docs/domain/index.md, .gitattributes.
+    docs/tacit-knowledge/retrieval-index.md, docs/domain/index.md, .gitattributes.
     Review docs/tacit-knowledge/topics.md before committing.
 """
 
@@ -247,9 +247,9 @@ def _gitattributes_driver_lines() -> list[str]:
         3
     """
     return [
-        "tacit-knowledge.md             merge=union",
-        "docs/tacit-knowledge/topics.md merge=union",
-        "docs/tacit-knowledge/index.md  merge=union",
+        "tacit-knowledge.md                      merge=union",
+        "docs/tacit-knowledge/topics.md          merge=union",
+        "docs/tacit-knowledge/retrieval-index.md merge=union",
     ]
 
 
@@ -412,7 +412,7 @@ def main(argv: list[str] | None = None) -> int:
     artifacts = {
         "tacit-knowledge.md": render_log_frontmatter(args.project_name),
         "docs/tacit-knowledge/topics.md": render_topics_md(fixed_baseline_topics()),
-        "docs/tacit-knowledge/index.md": render_empty_index_md(),
+        "docs/tacit-knowledge/retrieval-index.md": render_empty_index_md(),
         "docs/domain/index.md": render_domain_index_md(),
     }
 

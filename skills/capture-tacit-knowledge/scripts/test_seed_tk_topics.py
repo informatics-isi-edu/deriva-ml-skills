@@ -69,7 +69,7 @@ def test_gitattributes_has_three_drivers():
     ga = s.render_gitattributes()
     assert "tacit-knowledge.md" in ga
     assert "docs/tacit-knowledge/topics.md" in ga
-    assert "docs/tacit-knowledge/index.md" in ga
+    assert "docs/tacit-knowledge/retrieval-index.md" in ga
     # All three tacit-knowledge files use merge=union on their driver lines
     # (index included — it's a cache, so a union'd merge is harmless and
     # discarded by the next rebuild; merge=ours would need per-clone git
@@ -139,7 +139,7 @@ def test_is_gitignored_detects_directory_rule(tmp_path):
     # A `docs/` directory rule hides the index/CV/domain artifacts.
     _git_init(tmp_path)
     (tmp_path / ".gitignore").write_text("docs/\n")
-    assert s.is_gitignored(str(tmp_path), "docs/tacit-knowledge/index.md") is True
+    assert s.is_gitignored(str(tmp_path), "docs/tacit-knowledge/retrieval-index.md") is True
 
 
 def test_is_gitignored_false_for_tracked_path(tmp_path):
@@ -164,16 +164,17 @@ def test_main_refuses_when_an_artifact_is_glob_ignored(tmp_path):
 def test_main_appends_only_missing_driver_lines(tmp_path):
     # A .gitattributes that has the Log driver but is MISSING the two docs/
     # drivers must still get the missing lines appended (substring-on-one-line
-    # would wrongly treat it as complete and skip).
+    # would wrongly treat it as complete and skip). Use the exact Log driver
+    # line the script emits so the "present" half matches.
     ga = tmp_path / ".gitattributes"
-    ga.write_text("tacit-knowledge.md             merge=union\n")
+    ga.write_text("tacit-knowledge.md                      merge=union\n")
 
     rc = s.main(["--repo-root", str(tmp_path), "--project-name", "X"])
 
     assert rc == 0
     text = ga.read_text()
-    assert "docs/tacit-knowledge/topics.md merge=union" in text
-    assert "docs/tacit-knowledge/index.md  merge=union" in text
+    assert "docs/tacit-knowledge/topics.md          merge=union" in text
+    assert "docs/tacit-knowledge/retrieval-index.md merge=union" in text
 
 
 def test_log_frontmatter_quotes_yaml_significant_title(tmp_path):

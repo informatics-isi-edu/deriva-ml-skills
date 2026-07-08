@@ -6,7 +6,7 @@ retrieval and write steps. None of this is compiled code — the "index builder"
 the LLM re-reading the Log during a capture side-effect. The corpus is permanently
 small (a few hundred entries), so the whole loop is a read-and-rewrite of small files.
 
-## The derived index (`docs/tacit-knowledge/index.md`)
+## The derived index (`docs/tacit-knowledge/retrieval-index.md`)
 
 An OKF `type: RetrievalIndex` document — a **cache, not a record**. Delete it and
 retrieval still works (it degrades to a supersession-aware Log scan); a stale index only
@@ -166,9 +166,9 @@ The tacit-knowledge files use `.gitattributes` merge drivers so collaborators me
 cleanly:
 
 ```
-tacit-knowledge.md             merge=union
-docs/tacit-knowledge/topics.md merge=union
-docs/tacit-knowledge/index.md  merge=union   # regenerated post-merge; never hand-merged
+tacit-knowledge.md                      merge=union
+docs/tacit-knowledge/topics.md          merge=union
+docs/tacit-knowledge/retrieval-index.md merge=union   # regenerated post-merge; never hand-merged
 ```
 
 - **Log = union merge.** Both branches append at EOF; union concatenates both sides.
