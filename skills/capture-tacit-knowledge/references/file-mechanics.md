@@ -35,10 +35,10 @@ user-invocable in the loop):
 
 | Artifact | Path | Type |
 |---|---|---|
-| The Log | `tacit-knowledge.md` (project root) | OKF `Log` — append-only |
-| Derived retrieval index | `docs/tacit-knowledge/index.md` | OKF `Index` — cache, rebuilt whole |
-| Topic CV | `docs/tacit-knowledge/topics.md` | OKF `Index` (controlled-term list) — human-gated |
-| Domain-background bundle | `docs/domain/` (+ `index.md`) | OKF `Concept` docs — refined in place |
+| The Log | `tacit-knowledge.md` (project root) | `Log` — append-only |
+| Derived retrieval index | `docs/tacit-knowledge/index.md` | `RetrievalIndex` — cache, rebuilt whole |
+| Topic CV | `docs/tacit-knowledge/topics.md` | `Vocabulary` (controlled-term list) — human-gated |
+| Domain-background bundle | `docs/domain/` (+ `index.md`) | `ConceptBundle` root over `Concept` docs — refined in place |
 | Merge drivers | `.gitattributes` | `merge=union` (Log, CV, and index) |
 
 Run it once:
@@ -60,28 +60,34 @@ The whole system in one place — the directory tree, and the OKF `type` of ever
 
 ```
 <project root>/
-├── tacit-knowledge.md              type: Log      — the append-only journal of *why*
-├── .gitattributes                  (git config)   — merge=union for the three files below
+├── tacit-knowledge.md              type: Log             — the append-only journal of *why*
+├── .gitattributes                  (git config)          — merge=union for the three files below
 └── docs/
     ├── tacit-knowledge/
-    │   ├── index.md                type: Index    — derived retrieval index (cache, rebuilt whole)
-    │   └── topics.md               type: Index    — the topic CV (controlled-term list)
+    │   ├── index.md                type: RetrievalIndex  — derived retrieval index (cache, rebuilt whole)
+    │   └── topics.md               type: Vocabulary      — the topic CV (controlled-term list)
     └── domain/
-        ├── index.md                type: Index    — bundle root: an Index *over* the Concept docs
-        ├── staining-variance.md    type: Concept  — one subject per file
-        └── cohort-skew.md          type: Concept  — …refined in place over time
+        ├── index.md                type: ConceptBundle   — bundle root, lists the Concept docs below
+        ├── staining-variance.md    type: Concept         — one subject per file
+        └── cohort-skew.md          type: Concept         — …refined in place over time
 ```
 
-**What each OKF `type` means here:**
+**What each OKF `type` means here.** OKF's `type` is open and extensible (values are
+"descriptive and self-explanatory"; consumers tolerate unknown types), so each file
+declares the specific role it plays rather than a generic shape — a consumer knows what
+it is holding from the frontmatter alone, with no path-inference.
 
-| `type` | OKF role | In this system |
+| `type` | What it is | In this system |
 |---|---|---|
-| `Log` | append-only journal; entries are dated records | `tacit-knowledge.md` — the source of *why*; never reorganized |
-| `Index` | a catalog of members carrying *descriptive* metadata (never stateful) | three uses: the retrieval index (points at Log entries), the topic CV (catalogs the classification terms), and the domain bundle root (catalogs the Concept docs) |
+| `Log` | append-only journal; dated entries | `tacit-knowledge.md` — the source of *why*; never reorganized |
+| `RetrievalIndex` | a derived, whole-rebuilt catalog pointing at Log entries (descriptive rows only, never stateful) | `docs/tacit-knowledge/index.md` — the retrieval accelerator; a cache, not a record |
+| `Vocabulary` | a controlled-term list the entries are classified against | `docs/tacit-knowledge/topics.md` — the topic CV; human-gated |
+| `ConceptBundle` | the root of a bundle; lists its member `Concept` docs | `docs/domain/index.md` — the domain-background bundle root |
 | `Concept` | a semantic doc about one subject, refined in place | each `docs/domain/<subject>.md` |
 
-`type: Index` is reused for three different jobs because they are all the same OKF
-shape — a descriptive catalog of members — not because they are the same thing.
+`RetrievalIndex`, `Vocabulary`, and `ConceptBundle` are all the same underlying OKF
+*shape* — a descriptive catalog of members — but each names its distinct **job** so the
+three are no longer indistinguishable behind a generic `Index`.
 
 ## Concepts, files, tags, and type — the relationships, concisely
 
@@ -89,9 +95,10 @@ Four terms get confused; here is each, once:
 
 - **A Concept is a file.** In the `docs/domain/` bundle, one `type: Concept` markdown
   file = one subject (staining variance, cohort skew). The bundle is just the directory
-  of those files, with an `index.md` (`type: Index`) at its root that lists them.
-- **`type`** is the OKF *kind* of a file (`Log` / `Index` / `Concept`) — it says what
-  shape the file is and how it behaves (append-only journal vs. regenerable catalog vs.
+  of those files, with an `index.md` (`type: ConceptBundle`) at its root that lists them.
+- **`type`** is the OKF *kind* of a file (`Log` / `RetrievalIndex` / `Vocabulary` /
+  `ConceptBundle` / `Concept`) — it says what the file is and how it behaves (append-only
+  journal vs. regenerable retrieval cache vs. controlled-term list vs. bundle root vs.
   refined-in-place subject doc). One value per file, in its frontmatter.
 - **`tags`** is OKF *document-level* descriptive metadata — free keywords describing the
   *whole file*. Its job is to let a human (or coarse search) tell sibling files apart

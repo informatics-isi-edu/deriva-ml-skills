@@ -111,7 +111,7 @@ def render_topics_md(topics: list[dict]) -> str:
     """
     lines = [
         "---",
-        "type: Index",
+        "type: Vocabulary",
         "title: Tacit Knowledge — topic controlled vocabulary",
         "description: >",
         "  Repo-local controlled vocabulary the LLM classifies tacit-knowledge",
@@ -141,16 +141,17 @@ def render_empty_index_md() -> str:
     """Render the derived-index placeholder (no entries indexed yet).
 
     Returns:
-        Markdown OKF type:Index with covers_through pointing before the first entry.
+        Markdown OKF type:RetrievalIndex with covers_through pointing before the
+        first entry.
 
     Example:
-        >>> "type: Index" in render_empty_index_md()
+        >>> "type: RetrievalIndex" in render_empty_index_md()
         True
     """
     return "\n".join(
         [
             "---",
-            "type: Index",
+            "type: RetrievalIndex",
             "title: Tacit Knowledge — retrieval index",
             "description: >",
             "  Derived candidate index over tacit-knowledge.md. Cache, not record —",
@@ -281,19 +282,19 @@ def render_gitattributes() -> str:
 
 
 def render_domain_index_md() -> str:
-    """Render the docs/domain/ bundle root (an Index over Concept docs).
+    """Render the docs/domain/ bundle root (a ConceptBundle over Concept docs).
 
     Returns:
-        Markdown OKF type:Index describing the domain-background bundle.
+        Markdown OKF type:ConceptBundle describing the domain-background bundle.
 
     Example:
-        >>> "docs/domain" in render_domain_index_md() or "Concept" in render_domain_index_md()
+        >>> "type: ConceptBundle" in render_domain_index_md()
         True
     """
     return "\n".join(
         [
             "---",
-            "type: Index",
+            "type: ConceptBundle",
             "title: Domain Background",
             "description: >",
             "  Semantic, refined-in-place background about the target domain — facts,",

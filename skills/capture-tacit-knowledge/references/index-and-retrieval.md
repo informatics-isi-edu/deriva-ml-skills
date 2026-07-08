@@ -8,15 +8,18 @@ small (a few hundred entries), so the whole loop is a read-and-rewrite of small 
 
 ## The derived index (`docs/tacit-knowledge/index.md`)
 
-An OKF `type: Index` document — a **cache, not a record**. Delete it and retrieval
-still works (it degrades to a supersession-aware Log scan); a stale index only slows
-retrieval, never corrupts it. It is **rebuilt whole, never incrementally patched**.
+An OKF `type: RetrievalIndex` document — a **cache, not a record**. Delete it and
+retrieval still works (it degrades to a supersession-aware Log scan); a stale index only
+slows retrieval, never corrupts it. It is **rebuilt whole, never incrementally patched**.
+(`RetrievalIndex` is this project's descriptive OKF type for the retrieval accelerator —
+OKF `type` is open/extensible; see `references/file-mechanics.md` → "OKF layout at a
+glance" for all five types.)
 
 ### Frontmatter
 
 ```yaml
 ---
-type: Index
+type: RetrievalIndex
 title: Tacit Knowledge — retrieval index
 description: Derived candidate index over tacit-knowledge.md. Cache, not record — rebuilt whole.
 generated_from: tacit-knowledge.md

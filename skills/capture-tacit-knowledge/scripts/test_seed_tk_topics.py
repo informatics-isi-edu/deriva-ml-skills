@@ -47,13 +47,13 @@ def test_fixed_baseline_covers_entity_free_axes():
 def test_topics_md_is_okf_controlled_term_list():
     md = s.render_topics_md(s.fixed_baseline_topics())
     assert md.startswith("---")  # frontmatter
-    assert "type:" in md
+    assert "type: Vocabulary" in md  # richer type: the topic CV self-identifies
     assert "# " in md  # a heading
 
 
 def test_index_md_declares_derived_and_covers_through():
     md = s.render_empty_index_md()
-    assert "type: Index" in md
+    assert "type: RetrievalIndex" in md  # richer type: not the generic Index
     assert "generated_from: tacit-knowledge.md" in md
     assert "covers_through" in md
 
@@ -83,7 +83,7 @@ def test_gitattributes_has_three_drivers():
 
 def test_domain_index_is_concept_bundle_root():
     md = s.render_domain_index_md()
-    assert "type: Index" in md  # bundle root is an Index over Concept docs
+    assert "type: ConceptBundle" in md  # richer type: bundle root over Concept docs
 
 
 def test_is_gitignored_detects_direct_match(tmp_path):
