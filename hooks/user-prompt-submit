@@ -34,7 +34,8 @@ feature or vocabulary, changing schema, choosing a config or hyperparameters,
 or fixing a bug with a non-obvious cause — invoke /deriva-ml:capture-tacit-knowledge
 and append a dated entry to tacit-knowledge.md IN THIS SAME response, without
 waiting to be asked. Before recommending such an action, and when asked "why
-was X chosen / have we tried Y / is this still right", consult that file first.
+was X chosen / have we tried Y / is this still right" or for a status or run
+comparison, search that file (not just its tail) before the catalog or git.
 EOF
 )
 

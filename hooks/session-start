@@ -38,8 +38,11 @@ the capture-tacit-knowledge discipline without waiting to be asked:
   change a config, split a dataset, train a model), consult tacit-knowledge.md
   first — prior experience may bear on whether it will work.
 - FORENSIC: when asked "why was X chosen", "have we tried Y", "is this still
-  right", or when orienting to the project, consult the file before answering;
-  if it is silent, say so rather than inventing rationale.
+  right", for the status of a model/experiment/dataset, for a comparison of
+  runs, or for results "with the rationale" — and when orienting to the
+  project — consult the file BEFORE the catalog or git. Search it for every
+  entity involved (not just its last entries) and read the matching
+  docs/design/ docs; if it is silent, say so rather than inventing rationale.
 
 Use the /deriva-ml:capture-tacit-knowledge skill for the full discipline. Treat
 this as a standing trigger for the whole session, not a one-time note.
