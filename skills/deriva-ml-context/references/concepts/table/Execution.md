@@ -21,7 +21,7 @@ connect an Execution to its inputs (via `Dataset_Execution`) and outputs (via
 ## Foreign Keys
 
 - `Workflow` → [Workflow](Workflow.md) — the versioned code that ran this
-  execution; content-addressed by `(URL, Checksum)`.
+  execution (deduplicated by URL or script checksum; the run's exact commit is in its `configuration.json`).
 - `Status` → [Execution_Status](Execution_Status.md) — current state in the
   execution state machine.
 

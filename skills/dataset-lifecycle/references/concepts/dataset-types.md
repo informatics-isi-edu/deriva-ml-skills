@@ -6,6 +6,22 @@ description: What a dataset is, Dataset_Type vocabulary (three axes — role, co
 
 # Dataset types and element types
 
+**Contents**
+
+- [What is a Dataset?](#what-is-a-dataset)
+- [Dataset Types](#dataset-types)
+  - [The three axes of `Dataset_Type`](#the-three-axes-of-dataset_type)
+  - [Built-in terms by axis](#built-in-terms-by-axis)
+  - [Why the role/origin distinction matters in practice](#why-the-roleorigin-distinction-matters-in-practice)
+  - [Types are orthogonal tags](#types-are-orthogonal-tags)
+  - [Creating custom types](#creating-custom-types)
+  - [How `split_dataset` assigns types](#how-split_dataset-assigns-types)
+  - [How `subsample` assigns types](#how-subsample-assigns-types)
+- [Dataset Element Types](#dataset-element-types)
+  - [Why element types matter for planning](#why-element-types-matter-for-planning)
+  - [Registering element types](#registering-element-types)
+  - [Element types and bag exports](#element-types-and-bag-exports)
+
 Background on datasets in DerivaML. For the step-by-step guide to creating and managing datasets, see `workflow.md`.
 
 > **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.

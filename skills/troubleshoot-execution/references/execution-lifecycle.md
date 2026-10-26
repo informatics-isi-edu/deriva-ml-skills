@@ -11,7 +11,7 @@
 - [Registering Output Files](#registering-output-files)
 - [Uploading Outputs](#uploading-outputs)
 - [Tuning Uploads for Large Files](#tuning-uploads-for-large-files)
-- [Status Updates](#status-updates)
+- [Status Updates and Progress Reporting](#status-updates-and-progress-reporting)
 - [Automatic Source Code Detection](#automatic-source-code-detection)
 - [Recovering from a Failed Execution](#recovering-from-a-failed-execution)
 - [Nested Executions](#nested-executions)
@@ -37,7 +37,7 @@ Every execution records:
 - **Outputs**: Which files and datasets were produced
 - **Timing**: When the workflow started and stopped
 - **Status**: Progress updates and completion state
-- **Provenance**: Source code URL and Git checksum of the workflow
+- **Provenance**: Source code URL and Git checksum of the workflow (as first registered — see "Workflow deduplication")
 
 ## Workflows and Workflow Types
 
@@ -85,7 +85,9 @@ deriva_ml_create_workflow(hostname="data.example.org", catalog_id="1",
 
 ### Workflow deduplication
 
-If a workflow with the same source URL or Git checksum already exists in the catalog, the existing record is reused. Running the same committed script multiple times reuses the same workflow.
+If a workflow with the same source URL or Git checksum (the git *blob* hash of the script file) already exists in the catalog, the existing record is reused. Running the same committed script multiple times reuses the same workflow.
+
+**Consequence:** the reused row's `URL` and `Version` describe the commit that *first* registered it — later commits that didn't change the script file reuse the row unchanged. Per-run code identity lives in each execution's `configuration.json` (`Deriva_Config` in `Execution_Metadata`), not in the Workflow row.
 
 ### Looking up workflows
 

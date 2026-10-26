@@ -252,7 +252,7 @@ The complete local-Python script for all three parts — per-RID download loop, 
 
 ## Trace an artifact's provenance
 
-> **Simple "where did this come from?"** — a domain scientist who just wants to *see* what produced an artifact (not reproduce it) starts at `/deriva-ml:explore-results` (Journey 2): the bundled `lineage/{rid}` resource plus the `cite_url` to open the record. The section below is the **developer** depth — the two-step lineage-walk → workflow-record pattern that recovers the git URL + commit for reproduction.
+> **Simple "where did this come from?"** — a domain scientist who just wants to *see* what produced an artifact (not reproduce it) starts at `/deriva-ml:explore-results` (Journey 2): the bundled `lineage/{rid}` resource plus the `cite_url` to open the record. The section below is the **developer** depth — the lineage walk → per-run metadata pattern that recovers the code actually run, plus the Python-only closure (`lookup_provenance`), feature-producer (`find_feature_producers`), and HTML-report (`deriva-ml-lineage`) tools.
 
 After comparing runs (or any time the question is "where did this output come from?" or "why does this prediction look wrong?"), walk the data-flow chain in one call:
 
@@ -271,9 +271,9 @@ This is the right tool when:
 - Reproducing a result requires confirming the exact (dataset RID, dataset version, workflow RID, workflow git commit) tuple that produced an asset.
 - The metric difference between two runs is suspiciously large — often a dataset-version drift (one trained on v0.4.0, another on v0.5.0) or an asset swap (different pretrained checkpoint), and lineage surfaces both immediately.
 
-### Worked example: from a prediction asset back to the workflow's git commit
+### Worked example: from a prediction asset back to the code that ran
 
-A common ML-developer question: "I want to reproduce this prediction. What dataset version was used, and what code (git commit) produced it?" The lineage tool gets you most of the way there, but the **workflow's URL and git checksum are not in the lineage payload** — the lineage-specific `WorkflowSummary` only carries `rid` and `name` (intentionally compact; drill into the full record with a second call). The full two-step pattern:
+A common ML-developer question: "I want to reproduce this prediction. What dataset version was used, and what code (git commit) produced it?" The lineage walk answers the dataset half directly. The code half has a trap: **the Workflow record is not per-run code identity.**
 
 ```
 # Step 1 — walk the lineage from the asset
@@ -283,22 +283,34 @@ deriva_ml_get_lineage(hostname="data.example.org", catalog_id="1", rid="2-PRED1"
 The response shape is `{"root": {...}, "lineage": {...}, "executions_visited": N, "walked_complete": true, "cycle_detected": false, "depth_capped": false}`. The `lineage` field is a tree of `LineageNode`s. Each node has:
 
 - `execution.rid`, `execution.description`, `execution.status`
-- `execution.workflow.rid`, `execution.workflow.name` — but NOT URL or checksum
+- `execution.workflow.rid`, `.name`, and (deriva-ml ≥ 1.58) `.url` and `.version` — see the caveat below before trusting the last two
 - `consumed_datasets` — list of `{rid, description, version}`
 - `consumed_assets` — list of `{rid, filename, asset_table}`
 - `parents` — recursively, the producing executions of consumed datasets and assets
 - `already_shown` — true when the node was already rendered earlier in the tree (cycle-safety / dedup)
 
-So the lineage tells you "asset `2-PRED1` was produced by execution `2-EXE1`, which consumed dataset `1-ABCD` at version `1.2.0` and was driven by workflow `2-WF01` named 'ResNet50 Training'." But not the git URL or commit.
+So the lineage tells you "asset `2-PRED1` was produced by execution `2-EXE1`, which consumed dataset `1-ABCD` at version `1.2.0` and was driven by workflow `2-WF01` named 'ResNet50 Training'."
+
+> **Workflow URL / version / checksum are first-registration facts, not per-run facts.** Workflow rows are deduplicated: `create_workflow` reuses an existing row whose `URL` or `Checksum` matches, and `Checksum` is the git **blob** hash of the script file (not a commit hash). So a script whose file content didn't change across many commits keeps pointing at the row — and the commit-pinned `URL` / `Version` — from the *first* run that registered it. This has been observed six months stale in production, pointing at a commit that couldn't even import a module the run demonstrably used. **Never present `workflow.url` / `workflow.version` as "the code this execution ran."**
 
 ```
-# Step 2 — fetch the workflow record(s) named in the lineage
-ReadMcpResourceTool(server="<name>", uri="deriva://catalog/data.example.org/1/deriva-ml/workflow/2-WF01")
+# Step 2 — read the producing execution's run metadata (per-run code identity)
+deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="2-EXE1")
 ```
 
-The workflow resource returns the full record including `url` (the source-code URL, typically a GitHub blob URL pinned to a commit, e.g. `https://github.com/org/repo/blob/abc123/train.py`) and `checksum` (the git commit hash). The URL is the reproducible-code reference; the checksum is the integrity check.
+Every execution records its own run metadata in `Execution_Metadata` (see `/deriva-ml:execution-lifecycle` → authoring "Execution Metadata Auto-Generation"). The `Deriva_Config` asset (`configuration.json`) serializes the workflow **URL / version / checksum as of that run** — the URL is pinned to the commit checked out when the run started. The `Runtime_Env` snapshot's installed-package versions corroborate it, and `Execution_Config` (`uv.lock`) pins the dependency set. Reading those file bytes is local Python (the MCP surface is metadata-only):
 
-**End-to-end summary table you can render for the user** (after both calls):
+```python
+rec = ml.lookup_execution("2-EXE1")
+for asset in rec.list_metadata():          # deriva-ml ≥ 1.58; Execution_Metadata via a server-side join
+    print(asset.asset_rid, asset.filename, asset.asset_types)
+    if asset.filename == "configuration.json":
+        path = asset.download(dest_dir=Path("run_meta") / asset.asset_rid)
+```
+
+Prefer `list_metadata()` over `list_assets()`-and-filter: the latter streams every *output* asset of the run (minutes on a large inference run), and an empty `list_metadata()` result genuinely means "no metadata recorded" — catalog/join failures raise instead of reading as absence.
+
+**End-to-end summary table you can render for the user** (after both steps):
 
 | Field | Source |
 |-------|--------|
@@ -307,10 +319,69 @@ The workflow resource returns the full record including `url` (the source-code U
 | Training dataset | `lineage.consumed_datasets[0].rid` |
 | Training dataset version | `lineage.consumed_datasets[0].version` |
 | Workflow | `lineage.execution.workflow.rid` + `.name` |
-| Code URL | workflow resource → `url` field |
-| Code git commit | workflow resource → `checksum` field |
+| Code URL + commit **as run** | that execution's `configuration.json` (`Deriva_Config`) → workflow `url` / `version` |
+| Dependency set | that execution's `uv.lock` (`Execution_Config`) |
 
 If the prediction depends on an upstream chain (the training execution itself consumed a dataset produced by a preprocessing execution, etc.), the same fields apply at each `parents` level of the tree.
+
+### Dataset roots: origin vs. latest writer
+
+When the RID you walk is a **Dataset**, the root carries more than a producer (deriva-ml ≥ 1.58):
+
+- `root.version` — the dataset's current version label (or the pinned one).
+- `root.producing_execution` — the **origin**: the author of the *first* recorded `Dataset_Version`, never the execution that last touched it. A later split, migration, or backfill that bumped v4.12.0 → v4.13.0 is not "the producer."
+- `root.version_history` — every `Dataset_Version` author, earliest first. This is where later touchers stay visible without being mistaken for the producer.
+- `root.origin_recorded` — tri-state. `True` = a real execution is recorded as origin; `False` = the origin is the unknown-provenance sentinel, missing, or there are no version rows; `None` = not a Dataset root. Check `origin_recorded`, not `producing_execution is None`, to tell "unknown provenance" from "no link."
+
+When the origin is unrecorded, the walk seeds from the executions that produced the dataset's member assets instead, so legacy datasets still return something to trace.
+
+### Shareable HTML report: `deriva-ml-lineage`
+
+When the user wants to *send* the lineage to a reviewer or archive it, render it rather than pasting JSON:
+
+```bash
+deriva-ml-lineage --rid 2-PRED1 --host data.example.org --catalog 1 \
+    --output lineage.html --json lineage.json
+deriva-ml-lineage --input lineage.json --output lineage.html   # re-render offline, no catalog access
+```
+
+One self-contained HTML page (inline CSS + SVG walk figure, no JavaScript): root artifact with version and origin badge, the version-attribution trace, the walk tree with each execution's workflow, and feature-producer facts. `--json` is the audit artifact of record. `--no-features` skips the feature-producer scan for a faster render.
+
+### Exhaustive closure: `lookup_provenance` (Python API)
+
+`lookup_lineage` / `deriva_ml_get_lineage` gives a compact trace of one producing chain. For audits, "what could this training run have depended on", or debugging a suspect result, use the **closure** — every execution reachable through any recorded relationship, with an honest list of what couldn't be resolved. Python only (no MCP tool yet; deriva-ml ≥ 1.62):
+
+```python
+from deriva_ml.execution import ArcKind
+
+closure = ml.lookup_provenance("2-PRED1")                    # Dataset roots: version="x.y.z" to pin
+print(len(closure.executions), len(closure.datasets), len(closure.assets), len(closure.gaps))
+print(closure.traversal_complete)
+
+# Fast structural pass — skips the per-dataset binding scans (≈10× faster):
+closure = ml.lookup_provenance(rid, arcs=frozenset({
+    ArcKind.consumption, ArcKind.version_authorship, ArcKind.member_production}))
+```
+
+How to read it:
+
+- **Flat, RID-keyed, deterministic.** `executions` / `datasets` / `assets` are maps; `model_dump()` is byte-identical across calls, so closures diff cleanly.
+- **Arcs say *why* an execution is in the closure** — `root`, `consumption`, `version_authorship`, `member_binding`, `member_production`. An execution can carry several. **Arcs are unranked**; don't tell the user one reason is "the real one" unless they give you a policy.
+- **Gaps are first-class.** `closure.gaps` lists typed `ProvenanceGap`s (sentinel origins, unpinned inputs, missing/multiple asset producers, workflow-less executions, unresolved RIDs, …). Gaps and `traversal_complete` are independent — check both. `traversal_complete=False` means a budget (`max_executions`, default 500) stopped the walk: partial but honest.
+- **Dataset facts are per-version** (`closure.datasets[rid].versions[label]`) — never merge them across versions.
+- **Containment is not provenance.** The closure does not walk `Dataset_Dataset` parents; a parent enters only via the consumption arc of the execution that produced the child. For the structural question use `list_dataset_parents` / `list_dataset_children`.
+- Slow catalog? `DERIVA_ML_PROVENANCE_WORKERS` (default 8) sets read concurrency; `1` forces sequential. `arcs=` is the bigger lever.
+
+### Which executions labeled this dataset? `find_feature_producers`
+
+A feature value is a *(member, value, execution)* binding — the execution is part of its identity — so the executions that wrote features onto a dataset's members are provenance facts, not guesses. Python only (deriva-ml ≥ 1.58; FK-reachable member scope and snapshot-bound `version=` ≥ 1.61):
+
+```python
+for p in ml.find_feature_producers("1-ABCD", version="1.2.0"):   # version= binds to that snapshot
+    print(p.execution_rid, p.feature_name, p.element_type, p.value_count)
+```
+
+"Members" follows FK-reachability (a subject-partitioned dataset's Image labels count). `execution_rid=None` rows are feature values with no recorded execution — a provenance gap to surface, never drop. With `version=`, labels written after that version are excluded.
 
 **For per-row feature-value provenance** (e.g. "which execution wrote *this specific* `Image_Quality` value?"), pass the feature value's RID — every feature value has an RID and the tool walks it the same way. See `/deriva-ml:create-feature` for how feature values get their producing-execution link in the first place.
 

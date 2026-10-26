@@ -6,6 +6,18 @@ description: Annotated examples and starter templates for the datasets, assets, 
 
 # Datasets, Assets, and Workflow config groups
 
+**Contents**
+
+- [Datasets (`datasets.py`)](#datasets-datasetspy)
+  - [Example](#example)
+  - [Template](#template)
+- [Assets (`assets.py`)](#assets-assetspy)
+  - [Example](#example-1)
+  - [Template](#template-1)
+- [Workflow (`workflow.py`)](#workflow-workflowpy)
+  - [Example](#example-2)
+  - [Template](#template-2)
+
 ## Datasets (`datasets.py`)
 
 ### Example

@@ -1,5 +1,15 @@
 # Pattern C: Comparing Runs via Prediction CSV Assets
 
+**Contents**
+
+- [Shape on the catalog](#shape-on-the-catalog)
+- [When to use](#when-to-use)
+- [When NOT to use](#when-not-to-use)
+- [Full worked example: "Compute ROC and rank my last 5 CNN runs"](#full-worked-example-compute-roc-and-rank-my-last-5-cnn-runs)
+- [Discovering the summary CSV (when one exists)](#discovering-the-summary-csv-when-one-exists)
+- [Pitfalls](#pitfalls)
+- [Migration to Pattern A](#migration-to-pattern-a)
+
 This is the worked example for the metrics-as-prediction-CSV pattern,
 where each training execution writes a tabular `prediction_probabilities.csv`
 (or similarly named file) as an `Execution_Asset` with one row per test

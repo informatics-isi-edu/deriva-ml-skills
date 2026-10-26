@@ -12,6 +12,7 @@
 - [Handling Missing Labels](#handling-missing-labels)
 - [File Transformation](#file-transformation)
 - [Directory Layout Control](#directory-layout-control)
+- [Upload Tuning](#upload-tuning)
 - [ML Framework Integration](#ml-framework-integration)
 - [DatasetBag API for Training Data](#datasetbag-api-for-training-data)
 - [Denormalization for Flat DataFrames](#denormalization-for-flat-dataframes)

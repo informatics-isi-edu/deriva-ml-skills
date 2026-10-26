@@ -6,6 +6,15 @@ description: Discovering existing features, FeatureRecord Python API, features i
 
 # Feature usage and API
 
+**Contents**
+
+- [Discovering Existing Features](#discovering-existing-features)
+- [Feature Records (Python API)](#feature-records-python-api)
+- [Features in Datasets](#features-in-datasets)
+- [Exploring and Navigating Features](#exploring-and-navigating-features)
+- [Feature Value Table Naming](#feature-value-table-naming)
+- [Operations Summary](#operations-summary)
+
 ## Discovering Existing Features
 
 Before creating a new feature, check what already exists. Duplicate features fragment annotations and confuse downstream consumers.

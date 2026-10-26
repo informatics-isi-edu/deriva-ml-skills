@@ -6,6 +6,15 @@ description: Annotated examples and starter templates for the model_config and e
 
 # Model Config and Experiments config groups
 
+**Contents**
+
+- [Model Config (`model.py`)](#model-config-modelpy)
+  - [Example](#example)
+  - [Template](#template)
+- [Experiments (`experiments.py`)](#experiments-experimentspy)
+  - [Example](#example-1)
+  - [Template](#template-1)
+
 ## Model Config (`model.py`)
 
 ### Example

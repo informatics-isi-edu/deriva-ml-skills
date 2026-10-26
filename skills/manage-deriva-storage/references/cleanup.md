@@ -1,5 +1,13 @@
 # Cleanup Recipes
 
+**Contents**
+
+- [Delete cached data (targeted)](#delete-cached-data-targeted)
+- [Delete cached data (bulk, by age)](#delete-cached-data-bulk-by-age)
+- [Clean execution working directories](#clean-execution-working-directories)
+- [Bulk garbage-collect old executions](#bulk-garbage-collect-old-executions)
+- [Phase 2b: Find and Resume Incomplete Executions](#phase-2b-find-and-resume-incomplete-executions)
+
 Deep cleanup recipes for Phase 2 (Clean Up — free disk space) and
 Phase 2b (find and resume incomplete executions). See `SKILL.md` for the
 safety framing — **preview before delete, confirm discipline, what's safe

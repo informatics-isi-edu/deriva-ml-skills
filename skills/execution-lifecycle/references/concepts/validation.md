@@ -6,6 +6,26 @@ description: Pre-flight checks before running an experiment, schema pinning for 
 
 # Execution validation
 
+**Contents**
+
+- [Pre-Flight Validation](#pre-flight-validation)
+  - [Why pre-flight matters](#why-pre-flight-matters)
+  - [The pre-flight checklist](#the-pre-flight-checklist)
+  - [Cache status values](#cache-status-values)
+  - [Prefetching strategy](#prefetching-strategy)
+- [Schema Pinning for Long Runs](#schema-pinning-for-long-runs)
+  - [When to pin](#when-to-pin)
+  - [How to pin](#how-to-pin)
+  - [Working with a pin](#working-with-a-pin)
+  - [Composition with the dirty-tree rule](#composition-with-the-dirty-tree-rule)
+  - [Common errors](#common-errors)
+- [Offline Mode](#offline-mode)
+  - [When to use offline mode](#when-to-use-offline-mode)
+  - [How to enter offline mode](#how-to-enter-offline-mode)
+  - [What works offline](#what-works-offline)
+  - [Composing offline mode with the upload drain](#composing-offline-mode-with-the-upload-drain)
+  - [Common errors](#common-errors-1)
+
 ## Pre-Flight Validation
 
 Before running an experiment, several checks prevent runtime failures and data issues.

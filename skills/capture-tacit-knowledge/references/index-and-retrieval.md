@@ -1,5 +1,16 @@
 # Retrieval Catalog and Retrieval Mechanics
 
+**Contents**
+
+- [The retrieval catalog (`docs/tacit-knowledge/retrieval-catalog.md`)](#the-retrieval-catalog-docstacit-knowledgeretrieval-catalogmd)
+- [The lookup script (`tk_lookup.py`) — the primary retrieval path](#the-lookup-script-tk_lookuppy--the-primary-retrieval-path)
+- [Retrieval at the moment of action (Mode A) — the hand-grep procedure (fallback + spec)](#retrieval-at-the-moment-of-action-mode-a--the-hand-grep-procedure-fallback--spec)
+- [Supersession is structural at retrieval](#supersession-is-structural-at-retrieval)
+- [Rebuild — a silent side-effect of capture (no user action, ever)](#rebuild--a-silent-side-effect-of-capture-no-user-action-ever)
+- [Merge and the normalizer (D12)](#merge-and-the-normalizer-d12)
+- [Classifying entries against the topic CV (D11)](#classifying-entries-against-the-topic-cv-d11)
+- [How the knowledge reorganizes as entries accumulate](#how-the-knowledge-reorganizes-as-entries-accumulate)
+
 This reference documents the *derived retrieval catalog*
 (`docs/tacit-knowledge/retrieval-catalog.md`) and how retrieval reads, rebuilds, and
 classifies against it. It is the machinery behind SKILL.md's retrieval and write steps.

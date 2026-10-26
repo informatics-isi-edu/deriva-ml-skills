@@ -8,8 +8,8 @@ disable-model-invocation: false
 SYNC: this skill mirrors `_CONCEPTS_GUIDE` in
 `deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/prompts.py`. When the conceptual
 core changes (the five abstractions, the inheritance rule, the
-vocabulary-extension pattern), update both. See CLAUDE.md ("Cross-Repo
-Sync") for the full convention. Inheritance-rule rationale: ADR-0001.
+vocabulary-extension pattern), update both. See CLAUDE.md ("Cross-plugin and cross-repo
+rules") for the convention. Inheritance-rule rationale: ADR-0001.
 -->
 
 # DerivaML Plugin Context
@@ -25,11 +25,11 @@ DerivaML organizes ML activities into **experiments**. An experiment is a **GitH
 - **Code** — model implementations, data-loading scripts, notebooks.
 - **Configuration** — hydra-zen configs (Python, not YAML) declaring which catalog, which datasets, which workflow, which hyperparameters.
 - **Tacit knowledge** — `tacit-knowledge.md` (project root) capturing the *why* behind decisions, dead ends explored, and the project's conventions. See `/deriva-ml:capture-tacit-knowledge` for the discipline.
-- **Provenance link** — every execution from this repo records the git commit hash on the `Workflow` row, so a result can be traced to the exact code that produced it.
+- **Provenance link** — every execution records the code it ran: a `Workflow` row for the script, plus the exact URL and commit in the execution's own `configuration.json` (`Execution_Metadata`), so a result can be traced to the code that produced it.
 
 Bootstrap a new experiment from [`deriva-ml-model-template`](https://github.com/informatics-isi-edu/deriva-ml-model-template) — it provides hydra-zen scaffolding, CLI entry points (`deriva-ml-run`, `deriva-ml-run-notebook`), GitHub Actions for versioning and docs, and an example model (CIFAR-10) you can replace with your own.
 
-> **Capture the *why* as you go — this is a standing discipline, not an afterthought.** The catalog records what happened; the rationale (why this split, why this config, why this fix) survives only if it's written to `tacit-knowledge.md` (project root). So, throughout any DerivaML session — without waiting to be asked: **(WRITE)** right after a decision-bearing action (running/committing an execution, creating or splitting a dataset, creating a feature/vocab, changing schema, choosing hyperparameters, resolving a bug with a non-obvious fix), append a short dated entry in the same response — fire even when the choice felt obvious, and note that users phrase these as plain actions, not as "record this"; **(GUIDANCE)** before executing or recommending a proposed action, consult the file — prior experience may bear on it; **(FORENSIC)** when asked "why was X chosen" / "have we tried Y" / "is this still right", consult before answering and say so if the file is silent rather than inventing rationale. The full discipline is in `/deriva-ml:capture-tacit-knowledge`; treat this as always-on so the capture doesn't depend on that skill's trigger firing.
+> **Capture the *why* as you go.** After any decision-bearing action, append a short dated entry to `tacit-knowledge.md`; consult it before recommending an action and before answering "why was X chosen". The full WRITE / GUIDANCE / FORENSIC discipline is in `/deriva-ml:capture-tacit-knowledge`, and the plugin's session-start hook loads it every session.
 
 The DerivaML stack:
 
@@ -50,53 +50,11 @@ Everything you do follows one arc — **Specify → Build → Validate**: write 
 
 ### The repo's planning artifacts — and how they connect
 
-A project keeps several Markdown files that describe its experiments from
-different angles. They are **distinct views joined by a shared `<slug>`**, not
-duplicates — knowing which is which (and that they link) prevents treating one as
-a substitute for another:
+A project describes each experiment in several Markdown files that are **distinct views joined by a shared `<slug>`, not duplicates**: the design doc `docs/design/<entity>/<slug>.md` (the plan and verdict), the design index `docs/design/index.md`, the generated `Experiments.md` (the runnable view, built from `src/configs/experiments.py` and `multiruns.py`), the config itself, and `tacit-knowledge.md` (the journal of why). Don't treat one as a substitute for another. When you add or change an experiment config, update `Experiments.md`, link the design doc both ways, and add the design-index line **in the same commit**.
 
-| File | The view it gives | Authored / generated | Format |
-|---|---|---|---|
-| `docs/design/<entity>/<slug>.md` | **The plan & verdict** for one experiment / dataset / feature / model — Goal, Validation criteria, Outcome | hand-authored up-front (`/deriva-ml:design-experiment`), Outcome filled after the run | OKF concept doc (`Experiment Design`, …) |
-| `docs/design/index.md` | **The design corpus index** — one line per design doc across all four entity types | maintained as docs are authored | OKF `type: Index` (bundle root) |
-| `Experiments.md` (project root) | **The runnable/config view** — every *configured* experiment + multirun, with config-group overrides, key params, purpose, and a link to each experiment's design doc | generated from `src/configs/experiments.py` + `multiruns.py` | OKF `type: Index` (config-derived registry; the runnable-view sibling of `docs/design/index.md`) |
-| `src/configs/experiments.py` | **The executable definition** — the hydra-zen config the run actually loads | hand-authored | Python (hydra-zen) |
-| `tacit-knowledge.md` | **The running journal** — *why* decisions were made, what was learned | appended as you work | OKF `Log` |
+The full map of the files, how they link, and the multi-model case: `references/planning-artifacts.md`. Owned by `/deriva-ml:configure-experiment` (`Experiments.md`) and `/deriva-ml:design-experiment` (the design bundle).
 
-**How they connect (the join is the experiment `<slug>`):**
-
-- `docs/design/experiment/<slug>.md` ↔ `src/configs/experiments.py`: the design is
-  the contract; the config implements it. The design doc's **Status & links** names
-  its config entry; the config's `description` carries the design doc's URL (see the
-  RID/URL-link rule below and `/deriva-ml:write-hydra-config`).
-- `Experiments.md` ↔ the design docs: `Experiments.md` is the *config* index (what's
-  runnable); `docs/design/index.md` is the *design* index (what's planned). They are
-  two indexes of the same experiments — `Experiments.md`'s per-experiment detail
-  **links to** the matching `docs/design/experiment/<slug>.md`, so a reader on the
-  runnable view can jump to the plan, and vice-versa. An experiment can be
-  designed-but-not-yet-configured (in the design index, not yet in `Experiments.md`)
-  or configured-without-a-design (the reverse) — the two indexes make that gap visible.
-- **Multiple models:** one experiment config composes a `model_config` + `datasets`;
-  each model has its own `docs/design/model/<slug>.md`, linked from the experiment
-  design's "Upstream designs" with the **runs** verb. So a compound or
-  multi-model experiment is one experiment-design doc that links several model
-  designs — the design bundle is the graph that ties them together.
-
-Bottom line: **`Experiments.md` = the runnable view (from configs); `docs/design/`
-= the planned view (the OKF design bundle); they are connected by slug and by
-explicit links, not merged.** Owned by `/deriva-ml:configure-experiment`
-(Experiments.md) and `/deriva-ml:design-experiment` (the design bundle).
-
-**Keeping them in sync:** because these are views of one experiment, a change to
-one usually means a change to the others — the direction of truth is config →
-`Experiments.md` (the registry is regenerated from the config) and design doc ↔
-config (the doc is the contract). When you add or change an experiment config,
-update `Experiments.md`, link the design doc both ways, and add the design-index
-line **in the same commit**. The full sync checklist lives in
-`/deriva-ml:configure-experiment` → "Keeping the planning artifacts in sync"; the
-end-to-end design → config → update-registry → run flow is `/deriva-ml:experiment-lifecycle`.
-
-**Which skill do I start with?**
+### Which skill do I start with?
 
 | Your situation | Start with |
 |---|---|
@@ -107,6 +65,10 @@ end-to-end design → config → update-registry → run flow is `/deriva-ml:exp
 | Need one specific entity | `/deriva-ml:dataset-lifecycle`, `/deriva-ml:create-feature`, `/deriva-ml:new-model`, or `/deriva-ml:work-with-assets` |
 | About to plan any of the above | `/deriva-ml:design-experiment` (the Specify phase for all four) |
 | Want to read / inspect existing results without writing code | `/deriva-ml:explore-results` |
+| Running or pre-flighting an execution | `/deriva-ml:execution-lifecycle` |
+| Wiring configs (project structure, config files, RIDs) | `/deriva-ml:configure-experiment`, `/deriva-ml:write-hydra-config` |
+| About to change or delete a table, column, vocabulary, dataset or asset | `/deriva-ml:schema-evolution-impact` |
+| Want a diagram of the catalog | `/deriva-ml:browse-erd` |
 | Something broke / am I up to date | `/deriva-ml:troubleshoot-execution` |
 
 > **One term, three meanings — "experiment".** (1) the *experiment cycle* (one turn of the experiment lifecycle); (2) an *experiment config preset* (a named entry in `configs/experiments.py` composing model + dataset + params); (3) the *experiment repository* (the project repo itself). Keep them distinct.
@@ -147,45 +109,12 @@ write a placeholder description) are all instances of this one principle.
 
 ## Confirm authentication before the first catalog operation
 
-Before the **first catalog operation** against a catalog in a session — any read
-or write — confirm you're actually authenticated to *that* catalog, so you learn
-up-front rather than hitting a blanket-401 mid-operation (a confusing failure deep
-in a run). **The check differs by surface — each verifies the credential of the
-thing that will actually do the work:**
+Before the **first catalog operation** against a catalog in a session — read or write — confirm you're authenticated to *that* catalog, so a missing login shows up front instead of as a 401 deep in a run. Check the credential of whatever will do the work:
 
-**Python surface** (scripts, loaders, executions — the local environment holds the
-credential). Call `ml.is_authenticated()` on the `DerivaML` instance:
+- **Python** (scripts, loaders, executions): `ml.is_authenticated()` after constructing `DerivaML(...)`; if false, stop and tell the user to run `deriva-globus-auth-utils login --host <host>`. There is no `check_auth=` constructor argument.
+- **MCP**: call `deriva_ml_check_authentication(hostname, catalog_id)`. `authenticated: false` means no valid session; `{"error": ...}` means the server wasn't reachable.
 
-```python
-ml = DerivaML(hostname=..., catalog_id=...)
-if not ml.is_authenticated():        # one network call: GET /authn/session
-    raise SystemExit(
-        "Not authenticated to <host>. Log in first:\n"
-        "  deriva-globus-auth-utils login --host <host>"
-    )
-# ml.whoami() returns the identity dict (id, display_name, email, …), or None.
-```
-
-**MCP surface** (the MCP server holds the per-request credential, not your local
-machine). Before the first MCP catalog op, call the
-`deriva_ml_check_authentication(hostname, catalog_id)` tool — it returns
-`{"authenticated": bool, "identity": {...}|null}` by asking the server's
-`whoami` for *that* catalog. `authenticated: false` means "reached the server, no
-valid session"; a connection/DNS/TLS failure comes back as `{"error": ...}` instead
-(distinct from "not logged in"). `/deriva-ml:using-deriva-mcp` runs this as part of
-the cold-start.
-
-Both share the same caveats:
-- **deriva-ml ≥ 1.54** (`is_authenticated`/`whoami`) and the
-  `deriva_ml_check_authentication` MCP tool. Do **not** pass a `check_auth=` kwarg
-  to `DerivaML(...)` — that is not a constructor parameter and will `TypeError`;
-  the Python check is the explicit `is_authenticated()` call after construction.
-- They confirm **authentication** (the server knows who you are), not
-  **authorization** — a write to a read-only table can still be ACL-refused with a
-  valid session. A `True` result means "logged in," not "every operation will pass."
-- This section is the canonical statement. Instances point here: the execution /
-  loader templates and the `execution-lifecycle` / `setup-ml-catalog` pre-flight
-  steps do the Python guard; `using-deriva-mcp` does the MCP pre-flight.
+Either check confirms *authentication*, not *authorization* — ACLs can still refuse a write. This section is the canonical rule other skills point to; code, return shapes and caveats are in `references/authentication.md`.
 
 ## Read-side questions: fetch the resource first
 
@@ -193,18 +122,18 @@ For **read-side questions about an existing entity** — "show me X by RID," "wh
 
 | URI | Returns |
 |---|---|
-| `ml/datasets`, `ml/dataset/{rid}` | Datasets list / one dataset (summary, type, current version, `cite_url`, members) |
-| `ml/workflows`, `ml/workflow/{rid}` | Workflows list / one workflow |
-| `ml/executions`, `ml/execution/{rid}` | Executions list / one execution (summary + inputs + outputs split into `assets` and `metadata` + experiment; per-row `cite_url`) |
-| `ml/lineage/{rid}` | Provenance chain for any artifact (Dataset, Asset, Feature value, Execution) |
-| `ml/features/{table}` | Features defined on a target table |
-| `ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the six built-in vocabulary tables, or your domain schema) |
-| `ml/vocabularies/{schema}/{vocab_name}` | Full term list for one vocabulary (name, rid, description, synonyms, CURIE, URI) |
-| `ml/assets/{schema}` | Asset tables in one schema |
-| `ml/assets/{schema}/{asset_table}` | Snapshot of assets in one asset table |
-| `ml/asset/{rid}` | One asset by RID |
+| `deriva-ml/datasets`, `deriva-ml/dataset/{rid}` | Datasets list / one dataset (summary, type, current version, `cite_url`, members) |
+| `deriva-ml/workflows`, `deriva-ml/workflow/{rid}` | Workflows list / one workflow |
+| `deriva-ml/executions`, `deriva-ml/execution/{rid}` | Executions list / one execution (summary + inputs + outputs split into `assets` and `metadata` + experiment; per-row `cite_url`) |
+| `deriva-ml/lineage/{rid}` | Provenance chain for any artifact (Dataset, Asset, Feature value, Execution) |
+| `deriva-ml/features/{table}` | Features defined on a target table |
+| `deriva-ml/vocabularies/{schema}` | Vocabulary tables in one schema (`{schema}` = `deriva-ml` for the six built-in vocabulary tables, or your domain schema) |
+| `deriva-ml/vocabularies/{schema}/{vocab_name}` | Full term list for one vocabulary (name, rid, description, synonyms, CURIE, URI) |
+| `deriva-ml/assets/{schema}` | Asset tables in one schema |
+| `deriva-ml/assets/{schema}/{asset_table}` | Snapshot of assets in one asset table |
+| `deriva-ml/asset/{rid}` | One asset by RID |
 
-The URI is constructable from the catalog hostname + ID + entity RID — no tool search needed. Reach for tools when the resource doesn't cover the question (paginated browsing of large asset tables → `deriva_ml_list_assets`; element-type discovery → `deriva_ml_list_dataset_element_types`; mutations and complex queries → the appropriate `deriva_ml_*` tool).
+Each row is the tail of `deriva://catalog/{hostname}/{catalog_id}/…`. The URI is constructable from the catalog hostname + ID + entity RID — no tool search needed. Reach for tools when the resource doesn't cover the question (paginated browsing of large asset tables → `deriva_ml_list_assets`; element-type discovery → `deriva_ml_list_dataset_element_types`; mutations and complex queries → the appropriate `deriva_ml_*` tool).
 
 ### Always render a RID as a click-through link — never bare text
 
@@ -247,7 +176,7 @@ These are the surface DerivaML adds on top of plain Deriva. Each is stored as on
 | Abstraction | What it represents | Primary skill | Key MCP tools |
 |---|---|---|---|
 | **Dataset** | A versioned collection of catalog rows that an execution consumed or produced. Datasets carry a type (`Dataset_Type` vocab), an element-type spec, a two-state PEP 440 version (released or dev, per ADR-0003), and can be downloaded as bags. | `dataset-lifecycle` | `deriva_ml_create_dataset`, `deriva_ml_add_dataset_members`, `deriva_ml_release_dataset` (dev → released), `deriva_ml_validate_dataset_specs` (pre-flight), `deriva_ml_validate_execution_configuration` (full pre-flight). Bag-cache warming via `manage-deriva-storage/scripts/warm_cache.py`. |
-| **Workflow** | A versioned reference to the code (URL + git commit hash) that knows how to do a thing. A Workflow is content-addressed: same URL + same commit = same Workflow row. Workflows are typed (`Workflow_Type` vocab). | `new-model` (authoring) / `configure-experiment` (wiring) | `deriva_ml_create_workflow`, `deriva_ml_find_workflow_by_url` |
+| **Workflow** | A reference to the script that does a thing: its URL and the git hash of the file's contents (`Checksum`), typed by the `Workflow_Type` vocab. Rows are deduplicated — `create_workflow` reuses a row whose URL *or* checksum matches — so a row's URL and version are from its first registration. The commit a particular run used is in that execution's `configuration.json`. | `new-model` (authoring) / `configure-experiment` (wiring) | `deriva_ml_create_workflow`, `deriva_ml_find_workflow_by_url` |
 | **Execution** | One run of a Workflow against specific input Datasets, producing output Datasets / Features / Assets. Executions have a status (Created → Running → Stopped → Pending_Upload → Uploaded; plus terminal `Failed` / `Aborted`), inputs / outputs links, and an active context manager that stages files in a working directory. Runs are governed by a **provenance contract** (terminal-state requirement, unknown-provenance sentinels, `ml.audit_provenance()`) — owned by `/deriva-ml:execution-lifecycle` (steps 7–8) and `/deriva-ml:troubleshoot-execution` for the catalog-wide audit. | `execution-lifecycle` | **Authoring**: `execution-lifecycle/scripts/basic_execution.py` (and the other bundled templates) — these are runnable Python that you copy, edit, commit, and run. **Observation** (MCP): `deriva_ml_get_execution`, `deriva_ml_list_executions`, `deriva_ml_find_workflow_executions`, `deriva_ml_list_execution_children`, `deriva_ml_list_execution_parents`, `deriva_ml_get_lineage` (provenance traversal — "how did this come to exist?"). |
 | **Feature** | A typed value attached to a row of some target table (e.g., a per-image classification label produced by a run). Features link the value back to the producing Execution for provenance. | `create-feature` | **Define the feature** (MCP): `deriva_ml_create_feature`. **Add feature values** (bundled template): `create-feature/scripts/populate_feature_values.py` (or `exe.add_features(records)` inside another execution template). |
 | **Asset** | A file uploaded to hatrac and recorded in the catalog with an Asset_Type and provenance link to its producing Execution. Assets are written to paths returned by `exe.asset_file_path()` and committed by `exe.commit_output_assets()`. | `work-with-assets` | `deriva_ml_list_assets`, `deriva_ml_lookup_asset`, `deriva_ml_update_asset` |
@@ -277,13 +206,13 @@ The dot-access rule above is the local case. The broader principle is: **when da
 | Shape | Right container | Why |
 |---|---|---|
 | **One record** (a row, a config, a ranking entry you're building up) | `@dataclass` or Pydantic `BaseModel` | Named fields, typo-checked at definition, `repr()` is readable. |
-| **Many records of the same shape** (a query result, a denormalized dataset, a per-image prediction table) | `pandas.DataFrame` (or `polars.DataFrame`) | Columns are named, dtypes are tracked, indexing/joining/aggregation are first-class. **A DataFrame returned by `Dataset.denormalize_dataset()` is exactly this — keep it as a DataFrame.** |
+| **Many records of the same shape** (a query result, a denormalized dataset, a per-image prediction table) | `pandas.DataFrame` (or `polars.DataFrame`) | Columns are named, dtypes are tracked, indexing/joining/aggregation are first-class. **A DataFrame returned by `get_denormalized_as_dataframe()` (on a `Dataset` or `DatasetBag`) is exactly this — keep it as a DataFrame.** |
 | **A few labeled tables that belong together** (e.g., one DataFrame per model run, joined on image RID) | `@dataclass` whose fields are DataFrames, or `dict[str, DataFrame]` if names are dynamic | The outer container makes the relationships obvious; the inner DataFrames keep their column schemas. |
 | **Genuinely schemaless** (config blobs from arbitrary YAML, MCP responses you're inspecting interactively) | `dict` — and reach for `.get(key, default)` here, *only* here | When there's no contract, defensive lookup is correct. Outside this row, it's an anti-pattern. |
 
 The reason this matters: when structure decays — when a typed `Execution` becomes a `dict`, a DataFrame becomes a `list[dict]`, a `@dataclass` becomes a tuple — you lose the named-field check at every downstream call site. `getattr(d, "version", "?")` returning `"?"` instead of erroring is the symptom; the disease is that `d` should never have been treated as if its fields were optional in the first place. Same disease shows up as `row["confidence"]` silently returning `None` because the real column is `Confidence`, or `result.get("status")` masking a renamed field.
 
-The rule is not "avoid DataFrames" — DataFrames *are* the typed container for table-of-records. The rule is **don't downgrade**: don't turn a DataFrame into a list-of-dicts, don't turn a Pydantic record into a dict, don't turn a `@dataclass` into a tuple. Each downgrade trades a real schema for stringly-typed lookups, and every downstream call site pays the cost. Two worked examples of the downgrade failure mode (the execution-ranking `list[dict]` and the `denormalize_dataset()` DataFrame) are in [`references/python-idioms.md`](references/python-idioms.md) → "Carry structure — worked examples".
+The rule is not "avoid DataFrames" — DataFrames *are* the typed container for table-of-records. The rule is **don't downgrade**: don't turn a DataFrame into a list-of-dicts, don't turn a Pydantic record into a dict, don't turn a `@dataclass` into a tuple. Each downgrade trades a real schema for stringly-typed lookups, and every downstream call site pays the cost. Two worked examples of the downgrade failure mode (the execution-ranking `list[dict]` and the `get_denormalized_as_dataframe()` DataFrame) are in [`references/python-idioms.md`](references/python-idioms.md) → "Carry structure — worked examples".
 
 ## Two schemas: `deriva-ml` vs your domain schema
 
@@ -315,20 +244,13 @@ The deriva-ml plugin **extends** the deriva plugin. Everything that applies in a
 
 The override boundary is mechanical: "is there a deriva-ml `<thing>` for this?" If yes, use it. If no, the deriva default applies and the LLM should reach for the corresponding `/deriva:<skill>`, `deriva-mcp-core` tool, or `deriva-py` call.
 
-The five abstractions above are where the override mostly lands. Going around them — using `insert_entities` / `update_entities` / `delete_entities` to mutate Datasets, Workflows, Executions, Features, or Asset rows — bypasses real machinery:
-
-- **Business logic** — e.g., `deriva_ml_add_dataset_members` validates RIDs against the dataset's element-type spec; raw inserts will let you add wrong-table rows that break the dataset on materialization.
-- **FK validation across the Dataset / Workflow / Execution graph** — DerivaML enforces invariants (every Execution links to a Workflow, every output Dataset links to its producing Execution); raw inserts can create dangling references.
-- **Provenance tracking** — each mutation links back to the active Execution; raw inserts have no Execution context.
-- **Version management** — Datasets carry a two-state PEP 440 version (released / dev) per ADR-0003. The mutation tools (`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, dataset-type changes) flip the dataset to a dev label; `deriva_ml_release_dataset` promotes a dev period to a released version. Raw inserts skip the version flip entirely, leaving consumers pointed at stale data.
-- **RAG re-indexing** — Dataset/Workflow/Execution rows are indexed **read-through**: the `deriva_ml_*` mutation tools fire a surgical re-index so freshly mutated rows are searchable on the next `rag_search`, and the read tools (`deriva_ml_list_*` / `deriva_ml_get_*`) warm each row they return, so listing/fetching a row also makes it searchable (`deriva_ml_reindex_rows` warms a whole catalog's rows on demand). Raw inserts fire none of this, so the row never enters the index. **Vocabulary *terms* are the exception that bites:** `add_term` / `delete_term` (the deriva-mcp-core tools) fire **no** re-index hook, so a freshly added term is *not* `rag_search`-discoverable until you run `deriva_ml_reindex_vocabularies` — see "Built-in DerivaML vocabularies" below for the rule. (`deriva_ml_create_vocabulary` *does* self-reindex when it creates the table; only the per-term `add_term` is uncovered.)
-- **Audit emission** — every `deriva_ml_*` mutation emits an audit event with the operation name, hostname, catalog, and result; raw inserts use the generic core audit which lacks DerivaML-specific context.
+The five abstractions are where the override mostly lands. Mutating Dataset, Workflow, Execution, Feature or Asset rows with the generic `insert_entities` / `update_entities` / `delete_entities` bypasses business-logic validation, FK invariants across the graph, provenance links, dataset version flips, RAG re-indexing and DerivaML audit events. What each of those does, with examples: `references/inheritance-rationale.md`.
 
 ## What DerivaML adds on top
 
-Deriva's seven design pillars (see `/deriva:deriva-context`) are about **data design** — how to model your data so it's findable, accessible, interoperable, and reusable. DerivaML adds **process design** — how to run an ML pipeline against that data so the run itself is reproducible. The two are orthogonal: a Deriva catalog with no DerivaML use can be FAIR-by-construction; a DerivaML catalog adds reproducibility-by-construction on top. The mechanism is three abstractions doing complementary jobs: **Datasets pin** which rows the run consumed; **Workflows pin** which code (URL + git commit) ran them; **Executions link** the two so any output Feature or Asset traces back to (specific code) × (specific inputs).
+Deriva's seven design pillars (see `/deriva:deriva-context`) are about **data design** — how to model your data so it's findable, accessible, interoperable, and reusable. DerivaML adds **process design** — how to run an ML pipeline against that data so the run itself is reproducible. The two are orthogonal: a Deriva catalog with no DerivaML use can be FAIR-by-construction; a DerivaML catalog adds reproducibility-by-construction on top. The mechanism is three abstractions doing complementary jobs: **Datasets pin** which rows the run consumed; **Workflows identify** which script ran them (each execution's `configuration.json` pins the exact commit); **Executions link** the two so any output Feature or Asset traces back to (specific code) × (specific inputs).
 
-The provenance graph is **walkable in one tool call**: `deriva_ml_get_lineage(rid=...)` traces any artifact (Dataset, Asset, Feature value, Execution) back through its producing-execution chain to the root. That's how you answer "how did this come to exist?" without manually walking 5-15 typed-read calls. Conversely, when you're about to run an experiment and want to confirm the config is valid before paying the bag-download cost of `dry_run=True`, use `deriva_ml_validate_execution_configuration(config=...)` — the cheap metadata-only pre-flight gate.
+The provenance graph is **walkable in one tool call**: `deriva_ml_get_lineage(rid=...)` traces any artifact (Dataset, Asset, Feature value, Execution) back through its producing-execution chain to the root. That's how you answer "how did this come to exist?" without manually walking 5-15 typed-read calls. For audits — every execution that could have contributed, with gaps reported — use the Python `ml.lookup_provenance(rid)`; for which runs labeled a dataset's members, `ml.find_feature_producers(dataset_rid)`; for a shareable one-page report, `deriva-ml-lineage --rid …`. All three are covered in `/deriva-ml:compare-model-runs` → "Trace an artifact's provenance". Conversely, when you're about to run an experiment and want to confirm the config is valid before paying the bag-download cost of `dry_run=True`, use `deriva_ml_validate_execution_configuration(config=...)` — the cheap metadata-only pre-flight gate.
 
 ## Python API method naming: `find_*` vs `list_*`
 
@@ -336,107 +258,30 @@ The provenance graph is **walkable in one tool call**: `deriva_ml_get_lineage(ri
 
 ## Built-in DerivaML vocabularies
 
-Controlled vocabularies are how DerivaML types its abstractions: every dataset, workflow, asset, execution, and feature is classified by a term from a vocabulary table. That typing is what makes entities **findable, filterable, and stable** — a consumer dispatches on `Dataset_Type == "Training"`, not on a name string, and the term's `{project}:{RID}` CURIE survives catalog clones. Extending a vocabulary (adding a term) is therefore the sanctioned way to add a new *kind* of thing, distinct from going around the abstractions with raw inserts.
+Controlled vocabularies are how DerivaML types its abstractions — consumers dispatch on `Dataset_Type == "Training"`, not on a name string, and a term's `{project}:{RID}` CURIE survives catalog clones. Adding a term is the sanctioned way to add a new *kind* of thing.
 
-The `deriva-ml` schema has **six** controlled-vocabulary tables, split by who writes them:
+- **User-extensible:** `Dataset_Type`, `Workflow_Type`, `Asset_Type`. Add terms with the generic `add_term(..., schema="deriva-ml", table=...)`. Then run `deriva_ml_reindex_vocabularies` so the term shows up in `rag_search` (a discoverability refresh — the term is usable immediately).
+- **System-managed — do NOT extend:** `Execution_Status`, `Asset_Role`, `Feature_Name`. The execution, upload and feature machinery writes these.
+- **Domain vocabularies** (`Sample_Type`, `Image_Quality`, …): the same `add_term`, with your domain schema name (`/deriva:manage-vocabulary`).
 
-**User-extensible** — add terms via the generic `add_term` tool, passing `schema="deriva-ml"` and the `table=`:
-
-| Vocabulary | How to add a term | Notes |
-|---|---|---|
-| `Dataset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Dataset_Type", name=..., description=...)` | Tag your dataset with this term via `deriva_ml_create_dataset(dataset_types=[...])` |
-| `Workflow_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Workflow_Type", name=..., description=...)` | Pass to `deriva_ml_create_workflow(workflow_type=...)` |
-| `Asset_Type` | `add_term(hostname=..., catalog_id=..., schema="deriva-ml", table="Asset_Type", name=..., description=...)` | Tag specific assets via `deriva_ml_update_asset(...)` |
-
-> **After adding terms, reindex for discoverability.** `add_term` (and `delete_term`)
-> fire **no** RAG re-index hook — so a new term is FK-usable *immediately* (you can
-> tag a dataset/workflow/asset with it right away) but will **not** surface in
-> `rag_search` until you run the MCP tool `deriva_ml_reindex_vocabularies`. This is a
-> **discoverability refresh, not a correctness step**. It applies wherever terms are
-> added: a session `add_term`, a `create-feature` vocabulary, or a from-scratch
-> loader's term-seeding (the loader case runs it as an explicit post-load step,
-> since the loader's Python `ml.add_term` likewise doesn't reindex — see
-> `/deriva-ml:setup-ml-catalog`). Creating the vocabulary *table* itself via
-> `deriva_ml_create_vocabulary` *does* self-reindex; only per-term `add_term` needs
-> the manual refresh.
-
-**System-managed — do NOT extend** (populated by the machinery, not by you):
-
-| Vocabulary | Managed by |
-|---|---|
-| `Execution_Status` | the execution-state machine — values `Created`, `Running`, `Stopped`, `Failed`, `Pending_Upload`, `Uploaded`, `Aborted`, driven by the `with ml.create_execution(...) as exe:` context manager + `exe.commit_output_assets()`. |
-| `Asset_Role` | the upload/download machinery — `Input` / `Output`, set on each asset's `*_Execution` association automatically. |
-| `Feature_Name` | `deriva_ml_create_feature` / `create_feature` — one term per feature you create, registered for you. |
-
-For the per-table detail (FKs, full seeded-term lists) see `references/concepts/index.md` (the "Vocabulary" group); for the mechanism — controlled-vocab-as-extension-point, `add_term` vs `create_vocabulary`, built-in vs domain vocabs — see `references/concepts/pattern/vocabulary.md`.
-
-The inheritance rule still applies: even though you are using the generic `add_term` for the term itself (no deriva-ml override exists for it), the **lifecycle of Datasets / Workflows / Executions / Features / Assets** must go through the `deriva_ml_*` tools.
-
-For all *other* vocabularies (your own domain vocabs like `Sample_Type`, `Tissue_Type`, `Image_Quality`), use the same generic `add_term` documented in `/deriva:manage-vocabulary` — pass your domain schema name instead of `"deriva-ml"`.
+The inheritance rule still applies: `add_term` is generic, but the lifecycle of Datasets, Workflows, Executions, Features and Assets goes through the `deriva_ml_*` tools. Per-vocabulary call examples, the reindex detail and the system-managed values: `references/built-in-vocabularies.md`.
 
 ### Creating a new vocabulary: prefer `deriva_ml_create_vocabulary`
 
-When you need to **create** a brand-new vocabulary table on a deriva-ml-loaded catalog, prefer the ML-aware `deriva_ml_create_vocabulary` over the generic `create_vocabulary` from deriva-mcp-core. Both produce a table of the same physical shape, but the ML version automatically:
-
-- scopes the curie prefix to the deriva-ml project name (so terms get stable `{project}:{RID}` identifiers that survive catalog clones),
-- defaults to the domain schema (so the new vocab lands next to your other domain entities, not in `public`),
-- refreshes the catalog navbar so the new vocab is visible in Chaise immediately.
-
-```
-deriva_ml_create_vocabulary(hostname=..., catalog_id=...,
-    vocab_name="Tumor_Grade", comment="Histological tumor grading scale")
-```
-
-Then call `add_term` (from deriva-mcp-core — no ML-specific variant) for each term. The generic `create_vocabulary` remains the right call on **non-deriva-ml catalogs**; reach for it via `/deriva:manage-vocabulary` *(deriva-skills)*.
+On a deriva-ml catalog, create a new vocabulary table with `deriva_ml_create_vocabulary`, not core's generic `create_vocabulary`. The ML version scopes the CURIE prefix to the project (stable `{project}:{RID}` identifiers across clones), defaults to the domain schema, and refreshes the Chaise navbar. Then add terms with `add_term`. The generic tool stays right for non-deriva-ml catalogs (`/deriva:manage-vocabulary` *(deriva-skills)*). Example call: `references/built-in-vocabularies.md`.
 
 ## The entity resolution workflow
 
-This applies to **any catalog entity** referenced by name — tables, columns, schemas, vocabulary terms, datasets, workflows, executions, features, assets, or anything else the catalog tracks. ML-domain or generic, the workflow is the same.
+This applies to **any catalog entity** referenced by name — tables, columns, vocabulary terms, datasets, workflows, executions, features, assets. When the user names one, or asks to create one:
 
-When the user mentions an entity by name, OR when the user asks to create a new one, follow these steps:
+1. **Exact match first.** A case-sensitive exact match on a canonical name: use it, no search. (`"Training"` is the `Dataset_Type` term; `"training"` is not.)
+2. **Search when it's fuzzy.** Descriptive, abbreviated, misspelled or unfamiliar phrasing → `rag_search` (`catalog-schema` for tables, columns, features, terms; `catalog-data` for datasets, workflows, executions). Dataset, Workflow and Execution rows are indexed only once read, so prefer the structured tool first — `deriva_ml_list_datasets(dataset_type=...)`, `deriva_ml_list_executions(status=...)`, `deriva_ml_find_workflow_by_url`.
+3. **Several candidates → a picker** of 3–5 (name, one-line description, RID). One clear hit → use it and say what you resolved it to. None → ask. **Never fabricate a name or call `create_*` with a guessed identifier.**
+4. **Lookup path ends here** — pass the canonical name or RID on.
+5. **Create path:** first show the similar existing entities and ask whether one would do.
+6. **Descriptions on create** are non-empty and user-confirmed — never placeholders (`/deriva:generate-descriptions`, `/deriva-ml:generate-descriptions`).
 
-1. **Exact match first.** If the user-supplied string matches a known canonical name exactly (case-sensitive), use it. Don't search, don't ask. Catalog names are case-sensitive: `"Training"` is the `Dataset_Type` term; `"training"` is not.
-
-2. **Semantic search if ambiguous, fuzzy, or descriptive.** If the user's phrasing doesn't match a canonical name exactly — it's descriptive (`"the training data type"`), abbreviated (`"DR"`), misspelled (`"Diagnossis"`), or just unfamiliar — call `rag_search` with their phrase. Use the appropriate `doc_type`:
-
-   - `catalog-schema` for tables, columns, features, vocabulary terms
-   - `catalog-data` for datasets, workflows, executions
-   - `ml-docs` / `user-guide` for documentation references
-
-   **Read-through caveat for Dataset / Workflow / Execution rows.** These three are indexed **read-through** — a row enters the `catalog-data` index only once it has been listed or fetched (the `deriva_ml_list_*` / `deriva_ml_get_*` tools warm each row they return), or after a mutation (surgical reindex), or via `deriva_ml_reindex_rows(hostname, catalog_id)` to warm a whole catalog's rows on demand. So a bare `rag_search(doc_type="catalog-data")` can miss rows nobody has touched since the server started. Prefer the **structured path first** — it's deterministic *and* warms the index:
-
-   - **"find Training datasets"** → `deriva_ml_list_datasets(dataset_type="Training")` (exact type filter; no fuzzy needed).
-   - **executions by status / workflow type** → `deriva_ml_list_executions(status=..., workflow_type=...)`.
-   - **workflow dedup / "is this workflow already here?"** → `deriva_ml_find_workflow_by_url` — workflows are content-addressed (same URL + git commit = same row), so this is the exact, deterministic match, strictly better than fuzzy `rag_search`.
-   - **hybrid** ("Training datasets matching `<description text>`") → structured `deriva_ml_list_datasets(dataset_type=...)` to narrow, then `rag_search` to rank within the warmed result.
-
-   (Vocabulary terms and schema are indexed catalog-wide and searchable immediately — the read-through caveat applies only to the Dataset/Workflow/Execution data rows.)
-
-3. **Present a picker when multiple options appear.** If RAG returns more than one plausible candidate, list 3-5 of them with their canonical name + one-line description + RID (or `table.column` for column hits) and ask the user to pick. Don't choose blindly when reasonable people might disagree. If RAG returns ONE clear top hit (significantly above runners-up), use it but tell the user what you resolved it to in one sentence (`"I'm using the Training Dataset_Type."`). If RAG returns NO useful hits, ask a clarifying question. **Do NOT fabricate a name; do NOT call `create_*` with a guessed identifier.**
-
-4. **Lookup path ends here.** With the canonical entity in hand, call the relevant `lookup_*` / `get_*` / `find_*` tool, or pass the canonical name / RID to whatever operation the user requested.
-
-5. **Create path has one more step.** If you arrived here because the user asked to CREATE a new entity, before actually calling `create_*`, surface the candidates from step 3 to the user explicitly:
-
-   > "I found these similar existing entities: `<list>`. Would modifying or reusing one of these work, or do you want to create a new one?"
-
-   If the user picks an existing one, switch to the lookup path. If the user confirms a new one is needed, proceed to step 6.
-
-6. **Description handling on create.** Every `create_*` / `add_*` tool that accepts a `description` (or `comment`) argument SHOULD receive a non-empty, user-confirmed one — never empty, never placeholder text like `"TODO"`, never a fabricated description without showing the user. The full discipline (gather context → draft → confirm → create) and the autonomous-agent fallback live in the always-on `/deriva:generate-descriptions` (generic entities) and `/deriva-ml:generate-descriptions` (ML entities) skills.
-
-The cost of wrong resolution is data corruption or silent FK errors; the cost of right resolution is one or two extra round-trips. **Always prefer the round-trips.**
-
-The expanded rationale, the read-through-index caveat, and the structured-vs-fuzzy examples are in `references/entity-resolution.md`. The underlying find-before-create discipline is owned by `/deriva:semantic-awareness` *(deriva-skills, auto-loaded)*.
-
-### Related always-on skills
-
-Several always-on skills reinforce this workflow:
-
-- **`/deriva:semantic-awareness`** *(deriva-skills)* — **owns the find-before-create discipline**; teaches the synonym/abbreviation/spelling-variant search expansion that step 2 relies on. The discipline applies to ML entities (Datasets, Workflows, Features) as well as generic catalog entities.
-- **`/deriva:generate-descriptions`** *(deriva-skills)* — description-generation guidance for generic catalog entities (tables, columns, vocabularies, vocabulary terms).
-- **`/deriva-ml:generate-descriptions`** *(this plugin)* — description-generation guidance for DerivaML entities (Datasets, Workflows, Executions, Features, Assets, Experiments). The deriva-skills and this plugin's description skills cover non-overlapping entity sets and share the same generic workflow and quality bar.
-
-This skill links them together into one workflow; the always-on skills cover each half in more depth.
+Wrong resolution corrupts data; right resolution costs a round-trip or two — always pay it. The full steps, the read-through-index caveat, and the structured-vs-fuzzy table are in `references/entity-resolution.md`. The find-before-create discipline itself is owned by `/deriva:semantic-awareness` *(deriva-skills, auto-loaded)*.
 
 ## Routing notes where both plugins have a surface
 
@@ -446,26 +291,28 @@ For most operations the inheritance rule resolves the routing on its own — if 
 
 There are two paths for Chaise display annotations: `/deriva:customize-display` *(deriva-skills, interactive MCP-tool path — works on any Deriva catalog)* and `/deriva-ml:use-annotation-builders` *(this plugin, type-safe Python builder classes for production scripts — requires the deriva-ml Python package)*. The choice between them is interactive-vs-script-based, not domain-based.
 
-## Pointers
+## Reference files
 
-DerivaML domain workflows (this plugin):
+Read these directly — no need to go through the index first:
 
-- `/deriva-ml:dataset-lifecycle` — Dataset creation, population, splitting, versioning, browsing, downloading
-- `/deriva-ml:execution-lifecycle` — Pre-flight validation, running experiments, execution provenance
-- `/deriva-ml:create-feature` — Features, labels, annotations, selectors
-- `/deriva-ml:work-with-assets` — File assets — upload, download, provenance, types
-- `/deriva-ml:schema-evolution-impact` — Impact analysis before changing/deleting tables, columns, vocabularies, datasets, or assets ("what breaks if...", "safe to delete?")
-- `/deriva-ml:configure-experiment` — DerivaML experiment project structure (Hydra-zen configs)
-- `/deriva-ml:write-hydra-config` — Hydra-zen config files for experiments
-- `/deriva-ml:new-model` — Scaffold a new model function
-- `/deriva-ml:browse-erd` — Interactive entity-relationship diagram for the catalog
-- `/deriva-ml:troubleshoot-execution` — Execution-lifecycle troubleshooting (asset paths, upload, stuck Running, version mismatch, missing feature)
-- `/deriva-ml:using-deriva-mcp` — Cold-start discipline: read the upstream MCP server's orientation prompts and tier-1 guides before the first tool call
+- `references/concepts/index.md` — the fixed `deriva-ml` schema at a glance: tables by group, the FK graph, and which tables back each abstraction.
+- `references/concepts/table/<Table>.md` — one file per `deriva-ml` table (columns, FKs, seeded terms), named exactly after the table: `Asset_Role.md`, `Asset_Type.md`, `Dataset.md`, `Dataset_Dataset.md`, `Dataset_Dataset_Type.md`, `Dataset_Execution.md`, `Dataset_File.md`, `Dataset_Type.md`, `Dataset_Version.md`, `Directory_Dataset.md`, `Execution.md`, `Execution_Asset.md`, `Execution_Asset_Asset_Type.md`, `Execution_Asset_Execution.md`, `Execution_Execution.md`, `Execution_Metadata.md`, `Execution_Metadata_Asset_Type.md`, `Execution_Metadata_Execution.md`, `Execution_Status.md`, `Feature_Name.md`, `File.md`, `File_Asset_Type.md`, `File_Execution.md`, `Workflow.md`, `Workflow_Type.md`, `Workflow_Workflow_Type.md`.
+- `references/concepts/pattern/asset-table.md` — the shape of domain asset tables minted by `create_asset`.
+- `references/concepts/pattern/feature-table.md` — the shape of `Execution_{Target}_{Feature}` tables minted by `create_feature`.
+- `references/concepts/pattern/vocabulary.md` — controlled vocabularies: user-extensible vs system-managed, `add_term` vs `create_vocabulary`.
+- `references/planning-artifacts.md` — the full map of the repo's planning files (design docs, `Experiments.md`, configs, journal), how they link, and keeping them in sync.
+- `references/authentication.md` — the Python and MCP authentication checks: code, return shapes, caveats.
+- `references/built-in-vocabularies.md` — the six `deriva-ml` vocabularies with per-table `add_term` calls, the reindex detail, system-managed values, and a `deriva_ml_create_vocabulary` example.
+- `references/entity-resolution.md` — find-before-create: the six steps in full, the read-through-index caveat, structured vs fuzzy lookup, related skills.
+- `references/inheritance-rationale.md` — what raw catalog writes to the five abstractions bypass (validation, FK invariants, provenance, versioning, re-indexing, audit).
+- `references/python-idioms.md` — DerivaML Python idioms (typed containers; don't downgrade records to dicts).
 
-Generic catalog operations (provided by the `deriva-skills` plugin, assumed loaded):
+## Generic catalog operations (deriva-skills)
 
-- `/deriva:deriva-context` — Plugin-wide context for the deriva plugin (the seven design pillars, stateless-model framing, plugin scope)
-- `/deriva:troubleshoot-deriva-errors` — Generic catalog troubleshooting
-- `/deriva:manage-vocabulary` — Generic vocabulary CRUD
-- `/deriva:create-table` — Custom domain tables
-- `/deriva:query-catalog-data` — Querying / browsing
+DerivaML skills are routed from "Which skill do I start with?" above; `/deriva-ml:using-deriva-mcp` loads itself before the first MCP call. For operations with no DerivaML surface, the `deriva-skills` plugin (assumed loaded):
+
+- `/deriva:deriva-context` — plugin-wide context (the seven design pillars, the stateless model)
+- `/deriva:troubleshoot-deriva-errors` — generic catalog troubleshooting
+- `/deriva:manage-vocabulary` — generic vocabulary CRUD
+- `/deriva:create-table` — custom domain tables
+- `/deriva:query-catalog-data` — querying and browsing

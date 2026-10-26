@@ -6,6 +6,15 @@ description: How to create and manage executions in Python — ExecutionConfigur
 
 # Authoring executions
 
+**Contents**
+
+- [Creating and Managing Executions](#creating-and-managing-executions)
+- [ExecutionConfiguration](#executionconfiguration)
+- [The Execution Context Manager](#the-execution-context-manager)
+- [Execution Working Directory](#execution-working-directory)
+- [Execution Metadata Auto-Generation](#execution-metadata-auto-generation)
+- [Dry Run Mode](#dry-run-mode)
+
 ## Creating and Managing Executions
 
 Execution records are created and managed by the **Execution** class in the Python API, or by the MCP execution lifecycle tools. Unlike `ExecutionRecord` (read-only lookup), the `Execution` class is the active object that drives the data flow described above:
@@ -106,9 +115,12 @@ Every execution automatically captures four types of metadata, uploaded to the `
 
 These metadata files are uploaded automatically during `commit_output_assets()`. You do not need to register them manually — they are created and staged by the execution lifecycle.
 
+**This is the per-run code identity.** `configuration.json` records the workflow URL / version / checksum *as of this run*. The `Workflow` row itself is deduplicated and keeps its first registration's URL/version, so it is not a reliable answer to "what code did this run use."
+
 **Why this matters:** If a model produces unexpected results, the metadata lets you reconstruct the exact software environment (`uv.lock`), configuration (`Deriva_Config`, `Hydra_Config`), and runtime context (`Runtime_Env`) that produced them.
 
 **Querying metadata:**
+- Python: `ml.lookup_execution(execution_rid).list_metadata()` returns the `Execution_Metadata` assets via one server-side join (deriva-ml ≥ 1.58). Use this rather than `list_assets()` — that streams every output asset of the run. An empty list means none recorded; catalog failures raise.
 - Call `deriva_ml_get_execution(hostname, catalog_id, execution_rid)` and inspect its metadata field for the auto-created files.
 - Use `get_entities(hostname, catalog_id, schema="deriva-ml", table="Execution_Metadata", filters={"Execution": execution_rid})` to query metadata records directly (whole-row read).
 

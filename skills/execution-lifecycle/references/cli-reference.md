@@ -1,5 +1,13 @@
 # Run an Experiment with deriva-ml-run
 
+**Contents**
+
+- [Pre-Flight Checklist](#pre-flight-checklist)
+- [Verify Configuration](#verify-configuration)
+- [Running Experiments](#running-experiments)
+- [Verify Results](#verify-results)
+- [Troubleshooting](#troubleshooting)
+
 This skill covers the pre-flight checks and CLI commands for running experiments using `deriva-ml-run`. It assumes your hydra-zen configs are already set up (see the `configure-experiment` skill).
 
 > The new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them. (`deriva-ml-run` itself reads its `hostname`/`catalog` from the Hydra config or from CLI overrides — not affected by MCP statelessness.)

@@ -1,5 +1,14 @@
 # Entry Format — Template, Field Guidance, and Conventions
 
+**Contents**
+
+- [File header — OKF Log frontmatter](#file-header--okf-log-frontmatter)
+- [Entry header](#entry-header)
+- [What an entry contains](#what-an-entry-contains)
+- [Conventions](#conventions)
+- [What doesn't belong here — catalog data vs. tacit](#what-doesnt-belong-here--catalog-data-vs-tacit)
+- [When to inquire](#when-to-inquire)
+
 ## File header — OKF Log frontmatter
 
 `tacit-knowledge.md` is an **OKF Log document**: an append-only journal, which is

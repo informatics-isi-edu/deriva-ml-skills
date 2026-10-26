@@ -11,11 +11,15 @@ Step-by-step MCP tool examples for creating and managing datasets. For backgroun
 3. [Managing Members](#managing-members) — Add, remove, validate, list
 4. [Splitting Datasets](#splitting-datasets) — Random, stratified, labeled, predicate-based, partition_by, dry run, navigation
 5. [Subsampling Datasets](#subsampling-datasets) — Stratified single-output sample, peer to split_dataset
-6. [Versioning](#versioning) — When and how to increment
+6. [Versioning](#versioning-adr-0003-devrelease-model) — When and how to increment (ADR-0003 dev/release model)
 7. [Downloading](#downloading) — Preview and download
 8. [Provenance](#provenance) — Track dataset lineage
 9. [Deleting](#deleting) — Remove datasets
 10. [Complete Example](#complete-example) — End-to-end workflow
+11. [Bootstrap dataset](#bootstrap-dataset-no-source-dataset) — First dataset when there's no source dataset
+12. [Quick-edit MCP path](#quick-edit-mcp-path-existing-datasets-only) — Small edits to existing datasets without a script
+13. [Why render splits explicitly](#why-render-splits-explicitly-in-the-catalog) — Rationale for catalog-visible splits
+14. [Explore and browse dataset contents](#explore-and-browse-dataset-contents) — Overview, members, hierarchy
 
 ---
 
@@ -272,6 +276,12 @@ For downloading, preparing, and restructuring dataset data for ML training, see 
 To find **which executions used a dataset**, call `deriva_ml_get_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>")` — the returned record includes execution provenance.
 
 To find **which executions produced or used an asset**, call `deriva_ml_lookup_asset(hostname="data.example.org", catalog_id="1", asset_rid="<rid>")` for the producing execution, or `deriva_ml_find_workflow_executions(hostname="data.example.org", catalog_id="1", workflow_rid="<rid>")` for broader workflow queries.
+
+To find **how a dataset came to exist**, walk its lineage (`deriva_ml_get_lineage(..., rid="<dataset_rid>")`). For a Dataset root, `root.producing_execution` is the **origin** — the author of the first `Dataset_Version` — and `root.version_history` lists the author of every later version (splits, migrations, backfills). `root.origin_recorded=false` means the origin is unknown, not absent.
+
+To find **which executions labeled a dataset's members**, use the Python API `ml.find_feature_producers(dataset_rid, version="x.y.z")` — one record per (execution, feature, element type) with a value count; members follow FK-reachability, and `version=` excludes labels written after that version. Rows with `execution_rid=None` are unattributed feature values — surface them.
+
+**Containment is structure, not provenance.** `Dataset_Dataset` parent/child edges (`list_dataset_parents` / `list_dataset_children`) say what's nested in what; they don't say what was *derived* from what (a collection dataset's edges point the other way from a split's). Derivation is recorded by the execution that made the child — the source is its version-pinned input. For the exhaustive answer, see `/deriva-ml:compare-model-runs` → "Exhaustive closure: `lookup_provenance`".
 
 ## Deleting
 

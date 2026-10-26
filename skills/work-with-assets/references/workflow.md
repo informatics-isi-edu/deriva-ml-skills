@@ -63,6 +63,8 @@ Call `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema=
 
 Every execution automatically generates metadata files in the `Execution_Metadata` table (see `concepts.md` for the four metadata types). To find metadata for a specific execution:
 
+- Python (preferred for reading the bytes): `for a in ml.lookup_execution("<rid>").list_metadata(): a.download(dest_dir=Path("meta") / a.asset_rid)` — a direct join, not a scan of every output asset (deriva-ml ≥ 1.58)
+
 - Call `deriva_ml_get_execution(hostname="data.example.org", catalog_id="1", execution_rid="<rid>")` — returns the execution including its metadata files (Deriva_Config, Hydra_Config, Execution_Config, Runtime_Env)
 - Call `get_entities(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Execution_Metadata", filters={"Execution": "<execution_rid>"})` — query the metadata table directly with filters (whole-row read; use `query_attribute` with a `path` expression if you only want specific columns)
 

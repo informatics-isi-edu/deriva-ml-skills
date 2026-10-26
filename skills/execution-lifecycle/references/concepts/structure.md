@@ -6,6 +6,17 @@ description: How executions are represented in the catalog — RIDs, record stru
 
 # Execution structure
 
+**Contents**
+
+- [Executions in the Catalog](#executions-in-the-catalog)
+- [Execution RIDs](#execution-rids)
+- [Execution Structure](#execution-structure-1)
+- [Nested Executions](#nested-executions)
+  - [How multiruns create nested executions](#how-multiruns-create-nested-executions)
+  - [Manual nesting with the bundled template](#manual-nesting-with-the-bundled-template)
+  - [Navigating nested execution hierarchies](#navigating-nested-execution-hierarchies)
+  - [Analyzing sweep results](#analyzing-sweep-results)
+
 ## Executions in the Catalog
 
 An execution is a catalog record that captures a unit of work — a model training run, a data analysis, a notebook evaluation, a feature annotation pass. Executions are the fundamental unit of provenance in DerivaML. They are persistent, queryable entities stored in the catalog alongside your data.

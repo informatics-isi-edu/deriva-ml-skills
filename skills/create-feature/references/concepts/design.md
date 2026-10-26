@@ -6,6 +6,15 @@ description: Feature types, designing feature structure, naming conventions, met
 
 # Feature design
 
+**Contents**
+
+- [Feature Types](#feature-types)
+- [Designing a Feature](#designing-a-feature)
+- [Feature Naming](#feature-naming)
+- [Metadata Columns](#metadata-columns)
+- [Feature Column Optionality and Valid Values](#feature-column-optionality-and-valid-values)
+- [Multivalued Features](#multivalued-features)
+
 ## Feature Types
 
 | Type | `deriva_ml_create_feature` parameter | Use case |

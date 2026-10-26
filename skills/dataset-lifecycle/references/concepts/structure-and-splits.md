@@ -6,6 +6,22 @@ description: Standalone vs nested vs split structure, the split_dataset primitiv
 
 # Dataset structure, splitting, and subsampling
 
+**Contents**
+
+- [Dataset Structure: Standalone, Nested, and Splits](#dataset-structure-standalone-nested-and-splits)
+  - [Decision guide](#decision-guide)
+  - [Nested datasets](#nested-datasets)
+- [Splitting Datasets](#splitting-datasets)
+  - [Two-way split (default)](#two-way-split-default)
+  - [Three-way split (when `val_size` is provided)](#three-way-split-when-val_size-is-provided)
+  - [Splitting strategies](#splitting-strategies)
+  - [Key parameters](#key-parameters)
+  - [Partition unit (`partition_by`)](#partition-unit-partition_by)
+  - [Source recorded as execution input, not as `Dataset_Dataset` parent](#source-recorded-as-execution-input-not-as-dataset_dataset-parent)
+- [Subsampling Datasets](#subsampling-datasets)
+  - [When to use `subsample` vs `split_dataset`](#when-to-use-subsample-vs-split_dataset)
+  - [Key parameters](#key-parameters-1)
+
 ## Dataset Structure: Standalone, Nested, and Splits
 
 Before creating a dataset, decide its structure. The right choice depends on how the dataset relates to other data in the catalog.

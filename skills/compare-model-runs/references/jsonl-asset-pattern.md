@@ -1,5 +1,14 @@
 # Pattern B: Comparing Runs via JSONL Asset Files
 
+**Contents**
+
+- [When to use](#when-to-use)
+- [When NOT to use](#when-not-to-use)
+- [The MCP boundary](#the-mcp-boundary)
+- [Full worked example: "Plot training loss across the last 5 runs"](#full-worked-example-plot-training-loss-across-the-last-5-runs)
+- ["Just give me the final number, not the curve" shortcut](#just-give-me-the-final-number-not-the-curve-shortcut)
+- [Pitfalls](#pitfalls)
+
 This is the worked example for the metrics-as-asset-file pattern, where the user wrote `with exe.metrics_file().open("a") as f:` inside the training loop, producing JSONL files attached to executions as `Metrics_File`-typed assets on the `Execution_Metadata` asset table.
 
 ## When to use

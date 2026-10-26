@@ -6,6 +6,21 @@ description: Characterization & validation roadmap, the ADR-0003 dev/release ver
 
 # Dataset versioning and identification
 
+**Contents**
+
+- [Characterization & validation (roadmap, not yet implemented)](#characterization--validation-roadmap-not-yet-implemented)
+- [Dataset Versioning (ADR-0003 dev/release model)](#dataset-versioning-adr-0003-devrelease-model)
+  - [Released versions are snapshots; dev versions follow live state](#released-versions-are-snapshots-dev-versions-follow-live-state)
+  - [Mutations land on dev](#mutations-land-on-dev)
+  - [Drift detection (Python API only)](#drift-detection-python-api-only)
+  - [Release descriptions](#release-descriptions)
+  - [Dataset history](#dataset-history)
+  - [Versioning rules for experiments](#versioning-rules-for-experiments)
+  - [Pre-experiment checklist](#pre-experiment-checklist)
+  - [Common versioning mistakes](#common-versioning-mistakes)
+- [Identifying a Dataset: RID + Version](#identifying-a-dataset-rid--version)
+  - [Binding to a specific version](#binding-to-a-specific-version)
+
 ## Characterization & validation (roadmap, not yet implemented)
 
 > **Status:** The four operations below — `characterize_dataset`, `compare_datasets`, `validate_split`, `validate_subsample` — are **specified but not yet implemented** in deriva-ml as of v1.42.0. The validation layer is a follow-up PR to the v1.42.0 `Split_Partition` + `subsample` work; the design is sketched in [deriva-ml spec `2026-06-01-split-partition-tag-and-subsample-design.md` §10](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/superpowers/specs/2026-06-01-split-partition-tag-and-subsample-design.md).

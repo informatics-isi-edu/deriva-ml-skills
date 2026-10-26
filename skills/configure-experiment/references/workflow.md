@@ -1,5 +1,15 @@
 # Configure ML Experiments with hydra-zen and DerivaML
 
+**Contents**
+
+- [Config Groups](#config-groups)
+- [How Experiments Compose](#how-experiments-compose)
+- [Project Structure](#project-structure)
+- [Setting Up a New Project](#setting-up-a-new-project)
+- [Running Experiments](#running-experiments)
+- [Multiruns](#multiruns)
+- [Best Practices](#best-practices)
+
 This skill covers the high-level structure of a DerivaML experiment project: what config groups exist, how they compose into experiments, and how to set up a new project. For the exact Python API and code patterns for each config type, see the `write-hydra-config` skill.
 
 ## Config Groups

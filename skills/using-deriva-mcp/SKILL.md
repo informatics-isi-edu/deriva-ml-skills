@@ -160,11 +160,13 @@ the matching docstring in `deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/resourc
 | URI | Returns |
 |---|---|
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflows` | all workflows (paginated) |
-| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflow/{workflow_rid}` | single workflow (source URL, checksum, type) |
+| `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflow/{workflow_rid}` | single workflow (source URL, checksum, type) — URL/version are from the row's *first* registration, not any particular run (see `/deriva-ml:compare-model-runs` → "Trace an artifact's provenance") |
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/executions` | all executions (paginated) |
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{execution_rid}` | execution detail (inputs, outputs, durations, experiment) |
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/lineage/{rid}` | full provenance walk from any Dataset / Execution / Asset RID |
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/lineage-forward/{rid}` | forward lineage: executions that CONSUMED this Dataset / asset as input |
+
+> **Python-only provenance surfaces.** The full provenance closure (`ml.lookup_provenance`), feature-producer facts (`ml.find_feature_producers`), run-metadata reads (`ml.lookup_execution(rid).list_metadata()`), and the `deriva-ml-lineage` HTML report have no MCP tool yet — generate local Python / a shell command for them.
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflow/{workflow_rid}/multirun-status` | status counts across one workflow's executions ("is the sweep done?") |
 
 **Features, Assets, Vocabularies**

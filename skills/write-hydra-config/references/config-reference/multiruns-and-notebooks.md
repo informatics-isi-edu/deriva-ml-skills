@@ -6,6 +6,15 @@ description: Annotated examples and starter templates for multirun sweep configs
 
 # Multiruns and Notebook Configs
 
+**Contents**
+
+- [Multiruns (`multiruns.py`)](#multiruns-multirunspy)
+  - [Example](#example)
+  - [Template](#template)
+- [Notebook Configs](#notebook-configs)
+  - [Example](#example-1)
+  - [Template](#template-1)
+
 ## Multiruns (`multiruns.py`)
 
 ### Example

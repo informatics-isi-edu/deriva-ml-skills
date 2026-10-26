@@ -1,5 +1,17 @@
 # Branch 2 deep-dive: `clone_via_bag()` (clone a slice)
 
+**Contents**
+
+- [Step 1: Pick your roots](#step-1-pick-your-roots)
+- [Step 2: Provenance comes automatically (this is not a knob)](#step-2-provenance-comes-automatically-this-is-not-a-knob)
+- [Step 3: Asset mode (the real decision)](#step-3-asset-mode-the-real-decision)
+- [Step 4: Dangling-FK behavior](#step-4-dangling-fk-behavior)
+- [Step 5: Slice size](#step-5-slice-size)
+- [Step 6: Run the clone](#step-6-run-the-clone)
+- [Step 7: Promote the destination (if the source wasn't a deriva-ml catalog)](#step-7-promote-the-destination-if-the-source-wasnt-a-deriva-ml-catalog)
+- [Step 8: Verify](#step-8-verify)
+- [Branch 2 failure modes](#branch-2-failure-modes)
+
 This is the full step-by-step mechanical recipe for Branch 2 of `setup-ml-catalog` — cloning a slice of an existing source catalog into a new destination catalog. The branch-selection decision (when you'd choose `clone_via_bag` over Branch 1 "from scratch", and why not `clone_catalog`) stays in `SKILL.md`; this file is the deep recipe once you've chosen this branch.
 
 This branch produces a destination catalog populated from a source catalog. The destination ends up self-contained (its own catalog ID, its own schema, its own data) and intentionally smaller — only the slice you asked for makes it across.

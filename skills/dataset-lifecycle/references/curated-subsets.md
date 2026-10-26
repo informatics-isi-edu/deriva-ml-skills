@@ -1,5 +1,14 @@
 # Curated Subsets Workflow
 
+**Contents**
+
+- [Two data paths](#two-data-paths)
+- [REQUIRED: Read templates first](#required-read-templates-first)
+- [Scaffolding check](#scaffolding-check)
+- [Subset workflow](#subset-workflow)
+- [How this relates to `split_dataset` and `subsample`](#how-this-relates-to-split_dataset-and-subsample)
+- [Reading feature values with `feature_values()`](#reading-feature-values-with-feature_values)
+
 When the user wants a dataset derived from an **existing dataset** — whether filtered by data values (e.g., "only labeled images", "just cats and dogs"), by numeric thresholds (e.g., "confidence > 0.8"), or by random sampling (e.g., "100 random images for dev") — follow this workflow. This requires a source dataset to download a bag from. If no dataset exists yet, use the bootstrap workflow in `workflow.md` instead.
 
 Curated subsets run through `deriva-ml-run` using the `script_config` hydra group, giving them the same provenance tracking as model training.

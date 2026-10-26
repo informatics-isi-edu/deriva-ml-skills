@@ -75,7 +75,7 @@ Companion task templates live under other skills' `scripts/` directories:
 
 The lifecycle inside every template is the same:
 
-1. Create the workflow (content-addressed by URL + commit hash).
+1. Create the workflow (an existing row is reused when its URL or script checksum matches; the run's exact commit is recorded in its own `configuration.json`).
 2. Open `with ml.create_execution(config, workflow=workflow, dry_run=...) as exe:`.
 3. Inside the `with` block: download inputs (`exe.download_dataset_bag()`, `exe.download_asset()`), do the work, stage outputs (`exe.asset_file_path()`, `exe.add_features()`, `exe.create_dataset()`).
 4. After the `with` block: `exe.commit_output_assets()` — uploads staged bytes, writes asset rows, transitions `Stopped → Pending_Upload → Uploaded`. Idempotent on re-call.

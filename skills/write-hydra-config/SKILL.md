@@ -19,9 +19,15 @@ This skill is the authoritative reference for the Python API used in DerivaML hy
 
 After any catalog-modifying action (`deriva_ml_create_dataset`, `deriva_ml_create_workflow`, or running a splitting script that calls `split_dataset(ml, source_rid, exe, ...)` from the Python API, etc.), proactively offer to update the relevant config file using these patterns.
 
-## Reference File
+## Reference Files
 
-- `references/config-reference/` — Annotated examples and starter templates for every config group. Each section shows a populated example from a real project, followed by a minimal template. Read the relevant section when writing or modifying a specific config file.
+Annotated examples and starter templates, one file per config-file family. Each shows a populated example from a real project, then a minimal template. Read the one for the file you're writing or modifying:
+
+- `references/config-reference/base-and-connection.md` — `configs/__init__.py`, the base config (`base.py`), and the Deriva connection group (`deriva.py`)
+- `references/config-reference/data-configs.md` — the `datasets.py`, `assets.py` and `workflow.py` groups
+- `references/config-reference/model-and-experiments.md` — the `model.py` and `experiments.py` groups
+- `references/config-reference/multiruns-and-notebooks.md` — multirun sweep configs and notebook configs
+- `references/config-reference/rules-and-validation.md` — per-group key rules, description mechanisms, full config-class parameter tables, MCP starter resources, bootstrap recipes, and validation
 
 ## Config Groups Overview
 

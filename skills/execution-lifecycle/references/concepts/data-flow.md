@@ -6,6 +6,23 @@ description: How executions consume inputs and produce outputs — dataset/asset
 
 # Execution data flow
 
+**Contents**
+
+- [Execution Data Flow](#execution-data-flow-1)
+  - [Consuming inputs](#consuming-inputs)
+  - [The working directory](#the-working-directory)
+  - [Producing outputs](#producing-outputs)
+  - [Uploading outputs](#uploading-outputs)
+  - [Recording feature values](#recording-feature-values)
+  - [The complete flow](#the-complete-flow)
+- [Automatic Source Code Detection](#automatic-source-code-detection)
+  - [How source detection works](#how-source-detection-works)
+  - [Git commit enforcement](#git-commit-enforcement)
+  - [Workflow deduplication](#workflow-deduplication)
+  - [Setting notebook workflow URLs](#setting-notebook-workflow-urls)
+- [Workflows and Workflow Types](#workflows-and-workflow-types)
+  - [Finding and creating workflows](#finding-and-creating-workflows)
+
 ## Execution Data Flow
 
 An execution consumes inputs, does work in a local working directory, and produces outputs that get uploaded back to the catalog. Understanding this flow is key to working with executions.

@@ -223,6 +223,17 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
 )
 ```
 
+Streaming from the bag with `bag.as_tf_dataset(...)` instead? **Pass `global_shuffle=True`** whenever the bag may be class-grouped (any dataset assembled one class at a time). The adapter is generator-backed, so `.shuffle(buffer_size)` only moves elements within a window — a 3000-A-then-1800-B bag with `buffer_size=1000` still yields single-class batches, and training can collapse (val accuracy flipping between class proportions, AUC ≈ 0.5). Use both:
+
+```python
+ds = bag.as_tf_dataset("Image", sample_loader=load_image, targets=["Diagnosis"],
+                       target_transform=lambda r: CLASS_TO_IDX[r.Diagnosis],
+                       global_shuffle=True, shuffle_seed=42)        # one-time global RID permutation
+ds = ds.shuffle(1000, seed=7).batch(32).prefetch(tf.data.AUTOTUNE)  # per-epoch variation
+```
+
+Reproducibility needs both seeds. PyTorch needs no equivalent — `as_torch_dataset` is map-style, so `DataLoader(shuffle=True)` already shuffles globally. (deriva-ml ≥ 1.56.)
+
 ### Multi-label with file conversion
 
 ```python

@@ -1,5 +1,12 @@
 # Cache-Warming Recipes
 
+**Contents**
+
+- [Cache a dataset bag](#cache-a-dataset-bag)
+- [Cache metadata only (no asset files)](#cache-metadata-only-no-asset-files)
+- [Cache an individual asset](#cache-an-individual-asset)
+- [Verify cache after pre-fetching](#verify-cache-after-pre-fetching)
+
 Full cache-warming recipes for Phase 3 (Pre-fetch — warm the cache):
 dataset bag, metadata-only, single asset, verify. See `SKILL.md` for the
 Pre-flight Pattern summary and the pointer here.

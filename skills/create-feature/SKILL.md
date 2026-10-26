@@ -127,7 +127,7 @@ Adding values requires knowing what columns a feature has, which are required, a
 
 ### Writing values: always through an execution
 
-There is **no MCP tool that writes feature values** — `deriva_ml_add_feature_values` was removed in v0.5.0. The MCP feature surface is read-only (`deriva_ml_list_feature_values`, `deriva_ml_get_feature`, `deriva_ml_find_features_referencing`). Every write — even a 1-value smoke test — goes through `exe.add_features(records)` inside a `with ml.create_execution(...) as exe:` block. Read the values back afterward with `deriva_ml_list_feature_values`.
+There is **no MCP tool that writes feature values** — the old add-feature-values MCP tool was removed in plugin v0.5.0. The MCP feature surface is read-only (`deriva_ml_list_feature_values`, `deriva_ml_get_feature`, `deriva_ml_find_features_referencing`). Every write — even a 1-value smoke test — goes through `exe.add_features(records)` inside a `with ml.create_execution(...) as exe:` block. Read the values back afterward with `deriva_ml_list_feature_values`.
 
 | Situation | Approach |
 |-----------|----------|
@@ -177,6 +177,8 @@ ongoing use.
 > the read path, owned by `/deriva-ml:explore-results`. This skill covers *creating*
 > features and *adding* values; reach for explore-results to inspect what's there.
 
+A feature value is a *(member, value, execution)* binding — the producing execution is part of its identity. Two things follow: (1) in Chaise, feature tables carry **Workflow / Workflow Name / Workflow Type** facets (deriva-ml ≥ 1.55), so "show me only the model's predictions" or "only human labels" is a facet click, not a query; (2) "which runs labeled this dataset?" is `ml.find_feature_producers(dataset_rid)` (see `/deriva-ml:compare-model-runs` → "Trace an artifact's provenance").
+
 Feature queries fall into two categories. **Always choose the right one — never use preview tools to retrieve feature values.**
 
 ### Rule: "get values" = Python API; "explore shape" = preview
@@ -222,7 +224,9 @@ period is done. Don't wait to be asked.
 
 ## Reference Resources
 
-- `references/concepts/` — Feature types, design guidance, naming, multivalued features, selection, Python API, integration
+- `references/concepts/feature-vs-column.md` — What a feature is, and when to use a feature vs a column on the target table
+- `references/concepts/design.md` — Feature types, structure, naming, metadata columns, optionality and valid values, multivalued features
+- `references/concepts/usage.md` — Discovering existing features, the `FeatureRecord` Python API, features in datasets, feature-value table naming
 - `references/workflow.md` — Step-by-step MCP and Python API examples for create / add-values / query
 - `references/concepts/selectors.md` — Complete guide to writing and using feature selectors
 - `deriva://docs/features` — Full user guide to features in DerivaML

@@ -6,6 +6,16 @@ description: Annotated examples and starter templates for the config package ini
 
 # Config `__init__.py`, Base Config, and Deriva Connection
 
+**Contents**
+
+- [Config `__init__.py`](#config-__init__py)
+- [Base Config (`base.py`)](#base-config-basepy)
+  - [Example](#example)
+  - [Template](#template)
+- [Deriva Connection (`deriva.py`)](#deriva-connection-derivapy)
+  - [Example](#example-1)
+  - [Template](#template-1)
+
 ## Config `__init__.py`
 
 All config modules in the package are imported automatically by `load_configs()`.

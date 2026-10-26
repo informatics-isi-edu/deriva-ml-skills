@@ -1,5 +1,13 @@
 # Pattern A: Comparing Runs via Feature Values
 
+**Contents**
+
+- [When to use](#when-to-use)
+- [When NOT to use](#when-not-to-use)
+- [Full worked example: "Find the best F1 of my last 5 training runs"](#full-worked-example-find-the-best-f1-of-my-last-5-training-runs)
+- [Selector shortcut: pick the newest value per (execution, target)](#selector-shortcut-pick-the-newest-value-per-execution-target)
+- [Pitfalls](#pitfalls)
+
 This is the worked example for the metrics-as-feature-values pattern, where the user has defined a Feature with scalar columns like `accuracy`, `f1_score`, `loss`, etc., and each execution writes one row per scoring target.
 
 ## When to use

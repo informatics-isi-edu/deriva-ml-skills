@@ -1,5 +1,15 @@
 # The Open Knowledge Format (OKF), as used by DerivaML design docs
 
+**Contents**
+
+- [What OKF is](#what-okf-is)
+- [The frontmatter contract](#the-frontmatter-contract)
+  - [Why DerivaML omits `resource`](#why-derivaml-omits-resource)
+- [The bundle and `index.md`](#the-bundle-and-indexmd)
+- [Links between documents (the connected-corpus payoff)](#links-between-documents-the-connected-corpus-payoff)
+  - [DerivaML relationship-verb vocabulary](#derivaml-relationship-verb-vocabulary)
+  - [Keeping the graph acyclic](#keeping-the-graph-acyclic)
+
 This is a local summary of the parts of OKF that DerivaML's `docs/design/`
 bundle relies on. It exists so the plugin is **self-contained** — if the
 upstream spec URL moves or disappears, the contract the design docs depend on is

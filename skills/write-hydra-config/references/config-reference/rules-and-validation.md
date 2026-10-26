@@ -6,6 +6,15 @@ description: Per-group key rules, the description mechanisms, the full config-cl
 
 # Config rules, parameter reference, bootstrap & validation
 
+**Contents**
+
+- [Per-Group Key Rules](#per-group-key-rules)
+- [Description Mechanisms and Good Descriptions](#description-mechanisms-and-good-descriptions)
+- [Config Class Parameter Reference](#config-class-parameter-reference)
+- [MCP Reference Resources](#mcp-reference-resources)
+- [Bootstrap Configs from a Catalog](#bootstrap-configs-from-a-catalog)
+- [Validating Configs Against the Catalog](#validating-configs-against-the-catalog)
+
 ## Per-Group Key Rules
 
 The detailed authoring rules for each config group. The SKILL.md body carries

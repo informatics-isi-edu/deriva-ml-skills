@@ -1,5 +1,13 @@
 # File Mechanics for `tacit-knowledge.md`
 
+**Contents**
+
+- [First-time setup](#first-time-setup)
+- [Companion artifacts (created by the seed script)](#companion-artifacts-created-by-the-seed-script)
+- [OKF layout at a glance](#okf-layout-at-a-glance)
+- [Concepts, files, tags, and type — the relationships, concisely](#concepts-files-tags-and-type--the-relationships-concisely)
+- [Relationship to other project files](#relationship-to-other-project-files)
+
 The file lives in the **project root** alongside `CLAUDE.md`, `pyproject.toml`,
 and other project-level files. It must be tracked in git — it's part of the
 project's permanent record.

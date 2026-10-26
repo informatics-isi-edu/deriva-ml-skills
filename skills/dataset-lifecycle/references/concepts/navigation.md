@@ -6,6 +6,27 @@ description: Pre-creation discovery, read-side exploration (members, hierarchies
 
 # Discovering, navigating, using, and downloading datasets
 
+**Contents**
+
+- [Discovering Existing Datasets](#discovering-existing-datasets)
+- [Exploring and Navigating Datasets](#exploring-and-navigating-datasets)
+  - [Understanding a dataset's structure](#understanding-a-datasets-structure)
+  - [Listing members](#listing-members)
+  - [Navigating hierarchies](#navigating-hierarchies)
+  - [Checking element types](#checking-element-types)
+  - [Provenance](#provenance)
+- [Using Datasets](#using-datasets)
+  - [Browse in Chaise (web UI)](#browse-in-chaise-web-ui)
+  - [Reference in experiment configurations](#reference-in-experiment-configurations)
+  - [Query via MCP tools](#query-via-mcp-tools)
+  - [Download as a BDBag](#download-as-a-bdbag)
+  - [Use in Python with the Dataset object](#use-in-python-with-the-dataset-object)
+- [Downloading Datasets as Bags](#downloading-datasets-as-bags)
+  - [What a bag contains](#what-a-bag-contains)
+  - [Working with downloaded bags](#working-with-downloaded-bags)
+  - [Restructuring assets for ML frameworks](#restructuring-assets-for-ml-frameworks)
+  - [Previewing before download](#previewing-before-download)
+
 ## Discovering Existing Datasets
 
 Before creating a new dataset, check whether an existing one already serves your purpose. Duplicate datasets fragment data and confuse downstream consumers.

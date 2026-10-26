@@ -2,15 +2,18 @@
 type: Table
 title: Workflow
 kind: core
-description: A versioned reference to the code that runs an ML step, content-addressed by (URL, Checksum).
+description: A reference to the script that runs an ML step, deduplicated by URL or Checksum; per-run commit lives in the execution's configuration.json.
 ---
 
 # Workflow
 
 A **versioned reference to the code** that knows how to run an ML step. Workflows
-are content-addressed by `(URL, Checksum)` — the same script at the same git
-commit always resolves to the same Workflow row, so two executions that share a
-Workflow row are guaranteed to have run identical source.
+are deduplicated: `create_workflow` reuses an existing row whose `URL` *or*
+`Checksum` (the git hash of the script file's contents) matches. Two executions
+that share a Workflow row ran the same entry-script file — but not necessarily
+the same commit of the rest of the repository, and the row's `URL` / `Version`
+record its *first* registration. The commit a particular run used is in that
+execution's `configuration.json` (`Execution_Metadata`).
 
 Each [Execution](Execution.md) links back to exactly one Workflow row, making
 the producing code recoverable for any result in the catalog. Workflows are

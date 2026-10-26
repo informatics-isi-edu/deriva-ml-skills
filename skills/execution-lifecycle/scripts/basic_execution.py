@@ -15,7 +15,8 @@ When to use:
     `troubleshoot-execution` skill's `salvage_runner.py`).
 
 Pattern:
-    1. Create a workflow (content-addressed by URL + commit hash).
+    1. Create a workflow (reused if its URL or script checksum already exists;
+       the run's exact commit is recorded in its configuration.json).
     2. Open an Execution via the context manager.
     3. Inside the `with` block: do the work, stage outputs via
        `execution.asset_file_path()` / `execution.add_features()` /

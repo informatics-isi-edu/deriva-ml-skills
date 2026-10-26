@@ -1,5 +1,13 @@
 # Tacit-Knowledge Entry Examples
 
+**Contents**
+
+- [Example 1 — A model run with cross-domain implications](#example-1--a-model-run-with-cross-domain-implications)
+- [Example 2 — A non-run event](#example-2--a-non-run-event)
+- [Example 3 — A dead end](#example-3--a-dead-end)
+- [Example 4 — Snapshot vs convention](#example-4--snapshot-vs-convention)
+- [Example 5 — Confirmatory inquiry](#example-5--confirmatory-inquiry)
+
 Five worked examples illustrating the entry conventions from the
 `capture-tacit-knowledge` skill. Read the one that matches the situation you're
 in — the skill body carries the rules; these show the rules applied end-to-end.

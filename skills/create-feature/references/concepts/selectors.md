@@ -6,6 +6,15 @@ description: How to choose, use, and write feature selectors in DerivaML — bui
 
 # Feature selectors
 
+**Contents**
+
+- [What is a selector?](#what-is-a-selector)
+- [Feature Selection](#feature-selection)
+- [Built-in selectors](#built-in-selectors)
+- [Writing custom selectors](#writing-custom-selectors-1)
+- [Common patterns](#common-patterns)
+- [Common pitfalls](#common-pitfalls-1)
+
 How to choose, use, and write feature selectors in DerivaML.
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.

@@ -23,6 +23,7 @@ Jump straight to the right section if you already know what's wrong:
 | Bag contents or `denormalize_dataset` output doesn't match what you expected | "Version Mismatch" |
 | `exe.add_features(records)` or feature-related calls error about a missing feature | "Feature Not Found" |
 | `exe.commit_output_assets()` hangs or times out | "Upload Timeout" |
+| Run's data all committed but status `Failed` with a `409 CONFLICT` (e.g. "Schema public does not exist") from the RID-lease POST | Fixed in deriva-ml 1.55.1 (lease POST now retries with reconciliation) — upgrade ("Versioning and updates"), then "Salvage a Failed Execution" |
 | Execution status shows `Running` but the process has crashed or ended | "Execution Stuck in Running" |
 | Error mentions a missing `Workflow_Type`, `Dataset_Type`, or `Asset_Type` term | "ML Vocabulary Term Not Found" |
 | Training ran for hours, failed partway, and you need to recover survivors | "Salvage a Failed Execution" |

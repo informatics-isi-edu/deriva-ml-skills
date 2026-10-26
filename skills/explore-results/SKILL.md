@@ -47,10 +47,17 @@ producing run's full inputs/outputs, use `deriva_ml_get_lineage(hostname,
 catalog_id, rid=...)` and `deriva_ml_get_execution(hostname, catalog_id,
 execution_rid=...)`.
 
+For a **dataset**, the root's producer is its *origin* (the first version's author), and
+`root.version_history` lists who touched each later version — so "who made this dataset"
+and "who last changed it" are different answers; say which one you're giving. If
+`root.origin_recorded` is `false`, say the origin wasn't recorded rather than "nothing
+produced it." When the user wants something to **share or archive**, offer the one-page
+HTML report: `deriva-ml-lineage --rid <RID> --host <host> --catalog <id> --output lineage.html`.
+
 This is the **domain-scientist entry** to lineage — "what produced this?", answered
 simply, then the `cite_url` to see it. When the question is the **developer**
 reproduction one — *"what git commit + dataset version produced this, so I can
-reproduce it"* — that needs the two-step lineage-walk → workflow-record pattern,
+reproduce it"* — that needs the lineage-walk → per-run-metadata pattern,
 which is owned by `/deriva-ml:compare-model-runs` → "Trace an artifact's
 provenance". And when the question is **across runs** — "which run was best", "is
 this a regression" — that's `/deriva-ml:compare-model-runs` too. Hand those off;
