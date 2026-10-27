@@ -1,6 +1,7 @@
 ---
 name: model-development-workflow
-description: "Use when STANDING UP a new ML pipeline or onboarding to one for the first time — the cycle-zero work that has to happen before any hypothesis-driven experiment can start. Covers the end-to-end bootstrap (schema design → small representative dataset → validate features → dry run → small-data run → production run) and the three-tier pattern (dry_run → small → full) that catches bugs before full-scale compute. The skill's job ends when the pipeline produces real results; from there, hypothesis-driven iteration belongs in `/deriva-ml:experiment-lifecycle`. Triggers on: 'new ML project', 'set up a new pipeline', 'first model', 'onboard to existing project', 'standing up training', 'how should I get started', 'start small', 'representative dataset', 'development subset', 'what order should I do things', 'best practices for training', 'debug my training' (when the pipeline itself is new/unproven)."
+description: "Guides cycle-zero bootstrap of a new ML pipeline on DerivaML — schema design, a small representative dataset, feature validation, then dry run → small run → production run. Use once the repo and catalog exist (start-project gets a project there) and the pipeline itself is new or unproven; once it produces real results, iteration belongs to experiment-lifecycle."
+when_to_use: "Triggers on: 'set up a new pipeline', 'first model', 'standing up training', 'start small', 'representative dataset', 'development subset', 'what order should I do things', 'best practices for training', 'debug my training' (when the pipeline itself is new or unproven). Not for creating the repo or catalog (start-project)."
 user-invocable: true
 ---
 
@@ -9,6 +10,8 @@ user-invocable: true
 This skill teaches the **bootstrap** workflow for a new DerivaML pipeline. It's cycle-zero work: schema design through the first production-scale training run. The core principle: **start small, validate early, scale up only after everything works.**
 
 Most wasted compute comes from running full-scale training on broken configurations. This workflow catches problems at each tier before they become expensive.
+
+> **Before this skill: `start-project`.** This skill assumes a repo created from the model template, a catalog with the `deriva-ml` schema, and the repo's configs pointed at it. If any of those is missing, load `/deriva-ml:start-project` first.
 
 > **When this skill stops, `experiment-lifecycle` starts.** Once you have a working pipeline that's produced real (not validation) results, the hypothesis-driven iteration loop ("what's the next experiment that would teach us something we don't already know?") belongs in `/deriva-ml:experiment-lifecycle`. That skill assumes the pipeline exists and is sound; this skill exists to get you to that point.
 
@@ -252,8 +255,8 @@ uv run deriva-ml-run +multirun=lr_sweep
    has them linked to the execution.
 4. **If the execution attached features to the dataset's members** (e.g.,
    ground-truth labels, curated annotations, derived attributes that future
-   consumers should see), record the drift and mint a release. Per
-   ADR-0003, feature drift is not auto-detected by the dataset-mutation
+   consumers should see), record the drift and mint a release.
+   Feature drift is not auto-detected by the dataset-mutation
    tools — call `dataset.mark_dev(description)` from the Python API to
    declare a dev period (which flips `current_version` to a `.devN`
    label), then `deriva_ml_release_dataset(...)` to mint a release that captures

@@ -1,6 +1,7 @@
 ---
 name: design-experiment
-description: "ALWAYS use BEFORE configuring an experiment, building a dataset, or INGESTING a new dataset in DerivaML — the design-first phase that captures goals, requirements, validation criteria, and analysis plan into a standardized Markdown document the configuration (or dataset construction / ingest) then implements. This skill IS the spec-writing process for DerivaML design work — it owns the FORMAT (OKF Markdown) and the LOCATION (docs/design/{experiment,dataset,feature,model}/) and the four parallel design-doc templates. When the user asks to 'write a specification' / 'write a spec' / 'design' / 'plan' any DerivaML entity (incl. ingesting files as a dataset), use THIS skill's template and directory — do not fall back to a generic spec/brainstorm flow, which would produce the wrong format in the wrong place. The design doc is the up-front CONTRACT (the plan before you build); tacit-knowledge.md stays the running journal (what you learned during/after) — the two cross-link. This skill is the first phase (Specify) of all four lifecycles — experiment-lifecycle, dataset-lifecycle, create-feature, and model-development-workflow; they each hand off here. Triggers on: 'write a specification', 'write a spec to ingest a dataset', 'spec for ingesting files', 'design an experiment', 'plan an experiment', 'design a dataset', 'plan a dataset', 'design a dataset ingest', 'plan an ingest', 'ingest a new dataset' (the design/spec phase), 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure', 'before I build the dataset', 'before I ingest', 'write a design doc', 'experiment-design', 'dataset-design', 'design a feature', 'design a model', 'feature-design', 'model-design'. The ingest pipeline mechanics that the dataset-design's Ingest plan section references are owned by /deriva-ml:setup-ml-catalog (the phased loader). Do NOT use for: the running decision journal (that's capture-tacit-knowledge), writing the hydra config (configure-experiment / write-hydra-config), or actually building/splitting/ingesting the dataset (dataset-lifecycle Phase 4+ / the setup-ml-catalog loader)."
+description: "Writes the design document (OKF Markdown in docs/design/{experiment,dataset, feature,model}/) that captures goals, requirements, validation criteria, and the analysis plan before anything is built — the Specify phase of all four DerivaML lifecycles. Use BEFORE configuring an experiment, building or ingesting a dataset, or designing a feature or model, and whenever the user asks to write a spec, design, or plan for any DerivaML entity — instead of a generic spec or brainstorm flow, which would put the wrong format in the wrong place."
+when_to_use: "Triggers on: 'write a spec / specification', 'spec for ingesting files', 'design / plan an experiment', 'design / plan a dataset', 'design a dataset ingest', 'design a feature', 'design a model', 'what's my hypothesis', 'capture goals and requirements', 'validation criteria', 'analysis plan', 'before I configure / build the dataset / ingest', 'write a design doc'. Not for the running decision journal (capture-tacit-knowledge), writing hydra configs (configure-experiment, write-hydra-config), or actually building, splitting, or ingesting a dataset (dataset-lifecycle, setup-ml-catalog)."
 ---
 
 # Design-First: Experiment, Dataset, Feature, and Model Design
@@ -82,7 +83,7 @@ bundle. The contract an author must uphold:
   RID), write each RID as a Markdown link to its `ml.cite(rid)` citation URL —
   `[execution 8KG](https://localhost/id/96/8KG@2P-XYZW)` — so a reader can click
   from the design doc to the catalog record. This is the plugin-wide rule, owned
-  by `/deriva-ml:deriva-ml-context` → "Always render a RID as a click-through
+  by `/deriva-ml:explore-results` → "Always render a RID as a click-through
   link"; it applies to design docs exactly as it does to `tacit-knowledge.md`.
 - The body stays human-readable Markdown; the worked example uses the `##
   Examples` heading (OKF convention).
@@ -96,7 +97,7 @@ bundle. The contract an author must uphold:
     merged. Keep the experiment design doc's **Status & links** pointing at its
     config entry, and `Experiments.md`'s entry pointing back at the design doc, so
     a reader can move between plan and runnable view. (The full file-roles map is
-    in `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts".)
+    in `/deriva-ml:configure-experiment`'s `references/planning-artifacts.md`.)
 
 ### Link related specs together (the connected-corpus payoff)
 

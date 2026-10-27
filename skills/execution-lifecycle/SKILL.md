@@ -1,13 +1,14 @@
 ---
 name: execution-lifecycle
-description: "ALWAYS use this skill when running ML experiments, creating executions, managing workflow provenance, pre-flight validation, or configuring experiment runs in DerivaML. Covers the full execution lifecycle: pre-flight checks, creating and running executions via the Python API / committed scripts (MCP tools are observation-only for executions), inputs/outputs with provenance, the unified commit_output_assets API, nested executions, dry runs, and the deriva-ml-run CLI. After a run commits its output assets, proactively offer to wire the resulting RIDs into src/configs/assets.py — this skill owns the bulk-output offer (per-asset scope lives in work-with-assets). Triggers on: 'run experiment', 'create execution', 'execution lifecycle', 'commit outputs', 'upload outputs', 'commit_output_assets', 'pre-flight', 'dry run', 'validate before running', 'cache dataset', 'workflow provenance', 'deriva-ml-run', 'multirun', 'sweep', 'check git before running', 'nested execution', 'track my work', 'wire outputs into config', 'add output assets to assets.py'."
+description: "Runs DerivaML executions with provenance — pre-flight checks, creating and running executions via the Python API or committed scripts, inputs/outputs, commit_output_assets, nested executions, dry runs, executions that record a human annotation or review pass, and the deriva-ml-run CLI. Use whenever running an ML experiment or creating an execution in DerivaML, and after a run commits outputs, to offer wiring the new RIDs into src/configs/assets.py."
+when_to_use: "Triggers on: 'run experiment', 'create execution', 'commit outputs', 'upload outputs', 'commit_output_assets', 'pre-flight', 'dry run', 'validate before running', 'cache dataset', 'workflow provenance', 'deriva-ml-run', 'launch a sweep', 'run the multirun', 'check git before running', 'nested execution', 'track my work', 'record a manual annotation or review pass', 'someone relabeled images by hand', 'wire outputs into config', 'add output assets to assets.py'. MCP tools only observe executions; running one always goes through Python. Defining a sweep or preset belongs to configure-experiment."
 ---
 
 # Execution Lifecycle in DerivaML
 
 An execution is the fundamental unit of provenance in DerivaML. It records what work was done, with what inputs (datasets, assets), what outputs were produced, and what code and configuration were used.
 
-For background on the execution hierarchy, statuses, workflows, nested executions, dry run mode, and the working directory layout, see the `references/concepts/` bundle ([index](references/concepts/index.md)).
+For background on the execution hierarchy, statuses, workflows, nested executions, dry run mode, and the working directory layout, see [status machine](references/status-machine.md), [structure](references/structure.md), [authoring](references/authoring.md), [validation](references/validation.md), and [data flow](references/data-flow.md).
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly.
 
@@ -19,16 +20,16 @@ DerivaML enforces that all code is committed before running catalog-mutating ope
 - This applies to all `deriva-ml-run` and `deriva-ml-run-notebook` invocations.
 - Simple one-off MCP tool operations (adding a vocabulary term, updating a description) are not affected.
 
-> **Schema pinning (the catalog-side counterpart).** Git-clean-tree freezes the *code* the run will see; `ml.pin_schema(reason=...)` freezes the *catalog shape* the run will see. Both should be in place for any production run on a shared catalog where a concurrent migration could change column names or table structure mid-run. See `references/concepts/validation.md` → "Schema Pinning for Long Runs" for when and how.
+> **Schema pinning (the catalog-side counterpart).** Git-clean-tree freezes the *code* the run will see; `ml.pin_schema(reason=...)` freezes the *catalog shape* the run will see. Both should be in place for any production run on a shared catalog where a concurrent migration could change column names or table structure mid-run. See `references/validation.md` → "Schema Pinning for Long Runs" for when and how.
 
-> **Offline mode (laptop / batch / disconnected work).** `DerivaML(mode=ConnectionMode.offline)` stages every write to local SQLite and drains via `ml.commit_pending_executions()` when you reconnect. Requires a previously-populated schema cache in the same `working_dir`. See `references/concepts/validation.md` → "Offline Mode" for the full pattern.
+> **Offline mode (laptop / batch / disconnected work).** `DerivaML(mode=ConnectionMode.offline)` stages every write to local SQLite and drains via `ml.commit_pending_executions()` when you reconnect. Requires a previously-populated schema cache in the same `working_dir`. See `references/validation.md` → "Offline Mode" for the full pattern.
 
 ## Phase 1: Pre-Flight Validation
 
 Before running an experiment, validate that everything is in place. **Stop and fix any issues.** The full pre-flight walkthrough (`--list-configs` / `--cfg job` invocations, per-RID validation calls, staging script patterns) lives in `references/workflow.md`; this section names what to validate.
 
 1. **Resolve the configuration.** For CLI runs, dump the resolved config with `uv run deriva-ml-run +experiment=<name> --cfg job` (use `--list-configs` first if you need the menu of registered options). Extract dataset RIDs, asset RIDs, and versions from the resolved `datasets` and `assets` groups. For MCP-tool / Python-API runs, collect the RIDs from the call site.
-2. **Confirm authentication first.** Before the first catalog read, check `ml.is_authenticated()` (one network call) so a missing/expired credential fails clearly *now* rather than as a confusing 401 mid-run. Not logged in → tell the user to `deriva-globus-auth-utils login --host <host>` and stop. (Authentication, not authorization — a valid session can still be ACL-refused on a specific write. Canonical rule: `/deriva-ml:deriva-ml-context` → "Confirm authentication before the first catalog operation".)
+2. **Confirm authentication first.** Before the first catalog read, check `ml.is_authenticated()` (one network call) so a missing/expired credential fails clearly *now* rather than as a confusing 401 mid-run. Not logged in → tell the user to `deriva-globus-auth-utils login --host <host>` and stop. Code, return shapes, and the MCP-side equivalent: `references/authentication.md`. (Authentication, not authorization — a valid session can still be ACL-refused on a specific write. Details: `references/authentication.md`.)
 3. **Validate all RIDs and versions.** Use `deriva_ml_get_dataset` for datasets, `get_entities` for assets, `deriva_ml_bag_info` for pinned dataset-version validity (it errors immediately if the version doesn't exist). Stop if any RID returns empty / errors.
 4. **Check data readiness.** For the dataset's **current** version, the lead path is the bag-preview resource `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` (one round trip, no parameters). For a **pinned version** or to **exclude tables**, use the tool: `deriva_ml_bag_info(hostname, catalog_id, dataset_rid, version)`. Both return size info AND cache status:
 
@@ -80,11 +81,33 @@ The lifecycle inside every template is the same:
 3. Inside the `with` block: download inputs (`exe.download_dataset_bag()`, `exe.download_asset()`), do the work, stage outputs (`exe.asset_file_path()`, `exe.add_features()`, `exe.create_dataset()`).
 4. After the `with` block: `exe.commit_output_assets()` — uploads staged bytes, writes asset rows, transitions `Stopped → Pending_Upload → Uploaded`. Idempotent on re-call.
 
-**Automatic metadata:** Every execution captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records — see `references/concepts/authoring.md`.
+**Automatic metadata:** Every execution captures configuration (`Deriva_Config`, `Hydra_Config`), environment lock file (`Execution_Config`), and runtime environment (`Runtime_Env`) as `Execution_Metadata` records — see `references/authoring.md`.
 
 **Notebook outputs:** When running notebooks via `deriva-ml-run-notebook`, the executed `.ipynb` and converted `.md` are automatically uploaded as execution assets alongside any files registered via `asset_file_path()` — see `references/workflow.md`.
 
 For complete tool-call sequences, code examples, and CLI commands for each path, see `references/workflow.md`. For the `deriva-ml-run` CLI surface (Hydra overrides, multirun syntax), see `references/cli-reference.md`.
+
+### Recording a human-performed process
+
+A manual annotation, review, or curation pass is an execution too: people did the
+work, and a committed script records it. The lifecycle is the same as above, with
+three differences:
+
+1. **The workflow names the process.** Pass a `Workflow_Type` term for it to
+   `ml.create_workflow(name, workflow_type, description)`. No seeded term covers
+   human work, so look for an existing one first and otherwise add one (for example
+   `Manual_Annotation`) with `add_term(..., schema="deriva-ml", table="Workflow_Type")`.
+2. **The input is what the people reviewed.** Download that dataset inside the
+   execution so the record shows exactly which version they saw.
+3. **The output is their labels,** staged with `exe.add_features(...)`.
+   `skills/create-feature/scripts/populate_feature_values.py` fits when the labels
+   arrive as a CSV.
+
+Corrected labels are **new feature values, not edits**. The earlier values stay
+linked to their own executions; readers choose between them with a selector such
+as `FeatureRecord.select_by_workflow("Manual_Annotation", ...)`
+(`/deriva-ml:ml-data-engineering`). Record who reviewed and by what criteria in
+the workflow description or in `tacit-knowledge.md`.
 
 ## Phase 3: Verify Results
 
@@ -131,7 +154,7 @@ Hand-offs: `/deriva-ml:write-hydra-config` for `assets.py` format mechanics; `/d
 
 ## Reference Resources
 
-- `references/concepts/` — OKF bundle: [status machine](references/concepts/status-machine.md), [structure](references/concepts/structure.md), [authoring](references/concepts/authoring.md), [validation](references/concepts/validation.md), [data flow](references/concepts/data-flow.md)
+- Concepts: [status machine](references/status-machine.md), [structure](references/structure.md), [authoring](references/authoring.md), [validation](references/validation.md), [data flow](references/data-flow.md)
 - `references/workflow.md` — Step-by-step MCP and Python API workflows, notebook output handling, complete examples, full pre-flight walkthrough
 - `references/cli-reference.md` — `deriva-ml-run` CLI commands, Hydra overrides, multirun syntax
 - `rag_search("training experiments", doc_type="catalog-data")` — find executions by workflow or status

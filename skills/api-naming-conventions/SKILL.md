@@ -1,6 +1,7 @@
 ---
 name: api-naming-conventions
-description: "Reference for DerivaML API naming conventions — when to use lookup_ vs find_ vs list_ vs get_ vs create_ vs add_ method prefixes. Use when choosing the right method name or understanding why a method is named the way it is, AND auto-fires while writing DerivaML Python code to keep method names idiomatic before they're written. Triggers on: 'which method', 'lookup_ vs find_', 'is it list_ or get_', 'why is this method named', and whenever drafting deriva-ml API calls."
+description: "Explains DerivaML API method-prefix conventions — lookup_ vs find_ vs list_ vs get_ vs create_ vs add_. Use when choosing or recalling a DerivaML method name, asking why a method is named as it is, or drafting DerivaML Python calls."
+when_to_use: "Triggers on: 'which method', 'lookup_ vs find_', 'is it list_ or get_', 'why is this method named', and whenever writing deriva-ml API calls, so names are right before they are written."
 ---
 
 # DerivaML API Naming Conventions

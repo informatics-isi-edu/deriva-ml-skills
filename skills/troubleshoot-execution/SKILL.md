@@ -1,6 +1,7 @@
 ---
 name: troubleshoot-execution
-description: "Use when a DerivaML execution fails, errors, gets stuck, or produces unexpected results; when a run failed mid-way and the user needs to recover/salvage partial results (uploads, staged assets, feature values written before the failure); OR — proactively, no failure needed — to check whether the DerivaML components (deriva-ml lib, deriva-ml-mcp plugin, deriva-ml-skills plugin) are up to date via the bundled scripts/check_versions.py. Covers errors specific to the deriva-ml execution lifecycle (asset_file_path, commit_output_assets, stuck Running status, dataset version mismatch, missing features), the salvage/recovery decision, and DerivaML version mismatches. Triggers on: 'execution failed', 'execution stuck', 'salvage', 'recover', 'partial upload', 'what got uploaded', 'recovery execution', 'asset_file_path', 'commit_output_assets', 'pending upload', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date deriva-ml', 'update deriva-ml', 'what version of deriva-ml'. Do NOT trigger for generic catalog errors with no execution-lifecycle or version dimension (auth, permissions, invalid RID, missing record) — those go to /deriva:troubleshoot-deriva-errors."
+description: "Diagnoses and recovers failed, stuck, or surprising DerivaML executions — including salvaging partial uploads after a mid-run failure — and checks whether deriva-ml, deriva-ml-mcp, and these skills are up to date. Use when an execution errors, hangs, or produces unexpected results, or proactively to check DerivaML component versions."
+when_to_use: "Triggers on: 'execution failed', 'execution stuck', 'stuck in Running', 'salvage', 'recover', 'partial upload', 'what got uploaded', 'recovery execution', 'pending upload', 'asset_file_path', 'commit_output_assets error', 'dataset version mismatch', 'feature not found', 'check ml versions', 'am I up to date', 'update deriva-ml', 'what version of deriva-ml'. Generic catalog errors with no execution or version angle (auth, permissions, invalid RID, missing record) go to /deriva:troubleshoot-deriva-errors."
 ---
 
 # Troubleshooting DerivaML Executions
@@ -23,7 +24,7 @@ Jump straight to the right section if you already know what's wrong:
 | Bag contents or `denormalize_dataset` output doesn't match what you expected | "Version Mismatch" |
 | `exe.add_features(records)` or feature-related calls error about a missing feature | "Feature Not Found" |
 | `exe.commit_output_assets()` hangs or times out | "Upload Timeout" |
-| Run's data all committed but status `Failed` with a `409 CONFLICT` (e.g. "Schema public does not exist") from the RID-lease POST | Fixed in deriva-ml 1.55.1 (lease POST now retries with reconciliation) — upgrade ("Versioning and updates"), then "Salvage a Failed Execution" |
+| Run's data all committed but status `Failed` with a `409 CONFLICT` (e.g. "Schema public does not exist") from the RID-lease POST | Upgrade deriva-ml — current releases retry the lease POST with reconciliation ("Versioning and updates"), then "Salvage a Failed Execution" |
 | Execution status shows `Running` but the process has crashed or ended | "Execution Stuck in Running" |
 | Error mentions a missing `Workflow_Type`, `Dataset_Type`, or `Asset_Type` term | "ML Vocabulary Term Not Found" |
 | Training ran for hours, failed partway, and you need to recover survivors | "Salvage a Failed Execution" |
@@ -102,7 +103,7 @@ If your situation isn't in the table, read top to bottom — the sections are sh
 
 **Solution**:
 - Check the dataset's version history with `deriva_ml_get_dataset(hostname, catalog_id, dataset_rid)`.
-- Per ADR-0003, dataset mutations flip `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release_dataset(hostname, catalog_id, dataset_rid, bump="minor", description="...")` to promote the dev period to a released version that experiments can pin to.
+- Dataset mutations flip `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release_dataset(hostname, catalog_id, dataset_rid, bump="minor", description="...")` to promote the dev period to a released version that experiments can pin to.
 - When referencing datasets in workflow configs, **always pin to a released version** (no `.devN` suffix) — dev labels are mutable and break reproducibility.
 - Use `deriva_ml_get_dataset_spec(hostname, catalog_id, dataset_rid)` to see the current dataset specification and version.
 
@@ -177,7 +178,7 @@ If the execution is already in a non-`Running` state (`Stopped`, `Failed`, `Pend
   - `Workflow_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Workflow_Type", name=..., description=...)`
   - `Asset_Type` → `add_term(hostname, catalog_id, schema="deriva-ml", table="Asset_Type", name=..., description=...)`
 - For other vocabularies (custom domain vocabs), use `add_term` with the appropriate schema and table.
-- **If the vocabulary table itself doesn't exist yet**, create it with `deriva_ml_create_vocabulary(hostname=..., catalog_id=..., vocab_name=..., comment=...)`. See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (the ML-aware tool applies the curie prefix, default schema, and navbar refresh that the generic `create_vocabulary` skips).
+- **If the vocabulary table itself doesn't exist yet**, create it with `deriva_ml_create_vocabulary(hostname=..., catalog_id=..., vocab_name=..., comment=...)`. See `deriva-ml-context/references/built-in-vocabularies.md` ("Creating a new vocabulary") for the rationale (the ML-aware tool applies the curie prefix, default schema, and navbar refresh that the generic `create_vocabulary` skips).
 - For the generic "vocabulary term not found" troubleshooting flow (search-first via `rag_search`, synonym-aware lookup), see the `/deriva:troubleshoot-deriva-errors` skill *(deriva-skills)*.
 
 ---
@@ -201,7 +202,7 @@ If the execution is already in a non-`Running` state (`Stopped`, `Failed`, `Pend
 - **Preferred:** drain the pending work first with `ml.commit_pending_executions()`, then refresh.
 - Otherwise, pass `force=True` to refresh anyway — but understand that staged rows may now have stale column references.
 
-For background on pinning and the dirty-tree-vs-schema-pin pairing, see `/deriva-ml:execution-lifecycle`'s `references/concepts/validation.md` → "Schema Pinning for Long Runs".
+For background on pinning and the dirty-tree-vs-schema-pin pairing, see `/deriva-ml:execution-lifecycle`'s `references/validation.md` → "Schema Pinning for Long Runs".
 
 ---
 
@@ -228,7 +229,7 @@ For background on pinning and the dirty-tree-vs-schema-pin pairing, see `/deriva
 
 **Solution**: use a different `working_dir` per catalog (the simplest discipline — one workspace per catalog), or run online against the new catalog with the same `working_dir` to overwrite the cache.
 
-For the full offline-mode contract — what operations stage to SQLite, what triggers the upload drain — see `/deriva-ml:execution-lifecycle`'s `references/concepts/validation.md` → "Offline Mode".
+For the full offline-mode contract — what operations stage to SQLite, what triggers the upload drain — see `/deriva-ml:execution-lifecycle`'s `references/validation.md` → "Offline Mode".
 
 ---
 
@@ -248,7 +249,7 @@ deriva_ml_get_execution(hostname=..., catalog_id=..., execution_rid="<rid>")
 
 Look at the `status` field. The seven legal states and what each one means for salvage:
 
-For the canonical status machine (every transition and what drives it), see `/deriva-ml:execution-lifecycle`'s `references/concepts/status-machine.md`. The table below is the troubleshooting view: which states are salvageable and what to run.
+For the canonical status machine (every transition and what drives it), see `/deriva-ml:execution-lifecycle`'s `references/status-machine.md`. The table below is the troubleshooting view: which states are salvageable and what to run.
 
 | Status | Terminal? | What happened | What you can do |
 |--------|:--:|---------------|------------------|

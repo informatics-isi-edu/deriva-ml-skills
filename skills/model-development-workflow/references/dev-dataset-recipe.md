@@ -72,7 +72,7 @@ add_term(
 
 ## Pin to a released version
 
-After populating the development subset (which will have flipped `current_version` to a dev label per ADR-0003), call `deriva_ml_release_dataset` to mint a citable release that configs can pin to:
+After populating the development subset (which will have flipped `current_version` to a dev label), call `deriva_ml_release_dataset` to mint a citable release that configs can pin to:
 
 ```
 deriva_ml_release_dataset(

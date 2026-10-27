@@ -1,6 +1,7 @@
 ---
 name: explore-results
-description: "Use when a user wants to READ or INSPECT existing results in a DerivaML catalog without writing code — the domain-scientist read path. Fire on: inspecting a specific RID / result / artifact ('what is RID X', 'describe this RID', 'what is this'), tracing where something came from ('where did this prediction come from', 'what produced this', 'what dataset version is behind this', 'trace this asset'), browsing labels/annotations on records ('show me the labels', 'what annotations exist', 'what are the consensus labels', 'browse the feature values', 'feature preview'), and opening a record in the browser ('see this in Chaise', 'open this record', 'give me a link to this'). This skill is READ-ONLY — it inspects, it never creates or modifies. Do NOT use for: authoring (creating features/datasets/executions, adding labels → /deriva-ml:create-feature, /deriva-ml:execution-lifecycle, /deriva-ml:dataset-lifecycle); comparing MULTIPLE runs or regression checks (→ /deriva-ml:compare-model-runs); the first-MCP-call cold-start orientation (→ /deriva-ml:using-deriva-mcp); generic 'what is DerivaML' framing (→ the always-on deriva-ml-context)."
+description: "Read-only inspection of existing DerivaML results without writing code — the domain-scientist read path. Use when the user wants to know what a RID is, where a result came from, what labels or feature values exist on records, which records a model got wrong, or wants a Chaise link to a record."
+when_to_use: "Triggers on: 'what is RID X', 'describe this RID', 'where did this prediction come from', 'what produced this', 'what dataset version is behind this', 'trace this asset', 'show me the labels', 'what annotations exist', 'consensus labels', 'browse the feature values', 'show me the images the model got wrong', 'which records were misclassified', 'see this in Chaise', 'open this record', 'give me a link'. Not for authoring (create-feature, execution-lifecycle, dataset-lifecycle), scoring or comparing runs, or reproducing a result from its exact commit and dataset versions (compare-model-runs), or the first-MCP-call cold start (using-deriva-mcp)."
 ---
 
 # Explore Results in a DerivaML Catalog
@@ -13,8 +14,17 @@ the authoring skills it points to).
 > Every tool and resource below takes the catalog's `hostname=` and `catalog_id=`
 > explicitly. **Read-side rule:** fetch the `deriva://…` resource *first* — one
 > fetch returns the entity plus its bundled children — and reach for a
-> `deriva_ml_*` tool only where the resource doesn't answer the question (see
-> `/deriva-ml:deriva-ml-context` → "Read-side questions: fetch the resource first").
+> `deriva_ml_*` tool only where the resource doesn't answer the question (the full
+> resource table is in `/deriva-ml:using-deriva-mcp`).
+
+## Always render a RID as a click-through link
+
+This rule applies across the plugin. Anywhere a RID appears in Markdown — chat
+output **and** any document (design docs, `tacit-knowledge.md`, `Experiments.md`,
+READMEs, PRs) — write `[label](cite-url)`, never a bare RID. Take the URL from the
+resource row's `cite_url`, or `ml.cite(rid)` when writing from Python. If neither
+yields one, use the bare RID and say the link is missing — never construct a URL.
+URL forms and snapshot pinning: `references/citation-links.md`.
 
 ## Journey 1 — "What is this RID?"
 
@@ -90,6 +100,14 @@ deriva_ml_list_feature_values(hostname, catalog_id,
 
 For how feature values get their producing-execution link, and the full selector
 catalog, see `/deriva-ml:create-feature`.
+
+**"Which images did the model get wrong?"** When the run stored its predictions as
+feature values, read them for that run (`execution_rids=[<run RID>]`), then read
+the ground-truth feature (`selector="newest"`). Match by record RID and list the
+records where the two differ, each with its `cite_url` so the user can open the
+image. If the predictions live only in a CSV execution asset, or the set is too
+large to read this way, the job is computing rather than browsing; hand it to
+`/deriva-ml:compare-model-runs` (prediction-CSV pattern).
 
 ## Journey 4 — "Let me see it in the browser"
 

@@ -1,6 +1,7 @@
 ---
 name: generate-scripts
-description: "Use whenever Claude needs to generate a Python script that interacts with a Deriva catalog — data exploration, bulk reads beyond MCP's 100-row cap, loading data, creating features, uploading assets, or any catalog mutation that needs reproducibility. Two script categories: EXPLORATION (ephemeral analysis) and CATALOG-MODIFYING (committed, with execution provenance). Triggers on: 'write a script', 'generate a script', 'fetch all records', 'get all features', 'load data into catalog', 'bulk insert', 'upload results', 'I need more than 100 rows', 'cache the data', 'compute metrics across all images', and implicitly whenever query_attribute, get_table_sample_data, or deriva_ml_denormalize_dataset returns truncated results. Also use when about to perform raw catalog mutations (insert_entities / update_entities / delete_entities, ETL, bulk loads) — those belong in a committed script, not an interactive MCP call, so the git hash records what ran."
+description: "Generates Python scripts that interact with a Deriva catalog — ephemeral exploration scripts, and committed catalog-modifying scripts with execution provenance. Use whenever a task needs a script rather than an MCP call: bulk reads past MCP's 100-row cap, data loading, bulk feature or asset writes, or any raw catalog mutation that must be reproducible."
+when_to_use: "Triggers on: 'write / generate a script', 'fetch all records', 'get all features', 'I need more than 100 rows', 'load data into catalog', 'bulk insert', 'upload results', 'cache the data', 'compute metrics across all images'. Also fires implicitly when query_attribute, get_table_sample_data, or deriva_ml_denormalize_dataset returns truncated results, and before any raw insert/update/delete_entities, ETL, or bulk load — those belong in a committed script so the git hash records what ran."
 ---
 
 # Script Generation for DerivaML
@@ -94,6 +95,8 @@ print(labels["Diagnosis_Type"].value_counts())
 | [`skills/create-feature/scripts/populate_feature_values.py`](../create-feature/scripts/populate_feature_values.py) | Bulk-load feature values from a CSV |
 | [`skills/manage-deriva-storage/scripts/warm_cache.py`](../manage-deriva-storage/scripts/warm_cache.py) | Pre-fetch a dataset bag into local cache (no execution needed) |
 | [`skills/work-with-assets/scripts/upload_asset.py`](../work-with-assets/scripts/upload_asset.py), [`download_asset.py`](../work-with-assets/scripts/download_asset.py) | Per-asset file I/O with execution provenance |
+
+Python idioms for DerivaML objects — attribute access instead of `getattr` defaults, keeping DataFrames and typed records instead of decaying them to dicts, `find_*` vs `list_*` — are in `references/python-idioms.md`; follow them in every script.
 
 For dataset-shaped operations (bootstrap a dataset, split, ETL, generic feature population without a CSV), see `references/script-patterns.md` — Base Template plus four patterns (Dataset Creation, Dataset Splitting, Feature Creation and Population, ETL / Data Loading).
 
@@ -204,7 +207,7 @@ Then follow Develop, Test, Commit, Run.
 
 - [`capture-tacit-knowledge`](../capture-tacit-knowledge/SKILL.md) — Document catalog-modifying scripts in `tacit-knowledge.md`.
 - [`execution-lifecycle`](../execution-lifecycle/SKILL.md) — The full context-manager lifecycle, salvage flows, status state machine, and the bundled templates linked above.
-- [`setup-derivaml-project`](../setup-derivaml-project/SKILL.md) — Project bootstrap and coding conventions (Google docstrings, type hints, ruff).
+- [`start-project`](../start-project/SKILL.md) — Project bootstrap and coding conventions (Google docstrings, ruff, commit before running).
 - [`work-with-assets`](../work-with-assets/SKILL.md) — Asset upload patterns (Python API).
 - [`dataset-lifecycle`](../dataset-lifecycle/SKILL.md) — Dataset operations that scripts may perform.
 - [`create-feature`](../create-feature/SKILL.md) — Feature definition + the bulk-load template.

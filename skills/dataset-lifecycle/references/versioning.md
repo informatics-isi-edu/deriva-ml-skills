@@ -1,15 +1,15 @@
 ---
 type: Concept
 title: Dataset versioning and identification
-description: Characterization & validation roadmap, the ADR-0003 dev/release version model, and the RID + version DatasetSpec identity pair.
+description: Checking splits and subsamples, the dev/release version model, and the RID + version DatasetSpec identity pair.
 ---
 
 # Dataset versioning and identification
 
 **Contents**
 
-- [Characterization & validation (roadmap, not yet implemented)](#characterization--validation-roadmap-not-yet-implemented)
-- [Dataset Versioning (ADR-0003 dev/release model)](#dataset-versioning-adr-0003-devrelease-model)
+- [Checking a split or subsample](#checking-a-split-or-subsample)
+- [Dataset versioning (dev/release model)](#dataset-versioning-devrelease-model)
   - [Released versions are snapshots; dev versions follow live state](#released-versions-are-snapshots-dev-versions-follow-live-state)
   - [Mutations land on dev](#mutations-land-on-dev)
   - [Drift detection (Python API only)](#drift-detection-python-api-only)
@@ -21,24 +21,19 @@ description: Characterization & validation roadmap, the ADR-0003 dev/release ver
 - [Identifying a Dataset: RID + Version](#identifying-a-dataset-rid--version)
   - [Binding to a specific version](#binding-to-a-specific-version)
 
-## Characterization & validation (roadmap, not yet implemented)
+## Checking a split or subsample
 
-> **Status:** The four operations below — `characterize_dataset`, `compare_datasets`, `validate_split`, `validate_subsample` — are **specified but not yet implemented** in deriva-ml as of v1.42.0. The validation layer is a follow-up PR to the v1.42.0 `Split_Partition` + `subsample` work; the design is sketched in [deriva-ml spec `2026-06-01-split-partition-tag-and-subsample-design.md` §10](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/superpowers/specs/2026-06-01-split-partition-tag-and-subsample-design.md).
->
-> Until those land, the validation that *does* exist is `split_dataset`'s built-in write-time disjointness assertion (for `partition_by="element"`) and the `is_dirty()` / `release_diff()` / `compare_versions()` drift-detection methods documented above. This section will be filled in when the upstream APIs ship; do not pre-emptively use names like `characterize_dataset(...)` in scripts until then.
+deriva-ml has no `characterize_dataset`, `compare_datasets`, `validate_split`, or
+`validate_subsample` APIs — don't write scripts that call those names. The checks
+that exist are `split_dataset`'s write-time disjointness assertion (for
+`partition_by="element"`) and the `is_dirty()` / `release_diff()` /
+`compare_versions()` drift-detection methods in the versioning section below. For
+class distributions or split-fraction checks, compute them from the denormalized
+members (`/deriva-ml:ml-data-engineering`).
 
-When the follow-up PR lands, this section will document:
+## Dataset versioning (dev/release model)
 
-- **`characterize_dataset(dataset_rid, version=...)`** — class-distribution summary, member counts per element type, per-feature value distributions. Useful for sanity-checking what a dataset actually contains before training.
-- **`compare_datasets(dataset_rid_a, dataset_rid_b, ...)`** — diff two datasets (or two versions of the same dataset) along the same dimensions. Detects class-distribution drift, member-set drift, and feature-value drift.
-- **`validate_split(split_rid)`** — post-hoc validation of a Split hierarchy: confirms disjointness, checks fraction targets, surfaces stratification drift between partitions.
-- **`validate_subsample(subsample_rid)`** — confirms a subsample's relationship to its source, including stratification fidelity.
-
-All four are read-shaped operations and are good fits for MCP tool wrappers (no live `Execution` context required) — once the Python API ships, the deriva-ml-mcp-plugin will likely expose them as `characterize_dataset` etc. under the usual `deriva_ml_` tool prefix. Track [deriva-ml task #48](https://github.com/informatics-isi-edu/deriva-ml/) for status.
-
-## Dataset Versioning (ADR-0003 dev/release model)
-
-Per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md), datasets carry a **two-state PEP 440 version** at any moment:
+Datasets carry a **two-state PEP 440 version** at any moment:
 
 - **Released** (`0.4.0`) — frozen catalog snapshot, citable, reproducible. Created by `deriva_ml_release_dataset`.
 - **Dev** (`0.4.0.post1.dev3`) — mutable working state between releases. The PEP 440 dev-release suffix marks "drift since the last release"; dev rows have no snapshot, so cite URLs resolve to the live catalog.

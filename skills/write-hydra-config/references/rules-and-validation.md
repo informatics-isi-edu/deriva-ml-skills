@@ -370,7 +370,7 @@ Project code, not catalog state. Bootstrap doesn't apply.
 
 Scenario: someone hands you a catalog id (`localhost`, catalog `19`) and asks you to populate the model template's `src/configs/` from scratch.
 
-> Each tool call below has a resource-form equivalent (`deriva://catalog/{h}/{c}/deriva-ml/datasets`, `…/ml/assets/{schema}`, `…/ml/workflows`) — one round trip, no pagination cost. The tool form is shown here for readability; either works. See `deriva-ml-context` → "Read-side questions: fetch the resource first."
+> Each tool call below has a resource-form equivalent (`deriva://catalog/{h}/{c}/deriva-ml/datasets`, `…/ml/assets/{schema}`, `…/ml/workflows`) — one round trip, no pagination cost. The tool form is shown here for readability; either works. The full resource table is in `/deriva-ml:using-deriva-mcp`.
 
 ```python
 # Step 1: confirm the catalog answers and capture inventory.
@@ -483,7 +483,7 @@ deriva_ml_validate_execution_configuration(
 
 Returns per-spec results (datasets, assets, workflow) plus cross-spec issues (`duplicate_rid`, `version_conflict`, `role_conflict`).
 
-> **Why not `dry_run=True`?** Setting `dry_run=True` on an Execution does validate the config, but by actually downloading every dataset bag and materializing every asset — minutes-to-hours and several GB of bandwidth. `validate_execution_configuration` is the cheap metadata-only alternative for fast iteration. See deriva-ml ADR-0002 for the full rationale.
+> **Why not `dry_run=True`?** Setting `dry_run=True` on an Execution does validate the config, but by actually downloading every dataset bag and materializing every asset — minutes-to-hours and several GB of bandwidth. `validate_execution_configuration` is the cheap metadata-only alternative for fast iteration.
 
 ### Iterating on `assets.py` — `deriva_ml_lookup_asset` per-RID
 

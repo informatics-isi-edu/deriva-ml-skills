@@ -1,6 +1,7 @@
 ---
 name: dataset-lifecycle
-description: "Use for ALL DerivaML dataset operations — and as the FRONT DOOR for 'load / ingest a new dataset' (it routes: raw files on disk go to the phased loader, data already in the catalog gets grouped into a Dataset here). Covers creating, populating, splitting, subsampling, versioning, browsing, navigating parent/child hierarchies, downloading BDBags, restructuring assets for ML frameworks, and wiring resulting RIDs into src/configs/datasets.py. Also covers the three-axis Dataset_Type framing (role / content / origin) and the Split_Partition / Subsample origin tags. After any operation that produces a RID + version downstream code may consume, proactively offer to add it to src/configs/datasets.py — this skill owns that offer. Triggers include 'load a dataset', 'load a new dataset', 'ingest a dataset', 'add a dataset to the catalog', 'import data', 'create / split / stratify / subsample / browse / download / denormalize a dataset', 'smaller variant of a dataset', 'stratified subset', 'partition by element vs row', 'Split_Partition tag', 'dataset version', 'training data setup', 'curated subset', 'filter by class / by feature', 'BDBag', 'DatasetSpecConfig', 'wire dataset into config'. For the actual raw-file ingest mechanics (add_files → upload → organize), this skill ROUTES to the phased loader in /deriva-ml:setup-ml-catalog. Do NOT use for: creating features/labels (use create-feature), creating tables (use create-table), running experiments (use execution-lifecycle), uploading single assets (use work-with-assets), or managing vocabularies (use manage-vocabulary)."
+description: "Creates, populates, splits, subsamples, versions, browses, and downloads DerivaML datasets, and is the front door for loading or ingesting a new dataset (routes raw files on disk to the setup-ml-catalog phased loader). Use for any DerivaML dataset operation, and after any operation that yields a dataset RID + version, to offer wiring it into src/configs/datasets.py."
+when_to_use: "Triggers on: 'load / ingest / import a dataset', 'add a dataset to the catalog', 'create / split / stratify / subsample / browse / download a dataset', 'smaller variant', 'stratified subset', 'curated subset', 'filter by class / by feature', 'partition by element vs row', 'Split_Partition', 'Dataset_Type', 'dataset version', 'parent/child datasets', 'BDBag', 'training data setup'. Not for: editing configs/ by hand, including pointing an experiment at a dataset version (write-hydra-config), features/labels (create-feature), tables (/deriva:create-table), running experiments (execution-lifecycle), single assets (work-with-assets), vocabularies (/deriva:manage-vocabulary), or turning a bag into training DataFrames / framework layouts (ml-data-engineering)."
 ---
 
 # Dataset Lifecycle
@@ -96,7 +97,7 @@ Built-in terms by axis:
 
 Apply at least one type per relevant axis — untyped datasets are hard to discover. Compose freely across axes (`Training` + `Labeled` + `Fundus` + `Split_Partition`); never compound them into one tag (`TrainingLabeled` is wrong).
 
-For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, the role/origin distinction that lets you filter partition-role datasets vs corpus-role datasets, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the canonical three-axis framing with the full inheritance/propagation rules, see `references/concepts/dataset-types.md` § "The three axes of `Dataset_Type`". For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
+For DerivaML-specific guidance on what the built-in `Dataset_Type` terms mean, how multiple types compose, the role/origin distinction that lets you filter partition-role datasets vs corpus-role datasets, and worked imaging-domain examples, see `references/type-naming-strategy.md`. For the canonical three-axis framing with the full inheritance/propagation rules, see `references/dataset-types.md` § "The three axes of `Dataset_Type`". For the generic naming and design principles that apply to all four DerivaML vocabularies, see `/deriva:entity-naming` and `/deriva:manage-vocabulary` *(deriva-skills)*.
 
 ### `Dataset_Type` is the primary signal of what a dataset is for
 
@@ -174,7 +175,7 @@ subset, these checks are the point.
 
 ## Phase 6: Version
 
-Datasets carry a **two-state PEP 440 version** per [ADR-0003](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0003-dataset-dev-versioning-model.md):
+Datasets carry a **two-state PEP 440 version**:
 
 - **Released** versions like `0.4.0` — frozen snapshots, citable, reproducible. Snapshot-pinned in cite URLs.
 - **Dev** versions like `0.4.0.post1.dev3` — mutable working state between releases. The PEP 440 dev-release suffix marks "drift after the last release"; dev rows have no snapshot, so cite URLs resolve to the live catalog state.
@@ -228,7 +229,7 @@ These don't appear on the MCP tool surface; reach for them from notebook code or
 - [ ] `src/configs/datasets.py` `DatasetSpecConfig(...)` entries reflect the new RID + released version (use `deriva_ml_get_dataset_spec` to generate the line)
 - [ ] `src/configs/datasets.py` committed to git on the branch the run will use
 
-For the full versioning rules, common mistakes, and version history API, see `references/concepts/versioning.md` § "Dataset Versioning."
+For the full versioning rules, common mistakes, and version history API, see `references/versioning.md` § "Dataset Versioning."
 
 ## Phase 7: Use
 
@@ -312,7 +313,7 @@ For what to do with the bag after it lands — restructure for PyTorch, build tr
 
 - `scripts/subset_filters.py` — Filter registry with built-in filters. Copy to user's `src/scripts/` on first use.
 - `scripts/generate_subset_template.py` — Template for generated dataset scripts. Fill in placeholders per use case.
-- `references/concepts/` — OKF bundle: [index](references/concepts/index.md), [types + element types](references/concepts/dataset-types.md), [structure + splits](references/concepts/structure-and-splits.md), [versioning](references/concepts/versioning.md), [navigation + download](references/concepts/navigation.md), [lifecycle ops](references/concepts/lifecycle-ops.md)
+- Concepts: [types + element types](references/dataset-types.md), [structure + splits](references/structure-and-splits.md), [versioning](references/versioning.md), [navigation + download](references/navigation.md), [lifecycle ops](references/lifecycle-ops.md)
 - `references/workflow.md` — Bootstrap procedure, MCP-tool-only path, explicit-splits pattern, 7-step explore/browse depth, every step-by-step example
 - `references/curated-subsets.md` — Phase 3b workflow: filter types, scaffolding, the 8-step subset workflow, catalog-query path using `feature_values()` for label-based filters
 - `references/bags.md` — BDBag contents, FK traversal, materialization, caching, timeouts

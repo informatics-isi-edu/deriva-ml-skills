@@ -42,7 +42,7 @@ Running → Aborted
 | `Running` → `Pending_Upload` | **Crash recovery** path: a process died mid-execution without `__exit__` running. Re-hydrate via `ml.resume_execution(rid)` then call `exe.update_status(ExecutionStatus.Pending_Upload)` followed by `commit_output_assets()`. See `crash_recovery.py` bundled template. |
 | `Created` → `Aborted` or `Running` → `Aborted` | `exe.abort()`. Staged rows are preserved (not discarded), so the user can inspect them and decide whether to salvage via `resume_execution` or clean up via `gc_executions`. |
 
-`commit_output_assets()` is the single per-execution commit primitive (ADR-0009). It must be called **after** the `with` block exits — the context manager only sets status to `Stopped`/`Failed`, never commits. The call is idempotent: re-running after a partial failure picks up the failed rows and leaves already-uploaded ones alone.
+`commit_output_assets()` is the single per-execution commit primitive. It must be called **after** the `with` block exits — the context manager only sets status to `Stopped`/`Failed`, never commits. The call is idempotent: re-running after a partial failure picks up the failed rows and leaves already-uploaded ones alone.
 
 For mid-run progress reporting (e.g. "epoch 12 of 20"), write JSON-lines to a metrics file via `exe.metrics_file().open("a")`. The catalog does not store free-form progress messages on the Execution row.
 

@@ -62,7 +62,7 @@ Invoke directly with `/deriva-ml:<skill-name>`, or by asking Claude something th
 | | `/deriva-ml:model-development-workflow` | End-to-end model development workflow |
 | **Notebooks** | `/deriva-ml:setup-notebook-environment` | Set up Jupyter environment for DerivaML |
 | | `/deriva-ml:run-notebook` | Develop and run notebooks with execution tracking |
-| **Project setup** | `/deriva-ml:setup-derivaml-project` | Bootstrap a new DerivaML project: repo init, `pyproject.toml` template, `gh` install, coding conventions |
+| **Project setup (auto-fires too)** | `/deriva-ml:start-project` | Cold start for a new or adopted project: prerequisites, repo from the model template, new or existing catalog, first data, hand-off to model development |
 | | `/deriva-ml:validate-project-setup` | Validate the project conforms to the deriva-ml-model-template shape |
 | **Apps + visualization** | `/deriva-ml:create-web-app` | Build and register custom web apps for DerivaML data |
 | | `/deriva-ml:browse-erd` | Launch the ERD browser for the connected catalog |
@@ -75,7 +75,7 @@ These are skills that **Claude loads on its own** when the situation calls for t
 
 | Skill | When Claude loads it |
 |-------|----------------------|
-| `deriva-ml-context` | Always — establishes the DerivaML domain frame, the five abstractions, and the inheritance-with-override rule that governs when to use a deriva-ml surface vs the underlying deriva surface |
+| `deriva-ml-context` | Always — establishes the DerivaML domain frame, how a catalog is organized (ML schema + domain schema), and the inheritance-with-override rule that governs when to use a deriva-ml surface vs the underlying deriva surface |
 | `dataset-lifecycle` | When the user is working with datasets (creating, splitting, versioning, browsing) — guides through the lifecycle phases proactively |
 | `execution-lifecycle` | When the user is running experiments — guides through the state machine and upload discipline |
 | `experiment-lifecycle` | When the user is designing or running an experiment cycle — names the seven phases and the cross-step disciplines |
@@ -104,7 +104,7 @@ The two plugins are designed to be used together. As a rough guide:
 - Experiment configuration (Hydra-zen), model development, training workflows
 - Execution-state-machine debugging
 
-> **Override rule.** When you're working in a deriva-ml catalog, everything that applies in a Deriva catalog applies here too — by default reach for `deriva-skills`. **But** if a deriva-ml surface exists for the operation — a `/deriva-ml:<skill>`, a `deriva_ml_*` MCP tool/prompt/resource, or a deriva-ml Python object — prefer it over the equivalent deriva surface (`/deriva:<skill>`, `deriva-mcp-core` tool, or `deriva-py` call). The five abstractions above are where the override mostly lands; everywhere else the deriva default applies. The auto-invoked `deriva-ml-context` skill carries the rule plugin-wide; ADR-0001 records the design decision.
+> **Override rule.** When you're working in a deriva-ml catalog, everything that applies in a Deriva catalog applies here too — by default reach for `deriva-skills`. **But** if a deriva-ml surface exists for the operation — a `/deriva-ml:<skill>`, a `deriva_ml_*` MCP tool/prompt/resource, or a deriva-ml Python object — prefer it over the equivalent deriva surface (`/deriva:<skill>`, `deriva-mcp-core` tool, or `deriva-py` call). The ML-schema entities (datasets, workflows, executions, features, vocabularies) and assets are where the override mostly lands; everywhere else the deriva default applies. The auto-invoked `deriva-ml-context` skill carries the rule plugin-wide; ADR-0001 records the design decision.
 
 ## Development
 

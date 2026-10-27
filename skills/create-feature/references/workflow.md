@@ -1,6 +1,6 @@
 # Feature Workflow Reference
 
-Step-by-step MCP tool and Python API examples for creating and populating features. For background concepts (feature types, multivalued features, selection), see the `concepts/` bundle (`concepts/design.md` for types & multivalued, `concepts/selectors.md` for selection).
+Step-by-step MCP tool and Python API examples for creating and populating features. For background concepts (feature types, multivalued features, selection), see `design.md` (types and multivalued features) and `selectors.md` (selection) in this directory.
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
@@ -30,7 +30,7 @@ Before creating a new feature, review what already exists.
 
 If your feature needs a new set of terms, create the vocabulary first.
 
-Use `deriva_ml_create_vocabulary` to create the vocab table, then `add_term` for each term. See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (curie prefix, default schema, navbar refresh) and when to fall back to the generic `create_vocabulary`.
+Use `deriva_ml_create_vocabulary` to create the vocab table, then `add_term` for each term. See `deriva-ml-context/references/built-in-vocabularies.md` ("Creating a new vocabulary") for the rationale (curie prefix, default schema, navbar refresh) and when to fall back to the generic `create_vocabulary`.
 
 In brief:
 1. Call `deriva_ml_create_vocabulary(hostname="data.example.org", catalog_id="1", vocab_name="<vocab_name>", comment=...)`.
@@ -48,7 +48,7 @@ Call `deriva_ml_create_feature` with:
 - `comment`: description of what this feature represents
 - `terms` (optional): list of vocabulary table names whose terms can be values (e.g., `["Tumor_Grade"]`)
 - `assets` (optional): list of asset table names that can be referenced (e.g., `["Mask_Image"]`)
-- `metadata` (optional): list of additional columns — see `concepts/design.md` for format details
+- `metadata` (optional): list of additional columns — see `design.md` for format details
 
 At least one of `terms` or `assets` is required.
 
@@ -149,7 +149,7 @@ Call `deriva_ml_list_feature_values` with:
 - `workflow`: a Workflow RID or Workflow_Type name to filter by source workflow
 - `execution`: an Execution RID to filter by a specific execution run
 
-Only one of `selector`, `workflow`, or `execution` may be specified. See `concepts/selectors.md` for the full Python API including custom selectors.
+Only one of `selector`, `workflow`, or `execution` may be specified. See `selectors.md` for the full Python API including custom selectors.
 
 ### Fallback: Filtered queries on the feature value table
 
@@ -192,7 +192,7 @@ End-to-end MCP workflow: create a vocabulary, create a feature, and add values.
 
 **Step 1:** Create the vocabulary.
 
-Call `deriva_ml_create_vocabulary(hostname="data.example.org", catalog_id="1", vocab_name="Cell_Type", comment="Cell type classifications for microscopy images")`. (Effects per `deriva-ml-context` → "Creating a new vocabulary": lands in the deriva-ml domain schema, terms carry `{project}:{RID}` curies, navbar refreshes.)
+Call `deriva_ml_create_vocabulary(hostname="data.example.org", catalog_id="1", vocab_name="Cell_Type", comment="Cell type classifications for microscopy images")`. (Effects per `deriva-ml-context/references/built-in-vocabularies.md` ("Creating a new vocabulary"): lands in the deriva-ml domain schema, terms carry `{project}:{RID}` curies, navbar refreshes.)
 
 Then call `add_term` for each term (from deriva-mcp-core — no ML-specific variant):
 - `add_term(hostname="data.example.org", catalog_id="1", schema="<schema>", table="Cell_Type", name="Epithelial", description="Epithelial cells lining surfaces and cavities")`

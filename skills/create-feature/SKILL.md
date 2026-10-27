@@ -1,6 +1,6 @@
 ---
 name: create-feature
-description: "ALWAYS use this skill when CREATING features or ADDING labels/annotations/values to records in DerivaML — the authoring side. Covers: the feature-vs-column decision, discovering whether a feature already exists before creating one, single vs multi-column design, creating vocabularies and features, and adding feature values with provenance. Triggers on: 'create feature', 'add labels', 'add annotations', 'annotate images', 'set up classification categories', 'ground truth labels', 'record predictions', 'what features exist' (when deciding whether to create one). For READING/BROWSING existing feature values — 'show me the labels', 'what annotations exist', 'browse the feature values', 'the consensus label' — use /deriva-ml:explore-results instead. Do NOT trigger on generic model-classification discussion ('this is a classification model', 'classification accuracy') that isn't about authoring a feature."
+description: "ALWAYS use this skill when CREATING features or ADDING labels/annotations/values to records in DerivaML — the authoring side. Covers: the feature-vs-column decision, discovering whether a feature already exists before creating one, single vs multi-column design, creating a feature (and, for a term-based one, the vocabulary its values come from), and adding feature values with provenance. Triggers on: 'create feature', 'add labels', 'add annotations', 'annotate images', 'set up classification categories', 'ground truth labels', 'record predictions', 'what features exist' (when deciding whether to create one). For READING/BROWSING existing feature values — 'show me the labels', 'what annotations exist', 'browse the feature values', 'the consensus label' — use /deriva-ml:explore-results instead. Do NOT trigger on generic model-classification discussion ('this is a classification model', 'classification accuracy') that isn't about authoring a feature."
 disable-model-invocation: false
 ---
 
@@ -31,7 +31,7 @@ Before creating a feature, determine whether one is needed and whether it alread
 
 ### Is this a feature or a column?
 
-Features have overhead (separate table, execution requirement, provenance). Use a feature when you need provenance, multivalued support, or controlled vocabulary terms. Use a column when the value is intrinsic to the record and immutable. See `references/concepts/feature-vs-column.md` for the full decision guide.
+Features have overhead (separate table, execution requirement, provenance). Use a feature when you need provenance, multivalued support, or controlled vocabulary terms. Use a column when the value is intrinsic to the record and immutable. See `references/feature-vs-column.md` for the full decision guide.
 
 > **Already decided wrong?** If an existing target table has a column that should really be a feature (or vice versa), that's a non-additive schema change — use `/deriva:evolve-schema` *(deriva-skills)* for the migration runbook (backfill, FK rewire, drop the old column under a snaptime). Don't try to "convert" in place by silently adding both shapes; pick one and migrate.
 
@@ -88,7 +88,7 @@ The test: if you always set them at the same time in the same execution, they be
 - Name the annotation act, not the vocabulary: `Diagnosis` (not `Diagnosis_Type`)
 - Be specific: `Cell_Classification` (not just `Classification`)
 
-For the full design guide, see `references/concepts/design.md`.
+For the full design guide, see `references/design.md`.
 
 ## Phase 4: Create the Feature Definition
 
@@ -99,7 +99,7 @@ For the full design guide, see `references/concepts/design.md`.
    deriva_ml_create_vocabulary(hostname, catalog_id, vocab_name="Diagnosis_Type", comment="...")
    add_term(hostname, catalog_id, schema="<schema>", table="Diagnosis_Type", name="Normal", description="...")
    ```
-   See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (curie prefix, default schema, navbar refresh) and when to fall back to the generic `create_vocabulary` from deriva-mcp-core.
+   See `deriva-ml-context/references/built-in-vocabularies.md` ("Creating a new vocabulary") for the rationale (curie prefix, default schema, navbar refresh) and when to fall back to the generic `create_vocabulary` from deriva-mcp-core.
 
 2. **Create the feature**:
    ```
@@ -192,7 +192,7 @@ For the exploratory-preview MCP tool examples and the full Python API retrieval 
 
 ### Resolve multiple values with selectors
 
-When a record has values from multiple annotators or model runs, use a selector to pick one. Built-in selectors include `select_newest`, `select_by_execution`, `select_by_workflow`, `select_majority_vote`. For the full guide — built-in selectors, custom selector functions, the cache-key warning, common pitfalls — see `references/concepts/selectors.md`.
+When a record has values from multiple annotators or model runs, use a selector to pick one. Built-in selectors include `select_newest`, `select_by_execution`, `select_by_workflow`, `select_majority_vote`. For the full guide — built-in selectors, custom selector functions, the cache-key warning, common pitfalls — see `references/selectors.md`.
 
 **Before retrieving in the multi-value case, ask the user which values they want.** Quick provenance check:
 
@@ -210,7 +210,7 @@ If multiple executions contributed, present only the relevant selector options b
 
 - **In dataset bags** — feature values for dataset members are automatically included in BDBag exports
 - **In `deriva_ml_denormalize_dataset`** — include feature tables to see labels alongside data. Column names: `{FeatureTableName}_{ColumnName}`
-- **Dataset versioning** — adding feature values to dataset members does NOT automatically flip the dataset to a dev version. Per ADR-0003, only the dataset-mutation tools (`add_dataset_members`, `delete_dataset_members`, dataset-type changes) auto-flip to dev; feature drift is invisible to that detection. To record feature drift, call `dataset.mark_dev(description)` from the Python API to declare a dev period, then `deriva_ml_release_dataset(...)` to mint a release that captures the new feature values
+- **Dataset versioning** — adding feature values to dataset members does NOT automatically flip the dataset to a dev version. Only the dataset-mutation tools (`add_dataset_members`, `delete_dataset_members`, dataset-type changes) auto-flip to dev; feature drift is invisible to that detection. To record feature drift, call `dataset.mark_dev(description)` from the Python API to declare a dev period, then `deriva_ml_release_dataset(...)` to mint a release that captures the new feature values
 - **In `split_dataset`** (Python API, run from a script) — the `stratify_by_column` parameter references feature columns in denormalized format
 
 **Drift notification (handoff grammar).** Writing feature values to records that
@@ -224,17 +224,17 @@ period is done. Don't wait to be asked.
 
 ## Reference Resources
 
-- `references/concepts/feature-vs-column.md` — What a feature is, and when to use a feature vs a column on the target table
-- `references/concepts/design.md` — Feature types, structure, naming, metadata columns, optionality and valid values, multivalued features
-- `references/concepts/usage.md` — Discovering existing features, the `FeatureRecord` Python API, features in datasets, feature-value table naming
+- `references/feature-vs-column.md` — What a feature is, and when to use a feature vs a column on the target table
+- `references/design.md` — Feature types, structure, naming, metadata columns, optionality and valid values, multivalued features
+- `references/usage.md` — Discovering existing features, the `FeatureRecord` Python API, features in datasets, feature-value table naming
 - `references/workflow.md` — Step-by-step MCP and Python API examples for create / add-values / query
-- `references/concepts/selectors.md` — Complete guide to writing and using feature selectors
+- `references/selectors.md` — Complete guide to writing and using feature selectors
 - `deriva://docs/features` — Full user guide to features in DerivaML
 - `deriva://catalog/{h}/{c}/deriva-ml/features/{table}` — Snapshot of features defined on a target table (one round trip; preferred for "what features exist on X?")
 - `deriva_ml_list_features(hostname, catalog_id)` — Paginated browse across all target tables (use when you need to filter or drill beyond the per-table snapshot)
 - `deriva_ml_get_feature(hostname, catalog_id, target_table, feature_name)` — Feature details and column schema
 - `deriva_ml_list_feature_values(hostname, catalog_id, target_table, feature_name, selector=...)` — Feature values with selectors and per-execution / per-workflow filtering (no resource equivalent; values are too large/selector-driven for a snapshot)
-- `deriva_ml_create_vocabulary(hostname, catalog_id, vocab_name, comment="", schema=None, update_navbar=True)` — ML-aware vocabulary creation. See `deriva-ml-context` → "Creating a new vocabulary" for the rationale (curie prefix, default schema, navbar refresh) and when to prefer this over the generic `create_vocabulary`.
+- `deriva_ml_create_vocabulary(hostname, catalog_id, vocab_name, comment="", schema=None, update_navbar=True)` — ML-aware vocabulary creation. See `deriva-ml-context/references/built-in-vocabularies.md` ("Creating a new vocabulary") for the rationale (curie prefix, default schema, navbar refresh) and when to prefer this over the generic `create_vocabulary`.
 
 ## Related Skills
 

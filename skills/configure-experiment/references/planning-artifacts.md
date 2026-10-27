@@ -1,7 +1,5 @@
 # The repo's planning artifacts — and how they connect
 
-Moved from `SKILL.md` → "The repo's planning artifacts". The short rule stays there.
-
 A project keeps several Markdown files that describe its experiments from
 different angles. They are **distinct views joined by a shared `<slug>`**, not
 duplicates — knowing which is which (and that they link) prevents treating one as
@@ -45,5 +43,5 @@ one usually means a change to the others — the direction of truth is config �
 config (the doc is the contract). When you add or change an experiment config,
 update `Experiments.md`, link the design doc both ways, and add the design-index
 line **in the same commit**. The full sync checklist lives in
-`/deriva-ml:configure-experiment` → "Keeping the planning artifacts in sync"; the
+this skill's SKILL.md → "Keeping the planning artifacts in sync"; the
 end-to-end design → config → update-registry → run flow is `/deriva-ml:experiment-lifecycle`.

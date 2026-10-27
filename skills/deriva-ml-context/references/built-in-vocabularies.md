@@ -1,8 +1,6 @@
 # Built-in DerivaML vocabularies
 
-Moved from `SKILL.md` → "Built-in DerivaML vocabularies". The short rules stay there.
-
-Controlled vocabularies are how DerivaML types its abstractions: every dataset, workflow, asset, execution, and feature is classified by a term from a vocabulary table. That typing is what makes entities **findable, filterable, and stable** — a consumer dispatches on `Dataset_Type == "Training"`, not on a name string, and the term's `{project}:{RID}` CURIE survives catalog clones. Extending a vocabulary (adding a term) is therefore the sanctioned way to add a new *kind* of thing, distinct from going around the abstractions with raw inserts.
+The built-in vocabularies in the `deriva-ml` schema hold the system and experiment terms that classify DerivaML entities: datasets, workflows, assets, and executions each carry terms from them. That classification is what makes entities **findable, filterable, and stable** — a consumer dispatches on `Dataset_Type == "Training"`, not on a name string, and the term's `{project}:{RID}` CURIE survives catalog clones. Extending a vocabulary (adding a term) is therefore the sanctioned way to add a new *kind* of thing, distinct from going around the abstractions with raw inserts.
 
 The `deriva-ml` schema has **six** controlled-vocabulary tables, split by who writes them:
 
@@ -34,7 +32,7 @@ The `deriva-ml` schema has **six** controlled-vocabulary tables, split by who wr
 | `Asset_Role` | the upload/download machinery — `Input` / `Output`, set on each asset's `*_Execution` association automatically. |
 | `Feature_Name` | `deriva_ml_create_feature` / `create_feature` — one term per feature you create, registered for you. |
 
-For the per-table detail (FKs, full seeded-term lists) see `references/concepts/index.md` (the "Vocabulary" group); for the mechanism — controlled-vocab-as-extension-point, `add_term` vs `create_vocabulary`, built-in vs domain vocabs — see `references/concepts/pattern/vocabulary.md`.
+For the per-table detail (FKs, full seeded-term lists) see `ml-schema.md` (the "Vocabulary" tables); for the mechanism — controlled-vocab-as-extension-point, `add_term` vs `create_vocabulary`, built-in vs domain vocabs — see `ml-schema.md` → "Pattern: controlled vocabulary".
 
 The inheritance rule still applies: even though you are using the generic `add_term` for the term itself (no deriva-ml override exists for it), the **lifecycle of Datasets / Workflows / Executions / Features / Assets** must go through the `deriva_ml_*` tools.
 

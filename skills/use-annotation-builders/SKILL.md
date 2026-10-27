@@ -1,6 +1,6 @@
 ---
 name: use-annotation-builders
-description: "Write Python scripts using type-safe annotation builder classes (Display, VisibleColumns, TableDisplay, ColumnDisplay, PseudoColumn, FacetList) for production Deriva catalog code. Use when writing Python code to configure Chaise display annotations — not when using interactive MCP tools (use /deriva:customize-display for that). Triggers on: 'annotation builder', 'annotation builders', 'production deployment script for chaise', 'python annotation script', 'type-safe annotations', 'reusable catalog configuration', 'pseudo column python', 'facet list python', 'apply_annotations'."
+description: "Writes production Python scripts that configure Chaise display annotations with the deriva-ml type-safe builder classes (Display, VisibleColumns, TableDisplay, ColumnDisplay, PseudoColumn, FacetList). For interactive changes use /deriva:customize-display."
 disable-model-invocation: true
 user-invocable: true
 ---

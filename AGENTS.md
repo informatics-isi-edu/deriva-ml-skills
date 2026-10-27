@@ -56,6 +56,25 @@ Validate** arc and handoff grammar
 User-facing docs (README, help) must keep the two shapes in separate sections so
 users don't try to invoke a background guide as a command.
 
+### Frontmatter
+
+Follows the [Agent Skills spec](https://agentskills.io/specification) plus
+Claude Code's [`when_to_use`](https://code.claude.com/docs/en/skills) field.
+
+- **`description`** — ≤1024 chars (spec limit), third person: what the skill
+  does, then `Use when…`. Key use case first. Must stand alone, since
+  non-Claude-Code agents see only this field.
+- **`when_to_use`** (guide-shaped only) — trigger phrases and `Not for … (use X)`
+  routing. Claude Code appends it to `description` and truncates the pair at
+  **1,536 chars**, so keep the combined length under that.
+- **Tool-shaped skills** (`disable-model-invocation: true`) — description only, one
+  or two sentences; it shows in the `/` menu but never reaches the model, so
+  trigger lists there are dead weight.
+- **References stay flat** — `references/<name>.md`, linked directly from
+  `SKILL.md`, no subfolders or index/hub files (spec: one level deep). A long
+  reference gets a table of contents and greppable `## ` sections instead of
+  being split into a bundle (see `deriva-ml-context/references/ml-schema.md`).
+
 ## Cross-plugin and cross-repo rules
 
 - **Precedence principle:** DerivaML abstractions override raw catalog primitives.

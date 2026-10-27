@@ -1,11 +1,11 @@
 ---
 name: configure-experiment
-description: "Use when setting up a DerivaML experiment project, adding config groups, or understanding how experiments compose. Triggers on: 'set up experiment', 'config groups', 'project structure', 'hydra defaults', 'DerivaModelConfig', 'experiment preset', 'new project from template'. Auto-fires in the experiment-lifecycle Phase 2 (configuration) moment, the seam where the lifecycle hands off here. Do NOT use for per-config-file Python syntax (use write-hydra-config) or for the up-front design doc (use design-experiment)."
+description: "Use when setting up a DerivaML experiment project, adding config groups, or understanding how experiments compose. Triggers on: 'set up experiment', 'config groups', 'project structure', 'hydra defaults', 'DerivaModelConfig', 'experiment preset', 'a quick-test variant of the baseline', 'set up a sweep', 'define a multirun'. Launching a sweep belongs to execution-lifecycle. For creating a project from the template, use start-project. Auto-fires in the experiment-lifecycle Phase 2 (configuration) moment, the seam where the lifecycle hands off here. Do NOT use for per-config-file Python syntax or wiring a dataset or asset RID into configs/ (use write-hydra-config) or for the up-front design doc (use design-experiment)."
 ---
 
 # Configure ML Experiments with hydra-zen and DerivaML
 
-This covers the structure of a DerivaML experiment project: config groups, how they compose, and project setup. The table below is the orientation map — which groups exist and which file each lives in. For the exhaustive per-group **key rules** (required keys, PITFALLs, the Python API patterns for each config type), see `/deriva-ml:write-hydra-config` → `references/config-reference/rules-and-validation.md`.
+This covers the structure of a DerivaML experiment project: config groups, how they compose, and project setup. The table below is the orientation map — which groups exist and which file each lives in. For the exhaustive per-group **key rules** (required keys, PITFALLs, the Python API patterns for each config type), see `/deriva-ml:write-hydra-config` → `references/rules-and-validation.md`.
 
 ## Config Groups
 
@@ -118,7 +118,7 @@ The four planning artifacts (the design doc, the executable config, `Experiments
 2. **Link the design doc both ways** — the `Experiments.md` entry links to `docs/design/experiment/<slug>.md`, and that design doc's "Status & links" links back to the config (and to `Experiments.md`). The shared `<slug>` is what joins them; the links make the join navigable.
 3. **Update `docs/design/index.md`** — if this is a new experiment, add its line to the design corpus index so the plan view and the config view both list it.
 
-The direction of truth is **config → `Experiments.md`** (the registry is regenerated from the source) and **design doc ↔ config** (the doc is the contract, the config is its implementation — when they disagree, reconcile, don't silently let the config win). For the full file-roles map and which view owns what, see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts — and how they connect".
+The direction of truth is **config → `Experiments.md`** (the registry is regenerated from the source) and **design doc ↔ config** (the doc is the contract, the config is its implementation — when they disagree, reconcile, don't silently let the config win). For the full file-roles map and which view owns what, see `references/planning-artifacts.md`.
 
 ### Format
 
@@ -126,7 +126,7 @@ The direction of truth is **config → `Experiments.md`** (the registry is regen
 with a frontmatter block, then the `# Experiments` H1 and the registry tables. It
 is the config-derived counterpart to the design bundle's `docs/design/index.md`
 (also `type: Index`); both list "all experiments," one from configs and one from
-design docs (see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts").
+design docs (full file map: `references/planning-artifacts.md`).
 
 ```markdown
 ---
@@ -167,7 +167,7 @@ Generated from `src/configs/experiments.py` and `src/configs/multiruns.py`.
 - **Design doc**: link to `docs/design/experiment/<slug>.md` (the plan + Validation criteria + Outcome) when one exists — omit if not yet designed
 ```
 
-`Experiments.md` is the **runnable/config view** of experiments; `docs/design/experiment/<slug>.md` is the **plan view** (Goal, Validation, Outcome). They share the experiment `<slug>` — link each Experiments.md entry to its design doc (and the design doc's "Status & links" points back at the config). The two registries — `Experiments.md` (config) and `docs/design/index.md` (design corpus) — are connected by these links, not merged; see `/deriva-ml:deriva-ml-context` → "The repo's planning artifacts — and how they connect".
+`Experiments.md` is the **runnable/config view** of experiments; `docs/design/experiment/<slug>.md` is the **plan view** (Goal, Validation, Outcome). They share the experiment `<slug>` — link each Experiments.md entry to its design doc (and the design doc's "Status & links" points back at the config). The two registries — `Experiments.md` (config) and `docs/design/index.md` (design corpus) — are connected by these links, not merged; see `references/planning-artifacts.md`.
 
 ## Configuring storage locations in `configs/deriva.py`
 

@@ -8,11 +8,10 @@
 - [The six steps in full](#the-six-steps-in-full)
 - [Related always-on skills](#related-always-on-skills)
 
-This reference carries the depth behind the six-step entity-resolution workflow
-in `SKILL.md` ("The entity resolution workflow"). The steps themselves stay
-inline in the skill — read those first. This document explains *why* the
-workflow is shaped the way it is and supplies the detailed caveat and examples
-that would bloat the always-on context.
+This reference carries the depth behind the entity-resolution steps in
+`SKILL.md` ("Resolve entity names before using or creating them"). It explains
+*why* the workflow is shaped the way it is and supplies the detailed caveat and
+examples.
 
 ## Why this workflow matters
 
@@ -58,15 +57,13 @@ rows.
 | No RAG hits | Ask a clarifying question — do NOT fabricate |
 
 The "do NOT fabricate" row is the entity-resolution instance of the SKILL's
-canonical rule (deriva-ml-context → "Never guess — ground truth is observable"):
+canonical rule (`/deriva-ml:deriva-ml-context` → "Never guess — ground truth is observable"):
 a name you can't resolve is a name to look up or ask about, never to invent.
 
 The find-before-create discipline that governs all of these choices is owned by
 `/deriva:semantic-awareness` *(deriva-skills, auto-loaded)*.
 
 ## The six steps in full
-
-Moved from `SKILL.md` → "The entity resolution workflow", which keeps a one-line version of each step.
 
 When the user mentions an entity by name, OR when the user asks to create a new one, follow these steps:
 

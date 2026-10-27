@@ -1,7 +1,5 @@
 # Confirm authentication before the first catalog operation
 
-Moved from `SKILL.md` → "Confirm authentication before the first catalog operation". The short rule stays there.
-
 Before the **first catalog operation** against a catalog in a session — any read
 or write — confirm you're actually authenticated to *that* catalog, so you learn
 up-front rather than hitting a blanket-401 mid-operation (a confusing failure deep

@@ -1,6 +1,6 @@
 ---
 name: schema-evolution-impact
-description: "Impact analysis BEFORE changing or deleting anything in a DerivaML catalog — dropping/altering a table or column, deleting a vocabulary table or term, retiring an asset table, or deleting a dataset/asset row. Enumerates what references the target (datasets holding members, feature definitions carrying FKs, executions that consumed it) so the change is informed, not hopeful. Use when the user asks 'what breaks if I change/drop X', 'is it safe to delete this', 'who uses this table/column', 'which datasets contain rows from X', 'which features reference this vocabulary', 'can I remove this asset table', 'clean up unused tables', or any schema-migration planning question. Triggers on: 'safe to delete', 'what breaks', 'impact analysis', 'who references', 'drop a column', 'remove a table', 'retire', 'unused', 'schema migration', 'rename a column'."
+description: "Impact analysis before changing or deleting anything in a DerivaML catalog — lists the datasets, features, and executions that reference a table, column, vocabulary, asset table, or row, so the change is informed rather than hopeful."
 disable-model-invocation: true
 ---
 

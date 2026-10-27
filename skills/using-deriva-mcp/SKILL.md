@@ -50,10 +50,9 @@ for *that* catalog (the server holds the per-request credential, not your local
 machine). `authenticated: false` → tell the user they're not logged in before you
 fan out catalog reads/writes; a connection/DNS/TLS failure returns `{"error": ...}`
 instead (a different problem — that's `/deriva:troubleshoot-deriva-errors`). This
-confirms *authentication*, not *authorization* — see
-`/deriva-ml:deriva-ml-context` → "Confirm authentication before the first catalog
-operation" for the canonical rule (and the parallel `ml.is_authenticated()` check
-on the Python side).
+confirms *authentication*, not *authorization* — ACLs can still refuse a write.
+The parallel Python-side check (`ml.is_authenticated()`) and both return shapes
+are in `/deriva-ml:execution-lifecycle`'s `references/authentication.md`.
 
 **Step 2 — fetch a guide on demand, only when you reach its tool group.**
 The primer's manifest names the available guides but does not inline their
@@ -112,9 +111,32 @@ The deriva-ml MCP surface is **observation + catalog-state mutation**, not execu
 
 The rule of thumb: if an operation needs **bytes on the caller's machine** or **the caller's git commit hash**, it's local Python.
 
+## Resolve entity names before using or creating them
+
+For any entity named by the user — table, column, term, dataset, workflow,
+execution, feature, asset:
+
+1. **Exact, case-sensitive match** on a canonical name → use it (`"Training"` is a
+   `Dataset_Type` term; `"training"` is not).
+2. **Fuzzy phrasing** → the structured tool first
+   (`deriva_ml_list_datasets(dataset_type=...)`,
+   `deriva_ml_list_executions(status=...)`, `deriva_ml_find_workflow_by_url`), then
+   `rag_search`. Dataset, Workflow, and Execution rows are indexed only once read,
+   so a `rag_search` miss is not proof of absence.
+3. **Several candidates** → a picker of 3–5 (name, description, RID). **None** →
+   ask. Never call `create_*` with a guessed identifier.
+4. **Before creating**, show similar existing entities and ask whether one will do;
+   descriptions on create are user-confirmed, never placeholders.
+
+The general find-before-create guard is `/deriva:semantic-awareness`; for
+vocabulary terms (synonyms, the substitution test) the rules are in
+`/deriva:manage-vocabulary`, which only the user can run — suggest it. Full steps and the read-through-index caveat:
+`references/entity-resolution.md`.
+
 ## What you should NOT do
 
 - **Skip the primer and hit a tool directly.** This is the failure mode this skill exists to prevent. Without the primer's getting-started contract, you will mis-paginate. Without `query_guide`, you will pass `schema` + `table` + `filter` to `query_attribute` instead of a `path` expression. Without the concepts frame, you will treat Datasets / Workflows / Executions as raw tables and mutate them with `insert_entities` (bypassing the lifecycle machinery — see the inheritance-with-override rule in `/deriva-ml:deriva-ml-context`).
+- **Read a named table's shape from `rag_search`.** For the exact columns, keys, or FKs of a *named* table there is no `deriva_ml_*` surface: read `deriva://catalog/{hostname}/{catalog_id}/table/{schema}/{table}` (or `get_table`). `rag_search` finds *which* table by concept but can return a partial column list.
 - **Treat slash-command guide prompts as required for every call.** Read each one once per conversation. They are stable references, not per-call setup.
 - **Confuse the generic-catalog slash-command guides with the primer.** The four `deriva-mcp-core` guides (`query_guide` / `entity_guide` / `annotation_guide` / `catalog_guide`) have prompt-only delivery — fetch them via `/<server>:<name>`. The primer is delivered three ways (tool / prompt / resource) and inlines the deriva-ml orientation; don't treat the core guides as if they had a resource form.
 - **Re-read the orientation when nothing changes.** If you've called the primer once this conversation, you've covered the cold-start. Don't refetch.
@@ -125,7 +147,7 @@ The upstream MCP server's prompts and resources are the **canonical source of tr
 
 ## Relationship to other skills
 
-- **`/deriva-ml:deriva-ml-context`** *(always-loaded sibling)* — the canonical statement of the resource-vs-tool rule, the five abstractions, the inheritance-with-override rule, and the entity resolution workflow. This skill makes sure the upstream-server orientation is read; that skill makes sure the conceptual frame is loaded. Both should be active before the first MCP call.
+- **`/deriva-ml:deriva-ml-context`** *(always-loaded sibling)* — the DerivaML model (how the catalog is organized), the workflow, the inheritance-with-override rule, and the never-guess rule. This skill owns the MCP-side operating rules (primer, authentication, resource-first reads, entity resolution); that skill carries the conceptual frame. Both should be active before the first MCP call.
 - **`/deriva:deriva-context`** *(always-loaded, deriva-skills plugin)* — the plugin-wide context for the generic Deriva catalog surface (the seven design pillars, stateless-model framing). Independent of this skill, but worth having loaded for any catalog work.
 - **`/deriva-ml:troubleshoot-execution`** *(this plugin)* — if you hit `dependency-version-unsatisfied`, `no-matching-tag`, or other version-mismatch errors after reading the orientation material, the versioning section there carries the diagnosis steps.
 
@@ -165,9 +187,9 @@ the matching docstring in `deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/resourc
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{execution_rid}` | execution detail (inputs, outputs, durations, experiment) |
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/lineage/{rid}` | full provenance walk from any Dataset / Execution / Asset RID |
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/lineage-forward/{rid}` | forward lineage: executions that CONSUMED this Dataset / asset as input |
-
-> **Python-only provenance surfaces.** The full provenance closure (`ml.lookup_provenance`), feature-producer facts (`ml.find_feature_producers`), run-metadata reads (`ml.lookup_execution(rid).list_metadata()`), and the `deriva-ml-lineage` HTML report have no MCP tool yet — generate local Python / a shell command for them.
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/workflow/{workflow_rid}/multirun-status` | status counts across one workflow's executions ("is the sweep done?") |
+
+> **Python-only provenance surfaces.** The full provenance closure (`ml.lookup_provenance`), feature-producer facts (`ml.find_feature_producers`), run-metadata reads (`ml.lookup_execution(rid).list_metadata()`), and the `deriva-ml-lineage` HTML report have no MCP tool — generate local Python / a shell command for them.
 
 **Features, Assets, Vocabularies**
 
@@ -180,7 +202,7 @@ the matching docstring in `deriva-ml-mcp-plugin/src/deriva_ml_mcp_plugin/resourc
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/vocabularies/{schema}` | all vocabulary tables in a schema |
 | `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/vocabularies/{schema}/{vocab_name}` | all terms in one vocabulary |
 
-These templates are the read-side of the resource-vs-tool decision documented in `/deriva-ml:deriva-ml-context` — when a question is "what is the current state of X," prefer the resource over the equivalent list / get tool. Resources are cached, page-free, and produce no audit-log entries.
+These templates are the read side of the resource-first rule at the top of this skill — when a question is "what is the current state of X," prefer the resource over the equivalent list / get tool. Resources are cached, page-free, and produce no audit-log entries.
 
 ### deriva-mcp-core slash-command guides (read once per conversation, before first use of each tool group)
 

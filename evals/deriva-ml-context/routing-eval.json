@@ -1,0 +1,62 @@
+[
+  {"query": "I want to build a classifier that detects glaucoma from fundus photos. Where do I start?", "stage": "frame", "concepts": ["catalog", "experiment repository"], "expected_skills": ["start-project", "model-development-workflow"], "context": true},
+  {"query": "Set up a new project for my retinal model with its own repo.", "stage": "frame", "concepts": ["experiment repository", "catalog"], "expected_skills": ["start-project"], "context": true},
+  {"query": "Help me write up what this experiment is supposed to show and how we'll know it worked.", "stage": "frame", "concepts": ["experiment design (Specify)"], "expected_skills": ["design-experiment"], "context": true},
+  {"query": "Before I build anything, what should the train, validation and test data look like?", "stage": "frame", "concepts": ["Dataset", "dataset design (Specify)"], "expected_skills": ["design-experiment", "dataset-lifecycle"], "context": true},
+  {"query": "We want to test whether adding augmentation improves recall.", "stage": "frame", "concepts": ["experiment cycle", "Execution"], "expected_skills": ["experiment-lifecycle", "design-experiment"], "context": true},
+
+  {"query": "I have 20k images on a shared drive and a spreadsheet of diagnoses.", "stage": "data-model", "concepts": ["Asset", "Feature", "domain schema"], "expected_skills": ["start-project", "dataset-lifecycle", "suggest:/deriva-ml:setup-ml-catalog"], "context": true},
+  {"query": "Where should I store the patient info that goes with each image?", "stage": "data-model", "concepts": ["domain schema"], "expected_skills": ["suggest:/deriva:create-table", "start-project", "semantic-awareness"], "context": true},
+  {"query": "The labels are normal, suspect, and glaucoma. How should I record them?", "stage": "data-model", "concepts": ["Feature", "controlled vocabulary"], "expected_skills": ["create-feature"], "context": true},
+  {"query": "We got a second grader's labels for the same images.", "stage": "data-model", "concepts": ["Feature", "Execution"], "expected_skills": ["create-feature"], "context": true},
+  {"query": "Add a new category 'ungradable' to the diagnosis options.", "stage": "data-model", "concepts": ["controlled vocabulary"], "expected_skills": ["suggest:/deriva:manage-vocabulary", "create-feature", "semantic-awareness"], "context": true},
+  {"query": "I need to rename the image quality column.", "stage": "data-model", "concepts": ["domain schema"], "expected_skills": ["suggest:/deriva-ml:schema-evolution-impact"], "context": true},
+  {"query": "Upload this folder of new scans.", "stage": "data-model", "concepts": ["Asset"], "expected_skills": ["work-with-assets", "dataset-lifecycle"], "context": true},
+
+  {"query": "Make a held-out test set that never changes.", "stage": "curate", "concepts": ["Dataset", "dataset version"], "expected_skills": ["dataset-lifecycle"], "context": true},
+  {"query": "Split by patient so the same person isn't in both train and test.", "stage": "curate", "concepts": ["Dataset"], "expected_skills": ["dataset-lifecycle"], "context": true},
+  {"query": "I need a tiny version of the data to make sure the code runs.", "stage": "curate", "concepts": ["Dataset"], "expected_skills": ["dataset-lifecycle", "model-development-workflow"], "context": true},
+  {"query": "Only use images graded as good quality for training.", "stage": "curate", "concepts": ["Dataset", "Feature"], "expected_skills": ["dataset-lifecycle"], "context": true},
+  {"query": "Freeze the current training data so the results are reproducible.", "stage": "curate", "concepts": ["Dataset", "dataset version"], "expected_skills": ["dataset-lifecycle"], "context": true},
+  {"query": "Which version of the training set did last week's run use?", "stage": "curate", "concepts": ["Execution record", "dataset version"], "expected_skills": ["explore-results", "using-deriva-mcp"], "context": true},
+
+  {"query": "Turn the downloaded data into folders by class for torchvision.", "stage": "prepare", "concepts": ["Dataset", "bag"], "expected_skills": ["ml-data-engineering"], "context": true},
+  {"query": "I want a pandas table with one row per image, its label, and the patient's age.", "stage": "prepare", "concepts": ["Dataset", "Feature", "domain schema"], "expected_skills": ["ml-data-engineering"], "context": true},
+  {"query": "Download the training set to my machine.", "stage": "prepare", "concepts": ["Dataset", "bag"], "expected_skills": ["dataset-lifecycle", "manage-deriva-storage"], "context": true},
+
+  {"query": "Write the model code for a ResNet fine-tune.", "stage": "build", "concepts": ["Workflow"], "expected_skills": ["new-model"], "context": true},
+  {"query": "Wrap my existing training script so it works with this setup.", "stage": "build", "concepts": ["Workflow", "Execution"], "expected_skills": ["new-model", "execution-lifecycle"], "context": true},
+  {"query": "Add a learning-rate schedule parameter I can change from the command line.", "stage": "build", "concepts": ["configuration"], "expected_skills": ["write-hydra-config", "configure-experiment"], "context": true},
+  {"query": "I want a notebook that does the analysis and records what it did.", "stage": "build", "concepts": ["Execution", "Workflow"], "expected_skills": ["run-notebook"], "context": true},
+
+  {"query": "Point my experiment at the new dataset version.", "stage": "configure", "concepts": ["Dataset", "configuration"], "expected_skills": ["configure-experiment", "write-hydra-config", "dataset-lifecycle"], "context": true},
+  {"query": "Set up a sweep over learning rates 1e-3, 1e-4 and 1e-5.", "stage": "configure", "concepts": ["configuration", "Execution"], "expected_skills": ["write-hydra-config", "execution-lifecycle", "configure-experiment"], "context": true},
+  {"query": "Create a quick-test variant of the baseline that runs for 2 epochs.", "stage": "configure", "concepts": ["configuration"], "expected_skills": ["configure-experiment", "write-hydra-config"], "context": true},
+
+  {"query": "Train the model.", "stage": "run", "concepts": ["Execution"], "expected_skills": ["execution-lifecycle", "model-development-workflow"], "context": true},
+  {"query": "Do a test run without saving anything.", "stage": "run", "concepts": ["Execution"], "expected_skills": ["execution-lifecycle"], "context": true},
+  {"query": "Save the trained weights and the predictions from this run.", "stage": "run", "concepts": ["Asset", "Feature", "Execution"], "expected_skills": ["execution-lifecycle"], "context": true},
+  {"query": "Record the model's prediction for each image.", "stage": "run", "concepts": ["Feature", "Execution"], "expected_skills": ["create-feature", "execution-lifecycle"], "context": true},
+  {"query": "My run crashed halfway through uploading.", "stage": "run", "concepts": ["Execution"], "expected_skills": ["troubleshoot-execution"], "context": true},
+  {"query": "It refuses to run because my working tree is dirty.", "stage": "run", "concepts": ["Execution", "Workflow"], "expected_skills": ["execution-lifecycle", "troubleshoot-execution"], "context": true},
+  {"query": "Someone manually reviewed 200 images and fixed the labels. How do we record that?", "stage": "run", "concepts": ["Workflow (human-performed)", "Execution", "Feature"], "expected_skills": ["execution-lifecycle", "create-feature"], "context": true},
+
+  {"query": "Which run had the best validation accuracy?", "stage": "evaluate", "concepts": ["Execution"], "expected_skills": ["compare-model-runs"], "context": true},
+  {"query": "Compare the augmented model against the baseline.", "stage": "evaluate", "concepts": ["Execution"], "expected_skills": ["compare-model-runs", "experiment-lifecycle"], "context": true},
+  {"query": "Show me the images the model got wrong.", "stage": "evaluate", "concepts": ["Feature", "Asset"], "expected_skills": ["explore-results"], "context": true},
+  {"query": "Make a confusion matrix for the test-set predictions.", "stage": "evaluate", "concepts": ["Feature", "Execution"], "expected_skills": ["explore-results", "compare-model-runs"], "context": true},
+  {"query": "What did the model predict for patient 1-XYZ2?", "stage": "evaluate", "concepts": ["Feature"], "expected_skills": ["explore-results"], "context": true},
+
+  {"query": "Can I reproduce the result in the paper draft?", "stage": "provenance", "concepts": ["Execution record"], "expected_skills": ["explore-results", "compare-model-runs", "execution-lifecycle"], "context": true},
+  {"query": "What code produced this weights file?", "stage": "provenance", "concepts": ["Asset", "Execution", "Workflow"], "expected_skills": ["explore-results", "compare-model-runs"], "context": true},
+  {"query": "Which experiments used the old version of the labels?", "stage": "provenance", "concepts": ["Feature", "Execution record"], "expected_skills": ["compare-model-runs", "explore-results"], "context": true},
+
+  {"query": "The augmentation didn't help. What should we try next?", "stage": "iterate", "concepts": ["experiment cycle"], "expected_skills": ["experiment-lifecycle", "capture-tacit-knowledge"], "context": true},
+  {"query": "Why did we pick 0.001 for the learning rate?", "stage": "iterate", "concepts": ["tacit knowledge"], "expected_skills": ["capture-tacit-knowledge"], "context": true},
+  {"query": "Write up where this model stands for the team.", "stage": "iterate", "concepts": ["Execution", "tacit knowledge"], "expected_skills": ["experiment-lifecycle", "compare-model-runs", "capture-tacit-knowledge"], "context": true},
+  {"query": "Clear out old downloads; I'm out of disk.", "stage": "iterate", "concepts": ["local cache"], "expected_skills": ["manage-deriva-storage"], "context": true},
+
+  {"query": "Explain the difference between precision and recall.", "stage": "negative", "concepts": [], "expected_skills": ["none"], "context": false},
+  {"query": "Fix the typo in the README.", "stage": "negative", "concepts": [], "expected_skills": ["none"], "context": false},
+  {"query": "What's the syntax for a Python dataclass?", "stage": "negative", "concepts": [], "expected_skills": ["none"], "context": false}
+]

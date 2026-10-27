@@ -1,6 +1,6 @@
 ---
 name: debug-bag-contents
-description: "Diagnose missing data in DerivaML dataset bag (BDBag) exports — FK traversal issues, missing tables, materialization problems, export timeouts. Use when a downloaded dataset bag is missing expected records, images, or feature values."
+description: "Diagnoses missing data in DerivaML dataset bag (BDBag) exports — FK traversal gaps, missing tables, materialization problems, and export timeouts."
 disable-model-invocation: true
 ---
 
@@ -126,7 +126,7 @@ For each registered element type, examine the FK paths that the export will foll
 
 ## Step 8: Fix Common Issues
 
-The concrete fix procedures live alongside the scenarios they resolve: deep-join timeouts (increase `timeout`, prune with `exclude_tables`, or flatten by adding direct members), missing element type registration, stale dataset version (release the dev period per ADR-0003), and records that exist but aren't FK-linked. For the matching fix recipes — with the exact `download_dataset_bag` / `DatasetSpecConfig` / `deriva_ml_*` calls — see the "Fixes" section of `references/scenarios.md`.
+The concrete fix procedures live alongside the scenarios they resolve: deep-join timeouts (increase `timeout`, prune with `exclude_tables`, or flatten by adding direct members), missing element type registration, stale dataset version (release the dev period), and records that exist but aren't FK-linked. For the matching fix recipes — with the exact `download_dataset_bag` / `DatasetSpecConfig` / `deriva_ml_*` calls — see the "Fixes" section of `references/scenarios.md`.
 
 ---
 
@@ -175,7 +175,7 @@ Use this checklist when data is missing from a bag:
 | `deriva_ml_delete_dataset_members` | Remove records from a dataset |
 | `deriva_ml_add_dataset_element_type` | Register a table as dataset element type |
 | Python API `bag.list_tables()` + `bag.get_table_as_dict(table)` | Diff actual bag contents against `ml.lookup_dataset(rid).list_dataset_members(version=...)` for the expected set (see Step 6 for the recipe) |
-| `deriva_ml_release_dataset` | Promote a dev period to a released version (per ADR-0003) |
+| `deriva_ml_release_dataset` | Promote a dev period to a released version |
 | `deriva_ml_get_dataset_spec` | View dataset specification |
 | `deriva_ml_bag_info` | Preview row counts, asset sizes, and manifest before downloading |
 | Python API `dataset.download_dataset_bag(version)` | Download the dataset bag (supports `exclude_tables` and `timeout`) |

@@ -15,7 +15,7 @@ several anchors (an instance *and* its type *and* the process that produced it).
    `Asset_Type` term, a named feature, a model class. A *reusable rule about a kind*
    ("patient-split datasets must avoid cross-split leakage"). Anchor = the type term
    (rendered via `ml.cite` on the term's RID when it has one).
-3. **General object** — one of the **five abstractions** (`Dataset`, `Feature`,
+3. **General object** — one of the **core DerivaML entities** (`Dataset`, `Feature`,
    `Model`, `Workflow`, `Execution`) when nothing narrower fits.
 4. **Schema entity** — a **table, column, or CV type** (knowledge about the
    *structure*, not the data — "the `Confidence` column is dual-purpose: GT vs

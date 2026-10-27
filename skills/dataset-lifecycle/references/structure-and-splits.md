@@ -133,7 +133,7 @@ This means:
 
 The same design applies to `subsample` — source is an execution input, subsample is an execution output, no `Dataset_Dataset` edge.
 
-This matches [ADR-0001](https://github.com/informatics-isi-edu/deriva-ml/blob/main/docs/adr/0001-lineage-walks-data-flow-not-orchestration.md) — *lineage walks data flow, not orchestration*. Nesting a split under its source would re-partition the source's own members and flip the source's version every time someone re-splits it, which is the wrong cardinality for a "the source is an input I consumed" relationship.
+The principle: *lineage walks data flow, not orchestration*. Nesting a split under its source would re-partition the source's own members and flip the source's version every time someone re-splits it, which is the wrong cardinality for a "the source is an input I consumed" relationship.
 
 For the full parameter reference, MCP tool examples, and Python API, see `workflow.md`. The `subsample` primitive (stratified subsampling of a single dataset, no partitioning) is documented in the same place.
 
@@ -150,7 +150,7 @@ For the full parameter reference, MCP tool examples, and Python API, see `workfl
 | "Quick dev subset" of an existing Training dataset | `subsample(training_rid, exe, size=400, dataset_types=["Training", "Labeled"])` | Caller propagates role and content tags; `Subsample` origin tag is auto-added |
 | Pre-existing labeled / unlabeled split, want a smaller mirror for debugging | Call `subsample` once per child of the existing Split | Each call produces an independent subsample; the source/subsample relationship lives in execution provenance, not in a `Dataset_Dataset` hierarchy |
 
-There is intentionally **no `subsample_split` primitive** that parallel-subsamples each child of an existing Split and returns a mirror Split hierarchy — `subsample` is the more fundamental operation; composing it across the children of a Split is a few lines of caller code. (Documented as an explicit non-goal in the deriva-ml `2026-06-01-split-partition-tag-and-subsample-design` spec.)
+There is intentionally **no `subsample_split` primitive** that parallel-subsamples each child of an existing Split and returns a mirror Split hierarchy — `subsample` is the more fundamental operation; composing it across the children of a Split is a few lines of caller code.
 
 ### Key parameters
 

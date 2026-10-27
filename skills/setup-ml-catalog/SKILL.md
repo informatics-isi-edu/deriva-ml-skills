@@ -1,6 +1,6 @@
 ---
 name: setup-ml-catalog
-description: "Use when a user wants to set up a DerivaML catalog — either from scratch (create a fresh catalog, install the deriva-ml schema, load data programmatically) or from existing data (clone a slice of a source catalog into a new destination catalog with the deriva-ml schema). This is the skill for the bootstrap moment of a deriva-ml catalog, complementary to setup-derivaml-project which sets up the *code* repo that reads from / writes to such a catalog. Triggers on: 'set up an ML catalog', 'create a new ML catalog', 'bootstrap a catalog', 'initialize deriva-ml schema', 'install deriva-ml schema in existing catalog', 'set up a fresh catalog from CIFAR-style data', 'load my data into a new catalog', 'clone a slice into a new catalog', 'clone a dataset to another server', 'cross-institution catalog setup', 'share my dataset as a new catalog', 'spin up a demo catalog from production', 'promote a non-ML catalog to deriva-ml'."
+description: "Use when a user wants to set up a DerivaML catalog — either from scratch (create a fresh catalog, install the deriva-ml schema, load data programmatically) or from existing data (clone a slice of a source catalog into a new destination catalog with the deriva-ml schema). This is the catalog step of a cold start; start-project orders it with the code repo and the first data. Triggers on: 'set up an ML catalog', 'create a new ML catalog', 'bootstrap a catalog', 'initialize deriva-ml schema', 'install deriva-ml schema in existing catalog', 'set up a fresh catalog from CIFAR-style data', 'load my data into a new catalog', 'clone a slice into a new catalog', 'clone a dataset to another server', 'cross-institution catalog setup', 'share my dataset as a new catalog', 'spin up a demo catalog from production', 'promote a non-ML catalog to deriva-ml'."
 disable-model-invocation: true
 ---
 
@@ -24,7 +24,7 @@ Two entry paths, depending on where your data is coming from:
 | **From existing data** | You want a new catalog that contains a slice of an existing source catalog — for sharing with collaborators, building a demo catalog from production data, or carving off a self-contained training subset. | `clone_via_bag()` Python API with anchors that define the slice. |
 
 **Complementary skills:**
-- `/deriva-ml:setup-derivaml-project` — sets up the *code repo* (uv, pyproject.toml, conventions) that will read/write the catalog. Independent; do these in either order.
+- `/deriva-ml:start-project` — the end-to-end cold start: sets up the *code repo* from the model template and tells the user when to run this skill.
 - `/deriva-ml:dataset-lifecycle` — once the catalog exists and has data, this is where you start the actual ML work.
 - `/deriva:create-table` *(deriva-skills)* — for adding domain-specific tables (Subject, Image, Specimen, etc.) inside whichever ML catalog you set up here.
 
@@ -97,8 +97,8 @@ ml = DerivaML(
 # mid-load. (When connecting to an EXISTING catalog with --catalog-id rather than
 # creating one, this guard is essential; after create_ml_catalog the session is
 # already proven.) `is_authenticated()` is the real check — there is no
-# `check_auth=` constructor kwarg. See /deriva-ml:deriva-ml-context →
-# "Confirm authentication before the first catalog operation".
+# `check_auth=` constructor kwarg. See /deriva-ml:execution-lifecycle →
+# references/authentication.md.
 if not ml.is_authenticated():
     raise SystemExit("Not authenticated to ml.example.org — run: deriva-globus-auth-utils login --host ml.example.org")
 
@@ -159,8 +159,6 @@ File ingest is **two separate executions**, and the split is what records source
 The `materialize=False` Input declaration is the **catalog-recorded lineage edge** from the source File dataset to the upload execution — an uploaded asset traces back to the exact source file it came from. A single execution cannot express this edge; that is why it is two. (`materialize=False` is **required** — the File rows' `tag://` URLs cannot be materialized into a bag.)
 
 Don't re-implement the mechanics — `/deriva-ml:work-with-assets` owns them: `register_files_template.py` (the `add_files` Input path) and `upload_asset.py` (the `asset_file_path` Output path). The loader's `register_phase_template.py` / `upload_phase_template.py` wire them into the two-execution shape.
-
-> **Prerequisite — deriva-ml >= 1.51.14.** The `add_files` directory-tree nesting needs ≥ 1.51.14, and the upload phase's `DatasetSpec(materialize=False)` input requires the same line. Pin it in your `pyproject.toml`.
 
 #### Post-load (MCP, not the loader): refresh the search index
 
@@ -240,7 +238,7 @@ The defaults (`UPLOAD_IF_MISSING`, complete-provenance `terminal_tables`, `Dangl
 
 ## Related Skills
 
-- **`/deriva-ml:setup-derivaml-project`** *(this plugin)* — Sets up the code repo (uv, pyproject.toml, conventions) that will read/write whichever catalog you set up here. Independent; do these in either order.
+- **`/deriva-ml:start-project`** *(this plugin)* — The end-to-end cold start: the code repo (from the model template) that will read/write whichever catalog you set up here, and the order of the steps around this skill.
 - **`/deriva-ml:dataset-lifecycle`** *(this plugin)* — Once the catalog is populated, this is where dataset work starts.
 - **`/deriva-ml:work-with-assets`** *(this plugin)* — Owns the file-ingest mechanics the register and upload phases use: `register_files_template.py` (`add_files` input registration) and `upload_asset.py` (`asset_file_path` output upload).
 - **`/deriva-ml:execution-lifecycle`** *(this plugin)* — Running workflows against the new catalog.

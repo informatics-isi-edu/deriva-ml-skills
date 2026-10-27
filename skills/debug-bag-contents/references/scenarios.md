@@ -145,7 +145,7 @@ Add records from intermediate tables as direct dataset members rather than relyi
 **Problem**: The bag reflects an older version of the dataset, missing recently added members.
 
 **Fix**:
-- **Tool (ADR-0003 dev/release model)**: any membership change since the last release will have flipped `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", bump="minor", description="...")` to promote the dev period to a new released version that captures current membership.
+- **Tool (dev/release model)**: any membership change since the last release will have flipped `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", bump="minor", description="...")` to promote the dev period to a new released version that captures current membership.
 - Re-export the bag after releasing — `download_dataset_bag` does not yet accept dev labels (tracked at deriva-ml#89), so the release step is required before the download.
 
 ### Records exist but FK not established

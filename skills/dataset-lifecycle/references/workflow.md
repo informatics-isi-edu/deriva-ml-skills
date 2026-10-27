@@ -11,7 +11,7 @@ Step-by-step MCP tool examples for creating and managing datasets. For backgroun
 3. [Managing Members](#managing-members) — Add, remove, validate, list
 4. [Splitting Datasets](#splitting-datasets) — Random, stratified, labeled, predicate-based, partition_by, dry run, navigation
 5. [Subsampling Datasets](#subsampling-datasets) — Stratified single-output sample, peer to split_dataset
-6. [Versioning](#versioning-adr-0003-devrelease-model) — When and how to increment (ADR-0003 dev/release model)
+6. [Versioning](#versioning-devrelease-model) — When and how to increment (dev/release model)
 7. [Downloading](#downloading) — Preview and download
 8. [Provenance](#provenance) — Track dataset lineage
 9. [Deleting](#deleting) — Remove datasets
@@ -250,9 +250,9 @@ exe.commit_output_assets(clean_folder=True)
 
 `subsample` returns a `SubsampleResult` carrying `.rid`, `.version`, and `.size` (member count). On `dry_run=True`, `.rid` and `.version` are `"(dry run)"` placeholders and `.size` reflects the planned count.
 
-## Versioning (ADR-0003 dev/release model)
+## Versioning (dev/release model)
 
-Per ADR-0003, datasets are at one of two version states at any moment:
+Datasets are at one of two version states at any moment:
 
 - **Released** (`0.4.0`) — frozen snapshot, citable, reproducible.
 - **Dev** (`0.4.0.post1.dev3`) — mutable working state. PEP 440 dev-release suffix marks "drift since the last release"; cite URLs resolve to the live catalog.

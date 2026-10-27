@@ -1,24 +1,58 @@
 # DerivaML Python Idioms — worked detail
 
-Extended detail for two conventions whose *rules* live inline in the
-`deriva-ml-context` skill body: carrying structure end-to-end, and the
-`find_*` vs `list_*` accessor split. The skill body carries the rule and the
-quick table; this file carries the worked examples and the exhaustive
-call tables. Read it when you want the fully-worked illustration.
+Python conventions for code that uses the `deriva-ml` library: reading domain
+objects by attribute, carrying structure end-to-end, and the `find_*` vs
+`list_*` accessor split. Read this before writing analysis or pipeline code
+against DerivaML objects.
 
 ## Contents
 
+- [Use direct attribute access on domain objects](#use-direct-attribute-access-on-domain-objects)
+- [Carry structure, don't decay it](#carry-structure-dont-decay-it)
 - [Carry structure — worked examples](#carry-structure--worked-examples)
 - [`find_*` vs `list_*` — full call table](#find_-vs-list_--full-call-table)
 
+## Use direct attribute access on domain objects
+
+Datasets, Workflows, Executions, Features, and Assets come back as **typed records** (Pydantic models / DerivaML
+domain objects), not raw dicts or row-tuples. Read their fields with the dot
+operator:
+
+- `Dataset`: `.dataset_rid`, `.current_version`, `.dataset_types`, `.description`
+- `Execution`: `.execution_rid`, `.status`, `.workflow`, `.description`
+- `Workflow`: `.workflow_rid`, `.workflow_type`, `.url`, `.checksum`
+- `FeatureRecord`: one attribute per feature column (`.Diagnosis_Type`,
+  `.Confidence`, …) plus `.Execution`, `.Feature_Name`, `.RCT`
+- `Asset`: `.asset_rid`, `.filename`, `.length`, `.md5`, `.asset_types`
+
+`print(obj)` spells out the field names — faster than guessing.
+
+**Do not use `getattr(obj, "name", default)` on these objects.** A wrong name
+should raise `AttributeError` so you fix the call; `getattr(d, "version", "?")`
+quietly returns `"?"` when the real field is `current_version`, and the bug
+ships. Reserve `getattr` for reflecting over genuinely unknown attribute names
+(columns a user supplied at runtime, debug-printing arbitrary records).
+
+## Carry structure, don't decay it
+
+**When data has a known shape, carry it in a container that knows the shape**,
+end-to-end through the analysis:
+
+| Shape | Container | Why |
+|---|---|---|
+| One record (a row, a config, a ranking entry) | `@dataclass` or Pydantic `BaseModel` | Named fields, typo-checked at definition, readable `repr()` |
+| Many records of one shape (query result, denormalized dataset, prediction table) | `pandas.DataFrame` (or polars) | Named columns, tracked dtypes, first-class join/aggregate. `get_denormalized_as_dataframe()` already returns one — keep it. |
+| A few labeled tables that belong together | `@dataclass` of DataFrames, or `dict[str, DataFrame]` if names are dynamic | Outer container shows the relationship; inner frames keep their schemas |
+| Genuinely schemaless (arbitrary YAML blobs, MCP responses inspected interactively) | `dict` with `.get(key, default)` — *only* here | No contract, so defensive lookup is correct |
+
+**Don't downgrade**: no DataFrame → list-of-dicts, Pydantic record → dict, or
+`@dataclass` → tuple. Each downgrade trades a schema for stringly-typed lookups,
+and the symptoms are silent: `row["confidence"]` returning `None` because the
+column is `Confidence`, `result.get("status")` masking a renamed field.
+
 ## Carry structure — worked examples
 
-The rule (in the skill body): **when data has a known shape, carry it in a
-container that knows the shape**, end-to-end — don't downgrade a typed
-`Execution` to a dict, a DataFrame to a list-of-dicts, or a `@dataclass` to a
-tuple. Each downgrade trades a real schema for stringly-typed lookups, and every
-downstream call site pays the cost. These two examples show the downgrade
-failure mode concretely.
+These two examples show the downgrade failure mode concretely.
 
 **Worked example.** You're ranking three executions by top-1 accuracy. Wrong: build a `list[dict]` where each entry is `{"rid": ..., "accuracy": ..., "epochs": ...}` and access via `entry.get("accuracy", 0)`. Right: define `@dataclass class RankingEntry: rid: str; accuracy: float; epochs: int` and access via `entry.accuracy`. The dataclass version catches a typo at the point of construction; the dict version ships a silent zero into your sorted list.
 
@@ -26,7 +60,7 @@ failure mode concretely.
 
 ## `find_*` vs `list_*` — full call table
 
-The rule (in the skill body): **`find_*`** searches the catalog for entities of
+The rule (full taxonomy in `/deriva-ml:api-naming-conventions`): **`find_*`** searches the catalog for entities of
 a kind (the argument is a *filter*); **`list_*`** enumerates things scoped to a
 specific parent entity (the first argument *is the scope*, usually required).
 
