@@ -8,7 +8,7 @@ description: Deleting datasets and the full operations summary tables (creation/
 
 ## Deleting Datasets
 
-Datasets can be soft-deleted (marked as deleted but data preserved in the catalog):
+Deletion is a **soft delete**: it sets the dataset's `Deleted` flag. The dataset row, its members, and its versions stay in the catalog; it just stops appearing in normal listings. A dataset nested inside a parent can't be deleted until it is removed from that parent.
 
 ```
 # MCP — delete a single dataset
@@ -24,7 +24,7 @@ ml.delete_dataset(dataset)
 ml.delete_dataset(dataset, recurse=True)
 ```
 
-Deletion removes the dataset container and member associations, not the member records themselves. The underlying Image, Subject, etc. records remain in the catalog.
+Nothing else changes: member links and the member records (Image, Subject, …) remain, so past executions that consumed the dataset still resolve.
 
 ## Operations Summary
 
@@ -37,7 +37,7 @@ Deletion removes the dataset container and member associations, not the member r
 | Remove types | `deriva_ml_update_dataset(dataset_rid, dataset_types=[...])` | `dataset.remove_dataset_type()` | Set-style: pass the reduced list |
 | Create custom type | `add_term(schema="deriva-ml", table="Dataset_Type", ...)` | `ml.add_term(MLVocab.dataset_type, ...)` | Generic add_term |
 | Register element type | `deriva_ml_add_dataset_element_type` | `ml.add_dataset_element_type()` | Catalog-level, idempotent |
-| Add members | `deriva_ml_add_dataset_members` | `dataset.add_dataset_members()` | Auto-increments version |
+| Add members | `deriva_ml_add_dataset_members` | `dataset.add_dataset_members()` | Moves the dataset to a dev version |
 | Remove members | `deriva_ml_delete_dataset_members` | `dataset.delete_dataset_members()` | |
 | Split | *(script only)* | `split_dataset(ml, source_rid, exe, ...)` | Run from a script that opens an execution. Children auto-tagged with `Split_Partition` + role; source recorded as execution input, not Dataset_Dataset parent |
 | Subsample | *(script only)* | `subsample(ml, source_rid, exe, size=, ...)` | Single output; stratified by `stratify_by_column`. Output auto-tagged `Subsample`; source recorded as execution input |
@@ -50,7 +50,7 @@ Deletion removes the dataset container and member associations, not the member r
 
 | Operation | MCP Tool | Python API | Notes |
 |-----------|----------|------------|-------|
-| Find datasets | `rag_search("...", doc_type="catalog-data")` or `deriva_ml_list_datasets` | `ml.find_datasets()` | RAG for discovery; typed list for full surface |
+| Find datasets | `rag_search("...", doc_type="ml-dataset")` or `deriva_ml_list_datasets` | `ml.find_datasets()` | RAG for discovery; typed list for full surface |
 | Lookup by RID | `deriva_ml_get_dataset(rid)` | `ml.lookup_dataset(rid)` | Get specific dataset |
 | List members | `deriva_ml_list_dataset_members` | `dataset.list_dataset_members()` | Grouped by table; supports `version`, `recurse`, `limit` |
 | List relations (parents + children) | `deriva_ml_list_dataset_relations` | `dataset.list_dataset_children()` / `dataset.list_dataset_parents()` | MCP tool returns both directions in one call; the Python API has separate child/parent calls. Both support `recurse`, `version` |

@@ -41,11 +41,11 @@ Before generating anything, verify the project has the required infrastructure. 
 
 2. **Config file** — Check if `src/configs/dataset_generation.py` exists. If not, create it with `script_store = store(group="script_config")` and a `script_store(None, name="none")` placeholder.
 
-3. **Workflow config** — Check if `DatasetGenerationWorkflow` exists in `src/configs/workflow.py`. If not, add it with `workflow_type="Dataset_Generation"` and register as `name="dataset_generation"`.
+3. **Workflow config** — Check if `DatasetGenerationWorkflow` exists in `src/configs/workflow.py`. If not, add it with `workflow_type="Dataset_Management"` (a built-in term) and register as `name="dataset_generation"`.
 
 4. **Base config** — Check if `script_config` appears in the hydra_defaults list in `src/configs/base.py` (or `model.py`). If not, add `{"optional script_config": "none"}` to the defaults.
 
-5. **Workflow types** — Check if `Dataset_Generation` exists in the catalog's `Workflow_Type` vocabulary. If not, add it via `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Workflow_Type", name="Dataset_Generation", description="...")`.
+5. **Workflow types** — `Dataset_Management` is seeded in every DerivaML catalog, so nothing to add. Add a more specific `Workflow_Type` term only if the project wants one.
 
 ## Subset workflow
 
@@ -75,14 +75,14 @@ Read `../scripts/generate_subset_template.py` and fill in the placeholders (`{{F
 
 - `list_dataset_members()` returns `dict[str, list[dict]]` keyed by table name — no positional table filter arg
 - `pathBuilder()` is a method (needs `()`), not a property
-- Dataset has no `add_child` method — use `pathBuilder().schemas["deriva-ml"].tables["Dataset_Dataset"].insert()`, or via MCP add the child as a member of element-type Dataset: `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})`
+- Dataset has no `add_child` method — nest by adding the child as a member of element type `Dataset`: `parent.add_dataset_members({"Dataset": [child_rid]})` in Python, or `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` over MCP. Never insert into `Dataset_Dataset` directly; that skips the version bookkeeping.
 - `add_dataset_members(members=rids)` takes a list of RIDs or `{table: [rids]}` dict
 
 If the user needs a custom filter not in the built-in registry, write the filter function in the same file and register it with `@register_filter("name", requires_data=True/False)`.
 
 ### Step 4: Generate config + experiment
 
-Add a named config to `src/configs/dataset_generation.py` using `builds(generate_function, ...)` with the filter name, params, source dataset RIDs, and output metadata. For `requires_data=True` filters, include `include_tables` and `exclude_tables` (to avoid FK path timeouts on large catalogs). Also register a `script_store(None, name="none")` placeholder if one doesn't exist. Add an experiment entry to `src/configs/experiments.py` with `script_config=MISSING` (from `hydra_zen`) to force Hydra to fill it from the defaults list rather than inheriting `None` from the base config.
+Add a named config to `src/configs/dataset_generation.py` using `builds(generate_function, ...)` with the filter name, params, source dataset RIDs, **a released `source_version`**, and output metadata. For `requires_data=True` filters, include `include_tables` and `exclude_tables` (to avoid FK path timeouts on large catalogs). Also register a `script_store(None, name="none")` placeholder if one doesn't exist. Add an experiment entry to `src/configs/experiments.py` with `script_config=MISSING` (from `hydra_zen`) to force Hydra to fill it from the defaults list rather than inheriting `None` from the base config.
 
 ### Step 5: Dry run
 
@@ -113,7 +113,7 @@ Splitting, subsampling, and curated subsets are all "given a source dataset, pro
 Three quick disambiguations:
 
 - **"Stratified subset"** could mean either `subsample` (single output, samples in proportion to a stratify column) or curated subsets with a stratified filter. Default to `subsample` when the goal is "smaller, in proportion"; default to curated subsets when the goal is "filter by attribute, then maybe partition further."
-- **"Train/test split, but only labeled rows"** is a *filter then split* — see "Filter-then-split" in this file, or pass `stratify_missing="drop"` to `split_dataset` if the labeled-ness is encoded as null/non-null on the stratify column.
+- **"Train/test split, but only labeled rows"** is a *filter then split* — build a curated subset of the labeled rows (the workflow above), then split that; or pass `stratify_missing="drop"` to `split_dataset` if the labeled-ness is encoded as null/non-null on the stratify column.
 - **"Smaller mirror of an existing Split"** is `subsample` called once per child of the Split (Training and Testing each subsampled separately), not a single operation. There is intentionally no `subsample_split` primitive in deriva-ml.
 
 All three produce datasets with full provenance tracking. Bags downloaded with `materialize=False` are cached by checksum, so multiple derived datasets from the same source don't re-download data.

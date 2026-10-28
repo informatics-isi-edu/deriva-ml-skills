@@ -1,10 +1,10 @@
 ---
 type: Concept
-title: Discovering, navigating, using, and downloading datasets
-description: Pre-creation discovery, read-side exploration (members, hierarchies, element types, provenance), consumption patterns, and BDBag download details.
+title: Discovering, navigating, and using datasets
+description: Pre-creation discovery, read-side exploration (members, hierarchies, element types, provenance), and consumption patterns. Bag downloads are in bags.md.
 ---
 
-# Discovering, navigating, using, and downloading datasets
+# Discovering, navigating, and using datasets
 
 **Contents**
 
@@ -21,11 +21,6 @@ description: Pre-creation discovery, read-side exploration (members, hierarchies
   - [Query via MCP tools](#query-via-mcp-tools)
   - [Download as a BDBag](#download-as-a-bdbag)
   - [Use in Python with the Dataset object](#use-in-python-with-the-dataset-object)
-- [Downloading Datasets as Bags](#downloading-datasets-as-bags)
-  - [What a bag contains](#what-a-bag-contains)
-  - [Working with downloaded bags](#working-with-downloaded-bags)
-  - [Restructuring assets for ML frameworks](#restructuring-assets-for-ml-frameworks)
-  - [Previewing before download](#previewing-before-download)
 
 ## Discovering Existing Datasets
 
@@ -34,7 +29,7 @@ Before creating a new dataset, check whether an existing one already serves your
 **MCP tools and resources:**
 ```
 # Search for datasets by description, type, or purpose (preferred for discovery)
-rag_search("your purpose here", doc_type="catalog-data")
+rag_search("your purpose here", doc_type="ml-dataset")
 
 # Full structured list of all datasets — preferred typed form
 deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")
@@ -149,7 +144,7 @@ deriva_ml_list_dataset_relations(hostname="data.example.org", catalog_id="1", da
 
 **When to use recursion:**
 - Use `recurse=false` (default) when you only need the immediate level — e.g., listing the Training/Testing/Validation children of a Split dataset
-- Use `recurse=true` when you need the full tree — e.g., listing all members across a Complete → Split → Training/Testing hierarchy
+- Use `recurse=true` when you need the full tree — e.g., listing all members across a Split → Training/Testing hierarchy (start from the Split; the source dataset it came from is not its parent)
 - Recursive member listing (`deriva_ml_list_dataset_members(..., recurse=true)`) aggregates members from the dataset and all its descendants
 
 ### Checking element types
@@ -223,7 +218,7 @@ training_data = DatasetSpecConfig(
 )
 ```
 
-Use the `deriva_ml_get_dataset_spec` MCP tool to generate the correct config string including the current version. See the `write-hydra-config` and `configure-experiment` skills for how dataset configs integrate into experiment configurations.
+Use the `deriva_ml_get_dataset_spec` MCP tool to generate the config string with the dataset's current version. If that is a dev label, release the dataset first and generate it again; configs pin released versions only. See the `write-hydra-config` and `configure-experiment` skills for how dataset configs integrate into experiment configurations.
 
 ### Query via MCP tools
 
@@ -242,24 +237,7 @@ get_entities(hostname="data.example.org", catalog_id="1", schema="<schema>", tab
 
 ### Download as a BDBag
 
-For production training pipelines and reproducible experiments, download the dataset as a self-contained archive:
-
-```
-# MCP — preview size + manifest first
-deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
-
-# Python API: dataset.download_dataset_bag(dataset_rid="1-ABC4", version="1.0.0")
-```
-
-```python
-# Python API
-bag = dataset.download_dataset_bag(version="1.0.0")
-
-# Within an execution
-bag = exe.download_dataset_bag(DatasetSpec(rid="1-ABC4", version="1.0.0"))
-```
-
-See [Downloading Datasets as Bags](#downloading-datasets-as-bags) for details.
+For training and reproducible experiments, download a released version as a bag. The recipe (preview, pin, download, validate) and every download option are in `bags.md` → "Download recipe".
 
 ### Use in Python with the Dataset object
 
@@ -282,66 +260,4 @@ images_df = bag.get_table_as_dataframe("Image")
 subjects_df = bag.get_table_as_dataframe("Subject")
 ```
 
-## Downloading Datasets as Bags
-
-Datasets can be downloaded as **BDBag** archives — self-describing, checksummed packages containing all member records, related data, asset files, feature values, and vocabulary terms. The same dataset RID + version always produces the same bag.
-
-### What a bag contains
-
-1. **Member records** — CSV files per table for all records that belong to the dataset
-2. **Related records** — data from tables reachable via FK paths from member records
-3. **Nested datasets** — child datasets included recursively with all their members
-4. **Feature values** — all feature annotations for dataset members
-5. **Vocabulary terms** — controlled vocabulary terms referenced by included records
-6. **Asset files** — binary files (images, model weights) when `materialize=True`
-7. **Checksums** — cryptographic checksums for integrity verification
-
-### Working with downloaded bags
-
-```python
-bag = dataset.download_dataset_bag(version="1.0.0", materialize=True)
-
-# Access tables as DataFrames
-images_df = bag.get_table_as_dataframe("Image")
-subjects_df = bag.get_table_as_dataframe("Subject")
-
-# Access the local filesystem path
-print(f"Bag path: {bag.path}")
-```
-
-### Restructuring assets for ML frameworks
-
-After downloading, organize files into the directory structure expected by ML frameworks (e.g., PyTorch ImageFolder):
-
-```python
-bag.restructure_assets(
-    asset_table="Image",
-    output_dir=Path("./ml_data"),
-    targets=["Diagnosis"],
-)
-```
-
-Creates:
-```
-ml_data/
-  Training/
-    Normal/image1.jpg
-    Abnormal/image2.jpg
-  Testing/
-    Normal/image3.jpg
-```
-
-By default, symlinks are used to save disk space. Set `use_symlinks=False` to copy files.
-
-### Previewing before download
-
-```
-# MCP — `deriva_ml_bag_info` returns the size estimate plus the manifest
-deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="1-ABC4", version="1.0.0")
-```
-
-Returns row counts and asset sizes per table. Use this to verify expected tables, estimate disk space, and decide whether to adjust timeout or use `exclude_tables`.
-
-For full details on FK traversal, materialization, caching, timeout handling, and Hydra-zen configuration options, see `bags.md`.
-
-For diagnosing missing data in bag exports, see the `debug-bag-contents` skill.
+What a bag contains, how its contents are chosen, caching, and slow-download fixes: `bags.md`. Turning a bag into training data (DataFrames, `restructure_assets` for ImageFolder): `/deriva-ml:ml-data-engineering`. Missing data in a bag: `/deriva-ml:debug-bag-contents` †.

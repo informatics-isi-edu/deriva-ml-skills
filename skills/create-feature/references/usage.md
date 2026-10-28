@@ -98,12 +98,12 @@ Note: `select_by_workflow` is not available on bags since it requires live catal
 
 ### In deriva_ml_denormalize_dataset
 
-Feature tables can be included in denormalization. Column names follow the pattern `{FeatureTableName}_{ColumnName}`:
+Feature tables can be included in denormalization. Column names use dot notation, `{FeatureTableName}.{ColumnName}`:
 
 ```
 # Schema exploration (no dataset needed)
 deriva_ml_denormalize_dataset(hostname="data.example.org", catalog_id="1", include_tables=["Image", "Image_Classification"])
-# Produces columns like: Image_RID, Image_Filename, Image_Classification_Image_Class
+# Produces columns like: Image.RID, Image.Filename, Image_Classification.Image_Class
 ```
 
 This is how the `stratify_by_column` parameter in the Python `split_dataset(ml, source_rid, exe, ...)` API references feature columns.

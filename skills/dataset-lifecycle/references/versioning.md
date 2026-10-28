@@ -43,7 +43,7 @@ PEP 440 release segments (the X.Y.Z portion):
 | Segment | Bump when | Examples |
 |-----------|-------------------|----------|
 | **Major** (X.0.0) | Breaking changes, schema modifications | Table columns added/removed, restructured tables |
-| **Minor** (0.X.0) | New data, new features, non-breaking additions | Members added, new feature annotations, split created |
+| **Minor** (0.X.0) | New data, new features, non-breaking additions | Members added, new feature annotations |
 | **Patch** (0.0.X) | Bug fixes, metadata corrections | Fixed mislabeled records, corrected metadata, typo fixes |
 
 DerivaML assigns version `0.1.0` (released) when a dataset is created. After that, mutations flip to dev, and `deriva_ml_release_dataset` is the only operation that mints a new released version.
@@ -54,7 +54,7 @@ Each **released** version is tied to a catalog snapshot timestamp. When you down
 
 **Dev versions have no snapshot.** They resolve to whatever the catalog has right now. Two reads of the same dev label at different times may differ if the catalog drifted between them. Dev labels are notational, not citational.
 
-**If you've modified data since the last release** (added features, updated records, corrected labels via the dataset API), those changes are NOT included in any released version — they live on the dev row. Call `deriva_ml_release_dataset` to promote the dev period to a new released version that captures the current state.
+**If you've modified data since the last release** (added features, updated records, corrected labels via the dataset API), those changes are NOT included in any released version. Member and type changes move the dataset to a dev version automatically; feature-value changes don't, so call `dataset.mark_dev(description)` first. Call `deriva_ml_release_dataset` to promote the dev period to a new released version that captures the current state.
 
 ### Mutations land on dev
 
@@ -64,9 +64,9 @@ The "every mutation lands on dev" rule:
 |---|---|
 | `deriva_ml_add_dataset_members` | Flip to `<last_release>.post1.dev1` (or advance `.devN` if dev row exists) |
 | `deriva_ml_delete_dataset_members` | Flip to dev (advance `.devN`) |
-| `split_dataset` | Flip to dev (advance `.devN`) |
-| Adding a feature value (via `exe.add_features()` from the `populate_feature_values.py` template) | Drift is **not** auto-detected; if you want to record it, call `dataset.mark_dev(description)` from the Python API |
-| `deriva_ml_release_dataset(bump, description)` | Promote dev row to released `<bumped>.<from>.<last_release>` |
+| `split_dataset` / `subsample` | The **source is untouched**. Each new output is created at `0.1.0` and moves to `0.1.0.post1.dev1` when its members are added — release each output before pinning it |
+| Adding a feature value (via `exe.add_features()` from the `populate_feature_values.py` template) | Does **not** flip the version. `dataset.is_dirty()` will report the drift; call `dataset.mark_dev(description)`, then release |
+| `deriva_ml_release_dataset(bump, description)` | Promote the dev row to a release: the last release with the `bump` part advanced (`0.4.0` + `minor` → `0.5.0`) |
 
 **Things that do NOT flip the dataset to dev:**
 
@@ -114,9 +114,9 @@ Each `DatasetHistory` entry contains:
 
 ### Versioning rules for experiments
 
-1. **Always use explicit versions for real experiments.** Never use "current" or omit the version in production configs. The only acceptable use of "current" is for debugging and dry runs.
-2. **Increment after catalog changes.** If you modify anything that affects dataset contents, increment before running experiments.
-3. **Update configs immediately after incrementing.** The config file should always reference the version you intend to use.
+1. **Always use explicit versions for real experiments.** Never use "current", a dev label, or omit the version in a config.
+2. **Release after catalog changes.** If anything affecting the dataset's contents changed, release it (calling `mark_dev` first for feature-value changes) before running experiments.
+3. **Update configs immediately after releasing.** The config file should always reference the version you intend to use.
 4. **Commit configs before running.** The git commit hash in the execution record should match the config state.
 
 ### Pre-experiment checklist
@@ -127,7 +127,7 @@ Before running any experiment:
 - [ ] Config changes are committed to git
 
 After any catalog modification:
-- [ ] Version has been incremented with a descriptive message
+- [ ] The dataset has been released, with release notes
 - [ ] All affected config files are updated to the new version
 - [ ] Config changes are committed to git
 
@@ -136,9 +136,9 @@ After any catalog modification:
 | Mistake | Problem | Fix |
 |---------|---------|-----|
 | Running without explicit version | Results not reproducible | Always specify version in config |
-| Expecting catalog changes in old versions | Old versions are frozen snapshots | Increment version to capture changes |
+| Expecting catalog changes in old versions | Old versions are frozen snapshots | Release a new version to capture changes |
 | Empty or vague version descriptions | Cannot understand version history | Write specific, informative descriptions |
-| Not updating config after increment | Experiments still use old version | Update config immediately after incrementing |
+| Not updating config after a release | Experiments still use old version | Update config immediately after releasing |
 | Not committing config before running | Git hash doesn't match config state | Always commit, then run |
 
 ## Identifying a Dataset: RID + Version
@@ -157,7 +157,7 @@ DatasetSpec(rid="28EA", version="0.4.0")
 DatasetSpecConfig(rid="28EA", version="0.4.0")
 ```
 
-Use the `deriva_ml_get_dataset_spec` MCP tool to generate the correct `DatasetSpecConfig` string for a dataset, including its current version. The `deriva_ml_get_dataset` tool also shows the current version.
+Use the `deriva_ml_get_dataset_spec` MCP tool to generate the correct `DatasetSpecConfig` string for a dataset, including its current version — if that is a dev label, release first and generate the spec again. The `deriva_ml_get_dataset` tool also shows the current version.
 
 ### Binding to a specific version
 

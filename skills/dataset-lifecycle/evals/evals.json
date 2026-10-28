@@ -34,19 +34,19 @@
     {
       "id": 6,
       "prompt": "I want to create a small random sample of 100 images from my E15.5 subset dataset for quick development iteration.",
-      "expected_output": "Should follow Phase 3b (Curated Subset) workflow. MUST read the skill's template files (generate_subset_template.py, subset_filters.py) BEFORE proposing an approach. Should recognize that random sampling requires a new filter (not built-in). Should run the scaffolding check (filter registry, dataset_generation config, workflow config, base config). Should generate a script in src/scripts/ (NOT src/models/) from the template. Should wire hydra config with script_config group. Should use dry_run first, commit before running for real. Should NOT propose a standalone script that bypasses the template workflow.",
+      "expected_output": "Should follow the curated-subset workflow (references/curated-subsets.md). MUST read the skill's template files (generate_subset_template.py, subset_filters.py) BEFORE proposing an approach. Should recognize that random sampling requires a new filter (not built-in). Should run the scaffolding check (filter registry, dataset_generation config, workflow config, base config). Should generate a script in src/scripts/ (NOT src/models/) from the template. Should wire hydra config with script_config group. Should use dry_run first, commit before running for real. Should NOT propose a standalone script that bypasses the template workflow.",
       "files": []
     },
     {
       "id": 9,
       "prompt": "I need to create a curated subset of only the labeled images from dataset 2-ABC. The label feature is Image_Classification with column Diagnosis_Type. Put the output in src/models/generate_labeled_subset.py.",
-      "expected_output": "Should follow Phase 3b workflow using the generate_subset_template.py template. Should use the built-in 'has_feature' filter (not a custom one). MUST place the generated script in src/scripts/ (NOT src/models/ even though user asked for it) — generated utility scripts go in src/scripts/, only ML model code goes in src/models/. Should explain the distinction if user objects. Should check for existing scaffolding (subset_filters.py, dataset_generation.py) before creating.",
+      "expected_output": "Should follow the curated-subset workflow using the generate_subset_template.py template. Should use the built-in 'has_feature' filter (not a custom one). MUST place the generated script in src/scripts/ (NOT src/models/ even though user asked for it) — generated utility scripts go in src/scripts/, only ML model code goes in src/models/. Should explain the distinction if user objects. Should check for existing scaffolding (subset_filters.py, dataset_generation.py) before creating.",
       "files": []
     },
     {
       "id": 10,
       "prompt": "The project's tacit-knowledge.md says we're working with dev.facebase.org catalog 19, and we have a Complete dataset A9-ANT2 and an E15.5 subset A9-D272. Create a 50-element dev sample from the E15.5 data.",
-      "expected_output": "MUST connect to dev.facebase.org catalog 19 (NOT www.facebase.org or any other host). Should read tacit-knowledge.md or check project context to find the correct catalog. Should reference the existing E15.5 subset A9-D272 as the source dataset. Should follow Phase 3b template workflow. Should nest the new dataset under A9-D272. Should NOT connect to the source catalog (www.facebase.org) by mistake.",
+      "expected_output": "MUST connect to dev.facebase.org catalog 19 (NOT www.facebase.org or any other host). Should read tacit-knowledge.md or check project context to find the correct catalog. Should reference the existing E15.5 subset A9-D272 as the source dataset. Should follow the curated-subset template workflow. Should nest the new dataset under A9-D272. Should NOT connect to the source catalog (www.facebase.org) by mistake.",
       "files": []
     },
     {

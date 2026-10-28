@@ -117,7 +117,7 @@ After a run, check the execution:
 deriva_ml_get_execution(hostname, catalog_id, execution_rid="<rid>")
 ```
 
-Or read the resource `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{rid}`, or `cite(hostname, catalog_id, rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Uploaded`, correct inputs linked, output assets attached, git hash matches.
+Or read the resource `deriva://catalog/{hostname}/{catalog_id}/deriva-ml/execution/{rid}`, or `cite(hostname, catalog_id, schema="deriva-ml", table="Execution", rid="<rid>", current=true)` for a Chaise URL. Verify: status is `Uploaded`, correct inputs linked, output assets attached, git hash matches.
 
 ### Proactively offer to wire output assets into `src/configs/assets.py`
 

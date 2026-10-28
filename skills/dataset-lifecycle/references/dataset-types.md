@@ -15,8 +15,12 @@ description: What a dataset is, Dataset_Type vocabulary (three axes — role, co
   - [Why the role/origin distinction matters in practice](#why-the-roleorigin-distinction-matters-in-practice)
   - [Types are orthogonal tags](#types-are-orthogonal-tags)
   - [Creating custom types](#creating-custom-types)
+  - [When to add a custom type](#when-to-add-a-custom-type)
   - [How `split_dataset` assigns types](#how-split_dataset-assigns-types)
   - [How `subsample` assigns types](#how-subsample-assigns-types)
+  - [Composing types](#composing-types)
+  - [`Dataset_Type` is the primary signal of what a dataset is for](#dataset_type-is-the-primary-signal-of-what-a-dataset-is-for)
+  - [Examples](#examples)
 - [Dataset Element Types](#dataset-element-types)
   - [Why element types matter for planning](#why-element-types-matter-for-planning)
   - [Registering element types](#registering-element-types)
@@ -77,6 +81,8 @@ Without the origin axis, the query *"find every training partition of a split"* 
 - *corpus-role training* — `Training` ∧ ¬`Split_Partition` ∧ ¬`Subsample`
 - *subsampled training data* — `Training` ∧ `Subsample`
 
+The origin tags deliberately duplicate a fact the execution graph also records: they are a fast signal for filters and discovery, not the truth. The truth is `producing_execution.list_input_datasets()`.
+
 ### Types are orthogonal tags
 
 Types describe independent dimensions. A dataset gets one or more tags from each relevant dimension. The key principle is that types from different dimensions compose freely — they are not alternatives to each other but describe different aspects of the dataset.
@@ -104,7 +110,21 @@ Or in Python: `ml.add_term(MLVocab.dataset_type, ...)`. Before creating, check e
 
 > **Need a brand-new vocabulary table?** `add_term` extends an existing vocabulary table; to create a new one (a domain-specific vocabulary like `Tumor_Grade`), use `deriva_ml_create_vocabulary(...)`. See `deriva-ml-context/references/built-in-vocabularies.md` ("Creating a new vocabulary") for the rationale (curie prefix, default schema, navbar refresh) and the canonical call shape.
 
-For DerivaML-specific guidance on `Dataset_Type` (built-in dimensions, composing types on a Dataset, worked examples), see `type-naming-strategy.md`. For the **generic vocabulary design principles** that this guidance builds on (orthogonal tagging, dimension identification, naming conventions, anti-patterns, the substitution test, semantic checking) — applicable to all four DerivaML vocabularies and any custom domain vocabulary — see the deriva-skills `manage-vocabulary` skill in `deriva-skills` at `skills/manage-vocabulary/references/term-naming-strategy.md`.
+For the generic vocabulary design rules this builds on (naming, orthogonal tagging, the substitution test, anti-patterns), see `/deriva:entity-naming` † and `/deriva:manage-vocabulary` † *(deriva-skills)*; they apply to every DerivaML vocabulary and to domain vocabularies.
+
+### When to add a custom type
+
+The built-in axes cover role, content (labeled or not), and origin. Real catalogs almost always need additional dimensions. Common categories that emerge in practice:
+
+- **Content or modality** — what kind of data is in the dataset? (`Fundus`, `OCT`, `CT`, `MRI` for imaging modality; `Genomic`, `Clinical`, `Imaging` for data domain)
+- **Source or provenance** — where did the data come from? (`Cohort_A`, `Cohort_B`; `Synthetic`, `Real_World`; `External`, `Internal`)
+- **Purpose or stage** — what's the dataset for? (`Pilot`, `Production`; `Augmented`, `Preprocessed`; `Benchmark`)
+- **Quality or curation level** — `Curated`, `Raw`; `Expert_Reviewed`, `Auto_Generated`
+
+Before adding a custom type to `Dataset_Type`, two checks:
+
+1. **Does this dimension belong here, or in its own vocabulary?** DerivaML keeps everything in `Dataset_Type` for simplicity, but the same anti-pattern that punishes overloaded vocabularies applies — when a dimension is large or distinctive, splitting it out as e.g. a separate `Image_Modality` vocabulary that records reference via FK is often cleaner than piling more terms into `Dataset_Type`. `/deriva:manage-vocabulary` † *(deriva-skills)* covers the trade-off ("Orthogonal vocabularies" section in its SKILL.md).
+2. **Run the substitution test** against existing terms. The deriva-skills reference covers the test in detail. Specifically for `Dataset_Type`: anything that swaps cleanly with `Training`, `Testing`, `Validation`, `Labeled`, `Unlabeled`, etc. is a near-duplicate and should probably be a synonym, not a new term.
 
 ### How `split_dataset` assigns types
 
@@ -126,6 +146,77 @@ The Python API `subsample(ml, source_rid, exe, size=N, ...)` produces a single o
 - Role-axis tags do **not** inherit from the source. A `Testing` source produces a subsample tagged only with what the caller specifies.
 
 The source/subsample relationship is **not** a `Dataset_Dataset` edge — the source is recorded as an *input of the producing execution*, mirroring `split_dataset`'s design. Reach the source via `subsample_output.producing_execution.list_input_datasets()`, not via `list_dataset_parents()`.
+
+### Composing types
+
+#### A well-typed dataset reads like a description
+
+When you list a dataset's types in declaration order, you should get a coherent near-sentence:
+
+```
+Types: [Complete, Labeled]            → "the complete labeled dataset"
+Types: [Training, Labeled, Fundus]    → "a labeled fundus training set"
+Types: [Testing, Augmented]           → "an augmented testing set"
+```
+
+If the type list doesn't read as coherent, that's a signal something is wrong — either the dataset is under-tagged (a relevant dimension is missing) or one of the types is encoding a hierarchy (the `TrainingLabeled` anti-pattern surfacing as a single tag that *sounds* coherent but should have been two independent tags).
+
+### `Dataset_Type` is the primary signal of what a dataset is for
+
+Type definition and type consumption are symmetric. The types you assign in this phase are the catalog's **primary, structured record of what a dataset is for** — and any consumer asking "what should I use this dataset for?" should look at `Dataset_Type` first. A person browsing the catalog, a CLI picking the right bag for an experiment, a notebook deciding which dataset to load, a training-loop dispatching across multiple inputs — all of them are answering the same question, and the catalog's typing mechanism is what they should be answering it from.
+
+The dataset **description** is a legitimate secondary signal — it's the human-readable prose that explains the *why* and the nuance that controlled vocabularies can't encode. A reader can consult the description for context the types don't carry (composition details, curation history, sampling rationale). But description is **advisory**, not authoritative: it's free-text that can drift, that no consumer can reliably dispatch on, and that exists to supplement the typed dimensions, not to replace them. **Prefer modeling purpose with one or more `Dataset_Type` terms.** If a distinction matters enough that code or a person will route on it, it belongs in the vocabulary; if it's only ever read by humans for context, the description is the right home.
+
+The anti-patterns this principle exists to rule out — each is a workaround that the typed vocabulary already covers properly:
+
+- **Dispatching on dataset name.** `if dataset.name.startswith("train"): ...`, or `if "validation" in dataset.name: ...`. Names are human-readable handles, not contracts. Renaming a dataset breaks the consumer; using a non-conforming name silently bypasses it. The catalog's vocabulary exists precisely so name strings don't have to be load-bearing.
+- **Dispatching on a private translation table.** A hand-maintained dict that maps catalog terms into a consumer-local vocabulary (`{"Training": "train_lane", "Testing": "test_lane"}`). The dict ossifies: when someone `add_term`s a new `Dataset_Type` value (e.g., `Validation`, `Calibration`), the consumer silently treats it as unknown and either errors confusingly or — worse — drops the dataset and produces a result that looks fine. The catalog's vocabulary is the only translation table that should exist; add new types by extending it, and the consumer registers handlers against catalog terms directly.
+- **Dispatching on out-of-band metadata.** File path conventions, sidecar JSON, RID-prefix heuristics, position in an input list ("the first bag is training"), the contents of an unrelated config file. These signal that the catalog wasn't trusted to carry the answer; the convention will diverge and a future reader won't know which side is authoritative.
+- **Parsing the description for routing keywords.** Description is human prose — phrasing varies (`"holdout set"`, `"held-out for evaluation"`, `"never seen during training"` all mean the same thing) — and substring or regex matches on it are as brittle as name matching. If purpose needs to drive a decision, lift it into the vocabulary; leave the description for the nuance the types can't capture.
+
+If the type is missing or wrong on a dataset you're trying to consume, the right move is **not** to add a workaround in the consumer — it's to fix the catalog. `deriva_ml_update_dataset(dataset_types=[...])` is cheap; the next reader inherits a correct answer instead of having to reinvent your workaround.
+
+Two implementation conventions that follow from this principle:
+
+- **Separate role terms from qualifiers.** `Training`/`Testing`/`Validation` are partition roles; `Complete` and `Split` are structural roles; `Labeled` and the domain tags are content (see "A well-typed dataset reads like a description" above). A consumer deciding what to *do* with a dataset is dispatching on the role term; the qualifiers describe properties of the dataset but don't change the decision.
+- **Unknown types should fail loudly, not silently drop.** When a consumer encounters a `Dataset_Type` it has no handler for, the right behavior is a clear error or warning that names the unrecognized type — never a silent skip. A consumer that filters out unknown types without saying so will produce results that look correct but are missing data, and the failure mode is invisible until someone goes looking.
+
+### Examples
+
+#### Good: an ophthalmology imaging catalog
+
+**Vocabulary structure:** `Dataset_Type` extended with two domain dimensions on top of the built-in axes.
+
+| Dimension | Types | Rationale |
+|-----------|-------|-----------|
+| Partition role (built-in) | `Training`, `Testing`, `Validation`, `Complete`, `Split` | Mutually exclusive role of the dataset in an ML workflow |
+| Annotation status (built-in) | `Labeled`, `Unlabeled` | Independent of partition role |
+| Imaging modality | `Fundus`, `OCT`, `External_Photo` | Domain-specific, mutually exclusive |
+| Curation level | `Expert_Reviewed`, `Auto_Generated` | How annotations were produced |
+
+**Well-typed datasets in this catalog:**
+
+| Dataset | Types | Reading |
+|---------|-------|---------|
+| All labeled fundus images | `Complete`, `Labeled`, `Fundus` | "The complete labeled fundus collection" |
+| Training split with expert labels | `Training`, `Labeled`, `Fundus`, `Expert_Reviewed` | "An expert-reviewed labeled fundus training set" |
+| Unlabeled OCT for prediction | `Testing`, `Unlabeled`, `OCT` | "An unlabeled OCT testing set" |
+| Quick dev subset | `Training`, `Labeled`, `Fundus` | "Same dimensions as the full training set, just fewer members" |
+
+Each dataset reads coherently because each tag describes a different dimension. Filtering composes naturally — "show me all labeled fundus datasets" is a query across two independent tags, not enumeration of compound terms.
+
+#### Bad: the same catalog with compound tags
+
+If the catalog had encoded all dimensions as compound terms in `Dataset_Type`:
+
+| Type | Problem |
+|------|---------|
+| `TrainingLabeledFundus` | Three dimensions in one tag |
+| `TestingOCT` | Two dimensions in one tag |
+| `FundusExpertTraining` | Three dimensions, unclear ordering |
+| `UnlabeledPrediction` | Mixes annotation status with workflow stage |
+
+This vocabulary needs 2 × 3 × 2 = 12 compound terms to cover the same space that 9 independent terms cover. Adding a fourth dimension (e.g., 3 cohort sources) requires 36 compound terms vs 12 independent ones — combinatorial explosion. Filtering "all labeled datasets" requires enumerating every compound containing `Labeled`. This is the compound-tag anti-pattern from the deriva-skills reference, in concrete form.
 
 ## Dataset Element Types
 
@@ -153,7 +244,7 @@ for table in element_types:
 
 ```
 # MCP
-deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", element_table="Image")
+deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", table_name="Image")
 ```
 
 ```python
@@ -164,7 +255,7 @@ ml.add_dataset_element_type("Image")
 **Key points:**
 - Registration is idempotent — calling it again for an already-registered table is harmless
 - Common tables to register: `Subject`, `Image` (or other asset tables), `Observation`, and any custom domain tables whose records should be dataset members
-- Element types also determine the starting points for FK traversal during bag export (see [Downloading Datasets as Bags](navigation.md#downloading-datasets-as-bags))
+- Element types also determine the starting points for FK traversal during bag export (see `bags.md`)
 
 ### Element types and bag exports
 

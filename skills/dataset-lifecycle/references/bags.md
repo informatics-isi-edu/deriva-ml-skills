@@ -2,7 +2,7 @@
 
 > **Stateless model:** the new MCP server is stateless — every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
-> **Generic BDBag mechanics live in `/deriva:download-bag`** *(deriva-skills)* — what a bag *is* (BagIt + fetch.txt + manifests), the two export paths (`DerivaExport`, `DerivaDownload` / `deriva-download-cli`), authoring an export spec by hand, the `bdbag` CLI (validate, resolve-fetch, materialize, archive), three-tier caching, the typed exception hierarchy, and the export-annotation route. **This reference covers only what's DerivaML-specific** — how `Dataset` entities wrap the generic mechanics with version pinning, member-driven spec generation, and the `DatasetBag` SQLite-backed API.
+> **Generic BDBag mechanics live in `/deriva:download-bag` †** *(deriva-skills)* — what a bag *is* (BagIt + fetch.txt + manifests), the two export paths (`DerivaExport`, `DerivaDownload` / `deriva-download-cli`), authoring an export spec by hand, the `bdbag` CLI (validate, resolve-fetch, materialize, archive), three-tier caching, the typed exception hierarchy, and the export-annotation route. **This reference covers only what's DerivaML-specific** — how `Dataset` entities wrap the generic mechanics with version pinning, member-driven spec generation, and the `DatasetBag` SQLite-backed API.
 
 ## Table of Contents
 
@@ -11,6 +11,7 @@
 - [Versioning and Reproducibility](#versioning-and-reproducibility)
 - [Materialization](#materialization)
 - [Caching](#caching)
+- [Download recipe](#download-recipe)
 - [Downloading a Bag](#downloading-a-bag)
 - [Previewing Before Download](#previewing-before-download)
 - [Validating Bag Contents](#validating-bag-contents)
@@ -23,13 +24,13 @@
 
 ## What a Dataset Bag Contains
 
-A dataset bag is a BDBag (see `/deriva:download-bag` for the format) whose contents are driven by a DerivaML `Dataset` entity at a specific version. `dataset.download_dataset_bag(version)` generates the export spec automatically from the dataset's members + element types + element-type-reachable FK paths; you don't author the spec by hand.
+A dataset bag is a BDBag (see `/deriva:download-bag` † for the format) whose contents are driven by a DerivaML `Dataset` entity at a specific version. `dataset.download_dataset_bag(version)` generates the export spec automatically from the dataset's members + element types + element-type-reachable FK paths; you don't author the spec by hand.
 
 The downloaded bag is backed by a **SQLite database** — all queries against a `DatasetBag` use SQL under the hood. The `DatasetBag` class mirrors the live `Dataset` API, so code can work uniformly with both live catalog data and downloaded snapshots.
 
 ### Dataset-specific contents
 
-On top of the generic BDBag shape (`bag-info.txt`, `manifest-md5.txt`, `data/records/...`, `data/assets/...`, `schema.json` — see `/deriva:download-bag`), a dataset bag carries:
+On top of the generic BDBag shape (`bag-info.txt`, `manifest-md5.txt`, `data/records/...`, `data/assets/...`, `schema.json` — see `/deriva:download-bag` †), a dataset bag carries:
 
 1. **Member records** — All records from registered element types that belong to the dataset (e.g., Image, Subject rows), stored as CSV files per table and loaded into the bag's SQLite database.
 2. **Related records** — Data from tables reachable via foreign key paths from member records (see [How Bag Contents Are Determined](#how-bag-contents-are-determined)).
@@ -81,13 +82,19 @@ Each bag is tied to a **catalog snapshot** — the exact catalog state at the ti
 - Changes made to the catalog after the version was created (new features, updated records, new members) are **not** included in existing released versions
 - To capture recent changes, mutate the dataset (which lands on a dev version), then call `deriva_ml_release_dataset` to promote the dev period to a new release; download that new released version
 
-> **Common mistake:** A bag does NOT contain everything in the catalog — it contains only what was reachable from the dataset's members at the time the released version was created. If you add new members, upload new feature values, or modify records *after* a release, those changes are invisible to that release. The dataset will flip to a dev version (`<last_release>.post1.devN`) on each mutation; call `deriva_ml_release_dataset` to mint a new released version that captures the current state, then download that. This is the most common source of "my data is missing from the bag" errors.
+> **Common mistake:** A bag contains only what was reachable from the dataset's members at the snapshot of the released version you download. Changes made after that release are invisible to it. Member changes (add or remove members, change types) move the dataset to a dev version automatically; **new feature values on existing members do not**, so call `dataset.mark_dev(description)` after writing them. Either way, call `deriva_ml_release_dataset` to mint a release that captures the current state, then download that. This is the most common source of "my data is missing from the bag".
 
-> **Dev versions and downloads:** `download_dataset_bag` does not yet accept a dev label (the dev row has no snapshot to pin to). If your code mutates a dataset and then tries to download `current_version` without releasing, you'll hit `ValidationError`. Tracked at [deriva-ml#89](https://github.com/informatics-isi-edu/deriva-ml/issues/89); workaround is to call `deriva_ml_release_dataset` between the mutation and the download.
+> **Dev versions and downloads:** a dataset in a dev period can be downloaded at
+> its *current* dev label, but that bag reflects the live catalog, not a snapshot:
+> two downloads of the same dev label can differ if the catalog changed between
+> them. A dev label that is no longer current fails with "Version … does not
+> exist". For anything you will train on, cite, or compare, call
+> `deriva_ml_release_dataset` first and download the released version (ADR-0003
+> in deriva-ml).
 
 ## Materialization
 
-The `materialize=True` default fetches all referenced asset files into the bag (self-contained); `materialize=False` keeps the bag manifest-only and defers asset fetching. See `/deriva:download-bag` "Materialization" for the full mechanics (including `bdbag --resolve-fetch` to materialize selectively after the fact). For validating a bag's contents against the live catalog (manual diff between `ml.lookup_dataset(rid).list_dataset_members(version=...)` and per-table `bag.get_table_as_dict(...)` output), `materialize=False` is sufficient since the comparison is on RIDs only — no asset bytes needed. See `/deriva-ml:debug-bag-contents` Step 6 for the recipe.
+The `materialize=True` default fetches all referenced asset files into the bag (self-contained); `materialize=False` keeps the bag manifest-only and defers asset fetching. See `/deriva:download-bag` † "Materialization" for the full mechanics (including `bdbag --resolve-fetch` to materialize selectively after the fact). For validating a bag's contents against the live catalog (manual diff between `ml.lookup_dataset(rid).list_dataset_members(version=...)` and per-table `bag.get_table_as_dict(...)` output), `materialize=False` is sufficient since the comparison is on RIDs only — no asset bytes needed. See `/deriva-ml:debug-bag-contents` † Step 6 for the recipe.
 
 **Completing a metadata-only or partial bag later — `bag.materialize()`.** A `DatasetBag` that was downloaded `materialize=False`, or left `cached_holey` by an interrupted fetch, can be filled in place with the Python API — no need to re-download or drop to the `bdbag` CLI:
 
@@ -101,9 +108,39 @@ bag = bag.materialize(fetch_concurrency=4)   # fetch all asset bytes in place; r
 
 ## Caching
 
-The generic three-tier cache (local / MINID / generation) is described in `/deriva:download-bag` "Caching". DerivaML extends the cache key to **`{dataset_rid}_{checksum}`** so that two different datasets with coincidentally-identical spec hashes don't collide. The `{rid}@{version}` cache hit is what makes `dataset.download_dataset_bag(version="1.0.0")` deterministic — the same (rid, version) pair always lands in the same cache slot.
+The generic three-tier cache (local / MINID / generation) is described in `/deriva:download-bag` † "Caching". DerivaML extends the cache key to **`{dataset_rid}_{checksum}`** so that two different datasets with coincidentally-identical spec hashes don't collide. The `{rid}@{version}` cache hit is what makes `dataset.download_dataset_bag(version="1.0.0")` deterministic — the same (rid, version) pair always lands in the same cache slot.
 
-The cache location can be configured via the `cache_dir` argument when creating a DerivaML instance. Read the `deriva://storage/cache` resource to see cached bags, and use Python API `ml.clear_cache()` to remove all cached data.
+The cache location can be configured via the `cache_dir` argument when creating a DerivaML instance. The cache lives on the user's machine, so inspecting or clearing it is local Python, not MCP (`/deriva-ml:manage-deriva-storage`).
+
+## Download recipe
+
+The dataset-aware download wraps the generic BDBag export (`/deriva:download-bag` †
+*(deriva-skills)*) with version pinning and a `{rid}@{version}` cache key, so the
+same released `(rid, version)` always produces the same bytes.
+
+1. **Preview** with the `bag-preview` resource or `deriva_ml_bag_info` (below) to
+   confirm the tables and estimate size and time.
+2. **Pin a released version.** Check it exists and isn't a dev label:
+   ```python
+   ds = ml.lookup_dataset("2-XXXX")
+   v = next((h.dataset_version for h in ds.dataset_history()
+             if str(h.dataset_version) == "1.0.0"), None)
+   assert v is not None and not v.is_devrelease
+   ```
+3. **Download:** `bag = ds.download_dataset_bag(version="1.0.0")`, or inside an
+   execution `exe.download_dataset_bag(DatasetSpec(rid="2-XXXX", version="1.0.0"))`
+   so the execution records it as an input.
+4. **Validate** for important runs: compare
+   `ds.list_dataset_members(version="1.0.0")` with the RIDs in each bag table
+   (`/deriva-ml:debug-bag-contents` † Step 6).
+
+| Goal | Option |
+|---|---|
+| Metadata only, no asset bytes | `materialize=False` |
+| Slow download or deep FK chain | `timeout=[10, 1800]` |
+| Prune an expensive FK branch | `exclude_tables=["Institution", "Study"]` |
+| Share by persistent identifier | `use_minid=True` (needs `s3_bucket` on the catalog) |
+| Same options in a hydra-zen config | `DatasetSpecConfig(rid="28EA", version="0.4.0", timeout=[10, 1800], exclude_tables=["Study"])` |
 
 ## Downloading a Bag
 
@@ -151,19 +188,22 @@ deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="2-X
 
 ### bag-preview resource
 
-Read `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` to see projected FK paths and tables without running any size queries.
+Read `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` for the same row counts and asset sizes at the dataset's **current** version with no exclusions — one round trip, no parameters. Use the tool instead to pin a version or preview `exclude_tables`.
 
 ## Validating Bag Contents
 
-Call Python API bag inspection with `dataset_rid` (and optionally `version`) to cross-validate a downloaded bag against the live catalog. Returns a per-table comparison:
+There is no single validation call; compare RID sets yourself. For each table,
+the catalog's members at the version you downloaded
+(`ds.list_dataset_members(version=...)`) should all appear in the bag
+(`bag.get_table_as_dict(table)`):
 
-- **Expected RIDs** — records the catalog says should be in the bag (based on members + FK traversal)
-- **Bag RIDs** — records actually present in the downloaded bag
-- **Missing RIDs** — in catalog but not in bag (indicates traversal or export issue)
-- **Extra RIDs** — in bag but not expected (usually harmless — e.g., from broader FK paths)
-- **PASS/FAIL status** per table
+- **Missing RIDs** (in the catalog, not in the bag) — a traversal or export
+  problem, or a bag from an earlier release.
+- **Extra RIDs** (in the bag, not among the members) — usually harmless: records
+  reached through FK paths.
 
-Use this to verify bag integrity before using it for ML workflows, or to diagnose missing data. See the `debug-bag-contents` skill for a complete diagnostic workflow.
+`materialize=False` is enough, since only RIDs are compared. The full diagnostic
+workflow is `/deriva-ml:debug-bag-contents` † (Step 6).
 
 ## When Downloads Are Slow or Timing Out
 
@@ -248,9 +288,9 @@ Denormalize follows FK chains automatically, including through intermediate tabl
 ### Navigating dataset hierarchy
 
 ```python
-# Both directions of nested relationships in a single call
-relations = bag.list_dataset_children()              # direct parents AND children
-relations = bag.list_dataset_children(recurse=True)  # full ancestor + descendant tree
+children = bag.list_dataset_children()              # datasets nested in this one
+descendants = bag.list_dataset_children(recurse=True)
+parents = bag.list_dataset_parents()                 # datasets this one is nested in
 
 # Element types registered for this dataset
 element_types = bag.list_dataset_element_types()
@@ -369,4 +409,3 @@ DatasetSpecConfig(rid="28EA", version="0.4.0", exclude_tables=["Study", "Institu
 | `deriva://catalog/{h}/{c}/deriva-ml/dataset/{rid}/bag-preview` | Preview FK paths and tables before downloading |
 | `deriva_ml_list_dataset_element_types` | Tables registered as element types (catalog-wide or per-dataset) |
 | `deriva://catalog/{h}/{c}/deriva-ml/vocabularies/deriva-ml` | Browse the deriva-ml vocabularies (Dataset_Type, Workflow_Type, Asset_Type, Execution_Status) |
-| `deriva://storage/cache` | View cached bags |

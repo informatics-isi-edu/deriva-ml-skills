@@ -24,8 +24,7 @@ A development dataset should:
 deriva_ml_add_dataset_element_type(
     hostname="data.example.org",
     catalog_id="1",
-    dataset_rid="<dev_dataset>",
-    element_table="Image",
+    table_name="Image",
 )
 
 # 2. Create the development dataset

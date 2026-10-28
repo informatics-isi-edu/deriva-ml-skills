@@ -1,6 +1,6 @@
 # Dataset Workflow Reference
 
-Step-by-step MCP tool examples for creating and managing datasets. For background concepts, see `concepts.md`. For bag downloads, see `bags.md`.
+Step-by-step MCP tool examples for creating and managing datasets. For background concepts, see `dataset-types.md`, `structure-and-splits.md`, and `versioning.md`. For bag downloads, see `bags.md`.
 
 > Every tool below takes `hostname=` and `catalog_id=` arguments explicitly. Substitute your catalog's hostname (e.g., `"data.example.org"`) and catalog ID (e.g., `"1"`) wherever the examples show them.
 
@@ -29,7 +29,7 @@ Step-by-step MCP tool examples for creating and managing datasets. For backgroun
 
 Before creating a dataset, review what already exists:
 
-- Use `rag_search("your purpose", doc_type="catalog-data")` to find existing datasets by description, type, or purpose. Fall back to `deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")` for the full structured list.
+- Use `rag_search("your purpose", doc_type="ml-dataset")` to find existing datasets by description, type, or purpose. Fall back to `deriva_ml_list_datasets(hostname="data.example.org", catalog_id="1")` for the full structured list.
 - Use `rag_search("dataset types", doc_type="catalog-schema")` to find dataset type terms. Fall back to `list_vocabulary_terms(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type")` for the full list.
 - Call `deriva_ml_list_dataset_element_types(hostname, catalog_id)` to see which tables are registered as element types.
 
@@ -39,8 +39,8 @@ A few dataset operations are pure catalog mutations — no files staged, no exec
 
 **Register element types** (catalog-level, idempotent — one-time setup per dataset shape):
 
-Call `deriva_ml_add_dataset_element_type` with `dataset_rid="2-DS01"`, `element_table="Image"`.
-Call `deriva_ml_add_dataset_element_type` with `dataset_rid="2-DS01"`, `element_table="Subject"`.
+Call `deriva_ml_add_dataset_element_type` with `table_name="Image"`.
+Call `deriva_ml_add_dataset_element_type` with `table_name="Subject"`.
 
 **Update types or descriptions** on an existing dataset: see "Managing Types" below — `deriva_ml_update_dataset` and `deriva_ml_add_dataset_members` carry their own provenance via the `description=` parameter (recorded in version history).
 
@@ -74,7 +74,7 @@ dataset.add_dataset_members(
 )
 ```
 
-Each `add_dataset_members` call auto-increments the dataset version; the description is recorded in version history.
+Each `add_dataset_members` call moves the dataset to a dev version (`.devN`) and records the description there; release it before pinning.
 
 ## Managing Types
 
@@ -86,9 +86,9 @@ To **remove a type**, call `deriva_ml_update_dataset` with the reduced list (the
 
 To **create a new custom type**, call `add_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed", description="...")`.
 
-To **delete a custom type**, call `delete_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed")`.
+To **delete a custom type**, first check nothing uses it (datasets tagged with it, consumers that dispatch on it; the user can run `/deriva-ml:schema-evolution-impact` †), then call `delete_term(hostname="data.example.org", catalog_id="1", schema="deriva-ml", table="Dataset_Type", name="Preprocessed")`.
 
-For more on vocabulary CRUD see `/deriva:manage-vocabulary` *(deriva-skills)*.
+For more on vocabulary CRUD see `/deriva:manage-vocabulary` † *(deriva-skills)*.
 
 ## Managing Members
 
@@ -102,7 +102,7 @@ To **add more members**, call `deriva_ml_add_dataset_members` with:
 - `members`: list of RIDs (or a `{table: [rids]}` dict for the typed form)
 - `description`: why these members are being added (recorded in version history)
 
-This auto-increments the dataset version.
+This moves the dataset to a dev version; release it before an experiment pins it.
 
 To **remove members**, call `deriva_ml_delete_dataset_members` with `hostname`, `catalog_id`, `dataset_rid`, and `members`.
 
@@ -110,28 +110,28 @@ To **remove members**, call `deriva_ml_delete_dataset_members` with `hostname`, 
 
 Splits go through the same script-based pattern as bootstrap and curated-subset operations (`generate-scripts` skill): write a script in `src/scripts/` that opens an execution and calls the Python API. The script's git commit becomes the workflow's url and checksum, so the resulting dataset hierarchy carries honest, reproducible provenance.
 
-The Python API is `deriva_ml.dataset.split.split_dataset(ml, source_rid, exe, ...)`. It follows the same conventions as scikit-learn's [`train_test_split`](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html) — parameters like `test_size`, `train_size`, `shuffle`, `seed`, and stratification work the same way. It auto-increments the dataset version. Always use `dry_run=True` first to preview the split plan.
+The Python API is `deriva_ml.dataset.split.split_dataset(ml, source_rid, exe, ...)`. It follows the same conventions as scikit-learn's [`train_test_split`](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html) — parameters like `test_size`, `train_size`, `shuffle`, `seed`, and stratification work the same way. The source dataset is untouched; each output it creates ends at a dev version, so release the outputs before pinning them. Always use `dry_run=True` first to preview the split plan.
 
 ### The script pattern
 
 Start from the **Base Script Template** in the `generate-scripts` skill (`references/script-patterns.md`) — same CLI args (`--hostname`, `--catalog-id`, `--dry-run`), same connect/configure/run shape, same "no CLI entry point in `pyproject.toml`" rule. Drop the script into `src/scripts/<your_split>.py`. The script body adds these steps on top of the Base Template:
 
 1. **Connect.** `ml = DerivaML(hostname=args.hostname, catalog_id=args.catalog_id)`.
-2. **Ensure vocabulary terms.** Make sure `Workflow_Type` has `"Dataset_Split"` (or whatever your project uses): `ml.add_term("Workflow_Type", "Dataset_Split", description=...)` — idempotent, safe to re-run.
-3. **Register a workflow.** `ml.create_workflow(name="…", workflow_type="Dataset_Split", description="…")`. URL and checksum are filled in automatically from the script's git context.
+2. **Pick the workflow type.** The built-in `Dataset_Management` term covers creating, splitting, and versioning datasets. Add a more specific `Workflow_Type` term only if the project wants one (`add_term(..., schema="deriva-ml", table="Workflow_Type")`).
+3. **Register a workflow.** `ml.create_workflow(name="…", workflow_type="Dataset_Management", description="…")`. URL and checksum are filled in automatically from the script's git context.
 4. **Open an execution.** `with ml.create_execution(ExecutionConfiguration(workflow=workflow, description="…")) as exe:` — the splits happen inside.
 5. **Call `split_dataset(ml, source_rid, exe, ...)`** for each split. Reuse the same `exe` across related splits so the lineage stays coherent.
 6. **Commit.** `exe.commit_output_assets(clean_folder=True)` after the `with` block.
 
 Run with `uv run python src/scripts/<your_split>.py --hostname … --catalog-id … --dry-run` first, inspect the printed plan, then re-run without `--dry-run` to commit.
 
-`split_dataset` requires the open Execution as a positional argument — the produced Split / Training / Testing / Validation datasets all attribute to it. The `_cifar10_datasets.py` script in `deriva-ml-model-template` is a worked example of this pattern applied end-to-end.
+`split_dataset` requires the open Execution as a positional argument — the produced Split / Training / Testing / Validation datasets all attribute to it. The `src/scripts/_cifar10_datasets.py` script in `deriva-ml-cifar-example` is a worked example of this pattern applied end-to-end.
 
 If your split *also* needs to filter members by data values (e.g., "split only the labeled images, stratified by class"), see `curated-subsets.md` and `../scripts/generate_subset_template.py` — that template handles the filter-then-split case directly.
 
 ### Stratified and labeled splits
 
-To maintain class distribution, pass `stratify_by_column=` (a dot-notation column name like `Image_Classification.Image_Class`) and `include_tables=[...]` listing the tables that need to be joined for the denormalization. Use the `denormalize_dataset` MCP tool (read-only) to discover the exact column names before writing the script.
+To maintain class distribution, pass `stratify_by_column=` (a dot-notation column name like `Image_Classification.Image_Class`) and `include_tables=[...]` listing the tables that need to be joined for the denormalization. Use the `deriva_ml_denormalize_dataset` MCP tool (read-only) to discover the exact column names before writing the script.
 
 To label partitions with ground truth metadata (needed for evaluation, ROC curves, etc.), pass `training_types=["Labeled"]`, `testing_types=["Labeled"]`, and/or `validation_types=["Labeled"]`.
 
@@ -145,7 +145,7 @@ To label partitions with ground truth metadata (needed for evaluation, ROC curve
 
 ### Denormalized column naming convention
 
-When `deriva_ml_denormalize_dataset` (or `split_dataset`'s internal stratification) flattens tables into a wide DataFrame, columns are prefixed with their source table name using underscores: `{TableName}_{ColumnName}`. Feature tables often have long names (e.g., `Execution_Image_Image_Classification`) — the full name is used as the prefix. Use `deriva_ml_denormalize_dataset(include_tables=[...])` to see the actual column names if unsure — no dataset RID needed, returns column headers and size estimates without fetching data.
+When `deriva_ml_denormalize_dataset` (or `split_dataset`'s internal stratification) flattens tables into a wide DataFrame, columns are prefixed with their source table name in dot notation: `Table.Column` (e.g. `Image.Filename`, `Image_Class.Name`), with a schema prefix added only when two schemas are involved. Feature tables often have long names — the full table name is the prefix. Use `deriva_ml_denormalize_dataset(include_tables=[...])` to see the actual column names if unsure — no dataset RID needed, returns column headers and size estimates without fetching data.
 
 ### Parameter reference (Python API)
 
@@ -174,7 +174,7 @@ When `deriva_ml_denormalize_dataset` (or `split_dataset`'s internal stratificati
 | `split_description` | `str` | `""` | Description for the parent Split dataset |
 | `dry_run` | `bool` | `False` | Preview without modifying catalog (returns `SplitResult` with `(dry run)` RIDs) |
 
-**Source / split lineage:** `split_dataset` does NOT create a `Dataset_Dataset` edge from source to Split. The source is recorded as an *input of `execution`* via `Execution.add_input_dataset`; the Split + its Training/Testing/Validation children are recorded as outputs of the same execution. Reach the source from a Split child via `child.producing_execution.list_input_datasets()`. See `concepts.md` § "Source recorded as execution input, not as `Dataset_Dataset` parent" for the full rationale.
+**Source / split lineage:** `split_dataset` does NOT create a `Dataset_Dataset` edge from source to Split. The source is recorded as an *input of `execution`* via `Execution.add_input_dataset`; the Split + its Training/Testing/Validation children are recorded as outputs of the same execution. Reach the source from a Split child via `child.producing_execution.list_input_datasets()`. See `structure-and-splits.md` for the full rationale.
 
 **`Split_Partition` auto-tag:** Every child of the Split (Training / Testing / Validation) is auto-tagged with `Split_Partition` on the origin axis, in addition to its role tag and any caller-supplied `*_types`. The discriminator that lets you distinguish a partition-role `Training` dataset from a corpus-role `Training` dataset via a 1-hop filter.
 
@@ -186,11 +186,11 @@ To **list relations** of a dataset (both children and parents in one call), call
 
 To **list members across nested datasets**, call `deriva_ml_list_dataset_members(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", recurse=true)` (optionally with `limit`).
 
-To create parent-child relationships manually (e.g., grouping pre-existing datasets without running a split), use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members of the parent's `Dataset` element type. See `concepts.md` for background on nested dataset hierarchies.
+To create parent-child relationships manually (e.g., grouping pre-existing datasets without running a split), use `deriva_ml_add_dataset_members(parent_rid, members={"Dataset": [child_rid]})` — children are members of the parent's `Dataset` element type. See `structure-and-splits.md` for background on nested dataset hierarchies.
 
 ## Subsampling Datasets
 
-`subsample(ml, source_dataset_rid, exe, size=N, ...)` is the peer primitive to `split_dataset` — same script-based pattern, same execution-input lineage shape, but produces a **single output** that's a stratified random subset of the source's members. Mirrors sklearn's `resample(stratify=y, replace=False, n_samples=N)` semantics. See `concepts.md` § "Subsampling Datasets" for when to reach for `subsample` vs `split_dataset`.
+`subsample(ml, source_dataset_rid, exe, size=N, ...)` is the peer primitive to `split_dataset` — same script-based pattern, same execution-input lineage shape, but produces a **single output** that's a stratified random subset of the source's members. Mirrors sklearn's `resample(stratify=y, replace=False, n_samples=N)` semantics. See `structure-and-splits.md` § "Subsampling Datasets" for when to reach for `subsample` vs `split_dataset`.
 
 ### Script pattern (same shape as `split_dataset`)
 
@@ -198,7 +198,7 @@ The script body adds these steps on top of the Base Template (see `generate-scri
 
 1. **Connect.** `ml = DerivaML(hostname=args.hostname, catalog_id=args.catalog_id)`.
 2. **Ensure vocabulary terms.** Both `Subsample` and any other `Dataset_Type` terms the script references — `_ensure_dataset_types` runs idempotently inside `subsample`, but tags you pass via `dataset_types=` must exist.
-3. **Register a workflow.** `ml.create_workflow(name="…", workflow_type="Data Management", description="…")`.
+3. **Register a workflow.** `ml.create_workflow(name="…", workflow_type="Dataset_Management", description="…")`.
 4. **Open an execution.** `with ml.create_execution(ExecutionConfiguration(workflow=workflow, description="…")) as exe:`.
 5. **Call `subsample(ml, source_rid, exe, size=, ...)`** for each subsample. Reuse the same `exe` across related subsamples so the lineage stays coherent.
 6. **Commit.** `exe.commit_output_assets(clean_folder=True)` after the `with` block.
@@ -257,19 +257,19 @@ Datasets are at one of two version states at any moment:
 - **Released** (`0.4.0`) — frozen snapshot, citable, reproducible.
 - **Dev** (`0.4.0.post1.dev3`) — mutable working state. PEP 440 dev-release suffix marks "drift since the last release"; cite URLs resolve to the live catalog.
 
-`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, and the Python `split_dataset` API all flip the affected dataset to a dev label (creating `.dev1` if no dev row exists, advancing `.devN` if one is already present). The returned `new_version` is a dev label.
+`deriva_ml_add_dataset_members`, `deriva_ml_delete_dataset_members`, flip the dataset they change to a dev label; `split_dataset` and `subsample` leave their source untouched and create outputs that end on a dev label (creating `.dev1` if no dev row exists, advancing `.devN` if one is already present). The returned `new_version` is a dev label.
 
 To mint a **released** version (citable, reproducible), call `deriva_ml_release_dataset` with `hostname`, `catalog_id`, `dataset_rid`. Optionally specify `bump` (`"major"`, `"minor"`, or `"patch"`; default `"minor"`), `description` (release notes), and `execution_rid` (optional execution to attribute the release to).
 
 The release tool errors if the dataset has no dev row to promote — every release must come from a real working state. To mint a release with no actual change (e.g., to attach release notes), use the Python API's `dataset.mark_dev(description)` first to declare a dev period, then `deriva_ml_release_dataset` to promote it.
 
-See the versioning section of `concepts.md` for full rules and the pre-experiment checklist.
+See `versioning.md` for full rules and the pre-experiment checklist.
 
 ## Downloading
 
 To **preview** what a bag will contain (size + manifest), call `deriva_ml_bag_info(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", version="1.0.0")`.
 
-For downloading, preparing, and restructuring dataset data for ML training, see the `ml-data-engineering` skill. For details on bag contents, FK traversal, and timeout handling, see `bags.md`. For diagnosing missing data, see the `debug-bag-contents` skill.
+The download recipe, bag contents, FK traversal, and timeouts are in `bags.md`. Turning a bag into training data is `/deriva-ml:ml-data-engineering`; diagnosing missing data is `/deriva-ml:debug-bag-contents` †.
 
 ## Provenance
 
@@ -285,7 +285,7 @@ To find **which executions labeled a dataset's members**, use the Python API `ml
 
 ## Deleting
 
-To **delete a dataset** (removes the container and member associations, not the member records themselves), call `deriva_ml_delete_dataset` with `hostname`, `catalog_id`, `dataset_rid`.
+To **delete a dataset** (a soft delete: sets its `Deleted` flag; members, versions, and links stay; a dataset nested in a parent must be removed from it first), call `deriva_ml_delete_dataset` with `hostname`, `catalog_id`, `dataset_rid`.
 
 To **delete a dataset and all its children**, add `recurse`: `true`.
 
@@ -305,7 +305,7 @@ ml = DerivaML(hostname, catalog_id)
 # the caller opens.
 workflow = ml.create_workflow(
     name="Image Dataset Curation",
-    workflow_type="Data Management",
+    workflow_type="Dataset_Management",
     description="Curate and split image datasets for training"
 )
 
@@ -335,7 +335,7 @@ with ml.create_execution(config) as exe:
     result = split_dataset(
         ml, dataset.dataset_rid, exe,
         test_size=0.15, val_size=0.15,
-        stratify_by_column="Image_Classification_Image_Class",
+        stratify_by_column="Image_Classification.Image_Class",
         stratify_missing="drop",  # exclude unlabeled images
         include_tables=["Image", "Image_Classification"],
         seed=42, dry_run=True
@@ -349,7 +349,7 @@ with ml.create_execution(config) as exe:
     result = split_dataset(
         ml, dataset.dataset_rid, exe,
         test_size=0.15, val_size=0.15,
-        stratify_by_column="Image_Classification_Image_Class",
+        stratify_by_column="Image_Classification.Image_Class",
         stratify_missing="drop",
         include_tables=["Image", "Image_Classification"],
         training_types=["Labeled"],
@@ -370,7 +370,7 @@ Use this when creating the **first dataset** from records already in the catalog
 
 1. **Register element types** (via MCP — idempotent, one-time setup):
    ```
-   deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", element_table="Image")
+   deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", table_name="Image")
    ```
 
 2. **Generate a standalone script** in `src/scripts/` following the Base Script Template:
@@ -412,13 +412,13 @@ deriva_ml_update_dataset(hostname="data.example.org", catalog_id="1",
     dataset_rid="...", description="Updated description")
 ```
 
-For large member lists, always pass `members` as a `{table: [rids]}` dict (the typed form) instead of a flat list to avoid expensive per-RID table resolution.
+Pass `members` as a `{table: [rids]}` dict (the typed form) rather than a flat list, to avoid per-RID table resolution. This path is for a few known RIDs; adding many members, or members chosen by a query, belongs in a committed script that calls `dataset.add_dataset_members(...)` inside an execution, so the change links to the code that chose them.
 
-**Creating a new dataset, by contrast, always goes through a bundled script template** (see the previous section) — `deriva_ml_create_dataset` exists as an MCP tool, but using it without an execution context manager produces a dataset with no workflow provenance. Reach for it only inside an `exe.create_dataset(...)` call from a committed script.
+**Creating a populated dataset, by contrast, goes through a committed script** that calls `exe.create_dataset(...)` inside an execution, so the dataset links to the code that built it. The MCP tool `deriva_ml_create_dataset` is for the trivial cases only: an empty container, or a parent that will just group existing datasets.
 
 ## Why render splits explicitly in the catalog
 
-**Always create explicit split datasets** (Training, Validation, Testing) and store them as children of the source dataset in the catalog. Don't compute splits on the fly each time you run an experiment.
+**Always create explicit split datasets** (Training, Validation, Testing) in the catalog. `split_dataset` stores them under a new `Split` parent; that hierarchy links to the source through the execution that consumed it, not as a child of the source. Don't compute splits on the fly each time you run an experiment.
 
 | Approach | Problem |
 |----------|---------|

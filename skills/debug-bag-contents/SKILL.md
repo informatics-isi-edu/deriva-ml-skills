@@ -38,7 +38,7 @@ Dataset members are the explicit records that belong to a dataset. If data is mi
 Every table that contributes members to a dataset must be registered as a **dataset element type**. If a table is not registered, its members will be silently excluded from the bag.
 
 - **Tool**: `deriva_ml_list_dataset_element_types(hostname="data.example.org", catalog_id="1")` to see which tables are registered as element types in the catalog.
-- **Tool**: `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", element_table="<table>")` to register a table as an element type if it is missing.
+- **Tool**: `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", table_name="<table>")` to register a table as an element type if it is missing.
 - Common tables that should be registered: `Subject`, `Observation`, `Image` (or other asset tables), and any custom tables whose records appear as dataset members.
 
 ---

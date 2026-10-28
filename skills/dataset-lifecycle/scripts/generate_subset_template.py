@@ -151,6 +151,11 @@ def {{FUNCTION_NAME}}(
             for rid in source_dataset_rids:
                 dataset = ml_instance.lookup_dataset(rid)
                 version = source_version or dataset.current_version
+                if not source_version and dataset.current_version.is_devrelease:
+                    raise ValueError(
+                        f"Source {rid} is at dev version {version}; release it and pass "
+                        "source_version so the subset records a reproducible input."
+                    )
                 print(f"Source: {dataset.description} (RID: {rid}, version: {version})")
 
                 bag = dataset.download_dataset_bag(

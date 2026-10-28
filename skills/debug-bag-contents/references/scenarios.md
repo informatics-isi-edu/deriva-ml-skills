@@ -138,7 +138,7 @@ Add records from intermediate tables as direct dataset members rather than relyi
 **Problem**: Records from a table are added as members but the table is not a registered element type, so those records are ignored during export.
 
 **Fix**:
-- **Tool**: `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", element_table="<table>")` to register the table.
+- **Tool**: `deriva_ml_add_dataset_element_type(hostname="data.example.org", catalog_id="1", table_name="<table>")` to register the table.
 - Then re-export the bag.
 
 ### Stale dataset version
@@ -146,7 +146,7 @@ Add records from intermediate tables as direct dataset members rather than relyi
 
 **Fix**:
 - **Tool (dev/release model)**: any membership change since the last release will have flipped `current_version` to a dev label (`<last_release>.post1.devN`). Call `deriva_ml_release_dataset(hostname="data.example.org", catalog_id="1", dataset_rid="<rid>", bump="minor", description="...")` to promote the dev period to a new released version that captures current membership.
-- Re-export the bag after releasing — `download_dataset_bag` does not yet accept dev labels (tracked at deriva-ml#89), so the release step is required before the download.
+- Re-export the bag after releasing. A current dev label also downloads, but it reflects the live catalog rather than a snapshot, so release first for any bag you'll train on or compare.
 
 ### Records exist but FK not established
 **Problem**: Related records exist in the catalog but are not linked via FK to the member records.
